@@ -1,0 +1,23 @@
+version: '3.8'
+
+services:
+  backend:
+    image: node:20
+    working_dir: /app
+    volumes:
+      - ./backend:/app
+    ports:
+      - "5001:5001"
+    command: npm run dev
+    environment:
+      - DATABASE_URL=file:./dev.db
+      - PORT=5001
+
+  frontend:
+    image: node:20
+    working_dir: /app
+    volumes:
+      - ./frontend:/app
+    ports:
+      - "5173:5173"
+    command: npm run dev

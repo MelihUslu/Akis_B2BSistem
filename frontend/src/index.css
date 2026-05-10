@@ -1,0 +1,88 @@
+@import "tailwindcss";
+
+@font-face {
+  font-family: 'Inter';
+  src: url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&display=swap');
+}
+
+:root {
+  --primary: #6366f1; /* Indigo */
+  --sidebar-bg: #0f172a; /* Slate 900 */
+  --sidebar-active: #1e293b;
+  --bg-main: #f1f5f9;
+  --card-bg: #ffffff;
+  --text-main: #0f172a;
+}
+
+@theme {
+  --font-inter: "Inter", sans-serif;
+  --color-brand-indigo: #6366f1;
+}
+
+body {
+  font-family: var(--font-inter);
+  background-color: var(--sidebar-bg); /* Body background matches sidebar for seamless look */
+  color: var(--text-main);
+  -webkit-font-smoothing: antialiased;
+}
+
+/* Custom Utilities */
+@utility glass-card {
+  background: rgba(255, 255, 255, 0.8);
+  backdrop-filter: blur(12px);
+  border: 1px solid rgba(255, 255, 255, 0.3);
+}
+
+@utility custom-scrollbar {
+  &::-webkit-scrollbar {
+    width: 6px;
+  }
+  &::-webkit-scrollbar-track {
+    background: transparent;
+  }
+  &::-webkit-scrollbar-thumb {
+    background: #e2e8f0;
+    border-radius: 10px;
+    &:hover {
+      background: #cbd5e1;
+    }
+  }
+}
+
+/* AI Tools Style Design System */
+@layer components {
+  .premium-input {
+    @apply w-full bg-gray-50 border-none rounded-2xl px-5 py-3 text-sm font-semibold text-gray-900 placeholder:text-gray-300 focus:ring-4 focus:ring-indigo-100 transition-all outline-none;
+  }
+  
+  .premium-label {
+    @apply block text-[10px] font-black text-gray-400 uppercase tracking-widest mb-2 ml-1;
+  }
+
+  .btn-gradient {
+    @apply px-6 py-3.5 bg-gradient-to-br from-indigo-500 to-purple-600 text-white rounded-2xl font-black text-[10px] uppercase tracking-widest shadow-xl shadow-indigo-500/20 hover:shadow-indigo-500/40 hover:-translate-y-0.5 transition-all active:scale-95 flex items-center justify-center;
+  }
+
+  .card-premium {
+    @apply bg-white rounded-[2rem] border border-gray-50 shadow-xl shadow-gray-200/40 overflow-hidden;
+  }
+
+  .pill-badge {
+    @apply px-3 py-1 rounded-full text-[9px] font-black uppercase tracking-wider;
+  }
+}
+
+/* Slide Over Animations */
+@keyframes slide-in-right {
+  from { transform: translateX(100%); }
+  to { transform: translateX(0); }
+}
+
+.animate-slide-in {
+  animation: slide-in-right 0.4s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+/* Layout Wrappers */
+.main-content-sheet {
+  @apply bg-white rounded-l-[3rem] shadow-2xl;
+}

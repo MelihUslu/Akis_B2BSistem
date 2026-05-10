@@ -1,0 +1,1 @@
+Kategori modülünde resim url yerine dosya yükleme yap. React tarafında dosya yükleme formunu ve upload API çağrısını yap. 

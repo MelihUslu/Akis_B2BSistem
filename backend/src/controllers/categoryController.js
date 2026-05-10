@@ -1,0 +1,103 @@
+import prisma from '../utils/prisma.js';
+
+export const getCategories = async (req, res) => {
+  try {
+    const { isAdmin = false, isFlat = false } = req.query;
+    console.log('Kategoriler isteniyor. Query:', { isAdmin, isFlat });
+
+    const categories = await prisma.category.findMany({
+      where: (isAdmin === 'true' || isAdmin === true) ? {} : { isActive: true },
+      orderBy: { sortOrder: 'asc' }
+    });
+
+    console.log(`Veritabanından ${categories.length} adet kategori bulundu.`);
+
+    if (isFlat === 'true' || isFlat === true) {
+      const flatList = categories.map(cat => {
+        let fullName = cat.name;
+        const findParent = (pid) => categories.find(c => c.id === pid);
+        
+        let parent = findParent(cat.parentId);
+        let depth = 0;
+        while (parent && depth < 10) { // Infinite loop guard
+          fullName = `${parent.name} > ${fullName}`;
+          parent = findParent(parent.parentId);
+          depth++;
+        }
+        
+        return { ...cat, name: fullName };
+      });
+
+      flatList.sort((a, b) => a.name.localeCompare(b.name));
+      return res.json(flatList);
+    }
+
+    // Tree yapısı için children include ederek tekrar çek (veya manuel oluştur)
+    const categoriesWithChildren = await prisma.category.findMany({
+      where: (isAdmin === 'true' || isAdmin === true) ? {} : { isActive: true },
+      include: { children: true },
+      orderBy: { sortOrder: 'asc' }
+    });
+
+    const tree = categoriesWithChildren.filter(c => c.parentId === null);
+    res.json(tree);
+  } catch (error) {
+    console.error('Kategori listeleme hatası:', error);
+    res.status(500).json({ message: 'Kategoriler listelenirken hata oluştu.' });
+  }
+};
+
+export const createCategory = async (req, res) => {
+  try {
+    const { name, parentId, sortOrder, isActive, imageUrl } = req.body;
+    const category = await prisma.category.create({
+      data: {
+        name,
+        parentId: parentId ? parseInt(parentId) : null,
+        sortOrder: parseInt(sortOrder) || 0,
+        isActive: isActive !== undefined ? isActive : true,
+        imageUrl
+      }
+    });
+    res.status(201).json(category);
+  } catch (error) {
+    res.status(400).json({ message: 'Kategori oluşturulamadı.' });
+  }
+};
+
+export const updateCategory = async (req, res) => {
+  try {
+    const { id } = req.params;
+    const { name, parentId, sortOrder, isActive, imageUrl } = req.body;
+    
+    const category = await prisma.category.update({
+      where: { id: parseInt(id) },
+      data: {
+        name,
+        parentId: parentId ? parseInt(parentId) : null,
+        sortOrder: parseInt(sortOrder) || 0,
+        isActive,
+        imageUrl
+      }
+    });
+    res.json(category);
+  } catch (error) {
+    res.status(400).json({ message: 'Güncelleme başarısız.' });
+  }
+};
+
+export const deleteCategory = async (req, res) => {
+  try {
+    const { id } = req.params;
+    // Çocukları var mı kontrol et
+    const childrenCount = await prisma.category.count({ where: { parentId: parseInt(id) } });
+    if (childrenCount > 0) {
+      return res.status(400).json({ message: 'Alt kategorisi olan bir kategori silinemez.' });
+    }
+    
+    await prisma.category.delete({ where: { id: parseInt(id) } });
+    res.json({ message: 'Kategori silindi.' });
+  } catch (error) {
+    res.status(500).json({ message: 'Silme işlemi başarısız.' });
+  }
+};

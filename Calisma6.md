@@ -1,0 +1,1 @@
+Ürün Yönetim kısmında varyant ekleme kısmını yap. Medya kısmında ürü upload etme kısmı ekle. Uygun yere barkod no kısmı ekle. Burada tüm inputların yanıan icon ekle görselleştirmeyi arttır. 
