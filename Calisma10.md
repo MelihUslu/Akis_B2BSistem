@@ -1,0 +1,1 @@
+Projede sayfalarda açılan popupları sağdan kayan şekilde değil ortada yap. Biraz daha içerikleri minimal yap. Okunaklı ve kullanımı hızlı olsun. 

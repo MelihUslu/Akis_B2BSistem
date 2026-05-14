@@ -1,0 +1,1 @@
+Kategroi ve ürün sayfasında sürükle bırak özelliğini aktif et. Kategoriler ve ürünler kendi aralarında sürükleyip yer değiştirebilsin. Ürünlerde açıklama alanı ekle
