@@ -12,6 +12,7 @@ import { useAuth } from '../context/AuthContext';
 
 const BayiSidebar = () => {
   const { logout } = useAuth();
+  const navigate = useNavigate();
   const location = useLocation();
 
   const menuItems = [
@@ -20,6 +21,11 @@ const BayiSidebar = () => {
     { name: 'Finansal Durum', path: '/bayi/finance', icon: CreditCard },
     { name: 'Profilim', path: '/bayi/profile', icon: UserIcon },
   ];
+
+  const handleLogout = () => {
+    logout();
+    navigate('/login');
+  };
 
   return (
     <aside className="w-64 bg-[#0f172a] flex flex-col h-screen sticky top-0 py-8">
@@ -63,7 +69,7 @@ const BayiSidebar = () => {
 
       <div className="px-4 border-t border-white/5 pt-4">
         <button
-          onClick={logout}
+          onClick={handleLogout}
           className="w-full flex items-center px-5 py-4 rounded-xl text-sm font-bold text-red-400 hover:bg-red-500/10 transition-all group"
         >
           <LogOut className="h-5 w-5 mr-4 text-red-500/60 group-hover:text-red-400" />

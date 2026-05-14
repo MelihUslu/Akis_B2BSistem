@@ -1,5 +1,6 @@
 import React from 'react';
-import { NavLink, useLocation } from 'react-router-dom';
+import { NavLink, useLocation, useNavigate } from 'react-router-dom';
+import { useAuth } from '../context/AuthContext';
 import { 
   LayoutDashboard, Package, Users, ShoppingCart, 
   CreditCard, Settings, LogOut, Box, UserCheck
@@ -7,6 +8,13 @@ import {
 
 const Sidebar = () => {
   const location = useLocation();
+  const navigate = useNavigate();
+  const { logout } = useAuth();
+
+  const handleLogout = () => {
+    logout();
+    navigate('/login');
+  };
 
   const menuItems = [
     { name: 'Ana Sayfa', path: '/admin', icon: LayoutDashboard },
@@ -64,7 +72,10 @@ const Sidebar = () => {
           <Settings className="h-5 w-5 mr-4 text-gray-500 group-hover:text-gray-300" />
           Ayarlar
         </NavLink>
-        <button className="w-full flex items-center px-5 py-4 rounded-xl text-sm font-bold text-red-400 hover:bg-red-500/10 transition-all group">
+        <button 
+          onClick={handleLogout}
+          className="w-full flex items-center px-5 py-4 rounded-xl text-sm font-bold text-red-400 hover:bg-red-500/10 transition-all group"
+        >
           <LogOut className="h-5 w-5 mr-4 text-red-500/60 group-hover:text-red-400" />
           Çıkış Yap
         </button>
