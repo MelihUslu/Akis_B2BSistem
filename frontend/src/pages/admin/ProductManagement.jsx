@@ -309,27 +309,27 @@ const ProductManagement = () => {
       </div>
 
       <div className="card-premium">
-        <table className="w-full text-left">
-          <thead className="bg-gray-50/50 border-b border-gray-100">
-            <tr>
-              <th className="px-10 py-6 text-[11px] font-black text-gray-400 uppercase tracking-[0.3em]">Ürün Detayı</th>
-              <th className="px-10 py-6 text-[11px] font-black text-gray-400 uppercase tracking-[0.3em]">Kategori</th>
-              <th className="px-10 py-6 text-[11px] font-black text-gray-400 uppercase tracking-[0.3em]">Fiyat Durumu</th>
-              <th className="px-10 py-6 text-[11px] font-black text-gray-400 uppercase tracking-[0.3em]">Stok</th>
-              <th className="px-10 py-6 text-[11px] font-black text-gray-400 uppercase tracking-[0.3em] text-right">İşlem</th>
-            </tr>
-          </thead>
-          <tbody className="divide-y divide-gray-50">
-            {isLoading ? (
-              <tr><td colSpan="5" className="text-center py-32 text-gray-400 font-bold uppercase text-xs tracking-widest">Yükleniyor...</td></tr>
-            ) : products.length === 0 ? (
-              <tr><td colSpan="5" className="text-center py-32 text-gray-400 font-bold uppercase text-xs tracking-widest">Ürün bulunamadı.</td></tr>
-            ) : (
-              <DndContext 
-                sensors={sensors}
-                collisionDetection={closestCenter}
-                onDragEnd={handleDragEnd}
-              >
+        <DndContext 
+          sensors={sensors}
+          collisionDetection={closestCenter}
+          onDragEnd={handleDragEnd}
+        >
+          <table className="w-full text-left">
+            <thead className="bg-gray-50/50 border-b border-gray-100">
+              <tr>
+                <th className="px-10 py-6 text-[11px] font-black text-gray-400 uppercase tracking-[0.3em]">Ürün Detayı</th>
+                <th className="px-10 py-6 text-[11px] font-black text-gray-400 uppercase tracking-[0.3em]">Kategori</th>
+                <th className="px-10 py-6 text-[11px] font-black text-gray-400 uppercase tracking-[0.3em]">Fiyat Durumu</th>
+                <th className="px-10 py-6 text-[11px] font-black text-gray-400 uppercase tracking-[0.3em]">Stok</th>
+                <th className="px-10 py-6 text-[11px] font-black text-gray-400 uppercase tracking-[0.3em] text-right">İşlem</th>
+              </tr>
+            </thead>
+            <tbody className="divide-y divide-gray-50">
+              {isLoading ? (
+                <tr><td colSpan="5" className="text-center py-32 text-gray-400 font-bold uppercase text-xs tracking-widest">Yükleniyor...</td></tr>
+              ) : products.length === 0 ? (
+                <tr><td colSpan="5" className="text-center py-32 text-gray-400 font-bold uppercase text-xs tracking-widest">Ürün bulunamadı.</td></tr>
+              ) : (
                 <SortableContext 
                   items={products.map(p => p.id)}
                   strategy={verticalListSortingStrategy}
@@ -353,10 +353,10 @@ const ProductManagement = () => {
                     />
                   ))}
                 </SortableContext>
-              </DndContext>
-            )}
-          </tbody>
-        </table>
+              )}
+            </tbody>
+          </table>
+        </DndContext>
         <div className="p-8 bg-gray-50/50 border-t border-gray-100 flex justify-between items-center">
           <div className="flex items-center space-x-3 text-gray-400">
             <Package className="h-4 w-4" />

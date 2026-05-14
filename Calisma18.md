@@ -1,3 +1,7 @@
+
+http://localhost:5173/admin/products bulinkte aşağıdaki hataları consoleye alıyorum. Bunları çöz. Ama sayfa düzgün çalışıyor bunlar console hatalar. 
+
+
 react-dom_client.js?v=922e8d02:14338 Download the React DevTools for a better development experience: https://react.dev/link/react-devtools
 products:1 Failed to decode downloaded font: https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&display=swap
 products:1 OTS parsing error: invalid sfntVersion: 791289955
