@@ -1,0 +1,3 @@
+Ben dockerı build aldıgımda bir kereye mahsus tüm migration + seed dosyaları veritbanına yüklenmeli. Kullanıcı adı ve şifre .env dosyasından çekilmeli. ve databasede ilgili yere yazılmalı. Ve ben yeni migration dosyaları ekledigimde ve seed dosyası eklediğimde mevcut olan migration ve seed dosyaları etkilenmemeli. Yani databasede her zaman yeni migration ve seed dosyaları eklenmeli. Şİmdi bu mimariyi uygula ve ben login olucam. 
+
+http://localhost:5173/login bu projeden bahsediyorum. Burada bayi tarafından bahsediyorum. 

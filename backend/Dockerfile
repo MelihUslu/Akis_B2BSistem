@@ -9,9 +9,13 @@ RUN npm install
 # Copy the rest of the code
 COPY . .
 
+# Make entrypoint executable
+RUN chmod +x entrypoint.sh
+
 # Generate Prisma client
 RUN npx prisma generate
 
 EXPOSE 5001
 
+ENTRYPOINT ["./entrypoint.sh"]
 CMD ["npm", "run", "dev"]

@@ -117,6 +117,7 @@ model Order {
   companyId       Int
   company         Company  @relation(fields: [companyId], references: [id])
   totalAmount     Float
+  paymentMethod   String?  // CURRENT_ACCOUNT, WIRE_TRANSFER
   status          String   @default("PENDING") // PENDING, PARTIAL_APPROVED, APPROVED, SHIPPED, COMPLETED, CANCELLED
   trackingNumber  String?  // Kargo Takip No
   createdAt       DateTime @default(now())
