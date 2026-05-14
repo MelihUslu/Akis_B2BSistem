@@ -10,6 +10,9 @@ import {
 } from 'recharts';
 
 const AdminDashboardHome = () => {
+  const [selectedOrder, setSelectedOrder] = React.useState(null);
+  const [isModalOpen, setIsModalOpen] = React.useState(false);
+
   // Mock Data
   const salesData = [
     { name: 'Feb 21', orders: 40, revenue: 2400 },
@@ -48,8 +51,96 @@ const AdminDashboardHome = () => {
     { dealer: 'Uğur İnşaat', amount: '₺8,400', type: 'ÇEKİLEMEDİ', date: '10.05.2026', reason: 'Provizyon Hatası' },
   ];
 
+  const handleOrderClick = (order) => {
+    setSelectedOrder(order);
+    setIsModalOpen(true);
+  };
+
   return (
-    <div className="space-y-10 animate-in fade-in duration-700 pb-20">
+    <div className="space-y-10 animate-in fade-in duration-700 pb-20 relative">
+      {/* Order Detail Modal */}
+      {isModalOpen && selectedOrder && (
+        <div className="fixed inset-0 z-[100] flex items-center justify-center p-6 animate-in fade-in zoom-in duration-300">
+          <div className="absolute inset-0 bg-slate-900/40 backdrop-blur-sm" onClick={() => setIsModalOpen(false)}></div>
+          <div className="bg-white w-full max-w-xl rounded-[2.5rem] shadow-2xl relative overflow-hidden border border-slate-100">
+            {/* Modal Header */}
+            <div className="p-8 border-b border-slate-50 flex justify-between items-center bg-slate-50/50">
+              <div className="flex items-center space-x-4">
+                <div className="w-12 h-12 bg-white rounded-2xl flex items-center justify-center shadow-sm border border-slate-100">
+                  <ShoppingCart className="h-6 w-6 text-indigo-600" />
+                </div>
+                <div>
+                  <h3 className="text-lg font-black text-slate-900 leading-tight">Sipariş Detayı</h3>
+                  <p className="text-xs font-bold text-slate-400 uppercase tracking-widest">{selectedOrder.id}</p>
+                </div>
+              </div>
+              <button 
+                onClick={() => setIsModalOpen(false)}
+                className="w-10 h-10 bg-white hover:bg-slate-50 rounded-xl flex items-center justify-center border border-slate-100 transition-colors shadow-sm"
+              >
+                <Plus className="h-5 w-5 text-slate-400 rotate-45" />
+              </button>
+            </div>
+
+            {/* Modal Body */}
+            <div className="p-8 space-y-8">
+              <div className="grid grid-cols-2 gap-6">
+                <div className="space-y-1">
+                  <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Bayi Bilgisi</span>
+                  <p className="text-sm font-bold text-slate-800">{selectedOrder.dealer}</p>
+                </div>
+                <div className="space-y-1 text-right">
+                  <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Zaman</span>
+                  <p className="text-sm font-bold text-slate-800">{selectedOrder.date}</p>
+                </div>
+              </div>
+
+              <div className="space-y-4">
+                <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Sipariş İçeriği</span>
+                <div className="bg-slate-50 rounded-2xl p-4 space-y-3">
+                  <div className="flex justify-between items-center text-xs font-bold text-slate-600 border-b border-slate-200/50 pb-2">
+                    <span>Ürün</span>
+                    <div className="flex space-x-8">
+                      <span>Adet</span>
+                      <span>Toplam</span>
+                    </div>
+                  </div>
+                  <div className="flex justify-between items-center text-xs">
+                    <span className="font-bold text-slate-800">Akis Pro Matkap G-20</span>
+                    <div className="flex space-x-10 text-slate-500 font-medium">
+                      <span>2</span>
+                      <span className="font-bold text-slate-900">₺4,500</span>
+                    </div>
+                  </div>
+                  <div className="flex justify-between items-center text-xs">
+                    <span className="font-bold text-slate-800">Darbeli Vidalama Seti</span>
+                    <div className="flex space-x-10 text-slate-500 font-medium">
+                      <span>1</span>
+                      <span className="font-bold text-slate-900">₺7,950</span>
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              <div className="flex justify-between items-center p-6 bg-indigo-50/50 rounded-2xl border border-indigo-100/50">
+                <span className="text-xs font-black text-indigo-600 uppercase tracking-widest">Toplam Tutar</span>
+                <span className="text-2xl font-black text-slate-900 tracking-tighter">{selectedOrder.amount}</span>
+              </div>
+            </div>
+
+            {/* Modal Footer */}
+            <div className="p-8 bg-slate-50/50 border-t border-slate-100 flex gap-4">
+              <button className="flex-1 py-4 bg-emerald-500 hover:bg-emerald-600 text-white font-black text-[11px] uppercase tracking-widest rounded-2xl shadow-lg shadow-emerald-500/20 transition-all active:scale-[0.98]">
+                Siparişi Onayla
+              </button>
+              <button className="px-8 py-4 bg-white hover:bg-red-50 text-red-500 font-black text-[11px] uppercase tracking-widest rounded-2xl border border-slate-200 transition-all">
+                Reddet
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
       {/* Header Section */}
       <div className="flex justify-between items-end">
         <div className="space-y-1">
@@ -156,32 +247,65 @@ const AdminDashboardHome = () => {
       {/* Orders & Stocks Section */}
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
         <div className="lg:col-span-2 card-premium p-8">
-          <div className="flex justify-between items-center mb-8">
+          <div className="flex justify-between items-center mb-10">
             <div className="flex items-center space-x-3">
-              <div className="p-2 bg-pink-50 rounded-lg">
-                <Clock className="h-4 w-4 text-pink-500" />
+              <div className="p-2 bg-slate-50 rounded-lg">
+                <Clock className="h-4 w-4 text-slate-400" />
               </div>
-              <h3 className="text-base font-black text-gray-900 tracking-tight">Son Bekleyen Siparişler</h3>
+              <h3 className="text-base font-black text-slate-900 tracking-tight">Son Bekleyen Siparişler</h3>
             </div>
+            <button className="text-[10px] font-black text-indigo-600 uppercase tracking-widest hover:underline">Hepsini Gör</button>
           </div>
-          <div className="space-y-4">
-             {recentOrders.map((order) => (
-               <div key={order.id} className="flex items-center justify-between p-4 bg-gray-50/50 hover:bg-white hover:shadow-xl rounded-[1.5rem] transition-all border border-transparent hover:border-gray-100 cursor-pointer">
-                  <div className="flex items-center space-x-4">
-                     <div className="w-10 h-10 bg-white rounded-xl flex items-center justify-center border border-gray-100 shadow-sm">
-                        <ShoppingCart className="h-4 w-4 text-pink-500" />
-                     </div>
-                     <div>
-                        <p className="text-xs font-black text-gray-900 mb-0.5">{order.dealer}</p>
-                        <span className="text-[9px] font-black text-gray-400 uppercase tracking-widest">{order.date}</span>
-                     </div>
-                  </div>
-                  <div className="text-right">
-                     <p className="text-xs font-black text-gray-900 mb-0.5">{order.amount}</p>
-                     <span className="pill-badge pill-orange text-[7px]">ONAY BEKLİYOR</span>
-                  </div>
-               </div>
-             ))}
+          
+          <div className="w-full overflow-x-auto">
+            <table className="w-full">
+              <thead>
+                <tr className="text-left border-b border-slate-50">
+                  <th className="pb-4 text-[10px] font-black text-slate-400 uppercase tracking-widest px-2">Bayi Adı</th>
+                  <th className="pb-4 text-[10px] font-black text-slate-400 uppercase tracking-widest px-2 text-center">Zaman</th>
+                  <th className="pb-4 text-[10px] font-black text-slate-400 uppercase tracking-widest px-2 text-center">Tutar</th>
+                  <th className="pb-4 text-[10px] font-black text-slate-400 uppercase tracking-widest px-2 text-right">Durum</th>
+                </tr>
+              </thead>
+              <tbody className="divide-y divide-slate-50/50">
+                {recentOrders.map((order, idx) => (
+                  <tr 
+                    key={order.id} 
+                    onClick={() => handleOrderClick(order)}
+                    className="group hover:bg-slate-50/50 transition-all cursor-pointer"
+                  >
+                    <td className="py-5 px-2">
+                      <div className="flex items-center space-x-3">
+                        <div className={`w-8 h-8 rounded-full flex items-center justify-center text-[10px] font-black text-white shadow-sm ${
+                          idx === 0 ? 'bg-orange-400' : idx === 1 ? 'bg-indigo-400' : 'bg-emerald-400'
+                        }`}>
+                          {order.dealer.substring(0, 1)}
+                        </div>
+                        <span className="text-xs font-bold text-slate-700">{order.dealer}</span>
+                      </div>
+                    </td>
+                    <td className="py-5 px-2 text-center">
+                      <span className="text-xs font-medium text-slate-500">{order.date}</span>
+                    </td>
+                    <td className="py-5 px-2 text-center">
+                      <span className="text-xs font-black text-slate-900">{order.amount}</span>
+                    </td>
+                    <td className="py-5 px-2 text-right">
+                      <div className="flex items-center justify-end space-x-2">
+                        <span className={`text-[10px] font-bold uppercase tracking-wider ${
+                          order.status === 'PENDING' ? 'text-orange-500' : 'text-emerald-500'
+                        }`}>
+                          {order.status === 'PENDING' ? 'Beklemede' : 'Başarılı'}
+                        </span>
+                        <div className={`w-2 h-2 rounded-full ${
+                          order.status === 'PENDING' ? 'bg-orange-500' : 'bg-emerald-500'
+                        }`}></div>
+                      </div>
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
           </div>
         </div>
 
@@ -207,7 +331,6 @@ const AdminDashboardHome = () => {
         </div>
       </div>
 
-      {/* NEW SECTION: Pending Payments & Uncollected (Bakiye Sorunları) */}
       <div className="card-premium p-8">
         <div className="flex justify-between items-center mb-10">
           <div className="flex items-center space-x-3">

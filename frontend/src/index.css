@@ -83,3 +83,78 @@ body {
 .main-content-sheet {
   @apply bg-white rounded-l-[3rem] shadow-2xl;
 }
+
+/* Dark Mode Overrides */
+.dark-theme-wrapper {
+  color: white !important;
+  
+  /* Force text colors to be light */
+  .text-slate-900, .text-gray-900, .text-slate-800, .text-gray-800, .text-slate-700 {
+    color: #f1f5f9 !important;
+  }
+
+  .text-slate-400, .text-gray-400, .text-slate-500, .text-gray-500 {
+    color: #94a3b8 !important; /* Lighter slate for readability */
+  }
+
+  .card-premium {
+    @apply bg-slate-800/40 border-white/5 shadow-none backdrop-blur-md !important;
+  }
+
+  .premium-input {
+    @apply bg-slate-900 text-white placeholder:text-slate-600 focus:ring-indigo-500/10 !important;
+  }
+
+  h1, h2, h3, h4, h5, h6, p, b, strong {
+    color: #f1f5f9 !important;
+  }
+
+  span:not(.pill-badge), label, small {
+    color: #94a3b8 !important;
+  }
+
+  /* Background overrides */
+  .bg-white {
+    @apply bg-slate-800 !important;
+  }
+
+  .bg-gray-50, .bg-slate-50, .bg-slate-100, .bg-gray-100 {
+    @apply bg-slate-900/50 !important;
+  }
+
+  /* Border overrides */
+  .border-gray-50, .border-slate-50, .border-gray-100, .border-slate-100, .border-slate-200, .border-gray-200 {
+    @apply border-white/5 !important;
+  }
+
+  /* Table specific */
+  table {
+    @apply text-white !important;
+    thead th {
+      @apply text-slate-500 !important;
+    }
+    tr:hover {
+      @apply bg-white/5 !important;
+    }
+    td {
+      @apply border-white/5 !important;
+    }
+  }
+
+  /* Special Components */
+  .divide-slate-50, .divide-gray-50, .divide-slate-100 {
+    @apply divide-white/5 !important;
+  }
+
+  input, select, textarea {
+    @apply bg-slate-900 text-white border-white/5 !important;
+    &::placeholder {
+      @apply text-slate-600 !important;
+    }
+  }
+
+  /* Dashboard specific stats */
+  .shadow-indigo-500\/30, .shadow-emerald-400\/30, .shadow-pink-500\/30, .shadow-blue-500\/30 {
+    box-shadow: none !important;
+  }
+}
