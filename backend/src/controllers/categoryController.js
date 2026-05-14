@@ -101,3 +101,26 @@ export const deleteCategory = async (req, res) => {
     res.status(500).json({ message: 'Silme işlemi başarısız.' });
   }
 };
+
+export const reorderCategories = async (req, res) => {
+  try {
+    const { categories } = req.body; // Array of { id, sortOrder }
+
+    if (!Array.isArray(categories)) {
+      return res.status(400).json({ message: 'Geçersiz veri formatı.' });
+    }
+
+    const updates = categories.map(cat => 
+      prisma.category.update({
+        where: { id: parseInt(cat.id) },
+        data: { sortOrder: parseInt(cat.sortOrder) }
+      })
+    );
+
+    await prisma.$transaction(updates);
+    res.json({ message: 'Sıralama güncellendi.' });
+  } catch (error) {
+    console.error('Reorder error:', error);
+    res.status(500).json({ message: 'Sıralama güncellenirken hata oluştu.' });
+  }
+};

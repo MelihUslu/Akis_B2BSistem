@@ -1,5 +1,5 @@
 import React from 'react';
-import { NavLink, useNavigate } from 'react-router-dom';
+import { NavLink, useNavigate, useLocation } from 'react-router-dom';
 import { 
   ShoppingBag, 
   History, 
@@ -12,6 +12,7 @@ import { useAuth } from '../context/AuthContext';
 
 const BayiSidebar = () => {
   const { logout } = useAuth();
+  const location = useLocation();
 
   const menuItems = [
     { name: 'Ürün Kataloğu', path: '/bayi', icon: ShoppingBag },
@@ -21,10 +22,15 @@ const BayiSidebar = () => {
   ];
 
   return (
-    <div className="w-64 bg-white h-screen border-r border-gray-100 flex flex-col shadow-sm">
-      <div className="p-6">
-        <h1 className="text-2xl font-bold text-blue-600 tracking-tight">Akis B2B</h1>
-        <p className="text-[10px] font-bold text-gray-400 mt-1 uppercase tracking-widest">Bayi Paneli</p>
+    <aside className="w-64 bg-[#0f172a] flex flex-col h-screen sticky top-0 py-8">
+      {/* Logo Section */}
+      <div className="px-8 mb-10">
+        <div className="flex flex-col group cursor-pointer">
+          <span className="text-2xl font-black text-white tracking-tighter uppercase">
+            AKİS <span className="text-indigo-500">B2B</span>
+          </span>
+          <span className="text-[9px] font-black text-gray-500 uppercase tracking-[0.2em] mt-0.5">BAYİ PANELİ</span>
+        </div>
       </div>
       
       <nav className="flex-1 px-4 space-y-1">
@@ -33,33 +39,38 @@ const BayiSidebar = () => {
             key={item.path}
             to={item.path}
             end={item.path === '/bayi'}
-            className={({ isActive }) =>
-              `flex items-center justify-between px-4 py-3 text-sm font-medium rounded-xl transition-all duration-200 ${
-                isActive
-                  ? 'bg-blue-50 text-blue-600 shadow-sm'
-                  : 'text-gray-500 hover:bg-gray-50 hover:text-gray-700'
-              }`
-            }
+            className={({ isActive }) => `
+              flex items-center px-5 py-4 rounded-xl text-sm font-bold transition-all duration-300 group
+              ${isActive 
+                ? 'bg-indigo-600/10 text-indigo-400 border-l-2 border-indigo-400' 
+                : 'text-gray-400 hover:text-white hover:bg-white/5'}
+            `}
           >
-            <div className="flex items-center">
-              <item.icon className="h-5 w-5 mr-3" />
-              {item.name}
-            </div>
-            <ChevronRight className="h-4 w-4 opacity-0 group-hover:opacity-100" />
+            <item.icon className={`h-5 w-5 mr-4 transition-colors ${location.pathname === item.path || (location.pathname.startsWith('/bayi') && item.path === '/bayi' && location.pathname === '/bayi') ? 'text-indigo-400' : 'text-gray-500 group-hover:text-gray-300'}`} />
+            {item.name}
           </NavLink>
         ))}
       </nav>
 
-      <div className="p-4 border-t border-gray-50">
+      {/* Bottom Menu - Premium Upgrade Box style */}
+      <div className="px-6 mb-6">
+        <div className="bg-gradient-to-br from-indigo-600/20 to-purple-600/20 rounded-2xl p-5 border border-indigo-500/20">
+          <p className="text-[10px] font-black text-indigo-300 uppercase tracking-widest mb-1">DESTEK</p>
+          <p className="text-[11px] text-gray-400 leading-relaxed mb-3">Müşteri temsilcinizle hemen iletişime geçin.</p>
+          <button className="w-full py-2.5 bg-indigo-500 text-white text-[10px] font-black rounded-lg hover:bg-indigo-600 transition-colors">Mesaj Gönder</button>
+        </div>
+      </div>
+
+      <div className="px-4 border-t border-white/5 pt-4">
         <button
           onClick={logout}
-          className="flex items-center w-full px-4 py-3 text-sm font-medium text-red-500 rounded-xl hover:bg-red-50 transition-colors"
+          className="w-full flex items-center px-5 py-4 rounded-xl text-sm font-bold text-red-400 hover:bg-red-500/10 transition-all group"
         >
-          <LogOut className="h-5 w-5 mr-3" />
+          <LogOut className="h-5 w-5 mr-4 text-red-500/60 group-hover:text-red-400" />
           Çıkış Yap
         </button>
       </div>
-    </div>
+    </aside>
   );
 };
 

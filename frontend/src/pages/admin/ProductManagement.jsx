@@ -1,12 +1,108 @@
 import React, { useState, useEffect } from 'react';
 import axios from 'axios';
 import { 
+  DndContext, 
+  closestCenter,
+  KeyboardSensor,
+  PointerSensor,
+  useSensor,
+  useSensors,
+} from '@dnd-kit/core';
+import {
+  arrayMove,
+  SortableContext,
+  sortableKeyboardCoordinates,
+  verticalListSortingStrategy,
+  useSortable
+} from '@dnd-kit/sortable';
+import { CSS } from '@dnd-kit/utilities';
+import { 
   Package, Plus, Search, Filter, MoreVertical, 
   ChevronRight, LayoutGrid, List, FileDown, FileUp, 
   Edit3, Trash2, Eye, EyeOff, Save, X, ImageIcon, 
   DollarSign, Hash, Layers, Tag, Info, ListTree, BoxSelect,
-  Settings, Lock, Unlock, EyeClosed
+  Settings, Lock, Unlock, EyeClosed, GripVertical, FileText
 } from 'lucide-react';
+
+const SortableProductRow = ({ product, settings, onEdit, onView, onDelete }) => {
+  const {
+    attributes,
+    listeners,
+    setNodeRef,
+    transform,
+    transition,
+    isDragging
+  } = useSortable({ id: product.id });
+
+  const style = {
+    transform: CSS.Transform.toString(transform),
+    transition,
+    zIndex: isDragging ? 50 : 0,
+    opacity: isDragging ? 0.5 : 1
+  };
+
+  return (
+    <tr ref={setNodeRef} style={style} className="hover:bg-blue-50/30 transition-all group">
+      <td className="px-10 py-8">
+        <div className="flex items-center space-x-5">
+          <div {...attributes} {...listeners} className="p-2 text-gray-300 hover:text-gray-600 cursor-grab active:cursor-grabbing">
+            <GripVertical className="h-5 w-5" />
+          </div>
+          <div className="w-14 h-14 bg-white border border-gray-100 rounded-2xl flex items-center justify-center overflow-hidden shadow-sm group-hover:scale-110 transition-transform">
+            {product.images ? <img src={JSON.parse(product.images)[0]} className="w-full h-full object-cover" /> : <Package className="h-6 w-6 text-gray-200" />}
+          </div>
+          <div>
+            <div className="font-black text-gray-900 text-base tracking-tight">{product.name}</div>
+            <div className="text-[10px] font-black text-gray-300 mt-1 uppercase tracking-widest">SKU: {product.sku}</div>
+          </div>
+        </div>
+      </td>
+      <td className="px-10 py-8">
+        <div className="font-bold text-gray-700 text-xs">{product.category?.name || '-'}</div>
+      </td>
+      <td className="px-10 py-8">
+         <div className="flex items-center space-x-3">
+            <div className="text-sm font-black text-gray-900">{product.price.toLocaleString('tr-TR')} {product.currency}</div>
+            {(product.hidePrice || settings.global_hide_price === 'true') && (
+               <div className="bg-red-50 text-red-500 p-1.5 rounded-lg" title="Bayiye Gizli">
+                  <EyeOff className="h-3 w-3" />
+               </div>
+            )}
+         </div>
+         <div className="text-[9px] font-black text-gray-400 uppercase tracking-widest mt-1">
+            {product.hidePrice ? 'Ürün Özel Gizli' : settings.global_hide_price === 'true' ? 'Global Gizli' : 'Fiyat Açık'}
+         </div>
+      </td>
+      <td className="px-10 py-8">
+        <span className={`pill-badge ${product.stock > 10 ? 'pill-green' : 'pill-orange'}`}>
+          {product.stock} {product.unit}
+        </span>
+      </td>
+      <td className="px-10 py-8 text-right">
+        <div className="flex justify-end space-x-2">
+          <button 
+            onClick={() => onView(product)}
+            className="p-3 text-emerald-500 hover:bg-emerald-600 hover:text-white rounded-xl transition-all shadow-sm"
+          >
+            <Eye className="h-5 w-5" />
+          </button>
+          <button 
+            onClick={() => onEdit(product)}
+            className="p-3 text-blue-500 hover:bg-blue-600 hover:text-white rounded-xl transition-all shadow-sm"
+          >
+            <Edit3 className="h-5 w-5" />
+          </button>
+          <button 
+            onClick={() => onDelete(product.id)}
+            className="p-3 text-red-400 hover:bg-red-500 hover:text-white rounded-xl transition-all shadow-sm"
+          >
+            <Trash2 className="h-5 w-5" />
+          </button>
+        </div>
+      </td>
+    </tr>
+  );
+};
 
 const ProductManagement = () => {
   const [products, setProducts] = useState([]);
@@ -14,9 +110,17 @@ const ProductManagement = () => {
   const [settings, setSettings] = useState({});
   const [isLoading, setIsLoading] = useState(true);
   const [isDrawerOpen, setIsDrawerOpen] = useState(false);
+  const [isViewOpen, setIsViewOpen] = useState(false);
   const [selectedProduct, setSelectedProduct] = useState(null);
   const [search, setSearch] = useState('');
-  const [activeTab, setActiveTab] = useState('general'); // general, price, variants, media
+  const [activeTab, setActiveTab] = useState('general'); // general, price, description, media
+
+  const sensors = useSensors(
+    useSensor(PointerSensor),
+    useSensor(KeyboardSensor, {
+      coordinateGetter: sortableKeyboardCoordinates,
+    })
+  );
 
   const [formData, setFormData] = useState({
     name: '', sku: '', barcode: '', brand: '',
@@ -50,6 +154,29 @@ const ProductManagement = () => {
   useEffect(() => {
     fetchInitialData();
   }, [search]);
+
+  const handleDragEnd = async (event) => {
+    const { active, over } = event;
+    if (!over || active.id === over.id) return;
+
+    const oldIndex = products.findIndex(p => p.id === active.id);
+    const newIndex = products.findIndex(p => p.id === over.id);
+
+    const newProducts = arrayMove(products, oldIndex, newIndex);
+    setProducts(newProducts);
+
+    const reorderedProducts = newProducts.map((p, index) => ({
+      id: p.id,
+      sortOrder: index
+    }));
+
+    try {
+      await axios.post('http://localhost:5001/api/products/reorder', { products: reorderedProducts });
+    } catch (error) {
+      console.error('Reorder error:', error);
+      fetchInitialData();
+    }
+  };
 
   const handleGlobalSetting = async (key, value) => {
     try {
@@ -105,6 +232,16 @@ const ProductManagement = () => {
     }
   };
 
+  const deleteProduct = async (id) => {
+    if (!window.confirm('Bu ürünü silmek istediğinize emin misiniz? Bu işlem geri alınamaz.')) return;
+    try {
+      await axios.delete(`http://localhost:5001/api/products/${id}`);
+      await fetchInitialData();
+    } catch (error) {
+      alert(error.response?.data?.message || 'Silme işlemi başarısız');
+    }
+  };
+
   const addVariant = () => {
     setFormData(prev => ({
       ...prev,
@@ -122,7 +259,7 @@ const ProductManagement = () => {
             </div>
             <div>
               <h1 className="text-4xl font-black text-gray-900 tracking-tighter">Katalog Yönetimi</h1>
-              <p className="text-gray-400 text-sm font-semibold uppercase tracking-[0.3em] mt-1">Ürün & Envanter Kontrolü</p>
+              <p className="text-gray-400 text-sm font-semibold uppercase tracking-[0.3em] mt-1">Sürükle-Bırak Sıralama Aktif</p>
             </div>
           </div>
         </div>
@@ -156,7 +293,14 @@ const ProductManagement = () => {
             />
           </div>
           <button 
-            onClick={() => { setSelectedProduct(null); setFormData({ ...formData, hidePrice: false }); setIsDrawerOpen(true); }}
+            onClick={() => { setSelectedProduct(null); setFormData({
+              name: '', sku: '', barcode: '', brand: '',
+              price: 0, costPrice: 0, currency: 'TL', vatRate: 20,
+              stock: 0, unit: 'Adet', moq: 1, stepQuantity: 1,
+              shortDesc: '', longDesc: '', categoryId: '',
+              images: [], pdfUrl: '', videoUrl: '',
+              variants: [], hidePrice: false
+            }); setIsDrawerOpen(true); }}
             className="btn-gradient px-8 py-5"
           >
             <Plus className="mr-2 h-5 w-5" /> YENİ ÜRÜN
@@ -178,69 +322,123 @@ const ProductManagement = () => {
           <tbody className="divide-y divide-gray-50">
             {isLoading ? (
               <tr><td colSpan="5" className="text-center py-32 text-gray-400 font-bold uppercase text-xs tracking-widest">Yükleniyor...</td></tr>
-            ) : products.map((product) => (
-              <tr key={product.id} className="hover:bg-blue-50/30 transition-all group">
-                <td className="px-10 py-8">
-                  <div className="flex items-center space-x-5">
-                    <div className="w-14 h-14 bg-white border border-gray-100 rounded-2xl flex items-center justify-center overflow-hidden shadow-sm group-hover:scale-110 transition-transform">
-                      {product.images ? <img src={JSON.parse(product.images)[0]} className="w-full h-full object-cover" /> : <Package className="h-6 w-6 text-gray-200" />}
-                    </div>
-                    <div>
-                      <div className="font-black text-gray-900 text-base tracking-tight">{product.name}</div>
-                      <div className="text-[10px] font-black text-gray-300 mt-1 uppercase tracking-widest">SKU: {product.sku}</div>
-                    </div>
-                  </div>
-                </td>
-                <td className="px-10 py-8">
-                  <div className="font-bold text-gray-700 text-xs">{product.category?.name || '-'}</div>
-                </td>
-                <td className="px-10 py-8">
-                   <div className="flex items-center space-x-3">
-                      <div className="text-sm font-black text-gray-900">{product.price.toLocaleString('tr-TR')} {product.currency}</div>
-                      {(product.hidePrice || settings.global_hide_price === 'true') && (
-                         <div className="bg-red-50 text-red-500 p-1.5 rounded-lg" title="Bayiye Gizli">
-                            <EyeOff className="h-3 w-3" />
-                         </div>
-                      )}
-                   </div>
-                   <div className="text-[9px] font-black text-gray-400 uppercase tracking-widest mt-1">
-                      {product.hidePrice ? 'Ürün Özel Gizli' : settings.global_hide_price === 'true' ? 'Global Gizli' : 'Fiyat Açık'}
-                   </div>
-                </td>
-                <td className="px-10 py-8">
-                  <span className={`pill-badge ${product.stock > 10 ? 'pill-green' : 'pill-orange'}`}>
-                    {product.stock} {product.unit}
-                  </span>
-                </td>
-                <td className="px-10 py-8 text-right">
-                  <div className="flex justify-end space-x-2">
-                    <button 
-                      onClick={() => { 
-                        setSelectedProduct(product); 
+            ) : products.length === 0 ? (
+              <tr><td colSpan="5" className="text-center py-32 text-gray-400 font-bold uppercase text-xs tracking-widest">Ürün bulunamadı.</td></tr>
+            ) : (
+              <DndContext 
+                sensors={sensors}
+                collisionDetection={closestCenter}
+                onDragEnd={handleDragEnd}
+              >
+                <SortableContext 
+                  items={products.map(p => p.id)}
+                  strategy={verticalListSortingStrategy}
+                >
+                  {products.map((product) => (
+                    <SortableProductRow 
+                      key={product.id}
+                      product={product}
+                      settings={settings}
+                      onView={(p) => { setSelectedProduct(p); setIsViewOpen(true); }}
+                      onDelete={deleteProduct}
+                      onEdit={(p) => {
+                        setSelectedProduct(p); 
                         setFormData({
-                          ...product, 
-                          images: JSON.parse(product.images || '[]'),
-                          hidePrice: product.hidePrice || false
+                          ...p, 
+                          images: JSON.parse(p.images || '[]'),
+                          hidePrice: p.hidePrice || false
                         }); 
-                        setIsDrawerOpen(true); 
+                        setIsDrawerOpen(true);
                       }}
-                      className="p-3 text-blue-500 hover:bg-blue-600 hover:text-white rounded-xl transition-all shadow-sm"
-                    >
-                      <Edit3 className="h-5 w-5" />
-                    </button>
-                  </div>
-                </td>
-              </tr>
-            ))}
+                    />
+                  ))}
+                </SortableContext>
+              </DndContext>
+            )}
           </tbody>
         </table>
+        <div className="p-8 bg-gray-50/50 border-t border-gray-100 flex justify-between items-center">
+          <div className="flex items-center space-x-3 text-gray-400">
+            <Package className="h-4 w-4" />
+            <span className="text-[11px] font-black uppercase tracking-widest">Katalog Özeti</span>
+          </div>
+          <div className="text-[11px] font-black text-blue-600 uppercase tracking-widest bg-blue-50 px-4 py-2 rounded-xl">
+            Toplam Ürün: {products.length}
+          </div>
+        </div>
       </div>
 
-      {/* Slide-over Drawer */}
+      {/* View Modal */}
+      {isViewOpen && selectedProduct && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
+          <div className="absolute inset-0 bg-gray-900/60 backdrop-blur-md" onClick={() => setIsViewOpen(false)} />
+          <div className="relative bg-white rounded-[3rem] shadow-2xl w-full max-w-5xl overflow-hidden animate-in zoom-in-95 duration-300">
+            <div className="grid grid-cols-2">
+              <div className="bg-gray-50 p-12 flex items-center justify-center relative">
+                <button onClick={() => setIsViewOpen(false)} className="absolute top-8 left-8 p-3 hover:bg-white text-gray-400 hover:text-red-500 rounded-2xl transition-all z-10">
+                  <X className="h-8 w-8" />
+                </button>
+                <div className="w-full aspect-square bg-white rounded-[3rem] shadow-xl overflow-hidden border border-gray-100">
+                  {selectedProduct.images ? (
+                    <img src={JSON.parse(selectedProduct.images)[0]} className="w-full h-full object-cover" />
+                  ) : (
+                    <div className="w-full h-full flex items-center justify-center bg-gray-50">
+                      <Package className="h-20 w-20 text-gray-200" />
+                    </div>
+                  )}
+                </div>
+              </div>
+
+              <div className="p-16 flex flex-col justify-between">
+                <div>
+                  <div className="flex items-center space-x-3 mb-6">
+                    <span className="pill-badge pill-blue uppercase tracking-[0.2em]">{selectedProduct.category?.name || 'GENEL'}</span>
+                    <span className="pill-badge pill-orange uppercase tracking-[0.2em]">{selectedProduct.brand || 'Bilinmiyor'}</span>
+                  </div>
+                  <h3 className="text-4xl font-black text-gray-900 tracking-tighter mb-4 leading-tight">{selectedProduct.name}</h3>
+                  <p className="text-[11px] font-black text-gray-300 uppercase tracking-widest mb-10">Stok Kodu: {selectedProduct.sku}</p>
+
+                  <div className="grid grid-cols-2 gap-12 mb-12">
+                    <div>
+                      <p className="text-[10px] font-black text-gray-400 uppercase tracking-widest mb-2">Liste Fiyatı</p>
+                      <p className="text-4xl font-black text-blue-600 tracking-tighter">{selectedProduct.price?.toLocaleString('tr-TR')} {selectedProduct.currency}</p>
+                    </div>
+                    <div>
+                      <p className="text-[10px] font-black text-gray-400 uppercase tracking-widest mb-2">Stok Durumu</p>
+                      <p className="text-2xl font-black text-gray-900 tracking-tighter">{selectedProduct.stock} {selectedProduct.unit}</p>
+                    </div>
+                  </div>
+
+                  <div className="space-y-4">
+                    <p className="text-[10px] font-black text-gray-400 uppercase tracking-widest">Ürün Açıklaması</p>
+                    <div className="text-gray-600 font-bold leading-relaxed max-h-48 overflow-y-auto custom-scrollbar pr-4 text-sm">
+                      {selectedProduct.longDesc || 'Bu ürün için detaylı açıklama girilmemiş.'}
+                    </div>
+                  </div>
+                </div>
+
+                <div className="pt-10 flex items-center justify-between border-t border-gray-100">
+                  <div className="flex items-center space-x-4">
+                    <div className={`w-3 h-3 rounded-full ${selectedProduct.stock > 0 ? 'bg-emerald-500 animate-pulse' : 'bg-red-500'}`} />
+                    <span className="text-xs font-black text-gray-400 uppercase tracking-widest">
+                      {selectedProduct.stock > 0 ? 'SATIŞA HAZIR' : 'STOK TÜKENDİ'}
+                    </span>
+                  </div>
+                  <button onClick={() => { setIsViewOpen(false); setFormData({...selectedProduct, images: JSON.parse(selectedProduct.images || '[]')}); setIsDrawerOpen(true); }} className="flex items-center text-[10px] font-black text-blue-600 hover:text-blue-700 uppercase tracking-widest transition-all">
+                    DÜZENLEME PANELİNE GİT <ChevronRight className="h-4 w-4 ml-2" />
+                  </button>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Centered Modal (Edit/Create) */}
       {isDrawerOpen && (
-        <div className="fixed inset-0 z-50 overflow-hidden">
-          <div className="absolute inset-0 bg-gray-900/40 backdrop-blur-sm" onClick={() => setIsDrawerOpen(false)} />
-          <div className="fixed inset-y-0 right-0 max-w-4xl w-full bg-white shadow-2xl animate-slide-in flex flex-col">
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
+          <div className="absolute inset-0 bg-gray-900/40 backdrop-blur-sm transition-opacity duration-300" onClick={() => setIsDrawerOpen(false)} />
+          <div className="relative bg-white rounded-[2.5rem] shadow-2xl w-full max-w-4xl max-h-[90vh] overflow-hidden animate-in zoom-in-95 duration-300 flex flex-col">
             <div className="p-10 border-b border-gray-100 flex justify-between items-center bg-gray-50/30">
               <div className="flex items-center space-x-5">
                 <div className="bg-blue-600 p-4 rounded-3xl shadow-xl shadow-blue-500/20">
@@ -259,6 +457,7 @@ const ProductManagement = () => {
                {[
                  { id: 'general', name: 'Genel', icon: Info },
                  { id: 'price', name: 'Fiyat & Gizlilik', icon: DollarSign },
+                 { id: 'description', name: 'Açıklama', icon: FileText },
                  { id: 'media', name: 'Medya', icon: ImageIcon }
                ].map(tab => (
                  <button 
@@ -340,6 +539,20 @@ const ProductManagement = () => {
                 </div>
               )}
 
+              {activeTab === 'description' && (
+                <div className="space-y-10 animate-in fade-in">
+                  <div className="space-y-2">
+                    <label className="premium-label">Ürün Detaylı Açıklaması</label>
+                    <textarea 
+                      className="premium-input h-64 resize-none p-6" 
+                      placeholder="Ürün özelliklerini, kullanım alanlarını ve teknik detaylarını buraya yazabilirsiniz..."
+                      value={formData.longDesc || ''}
+                      onChange={e => setFormData({...formData, longDesc: e.target.value})}
+                    ></textarea>
+                  </div>
+                </div>
+              )}
+
               {activeTab === 'media' && (
                 <div className="space-y-10 animate-in fade-in">
                    <div className="grid grid-cols-4 gap-6">
@@ -362,7 +575,7 @@ const ProductManagement = () => {
 
             <div className="p-10 bg-gray-50/50 border-t border-gray-100 flex space-x-6">
               <button type="button" onClick={() => setIsDrawerOpen(false)} className="flex-1 py-6 border border-gray-200 rounded-2xl font-black text-gray-400 hover:bg-white transition-all uppercase tracking-widest text-[10px]">VAZGEÇ</button>
-              <button onClick={handleSubmit} className="btn-gradient flex-[2] py-6">
+              <button onClick={handleSubmit} className="btn-gradient flex-[2] py-6 shadow-xl shadow-blue-500/20">
                 <Save className="h-5 w-5 mr-3" /> KAYDET
               </button>
             </div>

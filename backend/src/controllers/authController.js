@@ -69,3 +69,23 @@ export const login = async (req, res) => {
     res.status(500).json({ message: 'Giriş sırasında bir sunucu hatası oluştu.' });
   }
 };
+
+export const getMe = async (req, res) => {
+  try {
+    const user = await prisma.user.findUnique({
+      where: { id: req.user.id },
+      include: {
+        company: true
+      }
+    });
+
+    if (!user) {
+      return res.status(404).json({ message: 'Kullanıcı bulunamadı.' });
+    }
+
+    const { password, ...userData } = user;
+    res.json(userData);
+  } catch (error) {
+    res.status(500).json({ message: 'Kullanıcı bilgileri alınamadı.' });
+  }
+};

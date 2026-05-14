@@ -1,9 +1,94 @@
 import React, { useState, useEffect } from 'react';
 import axios from 'axios';
 import { 
+  DndContext, 
+  closestCenter,
+  KeyboardSensor,
+  PointerSensor,
+  useSensor,
+  useSensors,
+} from '@dnd-kit/core';
+import {
+  arrayMove,
+  SortableContext,
+  sortableKeyboardCoordinates,
+  verticalListSortingStrategy,
+  useSortable
+} from '@dnd-kit/sortable';
+import { CSS } from '@dnd-kit/utilities';
+import { 
   Layers, Plus, Trash2, Edit2, ChevronRight, ChevronDown, 
-  Eye, EyeOff, Image as ImageIcon, Type, Hash, Save, X, ArrowRight
+  Eye, EyeOff, Image as ImageIcon, Type, Hash, Save, X, ArrowRight,
+  GripVertical
 } from 'lucide-react';
+
+const SortableCategoryItem = ({ category, level, onEdit, onDelete, onExpand, isExpanded, children }) => {
+  const {
+    attributes,
+    listeners,
+    setNodeRef,
+    transform,
+    transition,
+    isDragging
+  } = useSortable({ id: category.id });
+
+  const style = {
+    transform: CSS.Transform.toString(transform),
+    transition,
+    zIndex: isDragging ? 50 : 0,
+    opacity: isDragging ? 0.5 : 1
+  };
+
+  const hasChildren = category.children && category.children.length > 0;
+
+  return (
+    <div ref={setNodeRef} style={style}>
+      <div className="flex items-center justify-between p-6 bg-white hover:bg-gray-50/50 transition-all group border-b border-gray-50">
+        <div className="flex items-center" style={{ marginLeft: `${level * 3}rem` }}>
+          <div {...attributes} {...listeners} className="mr-4 p-2 text-gray-300 hover:text-gray-600 cursor-grab active:cursor-grabbing">
+            <GripVertical className="h-5 w-5" />
+          </div>
+          <button 
+            onClick={() => onExpand(category.id)}
+            className={`p-2 mr-4 rounded-xl hover:bg-white shadow-sm transition-all border border-transparent hover:border-gray-100 ${!hasChildren && 'invisible'}`}
+          >
+            {isExpanded ? <ChevronDown className="h-4 w-4 text-blue-500" /> : <ChevronRight className="h-4 w-4 text-gray-400" />}
+          </button>
+          <div className="w-14 h-14 bg-gray-50 rounded-2xl flex items-center justify-center mr-5 overflow-hidden border border-gray-100 shadow-inner group-hover:scale-105 transition-transform">
+            {category.imageUrl ? <img src={category.imageUrl} className="w-full h-full object-cover" /> : <Layers className="h-6 w-6 text-gray-300" />}
+          </div>
+          <div>
+            <p className="text-base font-black text-gray-900 group-hover:text-blue-600 transition-colors tracking-tight">{category.name}</p>
+            <div className="flex items-center mt-1 space-x-3">
+              <span className="text-[10px] text-gray-400 uppercase font-black tracking-widest">SIRA: {category.sortOrder}</span>
+              {category.isActive ? (
+                <span className="pill-badge pill-green">AKTİF</span>
+              ) : (
+                <span className="pill-badge pill-red">PASİF</span>
+              )}
+            </div>
+          </div>
+        </div>
+        
+        <div className="flex items-center space-x-2 opacity-0 group-hover:opacity-100 transition-all translate-x-4 group-hover:translate-x-0 pr-4">
+          <button 
+            onClick={() => onEdit(category)}
+            className="p-3 text-blue-500 hover:bg-blue-600 hover:text-white rounded-xl transition-all shadow-sm hover:shadow-blue-200"
+          >
+            <Edit2 className="h-4 w-4" />
+          </button>
+          <button 
+            onClick={() => onDelete(category.id)}
+            className="p-3 text-red-400 hover:bg-red-500 hover:text-white rounded-xl transition-all shadow-sm hover:shadow-red-200"
+          >
+            <Trash2 className="h-4 w-4" />
+          </button>
+        </div>
+      </div>
+      {children}
+    </div>
+  );
+};
 
 const CategoryManagement = () => {
   const [categories, setCategories] = useState([]);
@@ -12,6 +97,13 @@ const CategoryManagement = () => {
   const [isDrawerOpen, setIsDrawerOpen] = useState(false);
   const [selectedCategory, setSelectedCategory] = useState(null);
   const [expanded, setExpanded] = useState({});
+
+  const sensors = useSensors(
+    useSensor(PointerSensor),
+    useSensor(KeyboardSensor, {
+      coordinateGetter: sortableKeyboardCoordinates,
+    })
+  );
 
   const [formData, setFormData] = useState({
     name: '',
@@ -42,6 +134,45 @@ const CategoryManagement = () => {
 
   const toggleExpand = (id) => {
     setExpanded(prev => ({ ...prev, [id]: !prev[id] }));
+  };
+
+  const handleDragEnd = async (event) => {
+    const { active, over } = event;
+    if (!over || active.id === over.id) return;
+
+    // Helper function to find a category and its parent list in the tree
+    const findCategoryAndSiblings = (items, id) => {
+      for (let i = 0; i < items.length; i++) {
+        if (items[i].id === id) return { siblings: items, index: i };
+        if (items[i].children) {
+          const result = findCategoryAndSiblings(items[i].children, id);
+          if (result) return result;
+        }
+      }
+      return null;
+    };
+
+    const activeInfo = findCategoryAndSiblings(categories, active.id);
+    const overInfo = findCategoryAndSiblings(categories, over.id);
+
+    // Only allow reordering if they have the same parent (same siblings list)
+    if (activeInfo && overInfo && activeInfo.siblings === overInfo.siblings) {
+      const newSiblings = arrayMove(activeInfo.siblings, activeInfo.index, overInfo.index);
+      
+      // Update sortOrder for all siblings based on their new index
+      const reorderedCategories = newSiblings.map((cat, index) => ({
+        id: cat.id,
+        sortOrder: index
+      }));
+
+      // Pessimistic update UI and then call API
+      try {
+        await axios.post('http://localhost:5001/api/categories/reorder', { categories: reorderedCategories });
+        fetchCategories();
+      } catch (error) {
+        console.error('Reorder error:', error);
+      }
+    }
   };
 
   const handleImageUpload = async (e) => {
@@ -84,57 +215,36 @@ const CategoryManagement = () => {
     }
   };
 
-  const renderCategoryRow = (category, level = 0) => {
-    const hasChildren = category.children && category.children.length > 0;
-    const isExpanded = expanded[category.id];
-
+  const renderCategoryList = (items, level = 0) => {
     return (
-      <React.Fragment key={category.id}>
-        <div className="flex items-center justify-between p-6 bg-white hover:bg-gray-50/50 transition-all group border-b border-gray-50">
-          <div className="flex items-center" style={{ marginLeft: `${level * 3}rem` }}>
-            <button 
-              onClick={() => toggleExpand(category.id)}
-              className={`p-2 mr-4 rounded-xl hover:bg-white shadow-sm transition-all border border-transparent hover:border-gray-100 ${!hasChildren && 'invisible'}`}
-            >
-              {isExpanded ? <ChevronDown className="h-4 w-4 text-blue-500" /> : <ChevronRight className="h-4 w-4 text-gray-400" />}
-            </button>
-            <div className="w-14 h-14 bg-gray-50 rounded-2xl flex items-center justify-center mr-5 overflow-hidden border border-gray-100 shadow-inner group-hover:scale-105 transition-transform">
-              {category.imageUrl ? <img src={category.imageUrl} className="w-full h-full object-cover" /> : <Layers className="h-6 w-6 text-gray-300" />}
-            </div>
-            <div>
-              <p className="text-base font-black text-gray-900 group-hover:text-blue-600 transition-colors tracking-tight">{category.name}</p>
-              <div className="flex items-center mt-1 space-x-3">
-                <span className="text-[10px] text-gray-400 uppercase font-black tracking-widest">SIRA: {category.sortOrder}</span>
-                {category.isActive ? (
-                  <span className="pill-badge pill-green">AKTİF</span>
-                ) : (
-                  <span className="pill-badge pill-red">PASİF</span>
-                )}
-              </div>
-            </div>
-          </div>
-          
-          <div className="flex items-center space-x-2 opacity-0 group-hover:opacity-100 transition-all translate-x-4 group-hover:translate-x-0 pr-4">
-            <button 
-              onClick={() => {
-                setSelectedCategory(category);
-                setFormData({ ...category });
+      <DndContext 
+        sensors={sensors}
+        collisionDetection={closestCenter}
+        onDragEnd={handleDragEnd}
+      >
+        <SortableContext 
+          items={items.map(i => i.id)}
+          strategy={verticalListSortingStrategy}
+        >
+          {items.map(category => (
+            <SortableCategoryItem 
+              key={category.id}
+              category={category}
+              level={level}
+              onEdit={(cat) => {
+                setSelectedCategory(cat);
+                setFormData({ ...cat });
                 setIsDrawerOpen(true);
               }}
-              className="p-3 text-blue-500 hover:bg-blue-600 hover:text-white rounded-xl transition-all shadow-sm hover:shadow-blue-200"
+              onDelete={deleteCategory}
+              onExpand={toggleExpand}
+              isExpanded={expanded[category.id]}
             >
-              <Edit2 className="h-4 w-4" />
-            </button>
-            <button 
-              onClick={() => deleteCategory(category.id)}
-              className="p-3 text-red-400 hover:bg-red-500 hover:text-white rounded-xl transition-all shadow-sm hover:shadow-red-200"
-            >
-              <Trash2 className="h-4 w-4" />
-            </button>
-          </div>
-        </div>
-        {hasChildren && isExpanded && category.children.map(child => renderCategoryRow(child, level + 1))}
-      </React.Fragment>
+              {category.children && expanded[category.id] && renderCategoryList(category.children, level + 1)}
+            </SortableCategoryItem>
+          ))}
+        </SortableContext>
+      </DndContext>
     );
   };
 
@@ -148,7 +258,7 @@ const CategoryManagement = () => {
             </div>
             <div>
               <h1 className="text-4xl font-black text-gray-900 tracking-tighter">Kategori Ağacı</h1>
-              <p className="text-gray-400 text-sm font-semibold uppercase tracking-[0.2em] mt-1">Sınırsız Hiyerarşi & Yönetim</p>
+              <p className="text-gray-400 text-sm font-semibold uppercase tracking-[0.2em] mt-1">Sürükle-Bırak Sıralama Aktif</p>
             </div>
           </div>
         </div>
@@ -177,15 +287,15 @@ const CategoryManagement = () => {
               <Layers className="h-20 w-20 text-gray-100 mx-auto mb-6" />
               <p className="text-gray-400 font-bold italic text-lg tracking-tight">Henüz bir kategori tanımlanmamış.</p>
             </div>
-          ) : categories.map(cat => renderCategoryRow(cat))}
+          ) : renderCategoryList(categories)}
         </div>
       </div>
 
-      {/* Slide-over Drawer */}
+      {/* Centered Modal */}
       {isDrawerOpen && (
-        <div className="fixed inset-0 z-50 overflow-hidden">
-          <div className="absolute inset-0 bg-gray-900/40 backdrop-blur-sm transition-opacity" onClick={() => setIsDrawerOpen(false)} />
-          <div className="fixed inset-y-0 right-0 max-w-xl w-full bg-white shadow-2xl animate-slide-in flex flex-col">
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
+          <div className="absolute inset-0 bg-gray-900/40 backdrop-blur-sm transition-opacity duration-300" onClick={() => setIsDrawerOpen(false)} />
+          <div className="relative bg-white rounded-[2.5rem] shadow-2xl w-full max-w-xl max-h-[90vh] overflow-hidden animate-in zoom-in-95 duration-300 flex flex-col">
             <div className="p-10 border-b border-gray-100 flex justify-between items-center bg-gray-50/30">
               <div>
                 <h3 className="text-2xl font-black text-gray-900 tracking-tight">

@@ -1,6 +1,6 @@
 import React from 'react';
 import { 
-  Users, Package, ShoppingCart, TrendingUp, Activity, Sparkles, CreditCard, 
+  Users, Package, ShoppingCart, TrendingUp, Activity, Award, CreditCard, 
   ChevronRight, PieChart as PieChartIcon, FileText, Box, Plus, 
   Clock, MapPin, ExternalLink, AlertCircle, CheckCircle2, Wallet
 } from 'lucide-react';
@@ -68,7 +68,7 @@ const AdminDashboardHome = () => {
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
         {stats.map((stat, i) => (
           <div key={i} className={`${stat.color} ${stat.shadow} p-6 rounded-[2rem] text-white flex flex-col justify-between min-h-[180px] hover:-translate-y-1 transition-all cursor-pointer group relative overflow-hidden`}>
-            <Sparkles className="absolute -right-4 -top-4 h-24 w-24 text-white/10 rotate-12" />
+            <Award className="absolute -right-4 -top-4 h-24 w-24 text-white/10 rotate-12" />
             <div className="w-9 h-9 bg-white/20 rounded-xl flex items-center justify-center backdrop-blur-md">
               <stat.icon className="h-4 w-4" />
             </div>

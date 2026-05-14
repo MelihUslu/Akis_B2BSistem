@@ -3,7 +3,8 @@ import axios from 'axios';
 import { 
   Users, Plus, Search, MoreVertical, Shield, Mail, Phone, 
   MapPin, Hash, DollarSign, Percent, Lock, Edit3, 
-  CheckCircle2, XCircle, Clock, FileText, UserCheck, ShieldCheck, X, Trash2
+  CheckCircle2, XCircle, Clock, FileText, UserCheck, ShieldCheck, X, Trash2,
+  Eye, Building2, CreditCard, Activity
 } from 'lucide-react';
 
 const DealerManagement = () => {
@@ -11,6 +12,7 @@ const DealerManagement = () => {
   const [isLoading, setIsLoading] = useState(true);
   const [search, setSearch] = useState('');
   const [isDrawerOpen, setIsDrawerOpen] = useState(false);
+  const [isViewOpen, setIsViewOpen] = useState(false);
   const [selectedDealer, setSelectedDealer] = useState(null);
 
   const [formData, setFormData] = useState({
@@ -107,6 +109,7 @@ const DealerManagement = () => {
         <table className="w-full text-left">
           <thead className="bg-gray-50/50 border-b border-gray-100">
             <tr>
+              <th className="px-10 py-6 text-[11px] font-black text-gray-400 uppercase tracking-[0.3em]">NO</th>
               <th className="px-10 py-6 text-[11px] font-black text-gray-400 uppercase tracking-[0.3em]">Kurumsal Kimlik</th>
               <th className="px-10 py-6 text-[11px] font-black text-gray-400 uppercase tracking-[0.3em]">Yetkili</th>
               <th className="px-10 py-6 text-[11px] font-black text-gray-400 uppercase tracking-[0.3em]">Finansal Limitler</th>
@@ -117,8 +120,11 @@ const DealerManagement = () => {
           <tbody className="divide-y divide-gray-50">
             {isLoading ? (
               <tr><td colSpan="5" className="text-center py-32 text-gray-400 font-bold uppercase text-xs tracking-widest">Bayi verileri yükleniyor...</td></tr>
-            ) : dealers.map((dealer) => (
+            ) : dealers.map((dealer, index) => (
               <tr key={dealer.id} className="hover:bg-blue-50/30 transition-all group relative">
+                <td className="px-10 py-8">
+                  <span className="text-[11px] font-black text-gray-400">{index + 1}</span>
+                </td>
                 <td className="px-10 py-8">
                   <div className="font-black text-gray-900 group-hover:text-blue-600 transition-colors text-lg tracking-tight">{dealer.name}</div>
                   <div className="text-[10px] font-black text-gray-300 mt-1 uppercase tracking-widest">VERGİ NO: {dealer.taxNumber || '-'}</div>
@@ -144,6 +150,12 @@ const DealerManagement = () => {
                 <td className="px-10 py-8 text-right">
                   <div className="flex justify-end space-x-2 opacity-0 group-hover:opacity-100 transition-all translate-x-4 group-hover:translate-x-0">
                     <button 
+                      onClick={() => { setSelectedDealer(dealer); setIsViewOpen(true); }}
+                      className="p-3 text-emerald-500 hover:bg-emerald-600 hover:text-white rounded-xl transition-all shadow-sm"
+                    >
+                      <Eye className="h-5 w-5" />
+                    </button>
+                    <button 
                       onClick={() => { setSelectedDealer(dealer); setFormData({...dealer, email: dealer.users?.[0]?.email || ''}); setIsDrawerOpen(true); }}
                       className="p-3 text-blue-500 hover:bg-blue-600 hover:text-white rounded-xl transition-all shadow-sm"
                     >
@@ -158,20 +170,117 @@ const DealerManagement = () => {
             ))}
           </tbody>
         </table>
+        <div className="p-8 bg-gray-50/50 border-t border-gray-100 flex justify-between items-center">
+          <div className="flex items-center space-x-3 text-gray-400">
+            <Users className="h-4 w-4" />
+            <span className="text-[11px] font-black uppercase tracking-widest">Ağ Özeti</span>
+          </div>
+          <div className="text-[11px] font-black text-blue-600 uppercase tracking-widest bg-blue-50 px-4 py-2 rounded-xl">
+            Toplam Bayi: {dealers.length}
+          </div>
+        </div>
       </div>
 
-      {/* Slide-over Drawer */}
+      {/* View Modal */}
+      {isViewOpen && selectedDealer && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
+          <div className="absolute inset-0 bg-gray-900/60 backdrop-blur-md" onClick={() => setIsViewOpen(false)} />
+          <div className="relative bg-white rounded-[3rem] shadow-2xl w-full max-w-4xl overflow-hidden animate-in zoom-in-95 duration-300">
+            <div className="p-12 flex items-start justify-between">
+              <div className="flex items-center space-x-8">
+                <div className="bg-emerald-500 p-6 rounded-[2rem] shadow-xl shadow-emerald-500/20">
+                  <Building2 className="h-10 w-10 text-white" />
+                </div>
+                <div>
+                  <h3 className="text-3xl font-black text-gray-900 tracking-tighter mb-2">{selectedDealer.name}</h3>
+                  <div className="flex items-center space-x-4">
+                    {getStatusBadge(selectedDealer.status)}
+                    <span className="pill-badge pill-blue uppercase tracking-widest text-[9px]">{selectedDealer.dealerGroup} GRUBU</span>
+                  </div>
+                </div>
+              </div>
+              <button onClick={() => setIsViewOpen(false)} className="p-4 hover:bg-red-50 text-gray-300 hover:text-red-500 rounded-3xl transition-all">
+                <X className="h-10 w-10" />
+              </button>
+            </div>
+
+            <div className="px-12 pb-12 grid grid-cols-3 gap-8">
+              <div className="col-span-2 space-y-8">
+                <div className="grid grid-cols-2 gap-8 bg-gray-50/50 p-10 rounded-[2.5rem] border border-gray-100">
+                  <div className="space-y-1">
+                    <p className="text-[10px] font-black text-gray-400 uppercase tracking-widest">Yetkili Kişi</p>
+                    <p className="text-lg font-bold text-gray-800">{selectedDealer.authorizedPerson || '-'}</p>
+                  </div>
+                  <div className="space-y-1">
+                    <p className="text-[10px] font-black text-gray-400 uppercase tracking-widest">Telefon</p>
+                    <p className="text-lg font-bold text-gray-800">{selectedDealer.phone || '-'}</p>
+                  </div>
+                  <div className="space-y-1">
+                    <p className="text-[10px] font-black text-gray-400 uppercase tracking-widest">E-Posta</p>
+                    <p className="text-lg font-bold text-gray-800 lowercase">{selectedDealer.users?.[0]?.email || '-'}</p>
+                  </div>
+                  <div className="space-y-1">
+                    <p className="text-[10px] font-black text-gray-400 uppercase tracking-widest">Vergi Bilgileri</p>
+                    <p className="text-lg font-bold text-gray-800">{selectedDealer.taxOffice} / {selectedDealer.taxNumber}</p>
+                  </div>
+                </div>
+
+                <div className="bg-blue-600/5 p-10 rounded-[2.5rem] border border-blue-100">
+                   <p className="text-[10px] font-black text-blue-600 uppercase tracking-widest mb-3 flex items-center">
+                     <MapPin className="h-3 w-3 mr-2" /> Şirket Adresi
+                   </p>
+                   <p className="text-gray-700 font-bold leading-relaxed">{selectedDealer.address || 'Adres bilgisi tanımlanmamış.'}</p>
+                </div>
+              </div>
+
+              <div className="space-y-8">
+                <div className="bg-white border-2 border-gray-100 p-8 rounded-[2.5rem] shadow-sm">
+                  <CreditCard className="h-6 w-6 text-blue-600 mb-6" />
+                  <div className="space-y-6">
+                    <div>
+                      <p className="text-[9px] font-black text-gray-400 uppercase tracking-widest leading-none mb-2">Güncel Bakiye</p>
+                      <p className={`text-3xl font-black tracking-tighter ${selectedDealer.currentBalance < 0 ? 'text-red-500' : 'text-emerald-500'}`}>
+                        {selectedDealer.currentBalance?.toLocaleString('tr-TR')} ₺
+                      </p>
+                    </div>
+                    <div>
+                      <p className="text-[9px] font-black text-gray-400 uppercase tracking-widest leading-none mb-2">Risk Limiti</p>
+                      <p className="text-xl font-black text-gray-900 tracking-tighter">{selectedDealer.riskLimit?.toLocaleString('tr-TR')} ₺</p>
+                    </div>
+                  </div>
+                </div>
+
+                <div className="bg-gray-900 p-8 rounded-[2.5rem] text-white">
+                  <Activity className="h-6 w-6 text-blue-400 mb-6" />
+                  <div className="space-y-4">
+                    <div className="flex justify-between items-center">
+                      <span className="text-[10px] font-black text-gray-500 uppercase tracking-widest">İskonto Oranı</span>
+                      <span className="text-xl font-black text-blue-400">%{selectedDealer.netDiscount}</span>
+                    </div>
+                    <div className="flex justify-between items-center">
+                      <span className="text-[10px] font-black text-gray-500 uppercase tracking-widest">Min. Sipariş</span>
+                      <span className="text-lg font-black">{selectedDealer.minOrderAmount?.toLocaleString('tr-TR')} ₺</span>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Centered Modal (Edit/Create) */}
       {isDrawerOpen && (
-        <div className="fixed inset-0 z-50 overflow-hidden">
-          <div className="absolute inset-0 bg-gray-900/40 backdrop-blur-sm transition-opacity" onClick={() => setIsDrawerOpen(false)} />
-          <div className="fixed inset-y-0 right-0 max-w-2xl w-full bg-white shadow-2xl animate-slide-in flex flex-col">
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
+          <div className="absolute inset-0 bg-gray-900/40 backdrop-blur-sm transition-opacity duration-300" onClick={() => setIsDrawerOpen(false)} />
+          <div className="relative bg-white rounded-[2.5rem] shadow-2xl w-full max-w-2xl max-h-[90vh] overflow-hidden animate-in zoom-in-95 duration-300 flex flex-col">
             <div className="p-10 border-b border-gray-100 flex justify-between items-center bg-gray-50/30">
               <div className="flex items-center space-x-5">
                 <div className="bg-blue-600 p-4 rounded-3xl shadow-xl shadow-blue-500/20">
                   <UserCheck className="h-7 w-7 text-white" />
                 </div>
                 <div>
-                  <h3 className="text-2xl font-black text-gray-900 tracking-tight">Bayi Kartı Düzenle</h3>
+                  <h3 className="text-2xl font-black text-gray-900 tracking-tight">{selectedDealer ? 'Bayi Kartı Düzenle' : 'Yeni Bayi Tanımla'}</h3>
                   <p className="text-[10px] font-black text-blue-500 uppercase tracking-[0.3em] mt-1">Detaylı Profil & Finansal Ayarlar</p>
                 </div>
               </div>
@@ -210,8 +319,8 @@ const DealerManagement = () => {
                 </div>
 
                 <div className="col-span-2 space-y-2">
-                  <label className="premium-label">Adres Bilgisi</label>
-                  <textarea className="premium-input h-24 resize-none" value={formData.address} onChange={e => setFormData({...formData, address: e.target.value})} />
+                  <label className="premium-label">Adres</label>
+                  <textarea className="premium-input h-32 p-4 resize-none" value={formData.address} onChange={e => setFormData({...formData, address: e.target.value})} />
                 </div>
 
                 <div className="col-span-2 border-l-4 border-blue-600 pl-5 bg-blue-50/50 py-3 rounded-r-2xl mt-4">
@@ -265,7 +374,7 @@ const DealerManagement = () => {
 
             <div className="p-10 bg-gray-50/50 border-t border-gray-100 flex space-x-6">
               <button onClick={() => setIsDrawerOpen(false)} className="flex-1 py-6 border border-gray-200 rounded-2xl font-black text-gray-400 hover:bg-white transition-all uppercase tracking-widest text-[10px]">İPTAL</button>
-              <button onClick={handleSubmit} className="btn-gradient flex-[2] py-6">
+              <button onClick={handleSubmit} className="btn-gradient flex-[2] py-6 shadow-xl shadow-blue-500/20">
                 <ShieldCheck className="h-5 w-5 mr-3" /> KAYDET VE DEĞİŞİKLİKLERİ YAYINLA
               </button>
             </div>

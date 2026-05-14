@@ -1,5 +1,5 @@
 import express from 'express';
-import { getCategories, createCategory, updateCategory, deleteCategory } from '../controllers/categoryController.js';
+import { getCategories, createCategory, updateCategory, deleteCategory, reorderCategories } from '../controllers/categoryController.js';
 import { uploadImage } from '../controllers/productController.js';
 import { verifyToken, checkRole } from '../middlewares/authMiddleware.js';
 import multer from 'multer';
@@ -19,6 +19,7 @@ const upload = multer({ storage: storage });
 const router = express.Router();
 
 router.get('/', verifyToken, getCategories);
+router.post('/reorder', verifyToken, checkRole(['ADMIN']), reorderCategories);
 router.post('/', verifyToken, checkRole(['ADMIN']), createCategory);
 router.post('/upload-image', verifyToken, checkRole(['ADMIN']), upload.single('file'), uploadImage);
 router.patch('/:id', verifyToken, checkRole(['ADMIN']), updateCategory);

@@ -7,7 +7,7 @@ import DealerManagement from '../pages/admin/DealerManagement';
 import OrderApproval from '../pages/admin/OrderApproval';
 import FinanceManagement from '../pages/admin/FinanceManagement';
 import CategoryManagement from '../pages/admin/CategoryManagement';
-import { Bell, HelpCircle, User, Search, ChevronDown, Sparkles } from 'lucide-react';
+import { Bell, HelpCircle, User, Search, ChevronDown, Award } from 'lucide-react';
 
 const AdminLayout = () => {
   return (
@@ -34,7 +34,7 @@ const AdminLayout = () => {
            {/* Action Items & Profile */}
            <div className="flex items-center space-x-6">
               <div className="flex items-center space-x-2 bg-indigo-50 px-3 py-1.5 rounded-full border border-indigo-100/50">
-                 <Sparkles className="h-3 w-3 text-indigo-500" />
+                 <Award className="h-3 w-3 text-indigo-500" />
                  <span className="text-[10px] font-black text-indigo-600 uppercase tracking-widest">Premium Panel</span>
               </div>
 

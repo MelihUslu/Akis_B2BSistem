@@ -1,7 +1,7 @@
 import express from 'express';
 import multer from 'multer';
 import path from 'path';
-import { getProducts, createProduct, updateProduct, linkAlternative, bulkUpdate, getFilters, uploadImage } from '../controllers/productController.js';
+import { getProducts, createProduct, updateProduct, linkAlternative, bulkUpdate, getFilters, uploadImage, reorderProducts } from '../controllers/productController.js';
 import { verifyToken, checkRole } from '../middlewares/authMiddleware.js';
 
 // Multer Disk Storage Config for Images
@@ -27,6 +27,7 @@ router.get('/filters', getFilters);
 
 // Sadece ADMIN ürün ekleyebilir, alternatif bağlayabilir ve Excel yükleyebilir
 router.post('/', checkRole(['ADMIN']), createProduct);
+router.post('/reorder', checkRole(['ADMIN']), reorderProducts);
 router.patch('/:id', checkRole(['ADMIN']), updateProduct);
 router.post('/link-alternative', checkRole(['ADMIN']), linkAlternative);
 router.post('/upload-image', checkRole(['ADMIN']), upload.single('file'), uploadImage);

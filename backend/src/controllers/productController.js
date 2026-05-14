@@ -11,18 +11,16 @@ export const getProducts = async (req, res) => {
       brand, 
       minPrice, 
       maxPrice,
-      isAdmin = false // Bu flag'i middleware veya user role üzerinden set edeceğiz
+      isAdmin = false
     } = req.query;
     
-    // Global ayarı kontrol et
     const globalHideSetting = await prisma.setting.findUnique({ where: { key: 'global_hide_price' } });
     const isGlobalHide = globalHideSetting?.value === 'true';
 
     const skip = (page - 1) * limit;
     
-    // Filtreleme objesi
     const where = {
-      isMaster: true, // Sadece ana ürünleri getir, varyantlar içinde olacak
+      isMaster: true,
       ...((isAdmin === 'true' || isAdmin === true) ? {} : { isActive: true }),
       ...(search && {
         OR: [
@@ -51,12 +49,14 @@ export const getProducts = async (req, res) => {
           variants: true,
           alternatives: true,
         },
-        orderBy: { createdAt: 'desc' }
+        orderBy: [
+          { sortOrder: 'asc' },
+          { createdAt: 'desc' }
+        ]
       }),
       prisma.product.count({ where })
     ]);
 
-    // Bayi için Stok & Fiyat Gizleme Maskeleme
     const processedProducts = isAdmin ? products : products.map(p => {
       const maskStock = (qty) => {
         if (qty > 100) return '100+';
@@ -72,7 +72,7 @@ export const getProducts = async (req, res) => {
         stock: maskStock(p.stock),
         price: shouldHidePrice ? 0 : p.price,
         priceHidden: shouldHidePrice,
-        costPrice: undefined, // Maliyeti gizle
+        costPrice: undefined,
         variants: p.variants.map(v => ({
           ...v,
           stock: maskStock(v.stock),
@@ -124,7 +124,6 @@ export const createProduct = async (req, res) => {
         isMaster: true,
         isActive: true,
         hidePrice: hidePrice === true || hidePrice === 'true',
-        // Eğer varyantlar varsa alt ürün olarak oluştur
         variants: variants && variants.length > 0 ? {
           create: variants.map(v => ({
             name: `${name} - ${v.variantName}`,
@@ -152,7 +151,6 @@ export const updateProduct = async (req, res) => {
     const { id } = req.params;
     const updateData = { ...req.body };
     
-    // Sayısal alanları dönüştür
     if (updateData.price) updateData.price = parseFloat(updateData.price);
     if (updateData.costPrice) updateData.costPrice = parseFloat(updateData.costPrice);
     if (updateData.stock) updateData.stock = parseInt(updateData.stock);
@@ -174,7 +172,7 @@ export const updateProduct = async (req, res) => {
 };
 
 export const bulkUpdate = async (req, res) => {
-  const { type } = req.params; // 'price', 'stock', 'upload'
+  const { type } = req.params;
   if (!req.file) return res.status(400).json({ message: 'Dosya yüklenmedi.' });
 
   try {
@@ -218,7 +216,6 @@ export const linkAlternative = async (req, res) => {
 export const uploadImage = async (req, res) => {
   try {
     if (!req.file) return res.status(400).json({ message: 'Dosya yüklenmedi.' });
-    // Docker ortamında /uploads klasörüne kaydedilir
     const imageUrl = `http://localhost:5001/uploads/images/${req.file.filename}`;
     res.json({ imageUrl });
   } catch (error) {
@@ -241,5 +238,28 @@ export const getFilters = async (req, res) => {
     });
   } catch (error) {
     res.status(500).json({ message: 'Filtreler alınamadı.' });
+  }
+};
+
+export const reorderProducts = async (req, res) => {
+  try {
+    const { products } = req.body;
+
+    if (!Array.isArray(products)) {
+      return res.status(400).json({ message: 'Geçersiz veri formatı.' });
+    }
+
+    const updates = products.map(p => 
+      prisma.product.update({
+        where: { id: parseInt(p.id) },
+        data: { sortOrder: parseInt(p.sortOrder) }
+      })
+    );
+
+    await prisma.$transaction(updates);
+    res.json({ message: 'Sıralama güncellendi.' });
+  } catch (error) {
+    console.error('Product reorder error:', error);
+    res.status(500).json({ message: 'Sıralama güncellenirken hata oluştu.' });
   }
 };

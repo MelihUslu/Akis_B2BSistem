@@ -2,7 +2,7 @@ import React from 'react';
 import { NavLink, useLocation } from 'react-router-dom';
 import { 
   LayoutDashboard, Package, Users, ShoppingCart, 
-  CreditCard, Settings, LogOut, Sparkles, Box, UserCheck
+  CreditCard, Settings, LogOut, Box, UserCheck
 } from 'lucide-react';
 
 const Sidebar = () => {
@@ -21,11 +21,10 @@ const Sidebar = () => {
     <aside className="w-64 bg-[#0f172a] flex flex-col h-screen sticky top-0 py-8">
       {/* Logo Section */}
       <div className="px-8 mb-10">
-        <div className="flex items-center space-x-3 group cursor-pointer">
-          <div className="w-10 h-10 bg-gradient-to-br from-indigo-500 to-purple-600 rounded-xl flex items-center justify-center shadow-lg shadow-indigo-500/20 group-hover:scale-110 transition-transform">
-            <Sparkles className="text-white h-6 w-6" />
-          </div>
-          <span className="text-xl font-black text-white tracking-tight">Akis <span className="text-indigo-400">B2B</span></span>
+        <div className="flex items-center group cursor-pointer">
+          <span className="text-2xl font-black text-white tracking-tighter uppercase">
+            AKİS <span className="text-indigo-500">B2B</span>
+          </span>
         </div>
       </div>
 
