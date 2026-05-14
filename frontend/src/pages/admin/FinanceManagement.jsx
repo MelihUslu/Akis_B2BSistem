@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import axios from 'axios';
+import api from '../../services/api';
 import { CreditCard, Plus, ArrowUpRight, ArrowDownLeft, Award, Search } from 'lucide-react';
 
 const FinanceManagement = () => {
@@ -18,8 +18,8 @@ const FinanceManagement = () => {
   const fetchData = async () => {
     try {
       const [dealersRes, pointsRes] = await Promise.all([
-        axios.get('http://localhost:5001/api/companies'),
-        axios.get('http://localhost:5001/api/finance/plasiyer-points')
+        api.get('/companies'),
+        api.get('/finance/plasiyer-points')
       ]);
       setDealers(dealersRes.data);
       setPlasiyerPoints(pointsRes.data);
@@ -37,7 +37,7 @@ const FinanceManagement = () => {
   const handleSubmit = async (e) => {
     e.preventDefault();
     try {
-      await axios.post('http://localhost:5001/api/finance/transaction', formData);
+      await api.post('/finance/transaction', formData);
       alert('İşlem başarıyla kaydedildi');
       setIsModalOpen(false);
       fetchData();

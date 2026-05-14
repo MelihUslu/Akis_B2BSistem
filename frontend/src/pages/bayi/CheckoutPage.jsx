@@ -3,7 +3,7 @@ import { useCart } from '../../context/CartContext';
 import { useAuth } from '../../context/AuthContext';
 import { Truck, CreditCard, Landmark, ArrowRight, ShieldCheck } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
-import axios from 'axios';
+import api from '../../services/api';
 import CustomAlert from '../../components/CustomAlert';
 
 const CheckoutPage = () => {
@@ -51,7 +51,7 @@ const CheckoutPage = () => {
         paymentMethod,
       };
 
-      await axios.post('http://localhost:5001/api/orders', orderData);
+      await api.post('/orders', orderData);
       clearCart();
 
       showAlert({

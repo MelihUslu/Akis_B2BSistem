@@ -14,7 +14,8 @@ export const verifyToken = (req, res, next) => {
     req.user = decoded;
     next();
   } catch (error) {
-    return res.status(403).json({ message: 'Geçersiz veya süresi dolmuş token.' });
+    console.error('JWT Verification Error:', error.message);
+    return res.status(401).json({ message: 'Geçersiz veya süresi dolmuş token.' });
   }
 };
 

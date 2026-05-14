@@ -2,8 +2,14 @@ import prisma from '../utils/prisma.js';
 
 export const getOrders = async (req, res) => {
   try {
+    console.log('--- getOrders Debug ---');
+    console.log('User Role:', req.user.role);
+    console.log('User CompanyId:', req.user.companyId);
+    
     const isBayi = req.user.role === 'BAYI';
     const where = isBayi ? { companyId: req.user.companyId } : {};
+    
+    console.log('Query Where:', where);
 
     const orders = await prisma.order.findMany({
       where,
@@ -14,8 +20,11 @@ export const getOrders = async (req, res) => {
       },
       orderBy: { createdAt: 'desc' }
     });
+    
+    console.log('Orders Found Count:', orders.length);
     res.json(orders);
   } catch (error) {
+    console.error('getOrders Error:', error);
     res.status(500).json({ message: 'Siparişler getirilirken hata oluştu.' });
   }
 };

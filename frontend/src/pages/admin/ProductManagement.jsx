@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import axios from 'axios';
+import api from '../../services/api';
 import { 
   DndContext, 
   closestCenter,
@@ -135,9 +135,9 @@ const ProductManagement = () => {
     try {
       setIsLoading(true);
       const [prodRes, catRes, setRes] = await Promise.allSettled([
-        axios.get(`http://localhost:5001/api/products?search=${search}&isAdmin=true`),
-        axios.get('http://localhost:5001/api/categories?isAdmin=true&isFlat=true'),
-        axios.get('http://localhost:5001/api/settings')
+        api.get(`/products?search=${search}&isAdmin=true`),
+        api.get('/categories?isAdmin=true&isFlat=true'),
+        api.get('/settings')
       ]);
 
       if (prodRes.status === 'fulfilled') setProducts(prodRes.value.data.data);
@@ -171,7 +171,7 @@ const ProductManagement = () => {
     }));
 
     try {
-      await axios.post('http://localhost:5001/api/products/reorder', { products: reorderedProducts });
+      await api.post('/products/reorder', { products: reorderedProducts });
     } catch (error) {
       console.error('Reorder error:', error);
       fetchInitialData();
@@ -180,7 +180,7 @@ const ProductManagement = () => {
 
   const handleGlobalSetting = async (key, value) => {
     try {
-      await axios.post('http://localhost:5001/api/settings', { key, value });
+      await api.post('/settings', { key, value });
       setSettings(prev => ({ ...prev, [key]: String(value) }));
     } catch (error) {
       alert('Ayar güncellenemedi');
@@ -193,7 +193,7 @@ const ProductManagement = () => {
     const data = new FormData();
     data.append('file', file);
     try {
-      const res = await axios.post('http://localhost:5001/api/products/upload-image', data);
+      const res = await api.post('/products/upload-image', data);
       setFormData(prev => ({ 
         ...prev, 
         images: [...(prev.images || []), res.data.imageUrl] 
@@ -213,9 +213,9 @@ const ProductManagement = () => {
 
     try {
       if (selectedProduct) {
-        await axios.patch(`http://localhost:5001/api/products/${selectedProduct.id}`, formData);
+        await api.patch(`/products/${selectedProduct.id}`, formData);
       } else {
-        await axios.post('http://localhost:5001/api/products', formData);
+        await api.post('/products', formData);
       }
       setIsDrawerOpen(false);
       setFormData({
@@ -235,7 +235,7 @@ const ProductManagement = () => {
   const deleteProduct = async (id) => {
     if (!window.confirm('Bu ürünü silmek istediğinize emin misiniz? Bu işlem geri alınamaz.')) return;
     try {
-      await axios.delete(`http://localhost:5001/api/products/${id}`);
+      await api.delete(`/products/${id}`);
       await fetchInitialData();
     } catch (error) {
       alert(error.response?.data?.message || 'Silme işlemi başarısız');

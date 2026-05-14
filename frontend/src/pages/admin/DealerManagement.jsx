@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import axios from 'axios';
+import api from '../../services/api';
 import { 
   Users, Plus, Search, MoreVertical, Shield, Mail, Phone, 
   MapPin, Hash, DollarSign, Percent, Lock, Edit3, 
@@ -24,7 +24,7 @@ const DealerManagement = () => {
 
   const fetchDealers = async () => {
     try {
-      const res = await axios.get(`http://localhost:5001/api/companies?search=${search}`);
+      const res = await api.get(`/companies?search=${search}`);
       setDealers(res.data);
     } catch (error) {
       console.error('Bayiler yüklenemedi');
@@ -41,9 +41,9 @@ const DealerManagement = () => {
     e.preventDefault();
     try {
       if (selectedDealer) {
-        await axios.patch(`http://localhost:5001/api/companies/${selectedDealer.id}`, formData);
+        await api.patch(`/companies/${selectedDealer.id}`, formData);
       } else {
-        await axios.post('http://localhost:5001/api/companies', formData);
+        await api.post('/companies', formData);
       }
       setIsDrawerOpen(false);
       fetchDealers();
@@ -55,7 +55,7 @@ const DealerManagement = () => {
   const resetPassword = async (id) => {
     if (!window.confirm('Bu bayinin şifresini sıfırlayıp mail göndermek istediğinize emin misiniz?')) return;
     try {
-      const res = await axios.post(`http://localhost:5001/api/companies/${id}/reset-password`);
+      const res = await api.post(`/companies/${id}/reset-password`);
       alert(res.data.message);
     } catch (error) {
       alert('Hata oluştu');

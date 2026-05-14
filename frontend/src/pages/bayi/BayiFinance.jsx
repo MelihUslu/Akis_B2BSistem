@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import axios from 'axios';
+import api from '../../services/api';
 import { CreditCard, Wallet, ArrowUpRight, ArrowDownLeft, Info } from 'lucide-react';
 
 const BayiFinance = () => {
@@ -11,7 +11,7 @@ const BayiFinance = () => {
     // Gerçek uygulamada login olan kullanıcının şirket bilgileri çekilmeli
     const fetchFinance = async () => {
       try {
-        const response = await axios.get('http://localhost:5001/api/companies');
+        const response = await api.get('/companies');
         if (response.data.length > 0) {
           const myCompany = response.data[0]; // Örnek olarak ilkini alıyoruz
           setBalance(myCompany.currentBalance);

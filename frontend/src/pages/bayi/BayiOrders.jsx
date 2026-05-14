@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import axios from 'axios';
+import api from '../../services/api';
 import { History, Package, Truck, CheckCircle, Clock } from 'lucide-react';
 
 const BayiOrders = () => {
@@ -9,8 +9,7 @@ const BayiOrders = () => {
   useEffect(() => {
     const fetchOrders = async () => {
       try {
-        // Not: Gerçek uygulamada sadece giriş yapan bayinin siparişleri filtrelenmelidir (API tarafında)
-        const response = await axios.get('http://localhost:5001/api/orders');
+        const response = await api.get('/orders');
         setOrders(response.data);
       } catch (error) {
         console.error('Siparişler yüklenemedi');

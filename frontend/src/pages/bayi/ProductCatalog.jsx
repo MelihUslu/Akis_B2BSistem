@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import axios from 'axios';
+import api from '../../services/api';
 import { 
   ShoppingCart, Search, Package, ChevronRight, 
   CheckCircle2, AlertCircle, XCircle, 
@@ -41,10 +41,10 @@ const ProductCatalog = () => {
       }).toString();
 
       const [pRes, cRes, fRes, uRes] = await Promise.all([
-        axios.get(`http://localhost:5001/api/products?${query}`),
-        axios.get('http://localhost:5001/api/categories'),
-        axios.get('http://localhost:5001/api/products/filters'),
-        axios.get('http://localhost:5001/api/auth/me')
+        api.get(`/products?${query}`),
+        api.get('/categories'),
+        api.get('/products/filters'),
+        api.get('/auth/me')
       ]);
 
       setProducts(pRes.data.data);

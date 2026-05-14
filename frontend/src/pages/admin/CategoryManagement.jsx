@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import axios from 'axios';
+import api from '../../services/api';
 import { 
   DndContext, 
   closestCenter,
@@ -116,8 +116,8 @@ const CategoryManagement = () => {
   const fetchCategories = async () => {
     try {
       const [treeRes, flatRes] = await Promise.all([
-        axios.get('http://localhost:5001/api/categories?isAdmin=true'),
-        axios.get('http://localhost:5001/api/categories?isAdmin=true&isFlat=true')
+        api.get('/categories?isAdmin=true'),
+        api.get('/categories?isAdmin=true&isFlat=true')
       ]);
       setCategories(treeRes.data);
       setFlatCategories(flatRes.data);
@@ -167,7 +167,7 @@ const CategoryManagement = () => {
 
       // Pessimistic update UI and then call API
       try {
-        await axios.post('http://localhost:5001/api/categories/reorder', { categories: reorderedCategories });
+        await api.post('/categories/reorder', { categories: reorderedCategories });
         fetchCategories();
       } catch (error) {
         console.error('Reorder error:', error);
@@ -181,7 +181,7 @@ const CategoryManagement = () => {
     const data = new FormData();
     data.append('file', file);
     try {
-      const res = await axios.post('http://localhost:5001/api/categories/upload-image', data);
+      const res = await api.post('/categories/upload-image', data);
       setFormData(prev => ({ ...prev, imageUrl: res.data.imageUrl }));
     } catch (error) {
       alert('Resim yüklenemedi');
@@ -192,9 +192,9 @@ const CategoryManagement = () => {
     e.preventDefault();
     try {
       if (selectedCategory) {
-        await axios.patch(`http://localhost:5001/api/categories/${selectedCategory.id}`, formData);
+        await api.patch(`/categories/${selectedCategory.id}`, formData);
       } else {
-        await axios.post('http://localhost:5001/api/categories', formData);
+        await api.post('/categories', formData);
       }
       setIsDrawerOpen(false);
       setSelectedCategory(null);
@@ -208,7 +208,7 @@ const CategoryManagement = () => {
   const deleteCategory = async (id) => {
     if (!window.confirm('Bu kategoriyi silmek istediğinize emin misiniz?')) return;
     try {
-      await axios.delete(`http://localhost:5001/api/categories/${id}`);
+      await api.delete(`/categories/${id}`);
       fetchCategories();
     } catch (error) {
       alert(error.response?.data?.message || 'Silme işlemi başarısız');

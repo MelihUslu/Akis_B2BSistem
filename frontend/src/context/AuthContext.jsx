@@ -1,5 +1,5 @@
 import React, { createContext, useContext, useState, useEffect } from 'react';
-import axios from 'axios';
+import api from '../services/api';
 
 const AuthContext = createContext();
 
@@ -14,20 +14,18 @@ export const AuthProvider = ({ children }) => {
     
     if (token && storedUser) {
       setUser(JSON.parse(storedUser));
-      axios.defaults.headers.common['Authorization'] = `Bearer ${token}`;
     }
     setLoading(false);
   }, []);
 
   const login = async (email, password) => {
     try {
-      const response = await axios.post('http://localhost:5001/api/auth/login', { email, password });
+      const response = await api.post('/auth/login', { email, password });
       const { token, user } = response.data;
       
       localStorage.setItem('akis_token', token);
       localStorage.setItem('akis_user', JSON.stringify(user));
       
-      axios.defaults.headers.common['Authorization'] = `Bearer ${token}`;
       setUser(user);
       return { success: true };
     } catch (error) {
@@ -41,7 +39,6 @@ export const AuthProvider = ({ children }) => {
   const logout = () => {
     localStorage.removeItem('akis_token');
     localStorage.removeItem('akis_user');
-    delete axios.defaults.headers.common['Authorization'];
     setUser(null);
   };
 

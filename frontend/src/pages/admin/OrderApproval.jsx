@@ -1,19 +1,26 @@
 import React, { useState, useEffect } from 'react';
-import axios from 'axios';
-import { ShoppingCart, CheckCircle, XCircle, Truck, Info, ChevronDown } from 'lucide-react';
+import api from '../../services/api';
+import { ShoppingCart, CheckCircle, XCircle, Truck, Info, ChevronDown, AlertCircle } from 'lucide-react';
+import { useAuth } from '../../context/AuthContext';
 
 const OrderApproval = () => {
+  const { user } = useAuth();
   const [orders, setOrders] = useState([]);
   const [isLoading, setIsLoading] = useState(true);
   const [selectedOrder, setSelectedOrder] = useState(null);
   const [trackingNumber, setTrackingNumber] = useState('');
+  const [errorMsg, setErrorMsg] = useState(null);
 
   const fetchOrders = async () => {
     try {
-      const response = await axios.get('http://localhost:5001/api/orders');
+      setIsLoading(true);
+      setErrorMsg(null);
+      const response = await api.get('/orders');
+      console.log('Fetched orders:', response.data);
       setOrders(response.data);
     } catch (error) {
-      console.error('Siparişler yüklenemedi');
+      console.error('Siparişler yüklenemedi', error);
+      setErrorMsg('Siparişler yüklenirken bir hata oluştu: ' + (error.response?.data?.message || error.message));
     } finally {
       setIsLoading(false);
     }
@@ -30,7 +37,7 @@ const OrderApproval = () => {
         status: item.status // 'APPROVED' veya 'CANCELLED'
       }));
 
-      await axios.patch(`http://localhost:5001/api/orders/${orderId}/partial-approve`, { itemStatuses });
+      await api.patch(`/orders/${orderId}/partial-approve`, { itemStatuses });
       alert('Sipariş başarıyla güncellendi');
       setSelectedOrder(null);
       fetchOrders();
@@ -42,7 +49,7 @@ const OrderApproval = () => {
   const handleShip = async (orderId) => {
     if (!trackingNumber) return alert('Lütfen takip no girin');
     try {
-      await axios.patch(`http://localhost:5001/api/orders/${orderId}/ship`, { trackingNumber });
+      await api.patch(`/orders/${orderId}/ship`, { trackingNumber });
       alert('Sipariş kargoya verildi');
       setSelectedOrder(null);
       fetchOrders();
@@ -60,8 +67,20 @@ const OrderApproval = () => {
             Gelişmiş Sipariş Onay Sistemi
           </h1>
           <p className="text-gray-500 text-sm mt-1">Gelen siparişleri inceleyin, kalem bazlı onay verin veya kargoya verin.</p>
+          <div className="mt-2 text-[10px] font-mono text-gray-400 bg-gray-50 p-1 rounded inline-block">
+            DEBUG: {user?.name} ({user?.role}) | Orders: {orders.length}
+          </div>
         </div>
       </div>
+
+      {errorMsg && (
+        <div className="bg-red-50 border-l-4 border-red-500 p-4 rounded-r-xl">
+          <p className="text-red-700 text-sm font-bold flex items-center">
+            <AlertCircle className="h-4 w-4 mr-2" /> {errorMsg}
+          </p>
+          <button onClick={fetchOrders} className="mt-2 text-xs text-red-600 underline">Tekrar Dene</button>
+        </div>
+      )}
 
       <div className="grid grid-cols-1 gap-4">
         {isLoading ? (
