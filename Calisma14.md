@@ -1,0 +1,2 @@
+http://localhost:5173/bayi/checkout 
+bu sayfada bir hata var. Siparişi onayla butonuna basınca hata veriyor. Alert methodu ile sipariş oluşturulamadı hatası geliyor. Bu hatada mesaj sweet alert ile verilmesi gerekiyor. Sayfaya uygun custom class ile pop-up yapabilirsin. Aynı şekilde sipariş oluşturulduğunda da sweet alert ile mesaj verilmesi gerekiyor. 
