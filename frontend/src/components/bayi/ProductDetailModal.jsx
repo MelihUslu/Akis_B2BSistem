@@ -3,6 +3,7 @@ import {
   ShoppingCart, Package, FileText, PlayCircle, Minus, Plus, X, BellRing, BellOff, Heart, FileSignature, Check, Layers
 } from 'lucide-react';
 import { formatTRY, normalizeQty } from '../../utils/format';
+import { t } from '../../i18n';
 
 const parseImages = (images) => {
   try { return JSON.parse(images || '[]'); } catch { return []; }
@@ -13,7 +14,7 @@ const youtubeEmbed = (url) => {
   return id ? `https://www.youtube.com/embed/${id}` : null;
 };
 
-const STOCK_TEXT = { '100+': '100+ stokta', 'Son 5 Ürün': 'Son 5 ürün', 'Tükendi': 'Tükendi' };
+const STOCK_TEXT = { '100+': '100+ stokta', 'Son 5 Ürün': 'Son 5 ürün', 'Tükendi': t('Tükendi') };
 
 // Varsayılan seçim: stoktaki ilk varyant (yoksa ilk varyant)
 const initialSelection = (product) => {
@@ -91,7 +92,7 @@ const ProductDetailModal = ({ product, rules, onClose, onAddToCart, onRequestQuo
           <div className="flex items-center justify-between mb-6">
             <span className="bg-indigo-100 text-indigo-600 px-4 py-2 rounded-xl text-[10px] font-black uppercase tracking-widest shadow-sm">{product.category?.name || 'Katalog Ürünü'}</span>
             <div className="flex gap-2">
-              <button onClick={() => onToggleFavorite(product)} title="Favori" className={`p-3 rounded-2xl transition-all shadow-sm ${product.isFavorite ? 'bg-pink-50 text-pink-500' : 'hover:bg-white text-gray-400 hover:text-pink-500'}`}>
+              <button onClick={() => onToggleFavorite(product)} title={t('Favori')} className={`p-3 rounded-2xl transition-all shadow-sm ${product.isFavorite ? 'bg-pink-50 text-pink-500' : 'hover:bg-white text-gray-400 hover:text-pink-500'}`}>
                 <Heart className={`h-5 w-5 ${product.isFavorite ? 'fill-current' : ''}`} />
               </button>
               <button onClick={onClose} className="p-3 hover:bg-white text-gray-400 hover:text-red-500 rounded-2xl transition-all shadow-sm"><X className="h-6 w-6" /></button>
@@ -117,8 +118,8 @@ const ProductDetailModal = ({ product, rules, onClose, onAddToCart, onRequestQuo
           <div>
             <h2 className="text-2xl md:text-3xl font-black text-gray-900 tracking-tighter mb-2">{product.name}</h2>
             <div className="flex flex-wrap items-center gap-2 mb-6">
-              <span className="text-gray-400 font-bold uppercase text-[10px] tracking-widest bg-gray-50 px-3 py-1.5 rounded-lg border border-gray-100">SKU: {active.sku}</span>
-              {product.brand && <span className="text-gray-400 font-bold uppercase text-[10px] tracking-widest bg-gray-50 px-3 py-1.5 rounded-lg border border-gray-100">Marka: {product.brand}</span>}
+              <span className="text-gray-400 font-bold uppercase text-[10px] tracking-widest bg-gray-50 px-3 py-1.5 rounded-lg border border-gray-100">{t('SKU:')} {active.sku}</span>
+              {product.brand && <span className="text-gray-400 font-bold uppercase text-[10px] tracking-widest bg-gray-50 px-3 py-1.5 rounded-lg border border-gray-100">{t('Marka:')} {product.brand}</span>}
               {resolved && hasVariants && <span className={`text-[10px] font-black uppercase tracking-widest px-3 py-1.5 rounded-lg ${resolved.inStock ? 'bg-emerald-50 text-emerald-700' : 'bg-red-50 text-red-600'}`}>{STOCK_TEXT[resolved.stock] || `${resolved.stock} adet stokta`}</span>}
             </div>
 
@@ -127,7 +128,7 @@ const ProductDetailModal = ({ product, rules, onClose, onAddToCart, onRequestQuo
               <div className="space-y-5 mb-6">
                 {legacyVariants ? (
                   <div>
-                    <p className="text-[10px] font-black text-gray-400 uppercase tracking-widest mb-2 flex items-center"><Layers className="h-3.5 w-3.5 mr-1.5" /> Seçenek</p>
+                    <p className="text-[10px] font-black text-gray-400 uppercase tracking-widest mb-2 flex items-center"><Layers className="h-3.5 w-3.5 mr-1.5" /> {t('Seçenek')}</p>
                     <div className="flex flex-wrap gap-2">
                       {variants.map(v => (
                         <button key={v.id} onClick={() => { setLegacyId(v.id); setQty(null); }}
@@ -148,7 +149,7 @@ const ProductDetailModal = ({ product, rules, onClose, onAddToCart, onRequestQuo
                         const on = selections[o.id] === v.id;
                         return (
                           <button key={v.id} onClick={() => select(o.id, v.id)}
-                            title={!state.exists ? 'Bu seçimle birlikte yok — diğer seçimler sıfırlanır' : !state.inStock ? 'Tükendi' : ''}
+                            title={!state.exists ? t('Bu seçimle birlikte yok — diğer seçimler sıfırlanır') : !state.inStock ? t('Tükendi') : ''}
                             className={`relative px-4 py-2.5 rounded-xl text-xs font-black border-2 transition-all
                               ${on ? 'border-indigo-600 bg-indigo-50 text-indigo-700' : 'border-gray-100 text-gray-700 hover:border-indigo-200'}
                               ${!state.exists ? 'opacity-40 border-dashed' : ''} ${state.exists && !state.inStock ? 'text-gray-400 line-through' : ''}`}>
@@ -159,18 +160,18 @@ const ProductDetailModal = ({ product, rules, onClose, onAddToCart, onRequestQuo
                     </div>
                   </div>
                 ))}
-                {!resolved && <p className="text-xs font-bold text-amber-600">Lütfen tüm seçenekleri belirleyin.</p>}
+                {!resolved && <p className="text-xs font-bold text-amber-600">{t('Lütfen tüm seçenekleri belirleyin.')}</p>}
               </div>
             )}
 
             <div className="bg-indigo-50/50 p-6 rounded-3xl mb-6 border border-indigo-50">
               <p className="text-[10px] font-black text-indigo-400 uppercase tracking-widest mb-1">
-                {active.hasSpecialPrice ? 'Size Özel Fiyat' : 'Net İskontolu Fiyat'}
+                {active.hasSpecialPrice ? t('Size Özel Fiyat') : t('Net İskontolu Fiyat')}
               </p>
               {active.priceHidden ? (
-                <p className="text-xl font-black text-gray-500">Bu ürün için teklif isteyin.</p>
+                <p className="text-xl font-black text-gray-500">{t('Bu ürün için teklif isteyin.')}</p>
               ) : !resolved && hasVariants ? (
-                <p className="text-3xl font-black text-indigo-600 tracking-tighter">{formatTRY(minPrice)}<span className="text-sm text-indigo-400">'den başlayan</span></p>
+                <p className="text-3xl font-black text-indigo-600 tracking-tighter">{formatTRY(minPrice)}<span className="text-sm text-indigo-400">{t("'den başlayan")}</span></p>
               ) : (
                 <>
                   <p className="text-4xl md:text-5xl font-black text-indigo-600 tracking-tighter mb-2">{formatTRY(active.netPrice)}</p>
@@ -181,8 +182,8 @@ const ProductDetailModal = ({ product, rules, onClose, onAddToCart, onRequestQuo
                   </p>
                   {active.priceTiers?.length > 0 && (
                     <div className="flex flex-wrap gap-2 mt-3">
-                      {active.priceTiers.map(t => (
-                        <span key={t.minQty} className="text-[11px] font-black bg-white border border-emerald-100 text-emerald-700 px-3 py-1.5 rounded-xl">{t.minQty}+ {active.unit}: {formatTRY(t.price)}</span>
+                      {active.priceTiers.map(tier => (
+                        <span key={tier.minQty} className="text-[11px] font-black bg-white border border-emerald-100 text-emerald-700 px-3 py-1.5 rounded-xl">{tier.minQty}+ {active.unit}: {formatTRY(tier.price)}</span>
                       ))}
                     </div>
                   )}
@@ -202,25 +203,25 @@ const ProductDetailModal = ({ product, rules, onClose, onAddToCart, onRequestQuo
               <div className="flex flex-wrap gap-3 mb-6">
                 {product.pdfUrl && (
                   <a href={product.pdfUrl} target="_blank" rel="noreferrer" className="flex items-center px-5 py-3 bg-red-50 text-red-600 rounded-2xl text-xs font-black uppercase tracking-widest hover:bg-red-100">
-                    <FileText className="h-4 w-4 mr-2" /> PDF Teknik Katalog
+                    <FileText className="h-4 w-4 mr-2" /> {t('PDF Teknik Katalog')}
                   </a>
                 )}
                 {product.videoUrl && !youtubeEmbed(product.videoUrl) && (
                   <a href={product.videoUrl} target="_blank" rel="noreferrer" className="flex items-center px-5 py-3 bg-gray-900 text-white rounded-2xl text-xs font-black uppercase tracking-widest hover:bg-gray-800">
-                    <PlayCircle className="h-4 w-4 mr-2" /> Montaj / Tanıtım Videosu
+                    <PlayCircle className="h-4 w-4 mr-2" /> {t('Montaj / Tanıtım Videosu')}
                   </a>
                 )}
               </div>
             )}
             {youtubeEmbed(product.videoUrl) && (
               <div className="aspect-video rounded-3xl overflow-hidden mb-6 border border-gray-100">
-                <iframe src={youtubeEmbed(product.videoUrl)} title="Ürün videosu" className="w-full h-full" allowFullScreen />
+                <iframe src={youtubeEmbed(product.videoUrl)} title={t('Ürün videosu')} className="w-full h-full" allowFullScreen />
               </div>
             )}
 
             {!product.inStock && !hasVariants && product.alternatives?.length > 0 && (
               <div className="mb-6">
-                <p className="text-[10px] font-black text-gray-400 uppercase tracking-widest mb-3">Stokta olmayan bu ürün yerine</p>
+                <p className="text-[10px] font-black text-gray-400 uppercase tracking-widest mb-3">{t('Stokta olmayan bu ürün yerine')}</p>
                 <div className="space-y-2">
                   {product.alternatives.map(alt => (
                     <button key={alt.id} onClick={() => onOpenProduct(alt)} className="w-full flex items-center justify-between p-4 bg-gray-50 hover:bg-indigo-50 rounded-2xl border border-gray-100">
@@ -235,8 +236,8 @@ const ProductDetailModal = ({ product, rules, onClose, onAddToCart, onRequestQuo
 
           <div className="bg-gray-50 p-5 md:p-6 rounded-3xl border border-gray-100 space-y-4 sticky bottom-0">
             <div className="flex justify-between items-center text-sm font-bold text-gray-500">
-              <span>Sipariş Miktarı</span>
-              <span className="text-indigo-600 text-xs">Min {active.moq || 1} {active.unit}{step > 1 ? ` · ${step}'in katları` : ''}</span>
+              <span>{t('Sipariş Miktarı')}</span>
+              <span className="text-indigo-600 text-xs">{t('Min')} {active.moq || 1} {active.unit}{step > 1 ? ` · ${step}'in katları` : ''}</span>
             </div>
             <div className="flex flex-col sm:flex-row items-stretch gap-3">
               <div className="flex items-center bg-white rounded-2xl p-1.5 border border-gray-200 shadow-sm sm:w-1/3">
@@ -249,12 +250,12 @@ const ProductDetailModal = ({ product, rules, onClose, onAddToCart, onRequestQuo
               {resolved && !resolved.inStock ? (
                 <button onClick={toggleAlert} className="flex-1 bg-white border border-gray-200 text-gray-800 hover:border-indigo-300 hover:text-indigo-600 py-4 rounded-2xl text-sm font-black flex items-center justify-center uppercase tracking-widest">
                   {stockAlertOn ? <BellOff className="h-5 w-5 mr-3" /> : <BellRing className="h-5 w-5 mr-3" />}
-                  {stockAlertOn ? 'Takibi Bırak' : 'Gelince Haber Ver'}
+                  {stockAlertOn ? t('Takibi Bırak') : t('Gelince Haber Ver')}
                 </button>
               ) : (
                 <button disabled={!canBuy} onClick={() => onAddToCart(product, resolved, normalizeQty(quantity, active))}
                   className="flex-1 bg-gray-900 text-white hover:bg-indigo-600 py-4 rounded-2xl text-sm font-black flex items-center justify-center shadow-xl shadow-gray-900/20 transition-all uppercase tracking-widest disabled:opacity-40 disabled:hover:bg-gray-900">
-                  <ShoppingCart className="h-5 w-5 mr-3" /> Sepete Ekle
+                  <ShoppingCart className="h-5 w-5 mr-3" /> {t('Sepete Ekle')}
                 </button>
               )}
             </div>

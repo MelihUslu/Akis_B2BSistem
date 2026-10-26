@@ -7,6 +7,7 @@ import useAlert from '../../hooks/useAlert';
 import DealerUsersModal from '../../components/admin/DealerUsersModal';
 import { Users } from 'lucide-react';
 import { formatTRY } from '../../utils/format';
+import { t } from '../../i18n';
 
 const Field = ({ icon: Icon, label, value }) => (
   <div className="flex items-start space-x-3">
@@ -31,7 +32,7 @@ const BayiProfile = () => {
   const changePassword = async (e) => {
     e.preventDefault();
     if (form.newPassword !== form.confirm) {
-      showAlert({ type: 'warning', title: 'Şifreler Eşleşmiyor', message: 'Yeni şifre ve tekrarı aynı olmalıdır.' });
+      showAlert({ type: 'warning', title: t('Şifreler Eşleşmiyor'), message: t('Yeni şifre ve tekrarı aynı olmalıdır.') });
       return;
     }
     setSaving(true);
@@ -39,15 +40,15 @@ const BayiProfile = () => {
       const res = await api.post('/auth/change-password', { currentPassword: form.currentPassword, newPassword: form.newPassword });
       if (res.data.token) localStorage.setItem('akis_token', res.data.token);
       setForm({ currentPassword: '', newPassword: '', confirm: '' });
-      showAlert({ type: 'success', title: 'Şifre Güncellendi', message: res.data.message });
+      showAlert({ type: 'success', title: t('Şifre Güncellendi'), message: res.data.message });
     } catch (error) {
-      showAlert({ type: 'error', title: 'Hata', message: errorMessage(error, 'Şifre güncellenemedi.') });
+      showAlert({ type: 'error', title: t('Hata'), message: errorMessage(error, t('Şifre güncellenemedi.')) });
     } finally {
       setSaving(false);
     }
   };
 
-  if (!me) return <div className="p-8 text-center text-gray-400">Yükleniyor...</div>;
+  if (!me) return <div className="p-8 text-center text-gray-400">{t('Yükleniyor...')}</div>;
   const company = me.company || {};
 
   return (
@@ -57,41 +58,41 @@ const BayiProfile = () => {
         <div className="flex items-center gap-4">
           <div className="bg-gradient-to-br from-indigo-500 to-indigo-700 p-3 md:p-3.5 rounded-2xl shadow-lg shadow-indigo-500/25 shrink-0"><User className="h-6 w-6 text-white" /></div>
           <div>
-            <h1 className="text-2xl md:text-3xl font-black text-gray-900 tracking-tight">Hesap Ayarları</h1>
-            <p className="text-gray-500 text-sm mt-1">Firma bilgileriniz ve giriş güvenliğiniz.</p>
+            <h1 className="text-2xl md:text-3xl font-black text-gray-900 tracking-tight">{t('Hesap Ayarları')}</h1>
+            <p className="text-gray-500 text-sm mt-1">{t('Firma bilgileriniz ve giriş güvenliğiniz.')}</p>
           </div>
         </div>
       </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
         <div className="card-premium p-5 md:p-8 space-y-6">
-          <h3 className="font-black text-gray-900 flex items-center"><Building2 className="h-5 w-5 mr-2 text-indigo-500" /> Firma Bilgileri</h3>
+          <h3 className="font-black text-gray-900 flex items-center"><Building2 className="h-5 w-5 mr-2 text-indigo-500" /> {t('Firma Bilgileri')}</h3>
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
-            <Field icon={Building2} label="Unvan" value={company.name} />
-            <Field icon={User} label="Yetkili" value={company.authorizedPerson || me.name} />
-            <Field icon={Mail} label="E-posta" value={me.email} />
-            <Field icon={Phone} label="Telefon" value={company.phone} />
-            <Field icon={Award} label="Bayi Grubu" value={company.dealerGroup} />
-            <Field icon={Building2} label="Vergi Dairesi / No" value={[company.taxOffice, company.taxNumber].filter(Boolean).join(' / ')} />
+            <Field icon={Building2} label={t('Unvan')} value={company.name} />
+            <Field icon={User} label={t('Yetkili')} value={company.authorizedPerson || me.name} />
+            <Field icon={Mail} label={t('E-posta')} value={me.email} />
+            <Field icon={Phone} label={t('Telefon')} value={company.phone} />
+            <Field icon={Award} label={t('Bayi Grubu')} value={company.dealerGroup} />
+            <Field icon={Building2} label={t('Vergi Dairesi / No')} value={[company.taxOffice, company.taxNumber].filter(Boolean).join(' / ')} />
           </div>
-          <Field icon={MapPin} label="Adres" value={company.address} />
+          <Field icon={MapPin} label={t('Adres')} value={company.address} />
           <div className="grid grid-cols-3 gap-4 pt-4 border-t border-gray-50 text-center">
-            <div><p className="text-[10px] font-black text-gray-400 uppercase">İskonto</p><p className="font-black text-gray-900">%{company.netDiscount || 0}</p></div>
-            <div><p className="text-[10px] font-black text-gray-400 uppercase">Min. Sipariş</p><p className="font-black text-gray-900">{formatTRY(company.minOrderAmount)}</p></div>
-            <div><p className="text-[10px] font-black text-gray-400 uppercase">Vade</p><p className="font-black text-gray-900">{company.paymentTermDays} gün</p></div>
+            <div><p className="text-[10px] font-black text-gray-400 uppercase">{t('İskonto')}</p><p className="font-black text-gray-900">%{company.netDiscount || 0}</p></div>
+            <div><p className="text-[10px] font-black text-gray-400 uppercase">{t('Min. Sipariş')}</p><p className="font-black text-gray-900">{formatTRY(company.minOrderAmount)}</p></div>
+            <div><p className="text-[10px] font-black text-gray-400 uppercase">{t('Vade')}</p><p className="font-black text-gray-900">{company.paymentTermDays} gün</p></div>
           </div>
           {company.plasiyer && (
             <p className="text-xs font-bold text-gray-500 bg-indigo-50/60 p-4 rounded-2xl">
-              Müşteri temsilciniz: <span className="text-indigo-700">{company.plasiyer.name}</span> · {company.plasiyer.email}
+              {t('Müşteri temsilciniz:')} <span className="text-indigo-700">{company.plasiyer.name}</span> · {company.plasiyer.email}
             </p>
           )}
-          <p className="text-[11px] text-gray-400 font-semibold">Firma bilgilerinde değişiklik için müşteri temsilcinizle iletişime geçin.</p>
+          <p className="text-[11px] text-gray-400 font-semibold">{t('Firma bilgilerinde değişiklik için müşteri temsilcinizle iletişime geçin.')}</p>
         </div>
 
         <form onSubmit={changePassword} className="card-premium p-5 md:p-8 space-y-5">
-          <h3 className="font-black text-gray-900 flex items-center"><KeyRound className="h-5 w-5 mr-2 text-indigo-500" /> Şifre Değiştir</h3>
+          <h3 className="font-black text-gray-900 flex items-center"><KeyRound className="h-5 w-5 mr-2 text-indigo-500" /> {t('Şifre Değiştir')}</h3>
           <div>
-            <label className="premium-label">Mevcut Şifre</label>
+            <label className="premium-label">{t('Mevcut Şifre')}</label>
             <input required type="password" autoComplete="current-password" className="premium-input" value={form.currentPassword} onChange={(e) => setForm({ ...form, currentPassword: e.target.value })} />
           </div>
           <div>
@@ -109,19 +110,19 @@ const BayiProfile = () => {
       <NotificationPrefs showAlert={showAlert} />
 
       <div className="card-premium p-5 md:p-8 space-y-4">
-        <h3 className="font-black text-gray-900 flex items-center"><MapPin className="h-5 w-5 mr-2 text-indigo-500" /> Teslimat Adreslerim</h3>
+        <h3 className="font-black text-gray-900 flex items-center"><MapPin className="h-5 w-5 mr-2 text-indigo-500" /> {t('Teslimat Adreslerim')}</h3>
         <p className="text-sm text-gray-500">Siparişte hangi adrese gönderileceğini seçebilirsiniz; varsayılan adres otomatik seçilir.</p>
         <AddressBook showAlert={showAlert} />
       </div>
 
       {me.isOwner ? (
         <div className="card-premium p-5 md:p-8 space-y-4">
-          <h3 className="font-black text-gray-900 flex items-center"><Users className="h-5 w-5 mr-2 text-indigo-500" /> Firma Kullanıcıları</h3>
-          <p className="text-sm text-gray-500">Şubeleriniz veya çalışanlarınız için ayrı giriş hesabı açın. Herkes aynı cari hesabı ve siparişleri görür.</p>
+          <h3 className="font-black text-gray-900 flex items-center"><Users className="h-5 w-5 mr-2 text-indigo-500" /> {t('Firma Kullanıcıları')}</h3>
+          <p className="text-sm text-gray-500">{t('Şubeleriniz veya çalışanlarınız için ayrı giriş hesabı açın. Herkes aynı cari hesabı ve siparişleri görür.')}</p>
           <DealerUsersModal inline base="/team/my-company" showAlert={showAlert} confirm={confirm} />
         </div>
       ) : (
-        <p className="text-xs text-gray-400">Kullanıcı eklemek için firmanızın ana kullanıcısıyla iletişime geçin.</p>
+        <p className="text-xs text-gray-400">{t('Kullanıcı eklemek için firmanızın ana kullanıcısıyla iletişime geçin.')}</p>
       )}
     </div>
   );

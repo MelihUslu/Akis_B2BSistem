@@ -5,6 +5,8 @@ import { useNavigate, Link } from 'react-router-dom';
 import { Mail, Lock, ChevronRight, AlertCircle } from 'lucide-react';
 import loginIllustration from '../assets/akis_login.png';
 import TwoFactorStep from '../components/TwoFactorStep';
+import { t } from '../i18n';
+import LanguageSwitcher from '../components/LanguageSwitcher';
 
 const Login = () => {
   const [email, setEmail] = useState('');
@@ -64,6 +66,7 @@ const Login = () => {
         
         {/* Sol Taraf: Giriş Formu (Daha Kompakt) */}
         <div className="w-full md:w-1/2 p-8 sm:p-10 lg:p-12 flex flex-col justify-center relative">
+          <LanguageSwitcher className="absolute top-5 right-5" />
           <div className="mb-10">
             {tenant?.logoUrl ? (
               <img src={tenant.logoUrl} alt={tenant.name} className="h-12 max-w-[12rem] object-contain mb-5" />
@@ -71,10 +74,10 @@ const Login = () => {
               <div className="h-1 w-10 bg-indigo-600 rounded-full mb-5"></div>
             )}
             <h1 className="text-slate-900 text-3xl font-extrabold tracking-tight mb-2">
-              Hoş Geldiniz
+              {t('Hoş Geldiniz')}
             </h1>
             <p className="text-slate-500 text-sm font-medium">
-              {tenant?.name ? <><b className="text-slate-700">{tenant.name}</b> B2B portalına giriş yapın.</> : 'Giriş yaparak devam edin.'}
+              {tenant?.name ? <><b className="text-slate-700">{tenant.name}</b> {t('B2B portalına giriş yapın.')}</> : 'Giriş yaparak devam edin.'}
             </p>
           </div>
 
@@ -94,7 +97,7 @@ const Login = () => {
 
             <div className="space-y-4">
               <div className="space-y-1.5">
-                <label className="text-[11px] font-bold text-slate-400 uppercase tracking-wider ml-1">E-posta</label>
+                <label className="text-[11px] font-bold text-slate-400 uppercase tracking-wider ml-1">{t('E-posta')}</label>
                 <div className="relative group">
                   <div className="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none">
                     <Mail className="h-4 w-4 text-slate-400 group-focus-within:text-indigo-600 transition-colors" />
@@ -102,7 +105,7 @@ const Login = () => {
                   <input
                     type="email"
                     required
-                    placeholder="ornek@sirket.com"
+                    placeholder={t('ornek@sirket.com')}
                     className="w-full bg-slate-50 border border-slate-200 rounded-xl py-3.5 pl-11 pr-4 text-slate-900 placeholder:text-slate-400 focus:bg-white focus:ring-4 focus:ring-indigo-600/5 focus:border-indigo-600 transition-all outline-none text-sm"
                     value={email}
                     onChange={(e) => setEmail(e.target.value)}
@@ -111,7 +114,7 @@ const Login = () => {
               </div>
 
               <div className="space-y-1.5">
-                <label className="text-[11px] font-bold text-slate-400 uppercase tracking-wider ml-1">Şifre</label>
+                <label className="text-[11px] font-bold text-slate-400 uppercase tracking-wider ml-1">{t('Şifre')}</label>
                 <div className="relative group">
                   <div className="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none">
                     <Lock className="h-4 w-4 text-slate-400 group-focus-within:text-indigo-600 transition-colors" />
@@ -131,10 +134,10 @@ const Login = () => {
             <div className="flex items-center justify-between px-1">
               <label className="flex items-center gap-2 cursor-pointer group">
                 <input type="checkbox" className="w-4 h-4 rounded border-slate-300 text-indigo-600 focus:ring-indigo-600/20" />
-                <span className="text-[12px] text-slate-500 group-hover:text-slate-900 transition-colors">Beni Hatırla</span>
+                <span className="text-[12px] text-slate-500 group-hover:text-slate-900 transition-colors">{t('Beni Hatırla')}</span>
               </label>
               <Link to="/forgot-password" className="text-[12px] font-semibold text-indigo-600 hover:underline">
-                Şifremi unuttum
+                {t('Şifremi unuttum')}
               </Link>
             </div>
 
@@ -150,7 +153,7 @@ const Login = () => {
           )}
 
           <p className="mt-8 text-center text-sm text-slate-500">
-            Bayimiz değil misiniz? <Link to="/basvuru" className="font-bold text-indigo-600 hover:underline">Bayilik başvurusu yapın</Link>
+            {t('Bayimiz değil misiniz?')} <Link to="/basvuru" className="font-bold text-indigo-600 hover:underline">{t('Bayilik başvurusu yapın')}</Link>
           </p>
 
           <div className="mt-8 text-center">
@@ -164,7 +167,7 @@ const Login = () => {
         <div className="hidden md:block w-1/2 relative bg-slate-50">
           <img 
             src={loginIllustration} 
-            alt="Branding" 
+            alt={t('Branding')} 
             className="h-full w-full object-cover grayscale-[0.1] contrast-[1.05]"
           />
           <div className="absolute inset-0 bg-gradient-to-t from-slate-900/30 via-transparent to-transparent"></div>
@@ -174,7 +177,7 @@ const Login = () => {
               {tenant?.name || 'B2B Portal'}
             </h3>
             <p className="text-slate-500 text-[11px] mt-1 leading-relaxed">
-              İşletmeniz için modern ve hızlı ticaret altyapısı.
+              {t('İşletmeniz için modern ve hızlı ticaret altyapısı.')}
             </p>
           </div>
         </div>

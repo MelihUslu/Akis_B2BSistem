@@ -9,7 +9,9 @@ import CartDrawer from '../components/CartDrawer';
 import NotificationBell from '../components/NotificationBell';
 import TenantBrand from '../components/TenantBrand';
 import ThemeToggle from '../components/ThemeToggle';
+import LanguageSwitcher from '../components/LanguageSwitcher';
 import PageLoader from '../components/PageLoader';
+import { t } from '../i18n';
 
 const ProductCatalog = lazy(() => import('../pages/bayi/ProductCatalog'));
 const BayiOrders = lazy(() => import('../pages/bayi/BayiOrders'));
@@ -43,11 +45,12 @@ const BayiLayout = () => {
         <header className="px-4 md:px-8 lg:px-12 py-4 lg:py-5 flex justify-between items-center bg-white/80 backdrop-blur-md sticky top-0 z-40 gap-3"
           style={{ paddingTop: 'max(1rem, env(safe-area-inset-top))' }}>
           <div className="flex-1 flex items-center gap-3 min-w-0">
-             <button onClick={() => setMenuOpen(true)} className="lg:hidden p-2 -ml-2 rounded-xl text-gray-600 hover:bg-gray-100" aria-label="Menü"><Menu className="h-6 w-6" /></button>
+             <button onClick={() => setMenuOpen(true)} className="lg:hidden p-2 -ml-2 rounded-xl text-gray-600 hover:bg-gray-100" aria-label={t('Menü')}><Menu className="h-6 w-6" /></button>
              <div className="truncate"><TenantBrand textClass="text-gray-900" /></div>
           </div>
           
           <div className="flex items-center space-x-3 md:space-x-6">
+            <LanguageSwitcher className="hidden sm:flex" />
             <ThemeToggle className="hidden sm:block" />
             <NotificationBell />
 
@@ -68,7 +71,7 @@ const BayiLayout = () => {
             <div className="hidden sm:flex items-center space-x-3 pl-4 border-l border-gray-50 group cursor-pointer">
               <div className="text-right hidden sm:block">
                 <p className="text-xs font-black text-gray-900 leading-none">{user?.name || 'Değerli Bayimiz'}</p>
-                <p className="text-[10px] font-bold text-indigo-500 uppercase tracking-widest mt-1">Bayi Hesabı</p>
+                <p className="text-[10px] font-bold text-indigo-500 uppercase tracking-widest mt-1">{t('Bayi Hesabı')}</p>
               </div>
               <div className="w-8 h-8 bg-gradient-to-br from-indigo-500 to-purple-600 rounded-xl flex items-center justify-center text-white font-black text-[10px] shadow-sm">
                  <User className="h-4 w-4" />

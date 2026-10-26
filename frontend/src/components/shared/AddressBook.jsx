@@ -3,6 +3,7 @@ import { MapPin, Plus, Star, Pencil, Trash2, X, User, Phone, Building, Save, Che
 import api, { errorMessage } from '../../services/api';
 import { Field, IconInput, TextArea } from '../form/FormKit';
 import { PROVINCES, formatAddress } from '../../utils/turkey';
+import { t } from '../../i18n';
 
 const EMPTY = { title: '', contactName: '', phone: '', city: '', district: '', line: '', postalCode: '', isDefault: false };
 
@@ -12,18 +13,18 @@ export const AddressForm = ({ initial, onSave, onCancel, busy }) => {
   return (
     <form onSubmit={(e) => { e.preventDefault(); onSave(form); }} className="rounded-2xl ring-1 ring-blue-100 bg-blue-50/30 p-4 space-y-3">
       <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-        <Field label="Adres adı" required><IconInput icon={Building} required maxLength={60} placeholder="Merkez depo, Ankara şube…" value={form.title} onChange={set('title')} /></Field>
-        <Field label="Teslim alacak kişi" required><IconInput icon={User} required maxLength={80} value={form.contactName} onChange={set('contactName')} /></Field>
-        <Field label="Telefon" required><IconInput icon={Phone} type="tel" required maxLength={30} placeholder="05xx xxx xx xx" value={form.phone} onChange={set('phone')} /></Field>
-        <Field label="İl" required>
+        <Field label={t('Adres adı')} required><IconInput icon={Building} required maxLength={60} placeholder={t('Merkez depo, Ankara şube…')} value={form.title} onChange={set('title')} /></Field>
+        <Field label={t('Teslim alacak kişi')} required><IconInput icon={User} required maxLength={80} value={form.contactName} onChange={set('contactName')} /></Field>
+        <Field label={t('Telefon')} required><IconInput icon={Phone} type="tel" required maxLength={30} placeholder={t('05xx xxx xx xx')} value={form.phone} onChange={set('phone')} /></Field>
+        <Field label={t('İl')} required>
           <IconInput as="select" icon={MapPin} required value={form.city} onChange={set('city')}>
-            <option value="">İl seçin</option>
+            <option value="">{t('İl seçin')}</option>
             {PROVINCES.map((p) => <option key={p} value={p}>{p}</option>)}
           </IconInput>
         </Field>
-        <Field label="İlçe" required><IconInput icon={MapPin} required maxLength={60} value={form.district} onChange={set('district')} /></Field>
-        <Field label="Posta kodu"><IconInput maxLength={10} inputMode="numeric" value={form.postalCode || ''} onChange={set('postalCode')} /></Field>
-        <Field label="Açık adres" required className="sm:col-span-2" hint="Mahalle, cadde/sokak, bina ve kapı no">
+        <Field label={t('İlçe')} required><IconInput icon={MapPin} required maxLength={60} value={form.district} onChange={set('district')} /></Field>
+        <Field label={t('Posta kodu')}><IconInput maxLength={10} inputMode="numeric" value={form.postalCode || ''} onChange={set('postalCode')} /></Field>
+        <Field label={t('Açık adres')} required className="sm:col-span-2" hint="Mahalle, cadde/sokak, bina ve kapı no">
           <TextArea required minLength={10} maxLength={300} className="h-20" value={form.line} onChange={set('line')} />
         </Field>
       </div>
@@ -31,8 +32,8 @@ export const AddressForm = ({ initial, onSave, onCancel, busy }) => {
         <input type="checkbox" checked={form.isDefault} onChange={(e) => setForm({ ...form, isDefault: e.target.checked })} /> Varsayılan teslimat adresi yap
       </label>
       <div className="flex justify-end gap-2">
-        <button type="button" onClick={onCancel} className="inline-flex items-center gap-1 h-9 px-3 rounded-xl text-xs font-bold text-gray-500 hover:bg-gray-100"><X className="h-3.5 w-3.5" /> Vazgeç</button>
-        <button disabled={busy} className="inline-flex items-center gap-1.5 h-9 px-4 rounded-xl bg-blue-600 text-white text-xs font-bold disabled:opacity-50"><Save className="h-3.5 w-3.5" /> Kaydet</button>
+        <button type="button" onClick={onCancel} className="inline-flex items-center gap-1 h-9 px-3 rounded-xl text-xs font-bold text-gray-500 hover:bg-gray-100"><X className="h-3.5 w-3.5" /> {t('Vazgeç')}</button>
+        <button disabled={busy} className="inline-flex items-center gap-1.5 h-9 px-4 rounded-xl bg-blue-600 text-white text-xs font-bold disabled:opacity-50"><Save className="h-3.5 w-3.5" /> {t('Kaydet')}</button>
       </div>
     </form>
   );
@@ -61,7 +62,7 @@ const AddressBook = ({ base = '/addresses', showAlert, selectable = false, value
       await load();
       if (selectable) onSelect?.(res.data.address.id);
     } catch (err) {
-      showAlert?.({ type: 'error', title: 'Adres kaydedilemedi', message: errorMessage(err, 'Hata oluştu.') });
+      showAlert?.({ type: 'error', title: t('Adres kaydedilemedi'), message: errorMessage(err, t('Hata oluştu.')) });
     } finally {
       setBusy(false);
     }
@@ -73,7 +74,7 @@ const AddressBook = ({ base = '/addresses', showAlert, selectable = false, value
       if (value === a.id) onSelect?.(null);
       load();
     } catch (err) {
-      showAlert?.({ type: 'error', title: 'Silinemedi', message: errorMessage(err, 'Hata oluştu.') });
+      showAlert?.({ type: 'error', title: t('Silinemedi'), message: errorMessage(err, t('Hata oluştu.')) });
     }
   };
 
@@ -94,27 +95,27 @@ const AddressBook = ({ base = '/addresses', showAlert, selectable = false, value
                 <div className="min-w-0 flex-1">
                   <p className="text-sm font-black text-gray-900 flex items-center gap-2">
                     {a.title}
-                    {a.isDefault && <span className="px-1.5 py-0.5 rounded-md bg-amber-100 text-amber-700 text-[10px] font-bold">Varsayılan</span>}
+                    {a.isDefault && <span className="px-1.5 py-0.5 rounded-md bg-amber-100 text-amber-700 text-[10px] font-bold">{t('Varsayılan')}</span>}
                   </p>
                   <p className="text-xs text-gray-600 mt-0.5 leading-relaxed">{formatAddress(a)}</p>
                   <p className="text-[11px] text-gray-400 mt-1">{a.contactName} · {a.phone}</p>
                 </div>
               </div>
               <div className="flex justify-end gap-1 mt-2" onClick={(e) => e.stopPropagation()}>
-                {!a.isDefault && <button onClick={() => makeDefault(a)} title="Varsayılan yap" className="p-1.5 rounded-lg text-gray-400 hover:text-amber-600 hover:bg-amber-50"><Star className="h-3.5 w-3.5" /></button>}
-                <button onClick={() => setEditing(a)} title="Düzenle" className="p-1.5 rounded-lg text-gray-400 hover:text-blue-600 hover:bg-blue-50"><Pencil className="h-3.5 w-3.5" /></button>
-                <button onClick={() => remove(a)} title="Sil" className="p-1.5 rounded-lg text-gray-400 hover:text-red-600 hover:bg-red-50"><Trash2 className="h-3.5 w-3.5" /></button>
+                {!a.isDefault && <button onClick={() => makeDefault(a)} title={t('Varsayılan yap')} className="p-1.5 rounded-lg text-gray-400 hover:text-amber-600 hover:bg-amber-50"><Star className="h-3.5 w-3.5" /></button>}
+                <button onClick={() => setEditing(a)} title={t('Düzenle')} className="p-1.5 rounded-lg text-gray-400 hover:text-blue-600 hover:bg-blue-50"><Pencil className="h-3.5 w-3.5" /></button>
+                <button onClick={() => remove(a)} title={t('Sil')} className="p-1.5 rounded-lg text-gray-400 hover:text-red-600 hover:bg-red-50"><Trash2 className="h-3.5 w-3.5" /></button>
               </div>
             </div>
           );
         })}
       </div>
-      {list.length === 0 && !editing && <p className="text-sm text-gray-400">Henüz teslimat adresi yok. Kargo için il ve ilçesi belli bir adres ekleyin.</p>}
+      {list.length === 0 && !editing && <p className="text-sm text-gray-400">{t('Henüz teslimat adresi yok. Kargo için il ve ilçesi belli bir adres ekleyin.')}</p>}
       {editing ? (
         <AddressForm initial={editing === 'new' ? { isDefault: list.length === 0 } : editing} busy={busy} onSave={save} onCancel={() => setEditing(null)} />
       ) : (
         <button onClick={() => setEditing('new')} className="inline-flex items-center gap-1.5 h-10 px-4 rounded-xl border-2 border-dashed border-gray-200 text-xs font-bold text-gray-500 hover:border-blue-300 hover:text-blue-600">
-          <Plus className="h-4 w-4" /> Yeni adres ekle
+          <Plus className="h-4 w-4" /> {t('Yeni adres ekle')}
         </button>
       )}
     </div>

@@ -11,6 +11,7 @@ import QuoteRequestModal from '../../components/bayi/QuoteRequestModal';
 import { useCart } from '../../context/CartContext';
 import useAlert from '../../hooks/useAlert';
 import { formatTRY, firstImage, normalizeQty } from '../../utils/format';
+import { t } from '../../i18n';
 
 // Varyantlı ürün kartı özeti: en düşük fiyat, stok durumu, seçenek sayısı
 const variantSummary = (p) => {
@@ -107,7 +108,7 @@ const ProductCatalog = () => {
       setProducts(prev => (favoritesOnly && !res.data.isFavorite ? prev.filter(p => p.id !== product.id) : prev.map(update)));
       setSelectedProduct(prev => (prev ? update(prev) : prev));
     } catch (error) {
-      showAlert({ type: 'error', title: 'Hata', message: 'Favori güncellenemedi.' });
+      showAlert({ type: 'error', title: t('Hata'), message: t('Favori güncellenemedi.') });
     }
   };
 
@@ -135,7 +136,7 @@ const ProductCatalog = () => {
       setProducts(prev => prev.map(update));
       showAlert({ type: 'success', title: isOn ? 'Bildirim Kaldırıldı' : 'Haber Vereceğiz', message: res.data.message });
     } catch (error) {
-      showAlert({ type: 'error', title: 'İşlem Başarısız', message: error.response?.data?.message || 'Stok bildirimi ayarlanamadı.' });
+      showAlert({ type: 'error', title: t('İşlem Başarısız'), message: error.response?.data?.message || 'Stok bildirimi ayarlanamadı.' });
     }
   };
 
@@ -147,9 +148,9 @@ const ProductCatalog = () => {
   const qtyValue = (product) => buyQuantities[product.id] ?? (product.moq || 1);
 
   const getStockBadge = (stock) => {
-    if (stock === '100+') return <span className="bg-emerald-100 text-emerald-700 px-3 py-1.5 rounded-xl text-[10px] font-black flex items-center shadow-sm"><CheckCircle2 className="h-3 w-3 mr-1.5" /> 100+ STOK</span>;
-    if (stock === 'Son 5 Ürün') return <span className="bg-orange-100 text-orange-700 px-3 py-1.5 rounded-xl text-[10px] font-black flex items-center shadow-sm"><AlertCircle className="h-3 w-3 mr-1.5" /> KRİTİK STOK</span>;
-    if (stock === 'Tükendi') return <span className="bg-red-100 text-red-700 px-3 py-1.5 rounded-xl text-[10px] font-black flex items-center shadow-sm"><XCircle className="h-3 w-3 mr-1.5" /> TÜKENDİ</span>;
+    if (stock === '100+') return <span className="bg-emerald-100 text-emerald-700 px-3 py-1.5 rounded-xl text-[10px] font-black flex items-center shadow-sm"><CheckCircle2 className="h-3 w-3 mr-1.5" /> {t('100+ STOK')}</span>;
+    if (stock === 'Son 5 Ürün') return <span className="bg-orange-100 text-orange-700 px-3 py-1.5 rounded-xl text-[10px] font-black flex items-center shadow-sm"><AlertCircle className="h-3 w-3 mr-1.5" /> {t('KRİTİK STOK')}</span>;
+    if (stock === 'Tükendi') return <span className="bg-red-100 text-red-700 px-3 py-1.5 rounded-xl text-[10px] font-black flex items-center shadow-sm"><XCircle className="h-3 w-3 mr-1.5" /> {t('TÜKENDİ')}</span>;
     return <span className="bg-indigo-100 text-indigo-700 px-3 py-1.5 rounded-xl text-[10px] font-black flex items-center shadow-sm">{stock} ADET</span>;
   };
 
@@ -162,7 +163,7 @@ const ProductCatalog = () => {
         <div>
           <div className="flex items-center space-x-4 mb-2">
              <div className="bg-indigo-600 w-2 h-8 rounded-full" />
-             <h1 className="text-3xl md:text-3xl font-black text-gray-900 tracking-tight">Katalog</h1>
+             <h1 className="text-3xl md:text-3xl font-black text-gray-900 tracking-tight">{t('Katalog')}</h1>
           </div>
           <p className="text-gray-400 text-sm font-semibold uppercase tracking-widest">
             {userProfile?.company?.name} Özel İskonto (%{userProfile?.company?.netDiscount || 0})
@@ -178,7 +179,7 @@ const ProductCatalog = () => {
           <Search className="absolute left-6 top-1/2 -translate-y-1/2 h-5 w-5 text-gray-300 group-focus-within:text-indigo-600 transition-all" />
           <input 
             type="text" 
-            placeholder="Ürün adı, SKU veya barkod..." 
+            placeholder={t('Ürün adı, SKU veya barkod...')} 
             className="w-full pl-16 pr-6 py-4 md:py-5 bg-white border border-gray-100 rounded-[2rem] text-sm font-bold focus:ring-4 focus:ring-indigo-100 shadow-sm transition-all outline-none placeholder:text-gray-300"
             value={search}
             onChange={e => setSearch(e.target.value)}
@@ -201,7 +202,7 @@ const ProductCatalog = () => {
                   <Package className="h-6 w-6" />
                </div>
                <div className="text-left">
-                 <span className="font-black text-sm block">Tüm Ürünler</span>
+                 <span className="font-black text-sm block">{t('Tüm Ürünler')}</span>
                  <span className={`text-[10px] font-bold uppercase tracking-widest ${!selectedCategory ? 'text-indigo-200' : 'text-gray-400'}`}>Tüm Kataloğu Gör</span>
                </div>
             </button>
@@ -236,7 +237,7 @@ const ProductCatalog = () => {
       <div className="bg-white border border-gray-100 rounded-[2rem] p-4 mb-10 shadow-sm flex flex-col lg:flex-row justify-between items-start lg:items-center md:sticky top-0 z-30 gap-4">
          <div className="flex items-center space-x-3 text-sm font-bold text-gray-500 pl-4">
             <Filter className="h-5 w-5 text-indigo-500" />
-            <span className="uppercase tracking-widest text-[11px] font-black">Gelişmiş Filtreler</span>
+            <span className="uppercase tracking-widest text-[11px] font-black">{t('Gelişmiş Filtreler')}</span>
          </div>
 
          <div className="flex flex-wrap items-center gap-3 w-full md:w-auto md:justify-end">
@@ -247,20 +248,20 @@ const ProductCatalog = () => {
                  value={selectedBrand}
                  onChange={(e) => setSelectedBrand(e.target.value)}
                >
-                 <option value="">Tüm Markalar</option>
+                 <option value="">{t('Tüm Markalar')}</option>
                  {filters.brands.map(b => <option key={b} value={b}>{b}</option>)}
                </select>
             </div>
 
             <div className="flex items-center space-x-3 bg-gray-50 px-5 py-3 rounded-2xl border border-gray-100">
                <input 
-                 type="number" placeholder="Min ₺" 
+                 type="number" placeholder={t('Min ₺')} 
                  className="w-20 bg-transparent text-xs font-bold outline-none text-center"
                  value={priceRange.min} onChange={e => setPriceRange({...priceRange, min: e.target.value})}
                />
                <div className="w-px h-4 bg-gray-300" />
                <input 
-                 type="number" placeholder="Max ₺" 
+                 type="number" placeholder={t('Max ₺')} 
                  className="w-20 bg-transparent text-xs font-bold outline-none text-center"
                  value={priceRange.max} onChange={e => setPriceRange({...priceRange, max: e.target.value})}
                />
@@ -300,14 +301,14 @@ const ProductCatalog = () => {
         ) : products.length === 0 ? (
           <div className="col-span-full py-32 text-center bg-white rounded-[3rem] border border-dashed border-gray-200">
             <Package className="h-24 w-24 text-gray-100 mx-auto mb-6" />
-            <p className="text-gray-400 font-black text-xl uppercase tracking-widest">Ürün bulunamadı.</p>
+            <p className="text-gray-400 font-black text-xl uppercase tracking-widest">{t('Ürün bulunamadı.')}</p>
           </div>
         ) : products.map((product) => { const summary = variantSummary(product); return (
           <div key={product.id} className="bg-white rounded-[2.5rem] border border-gray-100 shadow-sm hover:shadow-[0_20px_60px_-15px_rgba(79,70,229,0.15)] hover:border-indigo-100 hover:-translate-y-2 transition-all duration-500 group relative flex flex-col p-3 overflow-hidden">
             {/* Top Badges & Actions */}
             <div className="absolute top-6 right-6 z-30 flex flex-col items-end gap-2">
-              {summary ? getStockBadge(summary.inStock ? '100+' : 'Tükendi') : getStockBadge(product.stock)}
-              <button onClick={(e) => { e.stopPropagation(); toggleFavorite(product); }} title="Favori"
+              {summary ? getStockBadge(summary.inStock ? '100+' : t('Tükendi')) : getStockBadge(product.stock)}
+              <button onClick={(e) => { e.stopPropagation(); toggleFavorite(product); }} title={t('Favori')}
                 className={`bg-white/90 backdrop-blur-md p-3 rounded-xl shadow-lg border border-gray-100 transition-all hover:scale-110 ${product.isFavorite ? 'text-pink-500' : 'text-gray-400 hover:text-pink-500'}`}>
                 <Heart className={`h-5 w-5 ${product.isFavorite ? 'fill-current' : ''}`} />
               </button>
@@ -337,7 +338,7 @@ const ProductCatalog = () => {
                   {summary ? (
                     <span className="text-[10px] font-bold text-indigo-500 uppercase bg-indigo-50/60 px-2.5 py-1 rounded-md tracking-widest">{summary.count} seçenek · {product.options?.map(o => o.name).join(', ') || 'Varyant'}</span>
                   ) : (
-                    <span className="text-[10px] font-bold text-gray-500 uppercase bg-gray-50 px-2.5 py-1 rounded-md tracking-widest">SKU: {product.sku}</span>
+                    <span className="text-[10px] font-bold text-gray-500 uppercase bg-gray-50 px-2.5 py-1 rounded-md tracking-widest">{t('SKU:')} {product.sku}</span>
                   )}
                 </div>
                 <h3 className="font-bold text-gray-900 group-hover:text-indigo-600 transition-colors text-lg leading-snug line-clamp-2 h-[3.5rem]">{product.name}</h3>
@@ -346,20 +347,20 @@ const ProductCatalog = () => {
               <div className="flex items-end justify-between mb-8">
                 {summary ? (
                   <div>
-                    <p className="text-[10px] font-bold text-gray-400 uppercase tracking-widest mb-1">Net Fiyat <span className="normal-case">(KDV hariç)</span></p>
+                    <p className="text-[10px] font-bold text-gray-400 uppercase tracking-widest mb-1">{t('Net Fiyat')} <span className="normal-case">(KDV hariç)</span></p>
                     <p className="text-3xl font-black text-gray-900 tracking-tighter">
-                      {summary.minPrice !== null ? <>{formatTRY(summary.minPrice)}<span className="text-sm text-gray-400 font-bold">'den</span></> : <span className="text-sm text-gray-500">Teklif isteyin</span>}
+                      {summary.minPrice !== null ? <>{formatTRY(summary.minPrice)}<span className="text-sm text-gray-400 font-bold">{t("'den")}</span></> : <span className="text-sm text-gray-500">{t('Teklif isteyin')}</span>}
                     </p>
                   </div>
                 ) : product.priceHidden ? (
                   <div>
-                    <p className="text-[10px] font-bold text-gray-400 uppercase tracking-widest mb-1">Fiyat</p>
+                    <p className="text-[10px] font-bold text-gray-400 uppercase tracking-widest mb-1">{t('Fiyat')}</p>
                     <p className="text-sm font-black text-gray-500">{product.rateMissing ? 'Kur bilgisi bekleniyor' : 'Teklif için iletişime geçin'}</p>
                   </div>
                 ) : (
                   <>
                     <div>
-                      <p className="text-[10px] font-bold text-gray-400 uppercase tracking-widest mb-1">Net Fiyat <span className="normal-case">(KDV hariç)</span></p>
+                      <p className="text-[10px] font-bold text-gray-400 uppercase tracking-widest mb-1">{t('Net Fiyat')} <span className="normal-case">(KDV hariç)</span></p>
                       <div className="flex items-baseline gap-2">
                          <p className="text-3xl font-black text-gray-900 tracking-tighter">
                            {formatTRY(product.netPrice)}
@@ -367,7 +368,7 @@ const ProductCatalog = () => {
                       </div>
                     </div>
                     <div className="text-right">
-                      <p className="text-[9px] font-bold text-gray-400 uppercase tracking-widest mb-1">Liste</p>
+                      <p className="text-[9px] font-bold text-gray-400 uppercase tracking-widest mb-1">{t('Liste')}</p>
                       {product.listPriceTRY !== product.netPrice && (
                         <p className="text-sm font-bold text-gray-400 line-through">{formatTRY(product.listPriceTRY)}</p>
                       )}
@@ -384,7 +385,7 @@ const ProductCatalog = () => {
                  {summary ? (
                    <button onClick={() => openDetail(product)} className="w-full bg-gradient-to-r from-indigo-600 to-purple-600 hover:from-indigo-500 hover:to-purple-500 rounded-2xl py-4 flex items-center justify-center shadow-md hover:-translate-y-0.5 transition-all">
                      <Layers className="h-4 w-4 mr-2 text-white" />
-                     <span className="text-[11px] font-black text-white uppercase tracking-widest">Seçenekleri Gör</span>
+                     <span className="text-[11px] font-black text-white uppercase tracking-widest">{t('Seçenekleri Gör')}</span>
                    </button>
                  ) : (
                  <div className="flex items-center gap-3">
@@ -434,7 +435,7 @@ const ProductCatalog = () => {
                  {(product.moq > 1 || product.stepQuantity > 1) && (
                     <p className="text-center text-[9px] font-bold text-gray-400 mt-3 flex items-center justify-center">
                        <AlertCircle className="h-3 w-3 mr-1" />
-                       Min {product.moq || 1} {product.unit}{product.stepQuantity > 1 ? ` · ${product.stepQuantity}'in katları` : ''}
+                       {t('Min')} {product.moq || 1} {product.unit}{product.stepQuantity > 1 ? ` · ${t('{n} ve katları', { n: product.stepQuantity })}` : ''}
                     </p>
                  )}
               </div>
@@ -462,7 +463,7 @@ const ProductCatalog = () => {
         <QuoteRequestModal
           items={quoteItems}
           onClose={() => setQuoteItems(null)}
-          onDone={(message) => { setQuoteItems(null); setIsDetailOpen(false); showAlert({ type: 'success', title: 'Teklif Talebi Gönderildi', message }); }}
+          onDone={(message) => { setQuoteItems(null); setIsDetailOpen(false); showAlert({ type: 'success', title: t('Teklif Talebi Gönderildi'), message }); }}
         />
       )}
     </div>

@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { X, FileSignature, Trash2 } from 'lucide-react';
 import api, { errorMessage } from '../../services/api';
+import { t } from '../../i18n';
 
 /**
  * Teklif talebi. items: [{ productId, name, variantLabel, sku, quantity, unit }]
@@ -19,7 +20,7 @@ const QuoteRequestModal = ({ items: initialItems, onClose, onDone }) => {
       const res = await api.post('/quotes', { items: items.map(i => ({ productId: i.productId, quantity: i.quantity })), note });
       onDone(res.data.message);
     } catch (err) {
-      setError(errorMessage(err, 'Teklif talebi gönderilemedi.'));
+      setError(errorMessage(err, t('Teklif talebi gönderilemedi.')));
     } finally {
       setSending(false);
     }
@@ -31,10 +32,10 @@ const QuoteRequestModal = ({ items: initialItems, onClose, onDone }) => {
       <form onSubmit={submit} className="modal-panel w-full max-w-lg max-h-[90vh] flex flex-col">
         <div className="modal-header items-center">
           <div>
-            <h3 className="modal-title flex items-center"><FileSignature className="h-5 w-5 mr-2 text-indigo-600" /> Teklif İste</h3>
+            <h3 className="modal-title flex items-center"><FileSignature className="h-5 w-5 mr-2 text-indigo-600" /> {t('Teklif İste')}</h3>
             <p className="text-xs text-gray-400 font-semibold mt-1">Firma yetkilisi fiyatlandırınca bildirim alırsınız; onaylarsanız sipariş oluşur.</p>
           </div>
-          <button type="button" onClick={onClose} className="modal-close" aria-label="Kapat"><X className="h-5 w-5" /></button>
+          <button type="button" onClick={onClose} className="modal-close" aria-label={t('Kapat')}><X className="h-5 w-5" /></button>
         </div>
         <div className="p-6 space-y-3 overflow-y-auto">
           {items.map((item, i) => (
@@ -53,12 +54,12 @@ const QuoteRequestModal = ({ items: initialItems, onClose, onDone }) => {
           ))}
           <div>
             <label className="premium-label">Not (isteğe bağlı)</label>
-            <textarea className="premium-input h-24 resize-none" placeholder="Teslim tarihi, toplu alım planı vb." value={note} onChange={(e) => setNote(e.target.value)} />
+            <textarea className="premium-input h-24 resize-none" placeholder={t('Teslim tarihi, toplu alım planı vb.')} value={note} onChange={(e) => setNote(e.target.value)} />
           </div>
           {error && <p className="text-xs font-bold text-red-600 bg-red-50 p-3 rounded-xl">{error}</p>}
         </div>
         <div className="p-6 border-t border-gray-100 flex gap-3">
-          <button type="button" onClick={onClose} className="flex-1 py-3 border border-gray-200 rounded-xl font-bold text-gray-600 hover:bg-gray-50">Vazgeç</button>
+          <button type="button" onClick={onClose} className="flex-1 py-3 border border-gray-200 rounded-xl font-bold text-gray-600 hover:bg-gray-50">{t('Vazgeç')}</button>
           <button type="submit" disabled={sending} className="flex-1 btn-gradient disabled:opacity-60">{sending ? 'Gönderiliyor...' : 'Talebi Gönder'}</button>
         </div>
       </form>

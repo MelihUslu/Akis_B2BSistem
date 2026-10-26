@@ -1,5 +1,6 @@
 import axios from 'axios';
 import { TENANT_SLUG, CUSTOM_HOST } from '../utils/tenant';
+import { getLang } from '../i18n';
 
 const baseURL = import.meta.env.VITE_API_URL || 'http://localhost:5001/api';
 
@@ -15,6 +16,7 @@ api.interceptors.request.use(
     }
     if (TENANT_SLUG) config.headers['X-Tenant'] = TENANT_SLUG;
     else if (CUSTOM_HOST) config.headers['X-Tenant-Host'] = CUSTOM_HOST;
+    config.headers['X-Lang'] = getLang(); // API mesajları bayinin dilinde döner
     return config;
   },
   (error) => {

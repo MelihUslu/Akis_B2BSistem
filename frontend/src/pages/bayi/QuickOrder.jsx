@@ -4,6 +4,7 @@ import api, { errorMessage } from '../../services/api';
 import { useCart } from '../../context/CartContext';
 import useAlert from '../../hooks/useAlert';
 import { formatTRY, normalizeQty } from '../../utils/format';
+import { t } from '../../i18n';
 
 let rowSeq = 0;
 const nextKey = () => ++rowSeq;
@@ -55,7 +56,7 @@ const QuickOrder = () => {
         .filter(Boolean);
       setResolved({ lines, notFound: res.data.notFound });
     } catch (error) {
-      showAlert({ type: 'error', title: 'Hata', message: errorMessage(error, 'Ürünler bulunamadı.') });
+      showAlert({ type: 'error', title: t('Hata'), message: errorMessage(error, t('Ürünler bulunamadı.')) });
     } finally {
       setLoading(false);
     }
@@ -69,7 +70,7 @@ const QuickOrder = () => {
     setRows([emptyRow(), emptyRow(), emptyRow()]);
     setIsCartOpen(true);
     if (skipped > 0) {
-      showAlert({ type: 'warning', title: 'Bazı ürünler eklenmedi', message: `${skipped} ürün eklenmedi: fiyat teklifi gerekiyor ya da varyant seçilmesi gerekiyor (varyantın kendi SKU'sunu girin).` });
+      showAlert({ type: 'warning', title: t('Bazı ürünler eklenmedi'), message: t('{n} ürün eklenmedi: fiyat teklifi gerekiyor ya da varyant seçilmesi gerekiyor (varyantın kendi SKU\'sunu girin).', { n: skipped }) });
     }
   };
 
@@ -80,8 +81,8 @@ const QuickOrder = () => {
         <div className="flex items-center gap-4">
           <div className="bg-gradient-to-br from-indigo-500 to-indigo-700 p-3 md:p-3.5 rounded-2xl shadow-lg shadow-indigo-500/25 shrink-0"><Zap className="h-6 w-6 text-white" /></div>
           <div>
-            <h1 className="text-2xl md:text-3xl font-black text-gray-900 tracking-tight">Hızlı Sipariş</h1>
-            <p className="text-gray-500 text-sm mt-1">SKU / barkod ve miktar girin ya da Excel'den iki sütunu (SKU, Miktar) kopyalayıp yapıştırın.</p>
+            <h1 className="text-2xl md:text-3xl font-black text-gray-900 tracking-tight">{t('Hızlı Sipariş')}</h1>
+            <p className="text-gray-500 text-sm mt-1">{t("SKU / barkod ve miktar girin ya da Excel'den iki sütunu (SKU, Miktar) kopyalayıp yapıştırın.")}</p>
           </div>
         </div>
       </div>
@@ -89,12 +90,12 @@ const QuickOrder = () => {
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
         <div className="card-premium p-6 space-y-3">
           <div className="grid grid-cols-[1fr_8rem_2.5rem] gap-3 text-[10px] font-black text-gray-400 uppercase tracking-widest px-1">
-            <span>SKU / Barkod</span><span>Miktar</span><span />
+            <span>{t('SKU / Barkod')}</span><span>{t('Miktar')}</span><span />
           </div>
           {rows.map((row) => (
             <div key={row.key} className="grid grid-cols-[1fr_8rem_2.5rem] gap-3">
               <input className="premium-input font-mono" placeholder="AK-18-MATKAP" value={row.sku} onChange={(e) => updateRow(row.key, 'sku', e.target.value)} />
-              <input className="premium-input" type="number" min="1" placeholder="Adet" value={row.quantity} onChange={(e) => updateRow(row.key, 'quantity', e.target.value)} />
+              <input className="premium-input" type="number" min="1" placeholder={t('Adet')} value={row.quantity} onChange={(e) => updateRow(row.key, 'quantity', e.target.value)} />
               <button onClick={() => setRows(rows.length > 1 ? rows.filter((r) => r.key !== row.key) : [emptyRow()])} className="text-gray-300 hover:text-red-500 flex items-center justify-center">
                 <Trash2 className="h-4 w-4" />
               </button>
@@ -102,16 +103,16 @@ const QuickOrder = () => {
           ))}
           <div className="flex justify-between pt-3">
             <button onClick={() => setRows([...rows, emptyRow()])} className="flex items-center text-xs font-black text-indigo-600 hover:underline">
-              <Plus className="h-4 w-4 mr-1" /> Satır Ekle
+              <Plus className="h-4 w-4 mr-1" /> {t('Satır Ekle')}
             </button>
             <button onClick={resolve} disabled={loading} className="btn-gradient disabled:opacity-60">
-              <Search className="h-4 w-4 mr-2" /> {loading ? 'Aranıyor...' : 'Ürünleri Getir'}
+              <Search className="h-4 w-4 mr-2" /> {loading ? t('Aranıyor...') : t('Ürünleri Getir')}
             </button>
           </div>
         </div>
 
         <div className="card-premium p-6 space-y-4">
-          <label className="premium-label flex items-center"><ClipboardPaste className="h-3.5 w-3.5 mr-1.5" /> Excel'den Yapıştır</label>
+          <label className="premium-label flex items-center"><ClipboardPaste className="h-3.5 w-3.5 mr-1.5" /> {t("Excel'den Yapıştır")}</label>
           <textarea
             className="premium-input h-48 font-mono resize-none"
             placeholder={'AK-18-MATKAP\t10\nEA-7-ANAHTAR\t24\nIG-SB-BOT\t5'}
@@ -119,7 +120,7 @@ const QuickOrder = () => {
             onChange={(e) => setPaste(e.target.value)}
           />
           <button onClick={applyPaste} className="w-full py-3 rounded-2xl bg-gray-900 text-white text-xs font-black uppercase tracking-widest hover:bg-gray-800">
-            Listeye Aktar
+            {t('Listeye Aktar')}
           </button>
         </div>
       </div>
@@ -127,14 +128,14 @@ const QuickOrder = () => {
       {resolved && (
         <div className="card-premium">
           <div className="p-6 border-b border-gray-50 flex justify-between items-center">
-            <h3 className="font-black text-gray-900">Bulunan Ürünler ({resolved.lines.length})</h3>
+            <h3 className="font-black text-gray-900">{t('Bulunan Ürünler ({n})', { n: resolved.lines.length })}</h3>
             <button onClick={addAll} disabled={resolved.lines.length === 0} className="btn-gradient disabled:opacity-50">
-              <ShoppingCart className="h-4 w-4 mr-2" /> Tümünü Sepete Ekle
+              <ShoppingCart className="h-4 w-4 mr-2" /> {t('Tümünü Sepete Ekle')}
             </button>
           </div>
           {resolved.notFound.length > 0 && (
             <p className="mx-6 mt-4 text-xs font-bold text-amber-800 bg-amber-50 p-3 rounded-xl flex items-center">
-              <AlertTriangle className="h-4 w-4 mr-2" /> Bulunamayan kodlar: {resolved.notFound.join(', ')}
+              <AlertTriangle className="h-4 w-4 mr-2" /> {t('Bulunamayan kodlar:')} {resolved.notFound.join(', ')}
             </p>
           )}
           <div className="divide-y divide-gray-50">
@@ -143,14 +144,14 @@ const QuickOrder = () => {
                 <div>
                   <p className="font-bold text-gray-900">{product.parentName || product.name}</p>
                   {product.variantLabel && <p className="text-xs font-black text-indigo-600">{product.variantLabel}</p>}
-                  {product.requiresVariant && <p className="text-xs font-black text-amber-600">Bu ana ürün kodudur — varyantın SKU'sunu girin.</p>}
+                  {product.requiresVariant && <p className="text-xs font-black text-amber-600">{t("Bu ana ürün kodudur — varyantın SKU'sunu girin.")}</p>}
                   <p className="text-xs text-gray-400 font-semibold">
-                    {product.sku} · Stok: {product.stock}
-                    {requested && parseInt(requested) !== quantity && <span className="text-amber-600"> · Miktar MOQ/koli kuralına göre {quantity} yapıldı</span>}
+                    {product.sku} · {t('Stok')}: {product.stock}
+                    {requested && parseInt(requested) !== quantity && <span className="text-amber-600"> {t('· Miktar MOQ/koli kuralına göre {qty} yapıldı', { qty: quantity })}</span>}
                   </p>
                 </div>
                 <div className="text-right">
-                  <p className="font-black text-gray-900">{product.priceHidden ? 'Fiyat teklifi gerekli' : formatTRY(product.netPrice * quantity)}</p>
+                  <p className="font-black text-gray-900">{product.priceHidden ? t('Fiyat teklifi gerekli') : formatTRY(product.netPrice * quantity)}</p>
                   <p className="text-xs text-gray-400 font-semibold">{quantity} {product.unit}{!product.priceHidden && ` × ${formatTRY(product.netPrice)}`}</p>
                 </div>
               </div>

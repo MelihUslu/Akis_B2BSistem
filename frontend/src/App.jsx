@@ -5,6 +5,7 @@ import { CartProvider } from './context/CartContext';
 import { TenantProvider, useTenant } from './context/TenantContext';
 import PageLoader from './components/PageLoader';
 import { APP_MODE } from './utils/tenant';
+import { I18nProvider } from './i18n';
 
 // Kod bölme: her mod / panel / sayfa yalnızca gerektiğinde indirilir
 const Login = lazy(() => import('./pages/Login'));
@@ -85,15 +86,17 @@ const AppRoutes = () => {
 
 // Firma portalı (<firma>.alanadi.com): admin + bayi panelleri
 const TenantApp = () => (
-  <TenantProvider>
-    <AuthProvider>
-      <CartProvider>
-        <Router>
-          <AppRoutes />
-        </Router>
-      </CartProvider>
-    </AuthProvider>
-  </TenantProvider>
+  <I18nProvider>
+    <TenantProvider>
+      <AuthProvider>
+        <CartProvider>
+          <Router>
+            <AppRoutes />
+          </Router>
+        </CartProvider>
+      </AuthProvider>
+    </TenantProvider>
+  </I18nProvider>
 );
 
 function App() {

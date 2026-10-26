@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
 import { ShieldCheck, ChevronRight, AlertCircle } from 'lucide-react';
+import { t } from '../i18n';
 
 /**
  * Şifreden sonra istenen ikinci adım: doğrulama uygulamasındaki 6 haneli kod
@@ -30,7 +31,7 @@ const TwoFactorStep = ({ onVerify, onCancel }) => {
         <p className="text-xs text-slate-600 leading-relaxed">
           {recovery
             ? 'Kurulumda kaydettiğiniz kurtarma kodlarından birini girin. Her kod yalnızca bir kez kullanılabilir.'
-            : 'Hesabınızda iki aşamalı doğrulama açık. Doğrulama uygulamanızdaki (Google Authenticator, Microsoft Authenticator…) 6 haneli kodu girin.'}
+            : t('Hesabınızda iki aşamalı doğrulama açık. Doğrulama uygulamanızdaki (Google Authenticator, Microsoft Authenticator…) 6 haneli kodu girin.')}
         </p>
       </div>
       {error && (
@@ -55,7 +56,7 @@ const TwoFactorStep = ({ onVerify, onCancel }) => {
       </button>
       <div className="flex justify-between text-[12px]">
         <button type="button" onClick={() => { setRecovery(!recovery); setCode(''); setError(''); }} className="font-bold text-indigo-600 hover:underline">
-          {recovery ? 'Uygulama kodu gir' : 'Kurtarma kodu kullan'}
+          {recovery ? t('Uygulama kodu gir') : t('Kurtarma kodu kullan')}
         </button>
         <button type="button" onClick={() => onCancel()} className="text-slate-400 hover:text-slate-700">Geri dön</button>
       </div>

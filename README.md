@@ -134,6 +134,12 @@ Fatura kesilince bayiye bildirim ve `invoice.issued` webhook'u gider; bayi sipar
 
 > Paraşüt akışı, testlerde Paraşüt API'sini taklit eden bir sunucuyla doğrulanmıştır. Canlıya almadan önce gerçek bir Paraşüt hesabıyla (tercihen test şirketi) bir e-arşiv ve bir e-fatura kesilerek denenmelidir.
 
+### Çoklu dil (bayi portalı)
+Bayi portalı, giriş ve başvuru sayfaları Türkçe / İngilizce kullanılabilir (üst bardaki TR/EN seçici; seçim tarayıcıda saklanır). Firma paneli ve platform paneli Türkçedir.
+- Arayüz: `frontend/src/i18n` — anahtar Türkçe metnin kendisidir: `t('Sepete Ekle')`, yer tutucular `t('{n} kalem', { n })`. Çevirisi olmayan metin Türkçe görünür. Yeni dil için `xx.js` sözlüğü ekleyip `DICTS` ve `LANGUAGES`'a ekleyin.
+- API: istemci `X-Lang` başlığı gönderir; `backend/src/i18n` yanıttaki `message` alanını sözlükte varsa çevirir (controller'lar Türkçe yazmaya devam eder).
+- Tarih biçimi seçili dile göre değişir; tutarlar ₺ olarak kalır.
+
 ### Entegrasyon (ERP)
 
 Firma, Ayarlar → Entegrasyon'dan API anahtarı üretir. `/api/v1` uçları ile ürün / stok / fiyat / bayi aktarımı yapılır, siparişler (teslimat adresi, depo ve fatura bilgisiyle) çekilir, kargo ve fatura bilgisi geri yazılır. İmzalı (HMAC-SHA256) webhook'lar sipariş, ödeme, iade ve fatura olaylarını ERP'ye iletir.

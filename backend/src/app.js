@@ -2,6 +2,7 @@
 import express from 'express';
 import cors from 'cors';
 import helmet from 'helmet';
+import { langMiddleware } from './i18n/index.js';
 import { isAllowedOrigin } from './config.js';
 import accountRoutes from './routes/accountRoutes.js';
 import { openApiSpec } from './docs/openapi.js';
@@ -55,9 +56,10 @@ app.use(cors({
     if (isAllowedOrigin(origin)) return cb(null, true);
     try { cb(null, Boolean(await loadTenantByHost(new URL(origin).hostname))); } catch { cb(null, false); }
   },
-  allowedHeaders: ['Content-Type', 'Authorization', 'X-Tenant', 'X-Tenant-Host']
+  allowedHeaders: ['Content-Type', 'Authorization', 'X-Tenant', 'X-Tenant-Host', 'X-Lang']
 }));
 app.use(express.json({ limit: '1mb' }));
+app.use(langMiddleware);
 // Yüklenen dosyalar: görseller tarayıcıda gösterilir, diğer destek ekleri (PDF, Excel…) indirilir
 app.use('/uploads', express.static('uploads', {
   dotfiles: 'deny',

@@ -14,6 +14,7 @@ import {
 } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
 import TenantBrand from './TenantBrand';
+import { t } from '../i18n';
 
 // mobile: telefonda açılır menü olarak gösterilir; onNavigate menüyü kapatır
 const BayiSidebar = ({ mobile = false, onNavigate }) => {
@@ -43,7 +44,7 @@ const BayiSidebar = ({ mobile = false, onNavigate }) => {
       <div className="px-8 mb-10 flex justify-between items-start">
         <div className="flex flex-col group cursor-pointer">
           <TenantBrand />
-          <span className="text-[9px] font-black text-gray-500 uppercase tracking-[0.2em] mt-0.5">BAYİ PANELİ</span>
+          <span className="text-[9px] font-black text-gray-500 uppercase tracking-[0.2em] mt-0.5">{t('BAYİ PANELİ')}</span>
         </div>
         {mobile && <button onClick={onNavigate} className="p-2 text-gray-400 hover:text-white"><X className="h-5 w-5" /></button>}
       </div>
@@ -71,8 +72,8 @@ const BayiSidebar = ({ mobile = false, onNavigate }) => {
       {/* Bottom Menu - Premium Upgrade Box style */}
       <div className="px-6 mb-6">
         <div className="bg-gradient-to-br from-indigo-600/20 to-purple-600/20 rounded-2xl p-5 border border-indigo-500/20">
-          <p className="text-[10px] font-black text-indigo-300 uppercase tracking-widest mb-1">DESTEK</p>
-          <p className="text-[11px] text-gray-400 leading-relaxed mb-3">Müşteri temsilcinizle hemen iletişime geçin.</p>
+          <p className="text-[10px] font-black text-indigo-300 uppercase tracking-widest mb-1">{t('DESTEK')}</p>
+          <p className="text-[11px] text-gray-400 leading-relaxed mb-3">{t('Müşteri temsilcinizle hemen iletişime geçin.')}</p>
           {import.meta.env.VITE_SUPPORT_PHONE && <p className="text-[11px] font-bold text-gray-300">{import.meta.env.VITE_SUPPORT_PHONE}</p>}
           {import.meta.env.VITE_SUPPORT_EMAIL && (
             <a href={`mailto:${import.meta.env.VITE_SUPPORT_EMAIL}`} className="mt-3 block w-full py-2.5 bg-indigo-500 text-white text-[10px] font-black rounded-lg hover:bg-indigo-600 transition-colors text-center">
@@ -88,7 +89,7 @@ const BayiSidebar = ({ mobile = false, onNavigate }) => {
           className="w-full flex items-center px-5 py-4 rounded-xl text-sm font-bold text-red-400 hover:bg-red-500/10 transition-all group"
         >
           <LogOut className="h-5 w-5 mr-4 text-red-500/60 group-hover:text-red-400" />
-          Çıkış Yap
+          {t('Çıkış Yap')}
         </button>
       </div>
     </aside>

@@ -1,9 +1,11 @@
+import { locale } from '../i18n';
+
 export const formatTRY = (value) =>
   `₺${(Number(value) || 0).toLocaleString('tr-TR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
 
 export const formatDate = (value, withTime = false) =>
   value
-    ? new Date(value).toLocaleString('tr-TR', withTime
+    ? new Date(value).toLocaleString(locale(), withTime
       ? { day: '2-digit', month: 'short', year: 'numeric', hour: '2-digit', minute: '2-digit' }
       : { day: '2-digit', month: 'short', year: 'numeric' })
     : '-';

@@ -2,6 +2,7 @@ import React, { useEffect, useRef, useState } from 'react';
 import { Link, useSearchParams } from 'react-router-dom';
 import { CheckCircle2, XCircle, Loader2 } from 'lucide-react';
 import { publicApi, errorMessage } from '../services/api';
+import { t } from '../i18n';
 
 const VerifyEmail = () => {
   const [params] = useSearchParams();
@@ -13,7 +14,7 @@ const VerifyEmail = () => {
     started.current = true;
     publicApi.post('/verify-email', { token: params.get('token') })
       .then((res) => setState({ status: 'success', message: res.data.message }))
-      .catch((err) => setState({ status: 'error', message: errorMessage(err, 'Doğrulama yapılamadı.') }));
+      .catch((err) => setState({ status: 'error', message: errorMessage(err, t('Doğrulama yapılamadı.')) }));
   }, [params]);
 
   const Icon = state.status === 'loading' ? Loader2 : state.status === 'success' ? CheckCircle2 : XCircle;
@@ -27,7 +28,7 @@ const VerifyEmail = () => {
         </h1>
         <p className="text-sm text-slate-500 font-medium">{state.message}</p>
         {state.status !== 'loading' && (
-          <Link to="/login" className="inline-block w-full bg-slate-900 hover:bg-black text-white font-bold py-3.5 rounded-xl text-sm">Giriş Yap</Link>
+          <Link to="/login" className="inline-block w-full bg-slate-900 hover:bg-black text-white font-bold py-3.5 rounded-xl text-sm">{t('Giriş Yap')}</Link>
         )}
       </div>
     </div>

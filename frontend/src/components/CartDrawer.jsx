@@ -6,6 +6,7 @@ import { formatTRY, firstImage } from '../utils/format';
 import api, { errorMessage } from '../services/api';
 import QuoteRequestModal from './bayi/QuoteRequestModal';
 import useAlert from '../hooks/useAlert';
+import { t } from '../i18n';
 
 const CartDrawer = ({ isOpen, onClose }) => {
   const { cart, removeFromCart, updateQuantity, cartTotal, cartVat, cartCount, clearCart } = useCart();
@@ -20,9 +21,9 @@ const CartDrawer = ({ isOpen, onClose }) => {
     try {
       const res = await api.post('/lists/templates', { name: templateName, items: cart.map(i => ({ sku: i.sku, quantity: i.quantity })) });
       setTemplateName(null);
-      showAlert({ type: 'success', title: 'Şablon Kaydedildi', message: `${res.data.message} Listelerim sayfasından tek tıkla sepete ekleyebilirsiniz.` });
+      showAlert({ type: 'success', title: t('Şablon Kaydedildi'), message: `${res.data.message} ${t('Listelerim sayfasından tek tıkla sepete ekleyebilirsiniz.')}` });
     } catch (err) {
-      showAlert({ type: 'error', title: 'Hata', message: errorMessage(err, 'Şablon kaydedilemedi.') });
+      showAlert({ type: 'error', title: t('Hata'), message: errorMessage(err, t('Şablon kaydedilemedi.')) });
     }
   };
 
@@ -38,7 +39,7 @@ const CartDrawer = ({ isOpen, onClose }) => {
         <QuoteRequestModal
           items={cart.map(i => ({ productId: i.id, name: i.name, sku: i.sku, variantLabel: i.variantLabel, quantity: i.quantity, unit: i.unit }))}
           onClose={() => setQuoteOpen(false)}
-          onDone={(message) => { setQuoteOpen(false); clearCart(); showAlert({ type: 'success', title: 'Teklif Talebi Gönderildi', message }); }}
+          onDone={(message) => { setQuoteOpen(false); clearCart(); showAlert({ type: 'success', title: t('Teklif Talebi Gönderildi'), message }); }}
         />
       )}
       {/* Backdrop */}
@@ -60,9 +61,9 @@ const CartDrawer = ({ isOpen, onClose }) => {
               <ShoppingBag className="h-6 w-6 text-white" />
             </div>
             <div>
-              <h2 className="text-2xl font-black text-white tracking-tight leading-none">Sepetim</h2>
+              <h2 className="text-2xl font-black text-white tracking-tight leading-none">{t('Sepetim')}</h2>
               <p className="text-[10px] font-black text-indigo-400 uppercase tracking-widest mt-1.5 flex items-center">
-                 <Zap className="h-3 w-3 mr-1" /> Premium Sipariş
+                 <Zap className="h-3 w-3 mr-1" /> {t('Premium Sipariş')}
               </p>
             </div>
           </div>
@@ -82,8 +83,8 @@ const CartDrawer = ({ isOpen, onClose }) => {
                 <ShoppingBag className="h-16 w-16 text-gray-300" />
               </div>
               <div>
-                <p className="text-xl font-black text-gray-900 tracking-tighter">Sepetiniz Boş</p>
-                <p className="text-sm text-gray-400 font-medium mt-2">Kataloğa dönüp ürün seçebilirsiniz.</p>
+                <p className="text-xl font-black text-gray-900 tracking-tighter">{t('Sepetiniz Boş')}</p>
+                <p className="text-sm text-gray-400 font-medium mt-2">{t('Kataloğa dönüp ürün seçebilirsiniz.')}</p>
               </div>
             </div>
           ) : (
@@ -101,7 +102,7 @@ const CartDrawer = ({ isOpen, onClose }) => {
                   <div>
                     <h3 className="font-bold text-gray-900 text-sm leading-tight line-clamp-2 pr-8">{item.name}</h3>
                     {item.variantLabel && <p className="text-[11px] font-black text-indigo-600 mt-1">{item.variantLabel}</p>}
-                    <p className="text-[10px] font-black text-gray-400 uppercase tracking-widest mt-1.5">SKU: {item.sku}</p>
+                    <p className="text-[10px] font-black text-gray-400 uppercase tracking-widest mt-1.5">{t('SKU:')} {item.sku}</p>
                   </div>
                   
                   <div className="flex items-center justify-between mt-3">
@@ -142,7 +143,7 @@ const CartDrawer = ({ isOpen, onClose }) => {
             <div className="space-y-3 relative z-10">
               <div className="flex justify-between items-end">
                 <div>
-                   <span className="text-[10px] font-black text-indigo-400 uppercase tracking-widest">Genel Toplam</span>
+                   <span className="text-[10px] font-black text-indigo-400 uppercase tracking-widest">{t('Genel Toplam')}</span>
                    <p className="text-[10px] text-gray-500 mt-1">({cartCount} Ürün · KDV dahil tahmini)</p>
                 </div>
                 <span className="text-3xl font-black text-white tracking-tighter shadow-indigo-500/50 drop-shadow-lg">
@@ -153,18 +154,18 @@ const CartDrawer = ({ isOpen, onClose }) => {
 
             {templateName !== null ? (
               <div className="flex gap-2 relative z-10">
-                <input autoFocus className="flex-1 bg-white/10 border border-white/10 rounded-xl px-4 py-2.5 text-sm text-white placeholder:text-gray-500 outline-none" placeholder="Şablon adı (örn. Haftalık sipariş)"
+                <input autoFocus className="flex-1 bg-white/10 border border-white/10 rounded-xl px-4 py-2.5 text-sm text-white placeholder:text-gray-500 outline-none" placeholder={t('Şablon adı (örn. Haftalık sipariş)')}
                   value={templateName} onChange={(e) => setTemplateName(e.target.value)} onKeyDown={(e) => e.key === 'Enter' && templateName.trim() && saveTemplate()} />
-                <button disabled={!templateName.trim()} onClick={saveTemplate} className="px-4 rounded-xl bg-indigo-500 text-white text-xs font-black disabled:opacity-40">Kaydet</button>
+                <button disabled={!templateName.trim()} onClick={saveTemplate} className="px-4 rounded-xl bg-indigo-500 text-white text-xs font-black disabled:opacity-40">{t('Kaydet')}</button>
                 <button onClick={() => setTemplateName(null)} className="px-3 rounded-xl text-gray-400 hover:text-white"><X className="h-4 w-4" /></button>
               </div>
             ) : (
               <div className="grid grid-cols-2 gap-2 relative z-10">
                 <button onClick={() => setTemplateName('')} className="flex items-center justify-center py-2.5 rounded-xl border border-white/10 text-[10px] font-black text-gray-300 uppercase tracking-widest hover:bg-white/5">
-                  <BookmarkPlus className="h-3.5 w-3.5 mr-1.5" /> Şablon Kaydet
+                  <BookmarkPlus className="h-3.5 w-3.5 mr-1.5" /> {t('Şablon Kaydet')}
                 </button>
                 <button onClick={() => setQuoteOpen(true)} className="flex items-center justify-center py-2.5 rounded-xl border border-white/10 text-[10px] font-black text-gray-300 uppercase tracking-widest hover:bg-white/5">
-                  <FileSignature className="h-3.5 w-3.5 mr-1.5" /> Teklif İste
+                  <FileSignature className="h-3.5 w-3.5 mr-1.5" /> {t('Teklif İste')}
                 </button>
               </div>
             )}
@@ -176,7 +177,7 @@ const CartDrawer = ({ isOpen, onClose }) => {
               <span className="absolute inset-0 bg-gradient-to-r from-indigo-500 via-purple-500 to-indigo-500 rounded-[1.5rem] opacity-70 group-hover:opacity-100 transition-opacity duration-500 animate-gradient-xy"></span>
               <div className="relative bg-[#0f172a] hover:bg-transparent transition-colors duration-500 py-5 rounded-[1.5rem] flex items-center justify-center">
                 <span className="text-sm font-black text-white uppercase tracking-widest flex items-center">
-                   SİPARİŞİ TAMAMLA <ArrowRight className="inline-block ml-3 h-5 w-5 group-hover:translate-x-2 transition-transform" />
+                   {t('SİPARİŞİ TAMAMLA')} <ArrowRight className="inline-block ml-3 h-5 w-5 group-hover:translate-x-2 transition-transform" />
                 </span>
               </div>
             </button>

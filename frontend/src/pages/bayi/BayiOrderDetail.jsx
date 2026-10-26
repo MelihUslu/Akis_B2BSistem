@@ -9,6 +9,7 @@ import useAlert from '../../hooks/useAlert';
 import InvoicePanel from '../../components/shared/InvoicePanel';
 import { formatAddress } from '../../utils/turkey';
 import { formatTRY, formatDate, firstImage, ORDER_STATUS, RETURN_STATUS } from '../../utils/format';
+import { t } from '../../i18n';
 
 const RETURNABLE = ['SHIPPED', 'COMPLETED'];
 
@@ -32,7 +33,7 @@ const ReturnForm = ({ item, maxQty, onClose, onCreated }) => {
         setPhotos((prev) => [...prev, res.data.imageUrl]);
       }
     } catch (err) {
-      setError(errorMessage(err, 'Fotoğraf yüklenemedi.'));
+      setError(errorMessage(err, t('Fotoğraf yüklenemedi.')));
     } finally {
       setUploading(false);
       e.target.value = '';
@@ -47,7 +48,7 @@ const ReturnForm = ({ item, maxQty, onClose, onCreated }) => {
       const res = await api.post('/returns', { orderItemId: item.id, ...form, photos });
       onCreated(res.data.message);
     } catch (err) {
-      setError(errorMessage(err, 'Talep oluşturulamadı.'));
+      setError(errorMessage(err, t('Talep oluşturulamadı.')));
     } finally {
       setSubmitting(false);
     }
@@ -59,18 +60,18 @@ const ReturnForm = ({ item, maxQty, onClose, onCreated }) => {
       <form onSubmit={submit} className="modal-panel w-full max-w-lg">
         <div className="modal-header items-center">
           <div>
-            <h3 className="modal-title">İade / Değişim Talebi</h3>
+            <h3 className="modal-title">{t('İade / Değişim Talebi')}</h3>
             <p className="text-xs font-bold text-gray-400 mt-1">{item.product.parent?.name || item.product.name}{item.variantLabel && ` · ${item.variantLabel}`}</p>
           </div>
-          <button type="button" onClick={onClose} className="modal-close" aria-label="Kapat"><X className="h-5 w-5" /></button>
+          <button type="button" onClick={onClose} className="modal-close" aria-label={t('Kapat')}><X className="h-5 w-5" /></button>
         </div>
 
         <div className="p-6 space-y-5">
           <div className="grid grid-cols-2 gap-4">
             <div>
-              <label className="premium-label">Talep Tipi</label>
+              <label className="premium-label">{t('Talep Tipi')}</label>
               <div className="flex bg-gray-100 p-1 rounded-xl">
-                {[['RETURN', 'İade'], ['EXCHANGE', 'Değişim']].map(([value, label]) => (
+                {[['RETURN', t('İade')], ['EXCHANGE', t('Değişim')]].map(([value, label]) => (
                   <button key={value} type="button" onClick={() => setForm({ ...form, type: value })}
                     className={`flex-1 py-2 text-xs font-black rounded-lg transition-all ${form.type === value ? 'bg-white text-indigo-600 shadow-sm' : 'text-gray-400'}`}>
                     {label}
@@ -79,20 +80,20 @@ const ReturnForm = ({ item, maxQty, onClose, onCreated }) => {
               </div>
             </div>
             <div>
-              <label className="premium-label">Miktar (en fazla {maxQty})</label>
+              <label className="premium-label">{t('Miktar (en fazla {n})', { n: maxQty })}</label>
               <input type="number" min={1} max={maxQty} required className="premium-input" value={form.quantity}
                 onChange={(e) => setForm({ ...form, quantity: Math.min(maxQty, Math.max(1, parseInt(e.target.value) || 1)) })} />
             </div>
           </div>
 
           <div>
-            <label className="premium-label">Neden</label>
-            <textarea required minLength={10} className="premium-input h-28 resize-none" placeholder="Ürünle ilgili sorunu kısaca açıklayın (en az 10 karakter)"
+            <label className="premium-label">{t('Neden')}</label>
+            <textarea required minLength={10} className="premium-input h-28 resize-none" placeholder={t('Ürünle ilgili sorunu kısaca açıklayın (en az 10 karakter)')}
               value={form.reason} onChange={(e) => setForm({ ...form, reason: e.target.value })} />
           </div>
 
           <div>
-            <label className="premium-label">Fotoğraflar ({photos.length}/6)</label>
+            <label className="premium-label">{t('Fotoğraflar ({n}/6)', { n: photos.length })}</label>
             <div className="flex flex-wrap gap-3">
               {photos.map((url) => (
                 <div key={url} className="relative w-20 h-20 rounded-xl overflow-hidden border border-gray-100">
@@ -113,8 +114,8 @@ const ReturnForm = ({ item, maxQty, onClose, onCreated }) => {
         </div>
 
         <div className="p-6 pt-0 flex gap-3">
-          <button type="button" onClick={onClose} className="flex-1 py-3 border border-gray-200 rounded-xl font-bold text-gray-600 hover:bg-gray-50">Vazgeç</button>
-          <button type="submit" disabled={submitting || uploading} className="flex-1 btn-gradient disabled:opacity-60">Talebi Gönder</button>
+          <button type="button" onClick={onClose} className="flex-1 py-3 border border-gray-200 rounded-xl font-bold text-gray-600 hover:bg-gray-50">{t('Vazgeç')}</button>
+          <button type="submit" disabled={submitting || uploading} className="flex-1 btn-gradient disabled:opacity-60">{t('Talebi Gönder')}</button>
         </div>
       </form>
     </div>
@@ -132,12 +133,12 @@ const BayiOrderDetail = () => {
   const load = () =>
     api.get(`/orders/${id}`)
       .then((res) => setOrder(res.data))
-      .catch((err) => setError(errorMessage(err, 'Sipariş bulunamadı.')));
+      .catch((err) => setError(errorMessage(err, t('Sipariş bulunamadı.'))));
 
   useEffect(() => { load(); }, [id]);
 
   if (error) return <div className="p-8 text-center text-gray-400 font-bold">{error}</div>;
-  if (!order) return <div className="p-8 text-center text-gray-400">Yükleniyor...</div>;
+  if (!order) return <div className="p-8 text-center text-gray-400">{t('Yükleniyor...')}</div>;
 
   const status = ORDER_STATUS[order.status] || ORDER_STATUS.PENDING;
   const requestedQty = (itemId) =>
@@ -147,10 +148,10 @@ const BayiOrderDetail = () => {
     try {
       const { added, skipped } = await reorder(order);
       if (skipped.length > 0) {
-        showAlert({ type: added > 0 ? 'warning' : 'error', title: 'Bazı ürünler eklenemedi', message: `Şu an sipariş edilemeyenler: ${skipped.join(', ')}` });
+        showAlert({ type: added > 0 ? 'warning' : 'error', title: t('Bazı ürünler eklenemedi'), message: t('Şu an sipariş edilemeyenler: {list}', { list: skipped.join(', ') }) });
       }
     } catch (err) {
-      showAlert({ type: 'error', title: 'Hata', message: err.message });
+      showAlert({ type: 'error', title: t('Hata'), message: err.message });
     }
   };
 
@@ -165,26 +166,26 @@ const BayiOrderDetail = () => {
           onCreated={(message) => {
             setReturnItem(null);
             load();
-            showAlert({ type: 'success', title: 'Talebiniz Alındı', message });
+            showAlert({ type: 'success', title: t('Talebiniz Alındı'), message });
           }}
         />
       )}
 
       <Link to="/bayi/orders" className="inline-flex items-center text-xs font-black text-gray-400 hover:text-indigo-600 uppercase tracking-widest">
-        <ArrowLeft className="h-4 w-4 mr-2" /> Siparişlerim
+        <ArrowLeft className="h-4 w-4 mr-2" /> {t('Siparişlerim')}
       </Link>
 
       <div className="flex flex-col md:flex-row justify-between md:items-end gap-4">
         <div>
-          <h1 className="text-2xl md:text-3xl font-black text-gray-900 tracking-tight">Sipariş #AK-{order.id}</h1>
+          <h1 className="text-2xl md:text-3xl font-black text-gray-900 tracking-tight">{t('Sipariş')} #AK-{order.id}</h1>
           <p className="text-sm text-gray-400 font-medium mt-1">{formatDate(order.createdAt, true)} · {order.paymentMethod === 'WIRE_TRANSFER' ? 'Havale / EFT' : 'Cari Hesap'}</p>
         </div>
         <div className="flex items-center gap-3">
-          <span className={`px-4 py-1.5 rounded-full text-xs font-black uppercase ${status.className}`}>{status.label}</span>
-          <Link to={`/print/order/${order.id}`} className="flex items-center px-4 py-2 rounded-xl text-xs font-black text-gray-600 bg-gray-100 hover:bg-gray-200"><Printer className="h-3.5 w-3.5 mr-1.5" /> Yazdır / PDF</Link>
+          <span className={`px-4 py-1.5 rounded-full text-xs font-black uppercase ${status.className}`}>{t(status.label)}</span>
+          <Link to={`/print/order/${order.id}`} className="flex items-center px-4 py-2 rounded-xl text-xs font-black text-gray-600 bg-gray-100 hover:bg-gray-200"><Printer className="h-3.5 w-3.5 mr-1.5" /> {t('Yazdır / PDF')}</Link>
           {order.status !== 'CANCELLED' && (
             <button onClick={handleReorder} className="flex items-center px-4 py-2 rounded-xl text-xs font-black text-indigo-600 bg-indigo-50 hover:bg-indigo-100">
-              <RotateCw className="h-3.5 w-3.5 mr-1.5" /> Yeniden Sipariş Ver
+              <RotateCw className="h-3.5 w-3.5 mr-1.5" /> {t('Yeniden Sipariş Ver')}
             </button>
           )}
         </div>
@@ -194,7 +195,7 @@ const BayiOrderDetail = () => {
         <div className="card-premium p-5 flex items-start gap-3">
           <MapPin className="h-5 w-5 text-indigo-500 shrink-0 mt-0.5" />
           <div className="text-sm">
-            <p className="font-black text-gray-900">Teslimat: {order.shippingAddress.title}</p>
+            <p className="font-black text-gray-900">{t('Teslimat:')} {order.shippingAddress.title}</p>
             <p className="text-gray-600 mt-0.5">{formatAddress(order.shippingAddress)}</p>
             <p className="text-xs text-gray-400 mt-0.5">{order.shippingAddress.contactName} · {order.shippingAddress.phone}</p>
           </div>
@@ -202,7 +203,7 @@ const BayiOrderDetail = () => {
       )}
 
       {order.invoice?.status === 'ISSUED' && (
-        <InvoicePanel orderId={order.id} orderStatus={order.status} onError={(message) => showAlert({ type: 'error', title: 'Fatura', message })} />
+        <InvoicePanel orderId={order.id} orderStatus={order.status} onError={(message) => showAlert({ type: 'error', title: t('Fatura'), message })} />
       )}
 
       <div className="card-premium p-5 md:p-8 overflow-x-auto">
@@ -214,19 +215,19 @@ const BayiOrderDetail = () => {
               <p className="text-[10px] font-black text-blue-400 uppercase tracking-widest">{carrierName(order.cargoCompany) || 'Kargo'} · Takip No</p>
               <p className="text-sm font-black text-blue-700">{order.trackingNumber}</p>
               {trackingUrl(order.cargoCompany, order.trackingNumber) && (
-                <a href={trackingUrl(order.cargoCompany, order.trackingNumber)} target="_blank" rel="noreferrer" className="inline-flex items-center text-xs font-black text-indigo-600 mt-1 hover:underline">Kargom nerede? <ExternalLink className="h-3 w-3 ml-1" /></a>
+                <a href={trackingUrl(order.cargoCompany, order.trackingNumber)} target="_blank" rel="noreferrer" className="inline-flex items-center text-xs font-black text-indigo-600 mt-1 hover:underline">{t('Kargom nerede?')} <ExternalLink className="h-3 w-3 ml-1" /></a>
               )}
             </div>
           </div>
         )}
         {order.dueDate && (
-          <p className="mt-4 text-xs font-bold text-gray-500">Ödeme vadesi: <span className="text-gray-900">{formatDate(order.dueDate)}</span></p>
+          <p className="mt-4 text-xs font-bold text-gray-500">{t('Ödeme vadesi:')} <span className="text-gray-900">{formatDate(order.dueDate)}</span></p>
         )}
       </div>
 
       <div className="card-premium">
         <div className="p-6 border-b border-gray-50">
-          <h3 className="font-black text-gray-900">Sipariş Kalemleri</h3>
+          <h3 className="font-black text-gray-900">{t('Sipariş Kalemleri')}</h3>
         </div>
         <div className="divide-y divide-gray-50">
           {order.items.map((item) => {
@@ -241,11 +242,11 @@ const BayiOrderDetail = () => {
                 <div className="flex-1 min-w-0">
                   <p className="font-bold text-gray-900">{item.product.parent?.name || item.product.name}</p>
                   {item.variantLabel && <p className="text-xs font-black text-indigo-600 mt-0.5">{item.variantLabel}</p>}
-                  <p className="text-xs text-gray-400 font-semibold mt-1">SKU: {item.product.sku} · {item.quantity} {item.product.unit} × {formatTRY(item.price)} + KDV %{item.vatRate}</p>
-                  {item.status === 'CANCELLED' && <p className="text-xs font-black text-red-500 mt-1">Bu kalem stok yetersizliği nedeniyle iptal edildi.</p>}
+                  <p className="text-xs text-gray-400 font-semibold mt-1">{t('SKU:')} {item.product.sku} · {item.quantity} {item.product.unit} × {formatTRY(item.price)} + KDV %{item.vatRate}</p>
+                  {item.status === 'CANCELLED' && <p className="text-xs font-black text-red-500 mt-1">{t('Bu kalem stok yetersizliği nedeniyle iptal edildi.')}</p>}
                   {returns.map((r) => (
                     <p key={r.id} className="text-[11px] font-bold mt-1">
-                      <span className={`px-2 py-0.5 rounded-full ${RETURN_STATUS[r.status].className}`}>#RMA-{r.id} · {r.quantity} adet · {RETURN_STATUS[r.status].label}</span>
+                      <span className={`px-2 py-0.5 rounded-full ${RETURN_STATUS[r.status].className}`}>#RMA-{r.id} · {r.quantity} adet · {t(RETURN_STATUS[r.status].label)}</span>
                     </p>
                   ))}
                 </div>
@@ -253,7 +254,7 @@ const BayiOrderDetail = () => {
                   <p className="font-black text-gray-900">{formatTRY(item.price * item.quantity)}</p>
                   {item.status === 'APPROVED' && RETURNABLE.includes(order.status) && remaining > 0 && (
                     <button onClick={() => setReturnItem(item)} className="flex items-center px-3 py-2 rounded-xl text-[11px] font-black text-orange-600 bg-orange-50 hover:bg-orange-100">
-                      <RotateCcw className="h-3.5 w-3.5 mr-1.5" /> İade / Değişim
+                      <RotateCcw className="h-3.5 w-3.5 mr-1.5" /> {t('İade / Değişim')}
                     </button>
                   )}
                 </div>
@@ -263,9 +264,9 @@ const BayiOrderDetail = () => {
         </div>
         <div className="p-6 bg-gray-50/60 space-y-2 text-sm">
           <div className="flex justify-between font-bold text-gray-500"><span>Ara Toplam (KDV hariç)</span><span className="text-gray-900">{formatTRY(order.subtotal || order.totalAmount / 1.2)}</span></div>
-          {order.discountAmount > 0 && <div className="flex justify-between font-bold text-pink-600"><span>Kupon {order.couponCode}</span><span>−{formatTRY(order.discountAmount)}</span></div>}
-          <div className="flex justify-between font-bold text-gray-500"><span>KDV</span><span className="text-gray-900">{formatTRY(order.vatAmount || order.totalAmount - order.totalAmount / 1.2)}</span></div>
-          <div className="flex justify-between font-black text-gray-900 text-lg pt-2"><span>Genel Toplam</span><span>{formatTRY(order.totalAmount)}</span></div>
+          {order.discountAmount > 0 && <div className="flex justify-between font-bold text-pink-600"><span>{t('Kupon')} {order.couponCode}</span><span>−{formatTRY(order.discountAmount)}</span></div>}
+          <div className="flex justify-between font-bold text-gray-500"><span>{t('KDV')}</span><span className="text-gray-900">{formatTRY(order.vatAmount || order.totalAmount - order.totalAmount / 1.2)}</span></div>
+          <div className="flex justify-between font-black text-gray-900 text-lg pt-2"><span>{t('Genel Toplam')}</span><span>{formatTRY(order.totalAmount)}</span></div>
         </div>
       </div>
     </div>

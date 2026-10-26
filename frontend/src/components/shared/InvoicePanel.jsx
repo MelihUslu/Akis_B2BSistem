@@ -1,9 +1,10 @@
 import React, { useEffect, useState } from 'react';
 import { FileText, Download, RefreshCw, Loader2, AlertTriangle, PenLine, X } from 'lucide-react';
 import api, { errorMessage } from '../../services/api';
+import { t } from '../../i18n';
 
-const TYPE = { E_FATURA: 'e-Fatura', E_ARSIV: 'e-Arşiv', KAGIT: 'Kâğıt fatura' };
-const SOURCE = { PARASUT: 'Paraşüt', ERP: 'ERP', MANUAL: 'Elle girildi' };
+const TYPE = { E_FATURA: 'e-Fatura', E_ARSIV: 'e-Arşiv', KAGIT: t('Kâğıt fatura') };
+const SOURCE = { PARASUT: 'Paraşüt', ERP: 'ERP', MANUAL: t('Elle girildi') };
 
 /**
  * Siparişin faturası. Yönetici keser / numara girer; bayi yalnızca görür ve PDF'i açar.
@@ -22,8 +23,8 @@ const InvoicePanel = ({ orderId, orderStatus, canManage = false, onError }) => {
   // Arka planda kesilirken birkaç saniyede bir durumu yokla
   useEffect(() => {
     if (state.invoice?.status !== 'PENDING') return undefined;
-    const t = setInterval(load, 3000);
-    return () => clearInterval(t);
+    const timer = setInterval(load, 3000);
+    return () => clearInterval(timer);
   }, [state.invoice?.status]); // eslint-disable-line react-hooks/exhaustive-deps
 
   const issue = async () => {
@@ -32,7 +33,7 @@ const InvoicePanel = ({ orderId, orderStatus, canManage = false, onError }) => {
       await api.post(`/orders/${orderId}/invoice`);
       setState((s) => ({ ...s, invoice: { ...(s.invoice || {}), status: 'PENDING' } }));
     } catch (err) {
-      onError?.(errorMessage(err, 'Fatura kesilemedi.'));
+      onError?.(errorMessage(err, t('Fatura kesilemedi.')));
     } finally {
       setBusy(false);
     }
@@ -46,7 +47,7 @@ const InvoicePanel = ({ orderId, orderStatus, canManage = false, onError }) => {
       setManual(null);
       load();
     } catch (err) {
-      onError?.(errorMessage(err, 'Kaydedilemedi.'));
+      onError?.(errorMessage(err, t('Kaydedilemedi.')));
     } finally {
       setBusy(false);
     }
@@ -59,7 +60,7 @@ const InvoicePanel = ({ orderId, orderStatus, canManage = false, onError }) => {
       if (win) win.location.href = r.data.url; else window.location.href = r.data.url;
     } catch (err) {
       win?.close();
-      onError?.(errorMessage(err, 'PDF açılamadı.'));
+      onError?.(errorMessage(err, t('PDF açılamadı.')));
     }
   };
 
@@ -71,10 +72,10 @@ const InvoicePanel = ({ orderId, orderStatus, canManage = false, onError }) => {
   return (
     <div className="rounded-2xl ring-1 ring-gray-100 p-4 space-y-3">
       <div className="flex items-center justify-between gap-3">
-        <h4 className="text-sm font-black text-gray-900 flex items-center gap-2"><FileText className="h-4 w-4 text-indigo-500" /> Fatura</h4>
-        {inv?.status === 'ISSUED' && <span className="px-2 py-0.5 rounded-md bg-emerald-100 text-emerald-700 text-[11px] font-bold">Kesildi</span>}
-        {inv?.status === 'PENDING' && <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-md bg-blue-100 text-blue-700 text-[11px] font-bold"><Loader2 className="h-3 w-3 animate-spin" /> Kesiliyor</span>}
-        {inv?.status === 'FAILED' && <span className="px-2 py-0.5 rounded-md bg-red-100 text-red-700 text-[11px] font-bold">Hata</span>}
+        <h4 className="text-sm font-black text-gray-900 flex items-center gap-2"><FileText className="h-4 w-4 text-indigo-500" /> {t('Fatura')}</h4>
+        {inv?.status === 'ISSUED' && <span className="px-2 py-0.5 rounded-md bg-emerald-100 text-emerald-700 text-[11px] font-bold">{t('Kesildi')}</span>}
+        {inv?.status === 'PENDING' && <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-md bg-blue-100 text-blue-700 text-[11px] font-bold"><Loader2 className="h-3 w-3 animate-spin" /> {t('Kesiliyor')}</span>}
+        {inv?.status === 'FAILED' && <span className="px-2 py-0.5 rounded-md bg-red-100 text-red-700 text-[11px] font-bold">{t('Hata')}</span>}
       </div>
 
       {inv?.status === 'ISSUED' && (
@@ -84,7 +85,7 @@ const InvoicePanel = ({ orderId, orderStatus, canManage = false, onError }) => {
             <p className="text-[11px] text-gray-400">{[TYPE[inv.documentType], canManage && SOURCE[inv.provider], inv.issuedAt && new Date(inv.issuedAt).toLocaleDateString('tr-TR')].filter(Boolean).join(' · ')}</p>
           </div>
           {(inv.provider === 'PARASUT' || inv.pdfUrl) && (
-            <button onClick={openPdf} className="ml-auto inline-flex items-center gap-1.5 h-9 px-3 rounded-xl bg-indigo-50 text-indigo-700 text-xs font-bold hover:bg-indigo-100"><Download className="h-3.5 w-3.5" /> PDF</button>
+            <button onClick={openPdf} className="ml-auto inline-flex items-center gap-1.5 h-9 px-3 rounded-xl bg-indigo-50 text-indigo-700 text-xs font-bold hover:bg-indigo-100"><Download className="h-3.5 w-3.5" /> {t('PDF')}</button>
           )}
         </div>
       )}
@@ -98,26 +99,26 @@ const InvoicePanel = ({ orderId, orderStatus, canManage = false, onError }) => {
           <div className="flex flex-wrap gap-2">
             {state.canIssue && (
               <button disabled={busy} onClick={issue} className="inline-flex items-center gap-1.5 h-9 px-3 rounded-xl bg-indigo-600 text-white text-xs font-bold hover:bg-indigo-700 disabled:opacity-50">
-                {inv?.status === 'FAILED' ? <><RefreshCw className="h-3.5 w-3.5" /> Tekrar dene</> : <><FileText className="h-3.5 w-3.5" /> Paraşüt ile fatura kes</>}
+                {inv?.status === 'FAILED' ? <><RefreshCw className="h-3.5 w-3.5" /> {t('Tekrar dene')}</> : <><FileText className="h-3.5 w-3.5" /> {t('Paraşüt ile fatura kes')}</>}
               </button>
             )}
             <button onClick={() => setManual({ number: '', documentType: 'E_ARSIV', pdfUrl: '' })} className="inline-flex items-center gap-1.5 h-9 px-3 rounded-xl bg-gray-100 text-gray-700 text-xs font-bold hover:bg-gray-200">
-              <PenLine className="h-3.5 w-3.5" /> Fatura numarası gir
+              <PenLine className="h-3.5 w-3.5" /> {t('Fatura numarası gir')}
             </button>
           </div>
-        ) : <p className="text-xs text-gray-400">Fatura, sipariş onaylandıktan sonra kesilebilir.</p>
+        ) : <p className="text-xs text-gray-400">{t('Fatura, sipariş onaylandıktan sonra kesilebilir.')}</p>
       )}
 
       {manual && (
         <form onSubmit={saveManual} className="grid grid-cols-1 sm:grid-cols-[1fr_9rem] gap-2">
-          <input required autoFocus placeholder="Fatura numarası" className="h-10 rounded-xl bg-gray-50 border border-gray-200 px-3 text-sm font-mono outline-none focus:border-indigo-400" value={manual.number} onChange={(e) => setManual({ ...manual, number: e.target.value })} />
+          <input required autoFocus placeholder={t('Fatura numarası')} className="h-10 rounded-xl bg-gray-50 border border-gray-200 px-3 text-sm font-mono outline-none focus:border-indigo-400" value={manual.number} onChange={(e) => setManual({ ...manual, number: e.target.value })} />
           <select className="h-10 rounded-xl bg-gray-50 border border-gray-200 px-2 text-sm" value={manual.documentType} onChange={(e) => setManual({ ...manual, documentType: e.target.value })}>
             {Object.entries(TYPE).map(([k, v]) => <option key={k} value={k}>{v}</option>)}
           </select>
-          <input type="url" placeholder="PDF bağlantısı (isteğe bağlı, https://…)" className="sm:col-span-2 h-10 rounded-xl bg-gray-50 border border-gray-200 px-3 text-sm outline-none focus:border-indigo-400" value={manual.pdfUrl} onChange={(e) => setManual({ ...manual, pdfUrl: e.target.value })} />
+          <input type="url" placeholder={t('PDF bağlantısı (isteğe bağlı, https://…)')} className="sm:col-span-2 h-10 rounded-xl bg-gray-50 border border-gray-200 px-3 text-sm outline-none focus:border-indigo-400" value={manual.pdfUrl} onChange={(e) => setManual({ ...manual, pdfUrl: e.target.value })} />
           <div className="sm:col-span-2 flex justify-end gap-2">
-            <button type="button" onClick={() => setManual(null)} className="inline-flex items-center gap-1 h-9 px-3 rounded-xl text-xs font-bold text-gray-500 hover:bg-gray-100"><X className="h-3.5 w-3.5" /> Vazgeç</button>
-            <button disabled={busy} className="h-9 px-4 rounded-xl bg-indigo-600 text-white text-xs font-bold disabled:opacity-50">Kaydet</button>
+            <button type="button" onClick={() => setManual(null)} className="inline-flex items-center gap-1 h-9 px-3 rounded-xl text-xs font-bold text-gray-500 hover:bg-gray-100"><X className="h-3.5 w-3.5" /> {t('Vazgeç')}</button>
+            <button disabled={busy} className="h-9 px-4 rounded-xl bg-indigo-600 text-white text-xs font-bold disabled:opacity-50">{t('Kaydet')}</button>
           </div>
         </form>
       )}
