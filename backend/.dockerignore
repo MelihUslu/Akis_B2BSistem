@@ -4,3 +4,4 @@ node_modules
 *.db-journal
 uploads/images/*
 !uploads/images/.gitkeep
+uploads/support/*
