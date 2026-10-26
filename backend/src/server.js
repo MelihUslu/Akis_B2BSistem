@@ -1,5 +1,6 @@
 import express from 'express';
 import cors from 'cors';
+import helmet from 'helmet';
 import { PORT, isAllowedOrigin } from './config.js';
 import accountRoutes from './routes/accountRoutes.js';
 import { auditTrail } from './services/auditService.js';
@@ -33,6 +34,14 @@ import { startNotificationJobs } from './services/notificationService.js';
 const app = express();
 
 app.set('trust proxy', 1); // Reverse proxy arkasında gerçek IP (rate limit için)
+app.disable('x-powered-by');
+// Güvenlik başlıkları: API yalnızca JSON ve dosya döndürdüğü için en sıkı içerik politikası uygulanır.
+// Görseller farklı adresteki (firma alt alan adı) arayüzden yüklendiği için kaynak paylaşımına izin verilir.
+app.use(helmet({
+  contentSecurityPolicy: { directives: { defaultSrc: ["'none'"], imgSrc: ["'self'"], frameAncestors: ["'none'"] } },
+  crossOriginResourcePolicy: { policy: 'cross-origin' },
+  strictTransportSecurity: process.env.NODE_ENV === 'production' ? { maxAge: 31536000, includeSubDomains: true } : false
+}));
 app.use(cors({
   // Kök alan adı + alt alan adları her zaman; doğrulanmış özel alan adları veritabanından
   origin: async (origin, cb) => {
@@ -42,7 +51,14 @@ app.use(cors({
   allowedHeaders: ['Content-Type', 'Authorization', 'X-Tenant', 'X-Tenant-Host']
 }));
 app.use(express.json({ limit: '1mb' }));
-app.use('/uploads', express.static('uploads'));
+// Yüklenen dosyalar: görseller tarayıcıda gösterilir, diğer destek ekleri (PDF, Excel…) indirilir
+app.use('/uploads', express.static('uploads', {
+  dotfiles: 'deny',
+  index: false,
+  setHeaders: (res, filePath) => {
+    if (!/\.(jpe?g|png|webp|gif)$/i.test(filePath)) res.setHeader('Content-Disposition', 'attachment');
+  }
+}));
 
 // Kiracıdan bağımsız uçlar
 app.use('/api/public', publicRoutes);

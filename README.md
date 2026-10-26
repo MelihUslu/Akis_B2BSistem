@@ -93,6 +93,8 @@ frontend/src
 - **Müşteri olarak giriş:** Platform yöneticisi destek için firma sahibinin yetkisiyle 1 saatlik oturum açabilir. Firma sahibine bildirim gider, her işlem "destek oturumu" etiketiyle kaydedilir; bu oturumda şifre, 2FA ve hesap kapatma işlemleri yapılamaz.
 - **İstek sınırlama:** Giriş, kayıt ve doğrulama uçlarında. `REDIS_URL` verilirse sayaçlar Redis'te tutulur (birden çok backend örneği aynı sınırı paylaşır); Redis'e ulaşılamazsa bellek içi sayaca düşer.
 - POS gizli anahtarları AES-256-GCM ile şifrelenir (`ENCRYPTION_KEY`).
+- **Güvenlik başlıkları:** API `helmet` ile sıkı içerik politikası, iframe engeli ve `nosniff` döndürür; arayüz başlıkları ters vekilde (aşağıdaki Caddy örneği) verilir. Görsel olmayan yüklemeler indirme olarak sunulur.
+- **Şifre sıfırlama ve oturumlar:** "Şifremi unuttum" bağlantısı tek kullanımlık ve 1 saat geçerlidir (yalnızca özeti saklanır). Şifre değişince o kullanıcının diğer cihazlardaki oturumları kapanır.
 
 ### KVKK: veri dışa aktarma ve hesap kapatma
 
@@ -159,6 +161,15 @@ https:// {
 	root * /srv/akis/frontend/dist
 	try_files {path} /index.html
 	file_server
+	header {
+		Strict-Transport-Security "max-age=31536000; includeSubDomains"
+		X-Content-Type-Options "nosniff"
+		X-Frame-Options "DENY"
+		Referrer-Policy "strict-origin-when-cross-origin"
+		Permissions-Policy "camera=(), microphone=(), geolocation=()"
+		# PayTR ödeme formu iframe ile açıldığı için frame-src'de izinlidir
+		Content-Security-Policy "default-src 'self'; img-src 'self' data: https:; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src 'self' https://fonts.gstatic.com; connect-src 'self' https://api.akisb2b.com; frame-src https://www.paytr.com https://*.iyzipay.com; frame-ancestors 'none'"
+	}
 }
 ```
 
