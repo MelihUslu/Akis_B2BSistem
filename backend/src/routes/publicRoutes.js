@@ -1,5 +1,5 @@
 import express from 'express';
-import { domainCheck, getPlans, slugAvailable, signup, verifyEmail, resendVerification, iyzicoCallback, iyzicoWebhook } from '../controllers/publicController.js';
+import { reportClientError, domainCheck, getPlans, slugAvailable, signup, verifyEmail, resendVerification, iyzicoCallback, iyzicoWebhook } from '../controllers/publicController.js';
 import { platformContext } from '../middlewares/tenantMiddleware.js';
 import { posCallback, paytrNotify } from '../controllers/paymentController.js';
 import { rateLimit } from '../middlewares/rateLimit.js';
@@ -12,6 +12,8 @@ router.use(platformContext);
 router.get('/plans', getPlans);
 // Caddy on-demand TLS: yalnızca bize ait alan adlarına sertifika alınsın
 router.get('/domain-check', domainCheck);
+// Arayüz hata izleme
+router.post('/client-errors', rateLimit({ windowMs: 60 * 1000, max: 20 }), reportClientError);
 router.get('/slug-available', rateLimit({ windowMs: 60 * 1000, max: 30 }), slugAvailable);
 router.post('/signup', rateLimit({ windowMs: 60 * 60 * 1000, max: 5, message: 'Çok fazla kayıt denemesi. Lütfen daha sonra tekrar deneyin.' }), signup);
 router.post('/verify-email', rateLimit({ windowMs: 15 * 60 * 1000, max: 20 }), verifyEmail);

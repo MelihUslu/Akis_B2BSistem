@@ -470,3 +470,28 @@ test('test (sandbox) API anahtarı: okur, yazmaları doğrular ama kaydetmez', {
   assert.ok([202, 400].includes(sample.status)); // webhook varsa 202
   assert.equal((await v1('/webhooks/test', { method: 'POST', body: { event: 'yok.boyle' } })).status, 400);
 });
+
+test('hata izleme: aynı hata gruplanır, tarayıcı hatası kaydedilir, kullanıcı hatası (400) kaydedilmez', { skip }, async () => {
+  const { recordError } = await import('../../src/services/errorTracker.js');
+  const err = new Error(`itest bağlantı koptu id=${Date.now()}`);
+  await recordError({ error: err, path: '/api/orders/15' });
+  await recordError({ error: new Error(`itest bağlantı koptu id=${Date.now() + 1}`), path: '/api/orders/99', stack: err.stack });
+  const rows = await runAsPlatform(() => prisma.errorLog.findMany({ where: { message: { startsWith: 'itest bağlantı' } } }));
+  assert.equal(rows.length, 1); // id'ler farklı ama aynı hata
+  assert.equal(rows[0].count, 2);
+
+  const r = await fetch(`${base}/api/public/client-errors`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ message: 'itest TypeError: x is undefined', stack: 'at Foo (app.js:1:2)', url: 'http://demo.localhost:5173/admin/orders?q=1' }) });
+  assert.equal(r.status, 204);
+  await new Promise((res) => setTimeout(res, 100));
+  const client = await runAsPlatform(() => prisma.errorLog.findFirst({ where: { message: 'itest TypeError: x is undefined' } }));
+  assert.equal(client.source, 'CLIENT');
+  assert.equal(client.path, '/admin/orders');
+
+  const before = await runAsPlatform(() => prisma.errorLog.count());
+  const form = new FormData();
+  form.append('file', new Blob(['<script>'], { type: 'text/html' }), 'x.html');
+  const up = await fetch(`${base}/api/account/support/upload`, { method: 'POST', headers: { 'X-Tenant': 'itest-a', Authorization: `Bearer ${tenants['itest-a'].token}` }, body: form });
+  assert.equal(up.status, 400);
+  assert.equal(await runAsPlatform(() => prisma.errorLog.count()), before);
+  await runAsPlatform(() => prisma.errorLog.deleteMany({ where: { message: { startsWith: 'itest' } } }));
+});

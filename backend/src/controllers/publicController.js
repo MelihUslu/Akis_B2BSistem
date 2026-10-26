@@ -203,3 +203,16 @@ export const domainCheck = async (req, res) => {
   }
   return (await loadTenantByHost(domain)) ? res.status(200).end() : res.status(404).end();
 };
+
+// Tarayıcıda oluşan hatalar (arayüz hata izleme). Hız sınırlı; büyük gövdeler kırpılır.
+export const reportClientError = async (req, res) => {
+  const { recordError } = await import('../services/errorTracker.js');
+  const b = req.body || {};
+  if (!b.message) return res.status(204).end();
+  recordError({
+    source: 'CLIENT', message: String(b.message).slice(0, 1000), stack: b.stack ? String(b.stack).slice(0, 6000) : null,
+    path: b.url ? String(b.url).replace(/^https?:\/\/[^/]+/, '').split('?')[0].slice(0, 300) : null,
+    userAgent: req.headers['user-agent'], tenantId: null
+  });
+  res.status(204).end();
+};

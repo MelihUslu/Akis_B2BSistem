@@ -557,3 +557,26 @@ export const subscriptionInvoicePdfUrl = async (req, res) => {
   if (!payment?.invoiceExternalId) return res.status(404).json({ message: 'Fatura bulunamadı.' });
   try { res.json({ url: await subscriptionInvoicePdf(payment.invoiceExternalId) }); } catch (error) { res.status(400).json({ message: error.message }); }
 };
+
+// ─── Hata izleme ─────────────────────────────────────────────────────────────
+
+export const listErrors = async (req, res) => {
+  const where = {
+    ...(req.query.status === 'open' && { resolvedAt: null }),
+    ...(req.query.status === 'resolved' && { resolvedAt: { not: null } }),
+    ...(req.query.source && { source: req.query.source })
+  };
+  const [rows, open, last24h] = await Promise.all([
+    prisma.errorLog.findMany({ where, orderBy: { lastSeenAt: 'desc' }, take: 200 }),
+    prisma.errorLog.count({ where: { resolvedAt: null } }),
+    prisma.errorLog.count({ where: { lastSeenAt: { gte: new Date(Date.now() - 86_400_000) } } })
+  ]);
+  const tenants = await prisma.tenant.findMany({ where: { id: { in: [...new Set(rows.map((r) => r.tenantId).filter(Boolean))] } }, select: { id: true, name: true } });
+  const names = new Map(tenants.map((t) => [t.id, t.name]));
+  res.json({ stats: { open, last24h }, data: rows.map((r) => ({ ...r, tenantName: r.tenantId ? names.get(r.tenantId) || `#${r.tenantId}` : null })) });
+};
+
+export const resolveError = async (req, res) => {
+  await prisma.errorLog.updateMany({ where: { id: parseInt(req.params.id) }, data: { resolvedAt: req.body.reopen ? null : new Date() } });
+  res.json({ message: req.body.reopen ? 'Hata yeniden açıldı.' : 'Çözüldü olarak işaretlendi. Tekrar oluşursa yeniden açılır.' });
+};

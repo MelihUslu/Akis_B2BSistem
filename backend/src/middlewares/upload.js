@@ -29,7 +29,7 @@ export const imageUpload = multer({
   fileFilter: (req, file, cb) => {
     const ext = path.extname(file.originalname).toLowerCase();
     if (IMAGE_TYPES.includes(file.mimetype) && IMAGE_EXTS.includes(ext)) return cb(null, true);
-    cb(new Error('Sadece görsel dosyaları (JPG, PNG, WEBP, GIF) yüklenebilir.'));
+    cb(Object.assign(new Error('Sadece görsel dosyaları (JPG, PNG, WEBP, GIF) yüklenebilir.'), { status: 400 }));
   }
 });
 
@@ -67,7 +67,7 @@ export const supportUpload = multer({
   limits: { fileSize: 10 * 1024 * 1024, files: 1 }, // 10 MB
   fileFilter: (req, file, cb) => {
     if (SUPPORT_TYPES[path.extname(file.originalname).toLowerCase()]) return cb(null, true);
-    cb(new Error('Bu dosya türü eklenemez. Görsel, PDF, Excel, Word, CSV veya TXT yükleyin.'));
+    cb(Object.assign(new Error('Bu dosya türü eklenemez. Görsel, PDF, Excel, Word, CSV veya TXT yükleyin.'), { status: 400 }));
   }
 });
 

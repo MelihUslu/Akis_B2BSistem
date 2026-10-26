@@ -1,6 +1,7 @@
 import React, { Suspense, lazy, useState } from 'react';
-import { Routes, Route, Navigate, NavLink, useNavigate, Link } from 'react-router-dom';
-import { LayoutDashboard, Building2, Layers, Receipt, LogOut, Lock, Mail, Megaphone, LifeBuoy, ScrollText, ShieldCheck, Menu, X } from 'lucide-react';
+import { Routes, Route, Navigate, NavLink, useNavigate, useLocation, Link } from 'react-router-dom';
+import ErrorBoundary from '../../components/ErrorBoundary';
+import { LayoutDashboard, Building2, Layers, Receipt, LogOut, Lock, Mail, Megaphone, LifeBuoy, ScrollText, ShieldCheck, Menu, X, Bug } from 'lucide-react';
 import { platformApi, errorMessage } from '../../services/api';
 import TwoFactorStep from '../../components/TwoFactorStep';
 import ThemeToggle from '../../components/ThemeToggle';
@@ -16,6 +17,7 @@ const PlatformAnnouncements = lazy(() => import('./PlatformAnnouncements'));
 const PlatformSupport = lazy(() => import('./PlatformSupport'));
 const PlatformAudit = lazy(() => import('./PlatformAudit'));
 const PlatformSecurity = lazy(() => import('./PlatformSecurity'));
+const PlatformErrors = lazy(() => import('./PlatformErrors'));
 
 const readUser = () => {
   try { return JSON.parse(localStorage.getItem('akis_platform_user')); } catch { return null; }
@@ -97,6 +99,7 @@ const MENU = [
   { name: 'Destek', path: '/support', icon: LifeBuoy },
   { name: 'Duyurular', path: '/announcements', icon: Megaphone },
   { name: 'İşlem Kaydı', path: '/audit', icon: ScrollText },
+  { name: 'Hatalar', path: '/errors', icon: Bug },
   { name: 'Güvenlik', path: '/security', icon: ShieldCheck },
 ];
 
@@ -128,6 +131,7 @@ const PlatformNav = ({ user, onLogout, mobile = false, onNavigate }) => (
 
 const PlatformLayout = ({ user, onLogout }) => {
   const [menuOpen, setMenuOpen] = useState(false);
+  const { pathname } = useLocation();
   return (
   <div className="flex min-h-screen bg-[#0f172a]">
     <PlatformNav user={user} onLogout={onLogout} />
@@ -142,6 +146,7 @@ const PlatformLayout = ({ user, onLogout }) => {
         <button onClick={() => setMenuOpen(true)} className="lg:hidden p-2 -ml-1 rounded-xl text-gray-600 hover:bg-gray-100" aria-label="Menü"><Menu className="h-6 w-6" /></button>
         <ThemeToggle className="lg:absolute lg:top-6 lg:right-8" />
       </div>
+      <ErrorBoundary key={pathname}>
       <Suspense fallback={<PageLoader />}>
       <Routes>
         <Route index element={<PlatformDashboard />} />
@@ -153,9 +158,11 @@ const PlatformLayout = ({ user, onLogout }) => {
         <Route path="announcements" element={<PlatformAnnouncements />} />
         <Route path="audit" element={<PlatformAudit />} />
         <Route path="security" element={<PlatformSecurity />} />
+        <Route path="errors" element={<PlatformErrors />} />
         <Route path="*" element={<Navigate to="/" replace />} />
       </Routes>
       </Suspense>
+      </ErrorBoundary>
     </main>
   </div>
   );

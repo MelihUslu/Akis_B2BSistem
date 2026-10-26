@@ -1,5 +1,6 @@
 import React, { Suspense, lazy, useState } from 'react';
-import { Routes, Route } from 'react-router-dom';
+import { Routes, Route, useLocation } from 'react-router-dom';
+import ErrorBoundary from '../components/ErrorBoundary';
 import { ShoppingCart, User, Menu } from 'lucide-react';
 import { useCart } from '../context/CartContext';
 import { useAuth } from '../context/AuthContext';
@@ -25,6 +26,7 @@ const BayiLayout = () => {
   const { cartCount, isCartOpen, setIsCartOpen } = useCart();
   const { user } = useAuth();
   const [menuOpen, setMenuOpen] = useState(false);
+  const { pathname } = useLocation();
 
   return (
     <div className="flex min-h-screen bg-[#0f172a]">
@@ -76,6 +78,7 @@ const BayiLayout = () => {
         </header>
 
         <main className="flex-1 overflow-y-auto custom-scrollbar px-3 md:px-8 lg:px-12 py-4 md:py-8 bg-white" style={{ paddingBottom: 'max(1rem, env(safe-area-inset-bottom))' }}>
+          <ErrorBoundary key={pathname}>
           <Suspense fallback={<PageLoader />}>
           <Routes>
             <Route index element={<ProductCatalog />} />
@@ -90,6 +93,7 @@ const BayiLayout = () => {
             <Route path="checkout" element={<CheckoutPage />} />
           </Routes>
           </Suspense>
+          </ErrorBoundary>
         </main>
       </div>
 

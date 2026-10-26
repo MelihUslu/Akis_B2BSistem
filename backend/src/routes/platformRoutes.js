@@ -2,7 +2,7 @@ import express from 'express';
 import {
   platformLogin, getDashboard, listTenants, getTenant, createTenant, updateTenant, addManualPayment,
   resetTenantAdminPassword, listPlans, createPlan, updatePlan, syncPlanToIyzico, listPayments,
-  platformVerifyTwoFactor, platformForgotPassword, platformResetPassword, retrySubscriptionInvoice, subscriptionInvoicePdfUrl, platformTwoFactorStatus, platformTwoFactorSetup, platformTwoFactorEnable, platformTwoFactorDisable,
+  platformVerifyTwoFactor, platformForgotPassword, platformResetPassword, retrySubscriptionInvoice, subscriptionInvoicePdfUrl, listErrors, resolveError, platformTwoFactorStatus, platformTwoFactorSetup, platformTwoFactorEnable, platformTwoFactorDisable,
   impersonateTenant, exportTenantData, reopenTenant, purgeTenantData, platformAuditLogs,
   listAnnouncements, createAnnouncement, deleteAnnouncement, listSupportTickets, getSupportTicket, replySupportTicket
 } from '../controllers/platformController.js';
@@ -48,6 +48,8 @@ router.get('/tenants/:id/export', exportTenantData);
 router.post('/tenants/:id/reopen', reopenTenant);
 router.post('/tenants/:id/purge', purgeTenantData);
 router.get('/audit-logs', platformAuditLogs);
+router.get('/errors', listErrors);
+router.post('/errors/:id/resolve', resolveError);
 router.get('/announcements', listAnnouncements);
 router.post('/announcements', createAnnouncement);
 router.delete('/announcements/:id', deleteAnnouncement);

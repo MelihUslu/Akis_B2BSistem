@@ -884,3 +884,25 @@ model SupportMessage {
 
   @@index([tenantId])
 }
+
+// Hata izleme: aynı hata (parmak izi) tek kayıtta toplanır ve sayılır. Firma silinse de kayıt kalır (FK yok).
+model ErrorLog {
+  id          Int       @id @default(autoincrement())
+  fingerprint String    @unique
+  source      String // SERVER, CLIENT
+  message     String
+  stack       String?
+  method      String?
+  path        String?
+  statusCode  Int?
+  tenantId    Int?
+  userId      Int?
+  userAgent   String?
+  count       Int       @default(1)
+  firstSeenAt DateTime  @default(now())
+  lastSeenAt  DateTime  @default(now())
+  resolvedAt  DateTime?
+
+  @@index([lastSeenAt])
+  @@index([resolvedAt])
+}

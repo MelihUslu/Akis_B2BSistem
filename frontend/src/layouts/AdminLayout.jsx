@@ -7,6 +7,7 @@ import GlobalSearch from '../components/GlobalSearch';
 import ThemeToggle from '../components/ThemeToggle';
 import PageLoader from '../components/PageLoader';
 import ImpersonationBanner from '../components/ImpersonationBanner';
+import ErrorBoundary from '../components/ErrorBoundary';
 import AnnouncementBar from '../components/AnnouncementBar';
 import { useAuth } from '../context/AuthContext';
 import { can } from '../utils/permissions';
@@ -61,6 +62,7 @@ const initials = (name = '') => name.split(' ').filter(Boolean).slice(0, 2).map(
 const AdminLayout = () => {
   const { user } = useAuth();
   const [menuOpen, setMenuOpen] = useState(false);
+  const { pathname } = useLocation();
   useRememberLastPage();
 
   return (
@@ -108,6 +110,7 @@ const AdminLayout = () => {
 
         <main className="flex-1 overflow-y-auto custom-scrollbar px-3 md:px-8 lg:px-12 py-4 md:py-8 bg-white" style={{ paddingBottom: 'max(1rem, env(safe-area-inset-bottom))' }}>
           <AnnouncementBar />
+          <ErrorBoundary key={pathname}>
           <Suspense fallback={<PageLoader />}>
             <Routes>
               <Route index element={<AdminDashboardHome />} />
@@ -126,6 +129,7 @@ const AdminLayout = () => {
               <Route path="account" element={<AccountPage />} />
             </Routes>
           </Suspense>
+          </ErrorBoundary>
         </main>
       </div>
     </div>

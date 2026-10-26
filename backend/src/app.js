@@ -5,6 +5,7 @@ import helmet from 'helmet';
 import { isAllowedOrigin } from './config.js';
 import accountRoutes from './routes/accountRoutes.js';
 import { openApiSpec } from './docs/openapi.js';
+import { recordRequestError } from './services/errorTracker.js';
 import reportRoutes from './routes/reportRoutes.js';
 import invoicingRoutes from './routes/invoicingRoutes.js';
 import addressRoutes from './routes/addressRoutes.js';
@@ -113,8 +114,12 @@ app.get('/health', (req, res) => {
 // Multer ve diğer beklenmeyen hatalar için Türkçe JSON yanıtı
 app.use((err, req, res, next) => {
   if (err.code === 'LIMIT_FILE_SIZE') return res.status(400).json({ message: 'Dosya boyutu çok büyük.' });
-  console.error('Unhandled error:', err);
-  res.status(err.status || 400).json({ message: err.message || 'Beklenmeyen bir hata oluştu.' });
+  if (err.name === 'MulterError') return res.status(400).json({ message: err.message });
+  const status = err.status || err.statusCode || (err.code === 'P2025' ? 404 : 500);
+  // Kullanıcı kaynaklı hatalar (doğrulama, dosya türü) kaydedilmez; sunucu hataları hata izlemeye gider
+  if (status >= 500) recordRequestError(req, err, status);
+  else if (process.env.NODE_ENV !== 'production') console.warn('Request error:', err.message);
+  res.status(status).json({ message: status >= 500 && process.env.NODE_ENV === 'production' ? 'Beklenmeyen bir hata oluştu. Ekibimiz bilgilendirildi.' : err.message || 'Beklenmeyen bir hata oluştu.' });
 });
 
 export default app;
