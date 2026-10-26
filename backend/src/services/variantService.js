@@ -1,3 +1,4 @@
+import { reconcileStock } from './stockService.js';
 export class VariantError extends Error {}
 
 const clean = (s) => String(s ?? '').trim();
@@ -114,6 +115,7 @@ export const syncOptionsAndVariants = async (tx, master, { options, variants }) 
         ? await tx.product.update({ where: { id: parseInt(v.id), parentId: master.id }, data })
         : await tx.product.create({ data: { ...data, parentId: master.id, isMaster: false, images: '[]' } });
       keep.push(variant.id);
+      await reconcileStock(tx, variant.id, data.stock);
 
       await tx.productVariantValue.deleteMany({ where: { variantId: variant.id } });
       if (valueIds.length) {

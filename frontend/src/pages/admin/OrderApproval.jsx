@@ -3,7 +3,7 @@ import api, { errorMessage } from '../../services/api';
 import {
   ShoppingCart, CheckCircle, Truck, AlertCircle, PackageCheck, Search, FileSpreadsheet, Printer, ExternalLink,
   X, Clock, Hourglass, Package, CheckCheck, ChevronLeft, ChevronRight, CalendarRange, ArrowDownUp, Ban, Building2,
-  CreditCard, Landmark, Inbox, TicketPercent, Undo2, MapPin, RefreshCw
+  CreditCard, Landmark, Inbox, TicketPercent, Undo2, MapPin, RefreshCw, Warehouse as WarehouseIcon
 } from 'lucide-react';
 import { useSearchParams, Link } from 'react-router-dom';
 import { downloadFile } from '../../utils/download';
@@ -70,7 +70,9 @@ const OrderApproval = () => {
   const [limit, setLimit] = useState(20);
   const [page, setPage] = useState(1);
   const [pagination, setPagination] = useState({ total: 0, pages: 1 });
-  const [now, setNow] = useState(() => Date.now()); // bekleme süreleri her yüklemede bu ana göre hesaplanır
+  const [now, setNow] = useState(() => Date.now());
+  const [warehouses, setWarehouses] = useState([]);
+  const [warehouseId, setWarehouseId] = useState(null); // detayda seçilen karşılama deposu // bekleme süreleri her yüklemede bu ana göre hesaplanır
   const { alertElement, showAlert, confirm } = useAlert();
 
   const listParams = (paged) => ({
@@ -86,6 +88,7 @@ const OrderApproval = () => {
     setSelectedOrder({ ...order, items: order.items.map((i) => ({ ...i })) });
     setTrackingNumber(order.trackingNumber || '');
     setCargoCompany(order.cargoCompany || '');
+    setWarehouseId(order.warehouseId || null);
   };
 
   const fetchOrders = async () => {
@@ -109,6 +112,8 @@ const OrderApproval = () => {
       setIsLoading(false);
     }
   };
+
+  useEffect(() => { api.get('/warehouses').then((r) => setWarehouses(r.data)).catch(() => {}); }, []);
 
   useEffect(() => {
     const t = setTimeout(fetchOrders, 250);
@@ -149,7 +154,7 @@ const OrderApproval = () => {
 
     try {
       const itemStatuses = order.items.map((item) => ({ itemId: item.id, status: item.status }));
-      const res = await api.patch(`/orders/${order.id}/partial-approve`, { itemStatuses });
+      const res = await api.patch(`/orders/${order.id}/partial-approve`, { itemStatuses, ...(warehouseId && { warehouseId }) });
       showAlert({ type: 'success', title: 'Sipariş Güncellendi', message: `${res.data.message} Yeni tutar: ${formatTRY(res.data.updatedOrder.totalAmount)}` });
       setSelectedOrder(null);
       fetchOrders();
@@ -500,6 +505,19 @@ const OrderApproval = () => {
               </div>
 
               <div className="flex-1 overflow-y-auto custom-scrollbar p-6 space-y-5">
+                {warehouses.length > 1 && (
+                  <div className="flex flex-wrap items-center gap-3 rounded-2xl bg-blue-50/50 ring-1 ring-blue-100 px-4 py-3">
+                    <WarehouseIcon className="h-4 w-4 text-blue-600" />
+                    <span className="text-sm font-bold text-gray-800">Karşılanacak depo</span>
+                    {editable ? (
+                      <select value={warehouseId || warehouses.find((w) => w.isDefault)?.id || ''} onChange={(e) => setWarehouseId(Number(e.target.value))}
+                        className="ml-auto h-9 rounded-xl bg-white border border-blue-200 px-3 text-sm font-semibold">
+                        {warehouses.map((w) => <option key={w.id} value={w.id}>{w.code} · {w.name}{w.isDefault ? ' (varsayılan)' : ''}</option>)}
+                      </select>
+                    ) : <span className="ml-auto text-sm font-semibold text-gray-600">{warehouses.find((w) => w.id === order.warehouseId)?.name || 'Varsayılan depo'}</span>}
+                  </div>
+                )}
+
                 <div className="flex items-center justify-between">
                   <h4 className="text-sm font-black text-gray-900">Kalemler <span className="text-gray-400 font-semibold">({order.items.length})</span></h4>
                   {editable && order.items.length > 1 && (

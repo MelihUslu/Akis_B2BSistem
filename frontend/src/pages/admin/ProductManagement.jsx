@@ -27,7 +27,7 @@ import {
 
 const BULK_TYPES = [
   { id: 'price', label: 'Toplu Fiyat Güncelleme', columns: 'SKU, Fiyat (veya Price)' },
-  { id: 'stock', label: 'Toplu Stok Güncelleme', columns: 'SKU, Stok (veya Stock)' },
+  { id: 'stock', label: 'Toplu Stok Güncelleme', columns: 'SKU, Stok (veya Stock), Depo (isteğe bağlı: depo kodu, ör. IST)' },
   { id: 'products', label: 'Toplu Ürün Yükleme', columns: 'SKU, Ad, Fiyat, Döviz (TRY/USD/EUR), KDV, Stok, Birim, Marka, Barkod — SKU varsa güncellenir, yoksa oluşturulur' },
 ];
 
@@ -203,7 +203,16 @@ const ProductManagement = () => {
   const [search, setSearch] = useState(() => new URLSearchParams(window.location.search).get('search') || '');
   const [activeTab, setActiveTab] = useState('general'); // general, price, variants, special, description, media
   const [viewImage, setViewImage] = useState(0); // görüntüleme penceresinde seçili görsel
-  const [triedSave, setTriedSave] = useState(false); // kaydet'e basılınca eksik alanlar kırmızı gösterilir
+  const [triedSave, setTriedSave] = useState(false);
+  const [warehouses, setWarehouses] = useState([]); // depo tanımlıysa stok depo bazında girilir
+
+  // Düzenlenen ürünün depo bazında stokları: { [warehouseId]: miktar }
+  const loadWarehouseStocks = (productId) => {
+    if (!warehouses.length || !productId) return;
+    api.get(`/warehouses/stocks/${productId}`)
+      .then((r) => setFormData((f) => ({ ...f, warehouseStocks: Object.fromEntries(r.data.map((x) => [x.warehouseId, x.quantity])) })))
+      .catch(() => {});
+  }; // kaydet'e basılınca eksik alanlar kırmızı gösterilir
 
   const sensors = useSensors(
     useSensor(PointerSensor),
@@ -224,11 +233,13 @@ const ProductManagement = () => {
   const fetchInitialData = async () => {
     try {
       setIsLoading(true);
-      const [prodRes, catRes, setRes] = await Promise.allSettled([
+      const [prodRes, catRes, setRes, whRes] = await Promise.allSettled([
         api.get('/products', { params: { search, isAdmin: true, limit: 200 } }),
         api.get('/categories?isAdmin=true&isFlat=true'),
-        api.get('/settings')
+        api.get('/settings'),
+        api.get('/warehouses')
       ]);
+      if (whRes.status === 'fulfilled') setWarehouses(whRes.value.data);
 
       if (prodRes.status === 'fulfilled') setProducts(prodRes.value.data.data);
       if (catRes.status === 'fulfilled') setCategories(catRes.value.data);
@@ -310,7 +321,10 @@ const ProductManagement = () => {
     }
 
     // Varyant seçimleri API'nin beklediği biçime (özellik adı → seçenek) çevrilir
-    const payload = { ...formData, ...toPayload(formData.options, formData.variants) };
+    const payload = {
+      ...formData, ...toPayload(formData.options, formData.variants),
+      warehouseStocks: warehouses.length ? warehouses.map((w) => ({ warehouseId: w.id, quantity: Number(formData.warehouseStocks?.[w.id]) || 0 })) : undefined
+    };
     try {
       if (selectedProduct) {
         await api.patch(`/products/${selectedProduct.id}`, payload);
@@ -472,7 +486,7 @@ const ProductManagement = () => {
                       onDelete={deleteProduct}
                       onEdit={(p) => {
                         setSelectedProduct(p); 
-                        setFormData(productToForm(p)); 
+ setFormData(productToForm(p)); loadWarehouseStocks(p.id); 
                         setActiveTab('general');
                         setTriedSave(false);
                         setIsDrawerOpen(true);
@@ -615,7 +629,7 @@ const ProductManagement = () => {
 
               <div className="modal-footer items-center">
                 <button onClick={() => setIsViewOpen(false)} className="btn-secondary px-6">KAPAT</button>
-                <button onClick={() => { setIsViewOpen(false); setFormData(productToForm(p)); setActiveTab('general'); setTriedSave(false); setIsDrawerOpen(true); }} className="btn-gradient h-12 py-0 flex-1">
+                <button onClick={() => { setIsViewOpen(false); setFormData(productToForm(p)); loadWarehouseStocks(p.id); setActiveTab('general'); setTriedSave(false); setIsDrawerOpen(true); }} className="btn-gradient h-12 py-0 flex-1">
                   <Edit3 className="h-4 w-4 mr-2" /> DÜZENLE
                 </button>
               </div>
@@ -759,10 +773,25 @@ const ProductManagement = () => {
                   <Section icon={formData.hidePrice ? EyeOff : Eye} title="Fiyatı Bayilere Gizle" description="Açıksa bayi panelinde fiyat yerine “Fiyat sorun” yazar; bayi teklif isteyebilir." color="amber"
                     aside={<Toggle checked={formData.hidePrice} color="orange" onChange={(v) => setFormData({ ...formData, hidePrice: v })} />} />
 
-                  <Section icon={Warehouse} title="Stok" description="Stok 0 olunca bayiye “Tükendi” gösterilir; gelince haber verilir." color="blue">
-                    <Field label="Mevcut Stok" className="max-w-xs">
-                      <IconInput type="number" icon={Boxes} suffix={formData.unit} value={formData.stock} onChange={set('stock')} />
-                    </Field>
+                  <Section icon={Warehouse} title="Stok" description={warehouses.length ? 'Depo bazında stok. Bayi toplamı görür; 0 olunca “Tükendi” gösterilir, gelince haber verilir.' : 'Stok 0 olunca bayiye “Tükendi” gösterilir; gelince haber verilir.'} color="blue">
+                    {warehouses.length ? (
+                      <div className="space-y-2">
+                        {warehouses.map((w) => (
+                          <div key={w.id} className="flex items-center gap-3">
+                            <span className="w-40 text-sm font-semibold text-gray-700 flex items-center gap-2 truncate">
+                              <span className="font-mono text-[10px] font-black text-blue-700 bg-blue-50 px-1.5 py-0.5 rounded">{w.code}</span> {w.name}
+                            </span>
+                            <div className="w-40"><IconInput type="number" icon={Boxes} suffix={formData.unit} value={formData.warehouseStocks?.[w.id] ?? 0}
+                              onChange={(e) => setFormData({ ...formData, warehouseStocks: { ...(formData.warehouseStocks || {}), [w.id]: e.target.value } })} /></div>
+                          </div>
+                        ))}
+                        <p className="text-xs font-bold text-gray-500 pt-1">Toplam: {warehouses.reduce((sum, w) => sum + (Number(formData.warehouseStocks?.[w.id]) || 0), 0).toLocaleString('tr-TR')} {formData.unit}</p>
+                      </div>
+                    ) : (
+                      <Field label="Mevcut Stok" className="max-w-xs">
+                        <IconInput type="number" icon={Boxes} suffix={formData.unit} value={formData.stock} onChange={set('stock')} />
+                      </Field>
+                    )}
                   </Section>
                 </>)}
 

@@ -117,6 +117,10 @@ frontend/src
 
 Bayi, profilinden birden fazla teslimat adresi (il / ilçe ayrı) tanımlar ve siparişte seçer; seçilen adres siparişe kopyalanır. Firma, Ayarlar → Kargo'dan **Yurtiçi Kargo** web servisini bağlarsa sipariş ekranından tek tıkla gönderi oluşturur ve 10×15 barkodlu etiketi yazdırır. Kargo paketi teslim alınca takip numarası (yarım saatte bir ya da "Durumu güncelle" ile) otomatik gelir, sipariş "Kargoda", teslimde "Teslim edildi" olur ve bayiye bildirilir. Diğer kargo firmalarında takip numarası elle girilir. Yurtiçi istemcisi, Yurtiçi'nin herkese açık test servisine karşı denenmiştir (`YURTICI_LIVE=1 npm run test:integration`).
 
+### Çoklu depo
+
+Ayarlar → Depolar'dan depo eklenince stok depo bazında tutulur (ilk depo eklenince mevcut stoklar ona aktarılır); `Product.stock` tüm depoların toplamıdır ve bayi toplamı görür. Sipariş onaylanırken karşılanacak depo seçilir, stok o depodan düşer; kalem iptali ve iade aynı depoya geri yazılır. Depolar arası transfer yapılabilir. Excel'de "Depo" sütunu, ERP'de `warehouse` alanı (depo kodu) ile depo bazında stok güncellenir; depo verilmezse toplam stok güncellenir ve fark varsayılan depoya yazılır. Tüm stok değişiklikleri `services/stockService.js` üzerinden geçer.
+
 ### E-fatura / e-arşiv
 
 Firma, Ayarlar → E-Fatura'dan yöntemi seçer:

@@ -5,6 +5,7 @@ import { notifyCompany, notifyAdmins, notifyRestocked, safeNotify } from '../ser
 import { emitEvent } from '../services/webhookService.js';
 import { autoInvoice, invoiceCreds } from '../services/invoiceService.js';
 import { cargoCreds } from '../services/cargoService.js';
+import { adjustStock, availableStock, defaultWarehouse } from '../services/stockService.js';
 import { orderEvent, markShipped, markDelivered } from '../services/orderShippingService.js';
 import { resolveShippingAddress } from './addressController.js';
 import xlsx from 'xlsx';
@@ -298,10 +299,22 @@ export const partialApproveOrder = async (req, res) => {
 
       const statusById = new Map(itemStatuses.map(i => [parseInt(i.itemId), i.status]));
 
-      // 1. Stok yeterliliği kontrolü
-      const shortages = order.items
-        .filter(it => statusById.get(it.id) === 'APPROVED' && !it.isStockDeducted && it.product.stock < it.quantity)
-        .map(it => `${it.product.name} (stok: ${it.product.stock}, istenen: ${it.quantity})`);
+      // Siparişi karşılayacak depo: istekte seçilen, siparişte kayıtlı ya da varsayılan depo
+      if (req.body.warehouseId && req.body.warehouseId !== order.warehouseId) {
+        const w = await tx.warehouse.findUnique({ where: { id: parseInt(req.body.warehouseId) } });
+        if (!w) throw new ApprovalError('Depo bulunamadı.');
+        await tx.order.update({ where: { id: order.id }, data: { warehouseId: w.id } });
+        order.warehouseId = w.id;
+      }
+      const warehouseId = order.warehouseId || (await defaultWarehouse(tx))?.id || null;
+
+      // 1. Stok yeterliliği kontrolü (depo varsa o depodaki miktar)
+      const shortages = [];
+      for (const it of order.items) {
+        if (statusById.get(it.id) !== 'APPROVED' || it.isStockDeducted) continue;
+        const available = await availableStock(tx, it.product, warehouseId);
+        if (available < it.quantity) shortages.push(`${it.product.name} (stok: ${available}, istenen: ${it.quantity})`);
+      }
       if (shortages.length) {
         throw new ApprovalError(`Yetersiz stok: ${shortages.join(', ')}. Bu kalemleri iptal edin veya stok girin.`);
       }
@@ -312,11 +325,11 @@ export const partialApproveOrder = async (req, res) => {
         if (!status) continue;
 
         if (status === 'APPROVED' && !item.isStockDeducted) {
-          await tx.product.update({ where: { id: item.productId }, data: { stock: { decrement: item.quantity } } });
-          await tx.orderItem.update({ where: { id: item.id }, data: { status, isStockDeducted: true } });
+          const usedWarehouse = await adjustStock(tx, item.productId, -item.quantity, warehouseId);
+          await tx.orderItem.update({ where: { id: item.id }, data: { status, isStockDeducted: true, stockWarehouseId: usedWarehouse } });
         } else if (status === 'CANCELLED' && item.isStockDeducted) {
-          await tx.product.update({ where: { id: item.productId }, data: { stock: { increment: item.quantity } } });
-          await tx.orderItem.update({ where: { id: item.id }, data: { status, isStockDeducted: false } });
+          await adjustStock(tx, item.productId, item.quantity, item.stockWarehouseId);
+          await tx.orderItem.update({ where: { id: item.id }, data: { status, isStockDeducted: false, stockWarehouseId: null } });
           restockedIds.push(item.productId);
         } else {
           await tx.orderItem.update({ where: { id: item.id }, data: { status } });

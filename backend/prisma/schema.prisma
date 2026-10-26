@@ -164,6 +164,7 @@ model Product {
 
   orderItems     OrderItem[]
   stockAlerts    StockAlert[]
+  warehouseStocks WarehouseStock[]
   returnRequests ReturnRequest[]
   // Özel varyant tanımı: ana üründe özellikler (Gramaj, Ambalaj...), varyantta seçilen değerler
   options        ProductOption[]
@@ -205,6 +206,8 @@ model Order {
   updatedAt      DateTime  @updatedAt
 
   invoice        Invoice?
+  warehouseId     Int? // Siparişi karşılayan depo (depo tanımlıysa)
+  warehouse       Warehouse? @relation(fields: [warehouseId], references: [id])
   shippingAddress Json? // Sipariş anındaki teslimat adresi: { title, contactName, phone, city, district, line, postalCode }
   // Kargo entegrasyonu: gönderi anahtarı (AK{id}), firmanın kargo sisteminde oluşturuldu mu, son durum
   shipmentProvider String?
@@ -220,6 +223,38 @@ model Order {
   quoteRequest   QuoteRequest?
 
   @@index([tenantId])
+}
+
+// Firmanın depoları. Depo tanımlıysa ürün stoku depo bazında tutulur; Product.stock tüm depoların toplamıdır.
+model Warehouse {
+  id        Int              @id @default(autoincrement())
+  tenantId  Int
+  tenant    Tenant           @relation(fields: [tenantId], references: [id])
+  name      String
+  code      String // ERP eşleştirmesi için kısa kod (ör. IST, ANK)
+  city      String?
+  isDefault Boolean          @default(false)
+  createdAt DateTime         @default(now())
+  stocks    WarehouseStock[]
+  orders    Order[]
+
+  @@unique([tenantId, code])
+  @@index([tenantId])
+}
+
+model WarehouseStock {
+  id          Int       @id @default(autoincrement())
+  tenantId    Int
+  tenant      Tenant    @relation(fields: [tenantId], references: [id])
+  warehouseId Int
+  warehouse   Warehouse @relation(fields: [warehouseId], references: [id])
+  productId   Int
+  product     Product   @relation(fields: [productId], references: [id])
+  quantity    Int       @default(0)
+
+  @@unique([warehouseId, productId])
+  @@index([tenantId])
+  @@index([productId])
 }
 
 // Bayinin teslimat adresleri (şube, depo…). Siparişte seçilen adres siparişe kopyalanır.
@@ -279,6 +314,7 @@ model OrderItem {
   vatRate         Float   @default(20)
   status          String  @default("APPROVED") // APPROVED, CANCELLED (Parçalı onay için iptal edilen kalemleri işaretlemek amaçlı)
   isStockDeducted Boolean @default(false)
+  stockWarehouseId Int? // Stok hangi depodan düşüldü (iptal / iadede oraya geri döner)
   variantLabel    String? // Sipariş anındaki varyant seçimi, örn. "Gramaj: 1 kg · Ambalaj: Kutu"
 
   returnRequests ReturnRequest[]
@@ -492,6 +528,8 @@ model Tenant {
   cargoMode              String    @default("TEST") // TEST, LIVE
   cargoConfigEnc         String?
   deliveryAddresses      DeliveryAddress[]
+  warehouses             Warehouse[]
+  warehouseStocks        WarehouseStock[]
   // Firmaya özel alan adı (örn. b2b.firmasi.com) — DNS TXT kaydı ile doğrulanır
   customDomain           String?   @unique
   customDomainToken      String?

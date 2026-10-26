@@ -271,3 +271,61 @@ test('teslimat adresi + kargo (Yurtiçi): adres, siparişe kopyalama, gönderi, 
   assert.equal(r.data.order.status, 'COMPLETED');
   assert.ok(company.id);
 });
+
+test('çoklu depo: ilk depoya aktarım, depodan sipariş karşılama, iptal, transfer, ERP, silme', { skip }, async () => {
+  const b = tenants['itest-b'];
+  const admin = { tenant: 'itest-b', token: b.token };
+  const pid = b.productId;
+  const stockOf = () => runAsPlatform(() => prisma.product.findUnique({ where: { id: pid } })).then((p) => p.stock);
+  const whStock = (warehouseId) => runAsPlatform(() => prisma.warehouseStock.findUnique({ where: { warehouseId_productId: { warehouseId, productId: pid } } })).then((r) => r?.quantity ?? 0);
+
+  await runAsPlatform(() => prisma.product.update({ where: { id: pid }, data: { stock: 10 } }));
+  const ist = (await api('/warehouses', { ...admin, method: 'POST', body: { name: 'İstanbul', code: 'ist' } })).data.warehouse;
+  assert.equal(ist.isDefault, true);
+  assert.equal(ist.code, 'IST');
+  assert.equal(await whStock(ist.id), 10); // mevcut stok ilk depoya aktarıldı
+  const ank = (await api('/warehouses', { ...admin, method: 'POST', body: { name: 'Ankara', code: 'ANK' } })).data.warehouse;
+  assert.equal((await api('/warehouses', { ...admin, method: 'POST', body: { name: 'Kopya', code: 'ANK' } })).status, 400);
+
+  // Ürün formundan depo bazında stok
+  await api(`/products/${pid}`, { ...admin, method: 'PATCH', body: { warehouseStocks: [{ warehouseId: ist.id, quantity: 4 }, { warehouseId: ank.id, quantity: 6 }] } });
+  assert.equal(await stockOf(), 10);
+
+  // Ankara deposundan 5 adetlik sipariş
+  const order = await runAsPlatform(async () => {
+    const company = await prisma.company.create({ data: { tenantId: b.id, name: 'Depo Bayi', status: 'ACTIVE' } });
+    const user = await prisma.user.findFirst({ where: { tenantId: b.id } });
+    return prisma.order.create({ data: { tenantId: b.id, companyId: company.id, userId: user.id, status: 'PENDING', totalAmount: 50, items: { create: [{ tenantId: b.id, productId: pid, quantity: 5, price: 10, vatRate: 0 }] } }, include: { items: true } });
+  });
+  const itemId = order.items[0].id;
+  // İstanbul'da 4 adet var → yetersiz
+  const short = await api(`/orders/${order.id}/partial-approve`, { ...admin, method: 'PATCH', body: { warehouseId: ist.id, itemStatuses: [{ itemId, status: 'APPROVED' }] } });
+  assert.equal(short.status, 400);
+  assert.match(short.data.message, /stok: 4/);
+  const ok = await api(`/orders/${order.id}/partial-approve`, { ...admin, method: 'PATCH', body: { warehouseId: ank.id, itemStatuses: [{ itemId, status: 'APPROVED' }] } });
+  assert.equal(ok.status, 200, ok.data?.message);
+  assert.equal(await whStock(ank.id), 1);
+  assert.equal(await whStock(ist.id), 4);
+  assert.equal(await stockOf(), 5);
+  // Kalem iptali → stok Ankara'ya geri döner
+  await api(`/orders/${order.id}/partial-approve`, { ...admin, method: 'PATCH', body: { itemStatuses: [{ itemId, status: 'CANCELLED' }] } });
+  assert.equal(await whStock(ank.id), 6);
+  assert.equal(await stockOf(), 10);
+
+  // Transfer
+  assert.equal((await api('/warehouses/transfer', { ...admin, method: 'POST', body: { productId: pid, fromWarehouseId: ist.id, toWarehouseId: ank.id, quantity: 50 } })).status, 400);
+  assert.equal((await api('/warehouses/transfer', { ...admin, method: 'POST', body: { productId: pid, fromWarehouseId: ist.id, toWarehouseId: ank.id, quantity: 3 } })).status, 200);
+  assert.equal(await whStock(ist.id), 1);
+  assert.equal(await whStock(ank.id), 9);
+  assert.equal(await stockOf(), 10);
+
+  // Formdan toplam stok girilirse fark varsayılan depoya yazılır
+  await api(`/products/${pid}`, { ...admin, method: 'PATCH', body: { stock: 15 } });
+  assert.equal(await whStock(ist.id), 6);
+  assert.equal(await stockOf(), 15);
+
+  // Ankara deposu silinir → stoğu İstanbul'a taşınır, toplam aynı
+  assert.equal((await api(`/warehouses/${ank.id}`, { ...admin, method: 'DELETE' })).status, 200);
+  assert.equal(await whStock(ist.id), 15);
+  assert.equal(await stockOf(), 15);
+});

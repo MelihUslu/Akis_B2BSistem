@@ -1,3 +1,4 @@
+import { setWarehouseStocks, reconcileStock, setStock } from '../services/stockService.js';
 import prisma from '../utils/prisma.js';
 import { assertWithinLimit, LimitError } from '../services/limitService.js';
 import xlsx from 'xlsx';
@@ -190,6 +191,9 @@ export const createProduct = async (req, res) => {
     if (Array.isArray(req.body.options) || Array.isArray(variants)) {
       await prisma.$transaction((tx) => syncOptionsAndVariants(tx, product, { options: req.body.options, variants }));
     }
+    // Depolu firmada stok depo bazında (formdan) ya da toplam olarak varsayılan depoya yazılır
+    if (Array.isArray(req.body.warehouseStocks) && req.body.warehouseStocks.length) await setWarehouseStocks(prisma, product.id, req.body.warehouseStocks);
+    else await reconcileStock(prisma, product.id, product.stock);
 
     res.status(201).json(product);
   } catch (error) {
@@ -215,6 +219,15 @@ const UPDATABLE = {
   hidePrice: isTrue, isActive: isTrue
 };
 
+// Excel stok satırı: depo kodu verilmişse o deponun, yoksa toplam stoğun değeri
+const applyExcelStock = async (productId, stock, warehouseCode) => {
+  if (warehouseCode) {
+    const w = await prisma.warehouse.findFirst({ where: { code: String(warehouseCode).trim().toUpperCase() } });
+    if (w) return setStock(prisma, productId, stock, w.id);
+  }
+  return reconcileStock(prisma, productId, stock);
+};
+
 export const updateProduct = async (req, res) => {
   try {
     const { id } = req.params;
@@ -226,6 +239,8 @@ export const updateProduct = async (req, res) => {
     const product = await prisma.$transaction(async (tx) => {
       const master = await tx.product.update({ where: { id: parseInt(id) }, data });
       await syncOptionsAndVariants(tx, master, { options: req.body.options, variants: req.body.variants });
+      if (Array.isArray(req.body.warehouseStocks) && req.body.warehouseStocks.length) await setWarehouseStocks(tx, master.id, req.body.warehouseStocks);
+      else if (data.stock !== undefined) await reconcileStock(tx, master.id, data.stock);
       return master;
     });
 
@@ -313,6 +328,8 @@ export const bulkUpdate = async (req, res) => {
           const existing = await prisma.product.findFirst({ where: { sku: String(sku) } });
           if (!existing) { summary.notFound.push(String(sku)); continue; }
           await prisma.product.update({ where: { id: existing.id }, data });
+          // "Depo" sütunu varsa o depoya, yoksa toplam stok olarak yazılır
+          if (data.stock !== undefined) await applyExcelStock(existing.id, data.stock, cell(row, 'Warehouse', 'Depo'));
           if (data.stock > 0) restocked.push(existing.id);
           summary.updated++;
           continue;
@@ -336,6 +353,7 @@ export const bulkUpdate = async (req, res) => {
         const existing = await prisma.product.findFirst({ where: { sku: String(sku) } });
         if (existing) {
           await prisma.product.update({ where: { id: existing.id }, data });
+          if (data.stock !== undefined) await applyExcelStock(existing.id, data.stock, cell(row, 'Warehouse', 'Depo'));
           if (data.stock > 0) restocked.push(existing.id);
           summary.updated++;
         } else {

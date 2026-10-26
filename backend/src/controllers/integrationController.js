@@ -1,3 +1,4 @@
+import { setStock, reconcileStock } from '../services/stockService.js';
 import crypto from 'crypto';
 import prisma from '../utils/prisma.js';
 import { hashApiKey } from '../middlewares/apiKeyAuth.js';
@@ -100,7 +101,7 @@ export const apiListProducts = async (req, res) => {
   res.json({ data: rows.map(productOut), page: p, limit, total });
 };
 
-// [{ sku, stock }] — ERP stok miktarları (varyant SKU'ları dahil)
+// [{ sku, stock, warehouse? }] — ERP stok miktarları (varyant SKU'ları dahil). warehouse: depo kodu (yoksa toplam stok)
 export const apiUpdateStock = async (req, res) => {
   const items = batch(req, res); if (!items) return;
   const result = { updated: 0, notFound: [] };
@@ -110,8 +111,14 @@ export const apiUpdateStock = async (req, res) => {
     if (!item.sku || !Number.isFinite(stock)) continue;
     const product = await prisma.product.findFirst({ where: { sku: String(item.sku) } });
     if (!product) { result.notFound.push(item.sku); continue; }
-    await prisma.product.update({ where: { id: product.id }, data: { stock } });
-    if (product.stock <= 0 && stock > 0) restocked.push(product.id);
+    let warehouseId = null;
+    if (item.warehouse) {
+      const w = await prisma.warehouse.findFirst({ where: { code: String(item.warehouse).trim().toUpperCase() } });
+      if (!w) { result.notFound.push(`${item.sku} (depo: ${item.warehouse})`); continue; }
+      warehouseId = w.id;
+    }
+    const updated = await setStock(prisma, product.id, stock, warehouseId);
+    if (product.stock <= 0 && updated.stock > 0) restocked.push(product.id);
     result.updated++;
   }
   safeNotify(notifyRestocked(restocked));
@@ -162,11 +169,13 @@ export const apiUpsertProducts = async (req, res) => {
       const existing = await prisma.product.findFirst({ where: { sku: String(item.sku) } });
       if (existing) {
         await prisma.product.update({ where: { id: existing.id }, data });
+        await reconcileStock(prisma, existing.id, data.stock);
         result.updated++;
       } else {
         if (!data.name || data.price === undefined) throw new Error('yeni ürün için name ve price zorunlu');
         await assertWithinLimit(req.tenant, 'products');
-        await prisma.product.create({ data: { ...data, sku: String(item.sku), images: '[]' } });
+        const created = await prisma.product.create({ data: { ...data, sku: String(item.sku), images: '[]' } });
+        await reconcileStock(prisma, created.id, data.stock);
         result.created++;
       }
     } catch (error) {

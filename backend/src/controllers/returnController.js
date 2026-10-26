@@ -1,3 +1,4 @@
+import { adjustStock } from '../services/stockService.js';
 import prisma from '../utils/prisma.js';
 import { round2 } from '../services/pricingService.js';
 import { notifyAdmins, notifyCompany, notifyRestocked, safeNotify } from '../services/notificationService.js';
@@ -129,7 +130,7 @@ export const updateReturn = async (req, res) => {
         await tx.company.update({ where: { id: existing.companyId }, data: { currentBalance: { increment: amount } } });
       }
       if (firstApproval && (restock === true || restock === 'true')) {
-        await tx.product.update({ where: { id: existing.productId }, data: { stock: { increment: existing.quantity } } });
+        await adjustStock(tx, existing.productId, existing.quantity, existing.orderItem?.stockWarehouseId);
       }
       return tx.returnRequest.update({ where: { id }, data: { status, adminNote: adminNote ?? existing.adminNote } });
     });
