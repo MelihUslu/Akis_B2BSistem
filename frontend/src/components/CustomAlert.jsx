@@ -86,29 +86,30 @@ const CustomAlert = ({
     >
       {/* Backdrop */}
       <div
-        className="absolute inset-0 bg-gray-900/40 backdrop-blur-sm"
+        className="modal-backdrop"
         onClick={onClose}
       />
 
       {/* Modal Card */}
       <div
-        className="relative bg-white rounded-[2.5rem] shadow-2xl w-full max-w-sm overflow-hidden"
+        className="relative bg-white rounded-[1.75rem] ring-1 ring-black/5 shadow-[0_30px_80px_-20px_rgba(15,23,42,0.45)] w-full max-w-sm overflow-hidden"
         style={{ animation: 'alertCardIn 0.35s cubic-bezier(0.16,1,0.3,1) forwards' }}
       >
         {/* Close button */}
         <button
           onClick={onClose}
-          className="absolute top-5 right-5 p-2 rounded-full bg-gray-100 hover:bg-gray-200 transition-colors z-10"
+          className="modal-close absolute top-4 right-4 mr-0 z-10"
+          aria-label="Kapat"
         >
-          <X className="h-4 w-4 text-gray-400" />
+          <X className="h-4 w-4" />
         </button>
 
         {/* Icon header */}
-        <div className={`${cfg.bg} pt-10 pb-8 flex flex-col items-center`}>
+        <div className={`${cfg.bg} pt-9 pb-7 flex flex-col items-center`}>
           <div
-            className={`bg-gradient-to-br ${cfg.gradient} p-5 rounded-[1.5rem] shadow-xl ${cfg.shadow} ring-4 ${cfg.ring}`}
+            className={`bg-gradient-to-br ${cfg.gradient} p-4 rounded-2xl shadow-xl ${cfg.shadow} ring-4 ${cfg.ring}`}
           >
-            <Icon className="h-9 w-9 text-white" strokeWidth={2} />
+            <Icon className="h-8 w-8 text-white" strokeWidth={2} />
           </div>
         </div>
 
@@ -126,14 +127,14 @@ const CustomAlert = ({
             {cancelText && (
               <button
                 onClick={() => { onCancel?.(); onClose?.(); }}
-                className="flex-1 py-3.5 rounded-2xl border-2 border-gray-100 bg-white text-sm font-black text-gray-500 hover:bg-gray-50 hover:border-gray-200 transition-all active:scale-95"
+                className="flex-1 h-12 rounded-2xl border border-gray-200 bg-white text-sm font-black text-gray-600 hover:bg-gray-50 hover:border-gray-200 transition-all active:scale-95"
               >
                 {cancelText}
               </button>
             )}
             <button
               onClick={() => { onConfirm?.(); onClose?.(); }}
-              className={`flex-1 py-3.5 rounded-2xl bg-gradient-to-br ${cfg.btn} text-white text-sm font-black uppercase tracking-wider shadow-lg hover:-translate-y-0.5 transition-all active:scale-95`}
+              className={`flex-1 h-12 rounded-2xl bg-gradient-to-br ${cfg.btn} text-white text-sm font-black uppercase tracking-wider shadow-lg hover:-translate-y-0.5 transition-all active:scale-95`}
             >
               {confirmText}
             </button>

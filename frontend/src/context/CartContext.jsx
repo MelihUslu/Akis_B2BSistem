@@ -1,4 +1,5 @@
 import React, { createContext, useContext, useState, useEffect } from 'react';
+import { normalizeQty } from '../utils/format';
 
 const CartContext = createContext();
 
@@ -22,6 +23,7 @@ export const CartProvider = ({ children }) => {
     localStorage.setItem('akis_cart', JSON.stringify(cart));
   }, [cart]);
 
+  // product.price: bayiye özel net birim fiyat (TL, KDV hariç). Kesin tutar sipariş özetinde sunucudan hesaplanır.
   const addToCart = (product, quantity) => {
     setCart(prevCart => {
       const existingItem = prevCart.find(item => item.id === product.id);
@@ -30,11 +32,13 @@ export const CartProvider = ({ children }) => {
       if (existingItem) {
         return prevCart.map(item =>
           item.id === product.id
-            ? { ...item, quantity: item.quantity + qty }
+            ? { ...item, quantity: normalizeQty(item.quantity + qty, item) }
             : item
         );
       }
-      return [...prevCart, { ...product, quantity: qty }];
+      // parentName / variantLabel: varyantlı ürünlerde ana ürün adı ve seçim ("Gramaj: 1 kg · Ambalaj: Kutu")
+      const { id, name, sku, images, unit, moq, stepQuantity, vatRate, price, parentName, variantLabel } = product;
+      return [...prevCart, { id, name: parentName || name, variantLabel, sku, images, unit, moq, stepQuantity, vatRate, price, quantity: normalizeQty(qty, product) }];
     });
   };
 
@@ -45,7 +49,7 @@ export const CartProvider = ({ children }) => {
   const updateQuantity = (productId, quantity) => {
     setCart(prevCart =>
       prevCart.map(item =>
-        item.id === productId ? { ...item, quantity: Math.max(1, parseInt(quantity)) } : item
+        item.id === productId ? { ...item, quantity: normalizeQty(quantity, item) } : item
       )
     );
   };
@@ -55,6 +59,7 @@ export const CartProvider = ({ children }) => {
   };
 
   const cartTotal = cart.reduce((total, item) => total + (item.price * item.quantity), 0);
+  const cartVat = cart.reduce((total, item) => total + (item.price * item.quantity * ((item.vatRate ?? 20) / 100)), 0);
   const cartCount = cart.reduce((total, item) => total + item.quantity, 0);
 
   return (
@@ -65,6 +70,7 @@ export const CartProvider = ({ children }) => {
       updateQuantity, 
       clearCart, 
       cartTotal, 
+      cartVat,
       cartCount,
       isCartOpen,
       setIsCartOpen

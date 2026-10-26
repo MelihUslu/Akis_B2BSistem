@@ -1,21 +1,35 @@
 import React, { useState, useEffect } from 'react';
 import { useAuth } from '../context/AuthContext';
-import { useNavigate } from 'react-router-dom';
+import { useTenant } from '../context/TenantContext';
+import { useNavigate, Link } from 'react-router-dom';
 import { Mail, Lock, ChevronRight, AlertCircle } from 'lucide-react';
 import loginIllustration from '../assets/akis_login.png';
+import TwoFactorStep from '../components/TwoFactorStep';
 
 const Login = () => {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
-  const [error, setError] = useState('');
+  const [error, setError] = useState(() => {
+    // Abonelik kapandığı için oturumu sonlandırılan kullanıcıya sebebini göster
+    const notice = sessionStorage.getItem('akis_login_notice');
+    sessionStorage.removeItem('akis_login_notice');
+    return notice || '';
+  });
+  const { tenant } = useTenant();
   const [isLoading, setIsLoading] = useState(false);
   const [isVisible, setIsVisible] = useState(false);
-  const { login } = useAuth();
+  const { login, verifyTwoFactor } = useAuth();
+  const [challenge, setChallenge] = useState(null);
   const navigate = useNavigate();
 
   useEffect(() => {
     setIsVisible(true);
   }, []);
+
+  const goHome = () => {
+    const user = JSON.parse(localStorage.getItem('akis_user') || '{}');
+    navigate(user.role === 'ADMIN' ? '/admin' : '/bayi');
+  };
 
   const handleSubmit = async (e) => {
     e.preventDefault();
@@ -25,15 +39,9 @@ const Login = () => {
     try {
       const result = await login(email, password);
       if (result.success) {
-        const userStr = localStorage.getItem('akis_user');
-        if (userStr) {
-          const user = JSON.parse(userStr);
-          if (user.role === 'ADMIN') {
-            navigate('/admin');
-          } else {
-            navigate('/bayi');
-          }
-        }
+        goHome();
+      } else if (result.twoFactorRequired) {
+        setChallenge(result.challenge);
       } else {
         setError(result.message);
       }
@@ -45,7 +53,7 @@ const Login = () => {
   };
 
   return (
-    <div className="min-h-screen bg-[#F8FAFC] flex items-center justify-center p-6 font-sans relative overflow-hidden">
+    <div className="min-h-screen bg-[#F8FAFC] dark:bg-[#0b1220] flex items-center justify-center p-6 font-sans relative overflow-hidden">
       {/* Dekoratif Arka Plan */}
       <div className="absolute top-0 left-0 w-full h-full bg-[radial-gradient(circle_at_50%_50%,_rgba(79,70,229,0.05)_0%,_transparent_50%)]"></div>
 
@@ -57,15 +65,25 @@ const Login = () => {
         {/* Sol Taraf: Giriş Formu (Daha Kompakt) */}
         <div className="w-full md:w-1/2 p-8 sm:p-10 lg:p-12 flex flex-col justify-center relative">
           <div className="mb-10">
-            <div className="h-1 w-10 bg-indigo-600 rounded-full mb-5"></div>
+            {tenant?.logoUrl ? (
+              <img src={tenant.logoUrl} alt={tenant.name} className="h-12 max-w-[12rem] object-contain mb-5" />
+            ) : (
+              <div className="h-1 w-10 bg-indigo-600 rounded-full mb-5"></div>
+            )}
             <h1 className="text-slate-900 text-3xl font-extrabold tracking-tight mb-2">
               Hoş Geldiniz
             </h1>
             <p className="text-slate-500 text-sm font-medium">
-              Giriş yaparak devam edin.
+              {tenant?.name ? <><b className="text-slate-700">{tenant.name}</b> B2B portalına giriş yapın.</> : 'Giriş yaparak devam edin.'}
             </p>
           </div>
 
+          {challenge ? (
+            <TwoFactorStep
+              onVerify={async (code) => { const r = await verifyTwoFactor(challenge, code); if (r.success) goHome(); return r; }}
+              onCancel={(msg) => { setChallenge(null); setPassword(''); if (msg) setError(msg); }}
+            />
+          ) : (
           <form className="space-y-5" onSubmit={handleSubmit}>
             {error && (
               <div className="bg-red-50 text-red-600 text-xs p-3.5 rounded-xl flex items-center gap-2 border border-red-100 animate-shake">
@@ -115,9 +133,9 @@ const Login = () => {
                 <input type="checkbox" className="w-4 h-4 rounded border-slate-300 text-indigo-600 focus:ring-indigo-600/20" />
                 <span className="text-[12px] text-slate-500 group-hover:text-slate-900 transition-colors">Beni Hatırla</span>
               </label>
-              <button type="button" className="text-[12px] font-bold text-indigo-600 hover:text-indigo-700">
-                Şifremi Unuttum
-              </button>
+              <span className="text-[12px] text-slate-400" title={tenant?.contactEmail || ''}>
+                Şifrenizi mi unuttunuz? Yöneticinize başvurun.
+              </span>
             </div>
 
             <button
@@ -129,10 +147,15 @@ const Login = () => {
               <ChevronRight className="h-4 w-4" />
             </button>
           </form>
+          )}
 
-          <div className="mt-12 text-center">
+          <p className="mt-8 text-center text-sm text-slate-500">
+            Bayimiz değil misiniz? <Link to="/basvuru" className="font-bold text-indigo-600 hover:underline">Bayilik başvurusu yapın</Link>
+          </p>
+
+          <div className="mt-8 text-center">
             <p className="text-[10px] font-black uppercase tracking-[0.3em] text-slate-200">
-              AKİS B2B YAZILIM
+              {tenant?.name || 'B2B PORTAL'}
             </p>
           </div>
         </div>
@@ -148,7 +171,7 @@ const Login = () => {
           
           <div className="absolute bottom-8 left-8 right-8 p-6 rounded-2xl bg-white/80 backdrop-blur-md border border-white/20 shadow-lg">
             <h3 className="text-slate-900 text-sm font-bold">
-              Akis B2B Çözümleri
+              {tenant?.name || 'B2B Portal'}
             </h3>
             <p className="text-slate-500 text-[11px] mt-1 leading-relaxed">
               İşletmeniz için modern ve hızlı ticaret altyapısı.

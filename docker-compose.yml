@@ -1,6 +1,27 @@
-version: '3.8'
-
 services:
+  db:
+    image: postgres:15-alpine
+    environment:
+      POSTGRES_USER: ${POSTGRES_USER:-akis}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-akis_dev_password}
+      POSTGRES_DB: ${POSTGRES_DB:-akis_b2b}
+    volumes:
+      - pgdata_saas:/var/lib/postgresql/data
+    ports:
+      - "5433:5432" # Yerelden erişim (5432 başka bir projede kullanılıyor olabilir)
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-akis} -d ${POSTGRES_DB:-akis_b2b}"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+    restart: always
+
+  # İstek sınırlayıcı sayaçları (birden fazla backend örneği aynı sınırları paylaşsın diye)
+  redis:
+    image: redis:7-alpine
+    command: ["redis-server", "--save", "", "--appendonly", "no"]
+    restart: always
+
   backend:
     build:
       context: ./backend
@@ -11,8 +32,14 @@ services:
     ports:
       - "5001:5001"
     environment:
-      - DATABASE_URL=file:./dev.db
+      - DATABASE_URL=postgresql://${POSTGRES_USER:-akis}:${POSTGRES_PASSWORD:-akis_dev_password}@db:5432/${POSTGRES_DB:-akis_b2b}
       - PORT=5001
+      - REDIS_URL=redis://redis:6379
+    depends_on:
+      db:
+        condition: service_healthy
+      redis:
+        condition: service_started
     restart: always
 
   frontend:
@@ -27,3 +54,6 @@ services:
     depends_on:
       - backend
     restart: always
+
+volumes:
+  pgdata_saas: # (Eski "pgdata" volume'ü Mayıs 2026'dan kalma bir denemeye ait, kullanılmıyor)

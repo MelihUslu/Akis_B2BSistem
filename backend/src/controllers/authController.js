@@ -1,15 +1,41 @@
 import bcrypt from 'bcrypt';
 import jwt from 'jsonwebtoken';
 import prisma from '../utils/prisma.js';
+import { JWT_SECRET } from '../config.js';
+import { tenantAccess, ACCESS_MESSAGES } from '../middlewares/tenantMiddleware.js';
+import { assertWithinLimit, LimitError } from '../services/limitService.js';
+import * as twoFactor from '../services/twoFactorService.js';
+import { audit, clientIp } from '../services/auditService.js';
 
-const JWT_SECRET = process.env.JWT_SECRET || 'akis_super_secret_key_2026';
+// Oturum token'ı + istemciye dönen kullanıcı bilgisi
+const sessionFor = (user, tenantId) => ({
+  token: jwt.sign({ id: user.id, role: user.role, companyId: user.companyId, tenantId }, JWT_SECRET, { expiresIn: '1d' }),
+  user: {
+    id: user.id, name: user.name, email: user.email, role: user.role, companyId: user.companyId,
+    isOwner: user.isOwner, permissions: Array.isArray(user.permissions) ? user.permissions : []
+  }
+});
 
+const ALLOWED_ROLES = ['ADMIN', 'BAYI', 'PLASIYER'];
+
+// Sadece ADMIN yeni kullanıcı (admin, plasiyer veya bayi kullanıcısı) oluşturabilir
 export const register = async (req, res) => {
   try {
     const { email, password, name, role, companyId } = req.body;
 
-    // Check if user exists
-    const existingUser = await prisma.user.findUnique({ where: { email } });
+    if (!email || !password || !name) {
+      return res.status(400).json({ message: 'Ad, e-posta ve şifre zorunludur.' });
+    }
+    if (password.length < 8) {
+      return res.status(400).json({ message: 'Şifre en az 8 karakter olmalıdır.' });
+    }
+    if (role && !ALLOWED_ROLES.includes(role)) {
+      return res.status(400).json({ message: 'Geçersiz rol.' });
+    }
+
+    if ((role || 'BAYI') === 'ADMIN') await assertWithinLimit(req.tenant, 'admins');
+
+    const existingUser = await prisma.user.findFirst({ where: { email } });
     if (existingUser) {
       return res.status(400).json({ message: 'Bu e-posta adresi ile zaten kayıtlı bir kullanıcı var.' });
     }
@@ -18,16 +44,18 @@ export const register = async (req, res) => {
 
     const user = await prisma.user.create({
       data: {
-        email,
+        email: email.toLowerCase().trim(),
         password: hashedPassword,
         name,
         role: role || 'BAYI',
-        companyId: companyId || null,
+        emailVerifiedAt: new Date(),
+        companyId: companyId ? parseInt(companyId) : null,
       },
     });
 
-    res.status(201).json({ message: 'Kullanıcı başarıyla oluşturuldu.', user: { id: user.id, email: user.email, role: user.role } });
+    res.status(201).json({ message: 'Kullanıcı başarıyla oluşturuldu.', user: { id: user.id, name: user.name, email: user.email, role: user.role } });
   } catch (error) {
+    if (error instanceof LimitError) return res.status(error.status).json({ message: error.message, code: error.code });
     console.error('Register error:', error);
     res.status(500).json({ message: 'Kayıt sırasında bir sunucu hatası oluştu.' });
   }
@@ -37,33 +65,50 @@ export const login = async (req, res) => {
   try {
     const { email, password } = req.body;
 
-    const user = await prisma.user.findUnique({ where: { email } });
-    if (!user) {
+    // Kullanıcı sadece bu alt alan adının kiracısında aranır
+    const user = await prisma.user.findFirst({ where: { email: String(email || '').toLowerCase().trim() }, include: { company: true } });
+    if (!user || !(await bcrypt.compare(password || '', user.password))) {
+      audit({ tenantId: req.tenant.id, actorType: 'USER', actorId: user?.id, actorName: String(email || '').slice(0, 100), action: 'Başarısız giriş denemesi', ip: clientIp(req) });
       return res.status(401).json({ message: 'Geçersiz e-posta veya şifre.' });
     }
 
-    const isMatch = await bcrypt.compare(password, user.password);
-    if (!isMatch) {
-      return res.status(401).json({ message: 'Geçersiz e-posta veya şifre.' });
+    if (!user.isActive) {
+      return res.status(403).json({ message: 'Kullanıcı hesabınız devre dışı bırakılmış. Firma yöneticinizle iletişime geçin.' });
     }
 
-    const token = jwt.sign(
-      { id: user.id, role: user.role, companyId: user.companyId },
-      JWT_SECRET,
-      { expiresIn: '1d' }
-    );
+    if (user.emailVerifyToken) {
+      return res.status(403).json({ message: 'Lütfen önce e-posta adresinize gönderilen doğrulama linkine tıklayın.', code: 'EMAIL_NOT_VERIFIED' });
+    }
 
-    res.status(200).json({
-      message: 'Giriş başarılı.',
-      token,
-      user: {
-        id: user.id,
-        name: user.name,
-        email: user.email,
-        role: user.role,
-        companyId: user.companyId
+    const access = tenantAccess(req.tenant);
+    if (!access.active && (user.role !== 'ADMIN' || ['SUSPENDED', 'CANCELLED'].includes(access.reason))) {
+      return res.status(402).json({
+        message: user.role === 'ADMIN' ? ACCESS_MESSAGES[access.reason] : 'Portal şu anda kullanıma kapalı. Lütfen tedarikçi firmanızla iletişime geçin.',
+        code: 'SUBSCRIPTION_INACTIVE'
+      });
+    }
+
+    if (user.role === 'PLASIYER') {
+      return res.status(403).json({ message: 'Plasiyer hesapları için panel girişi henüz aktif değil.' });
+    }
+    if (user.role === 'BAYI') {
+      if (user.company?.status === 'PENDING') {
+        return res.status(403).json({ message: 'Bayilik başvurunuz henüz onaylanmadı.' });
       }
-    });
+      if (user.company?.status !== 'ACTIVE') {
+        return res.status(403).json({ message: 'Hesabınız askıya alınmıştır. Lütfen firma yetkilisiyle iletişime geçin.' });
+      }
+    }
+
+    // İki aşamalı doğrulama açıksa önce kod istenir
+    if (user.twoFactorEnabled) {
+      return res.json({ twoFactorRequired: true, challenge: twoFactor.issueChallenge(user) });
+    }
+
+    await prisma.user.update({ where: { id: user.id }, data: { lastLoginAt: new Date() } });
+    if (user.role === 'ADMIN') audit({ tenantId: req.tenant.id, actorId: user.id, actorName: user.name, action: 'Giriş yapıldı', ip: clientIp(req) });
+
+    res.status(200).json({ message: 'Giriş başarılı.', ...sessionFor(user, req.tenant.id) });
   } catch (error) {
     console.error('Login error:', error);
     res.status(500).json({ message: 'Giriş sırasında bir sunucu hatası oluştu.' });
@@ -75,7 +120,9 @@ export const getMe = async (req, res) => {
     const user = await prisma.user.findUnique({
       where: { id: req.user.id },
       include: {
-        company: true
+        company: {
+          include: { plasiyer: { select: { name: true, email: true } } }
+        }
       }
     });
 
@@ -83,9 +130,98 @@ export const getMe = async (req, res) => {
       return res.status(404).json({ message: 'Kullanıcı bulunamadı.' });
     }
 
-    const { password, ...userData } = user;
-    res.json(userData);
+    const { password, twoFactorSecretEnc, twoFactorRecovery, emailVerifyToken, ...userData } = user;
+    res.json({ ...userData, impersonatedBy: req.user.impersonatedBy || null });
   } catch (error) {
     res.status(500).json({ message: 'Kullanıcı bilgileri alınamadı.' });
+  }
+};
+
+export const changePassword = async (req, res) => {
+  try {
+    const { currentPassword, newPassword } = req.body;
+
+    if (!newPassword || newPassword.length < 8) {
+      return res.status(400).json({ message: 'Yeni şifre en az 8 karakter olmalıdır.' });
+    }
+
+    const user = await prisma.user.findUnique({ where: { id: req.user.id } });
+    if (!(await bcrypt.compare(currentPassword || '', user.password))) {
+      return res.status(400).json({ message: 'Mevcut şifreniz hatalı.' });
+    }
+
+    await prisma.user.update({
+      where: { id: user.id },
+      data: { password: await bcrypt.hash(newPassword, 10) }
+    });
+
+    res.json({ message: 'Şifreniz başarıyla güncellendi.' });
+  } catch (error) {
+    res.status(500).json({ message: 'Şifre güncellenemedi.' });
+  }
+};
+
+// Admin: rol bazlı kullanıcı listesi (örn. plasiyer seçimi için)
+export const listUsers = async (req, res) => {
+  try {
+    const { role } = req.query;
+    const users = await prisma.user.findMany({
+      where: role ? { role } : {},
+      select: { id: true, name: true, email: true, role: true, createdAt: true },
+      orderBy: { name: 'asc' }
+    });
+    res.json(users);
+  } catch (error) {
+    res.status(500).json({ message: 'Kullanıcılar getirilemedi.' });
+  }
+};
+
+// ─── İki aşamalı doğrulama ───────────────────────────────────────────────────
+
+// Girişin ikinci adımı: doğrulama bileti + uygulama kodu (veya yedek kod)
+export const verifyTwoFactorLogin = async (req, res) => {
+  try {
+    const { uid, tenantId } = twoFactor.readChallenge(req.body.challenge);
+    if (tenantId !== req.tenant.id) return res.status(401).json({ message: 'Doğrulama bu firmaya ait değil.' });
+    const user = await prisma.user.findUnique({ where: { id: uid } });
+    if (!user || !user.isActive) return res.status(401).json({ message: 'Kullanıcı bulunamadı.' });
+    if (!(await twoFactor.checkCode(user, req.body.code))) {
+      audit({ tenantId, actorId: user.id, actorName: user.name, action: 'Hatalı 2FA kodu', ip: clientIp(req) });
+      return res.status(401).json({ message: 'Doğrulama kodu hatalı.' });
+    }
+    await prisma.user.update({ where: { id: user.id }, data: { lastLoginAt: new Date() } });
+    audit({ tenantId, actorId: user.id, actorName: user.name, action: 'Giriş yapıldı (2FA)', ip: clientIp(req) });
+    res.json({ message: 'Giriş başarılı.', ...sessionFor(user, tenantId) });
+  } catch (error) {
+    if (error instanceof twoFactor.TwoFactorError) return res.status(401).json({ message: error.message });
+    res.status(500).json({ message: 'Doğrulama yapılamadı.' });
+  }
+};
+
+const loadSelf = (req) => prisma.user.findUnique({ where: { id: req.user.id } });
+
+export const twoFactorStatus = async (req, res) => res.json(twoFactor.status(await loadSelf(req)));
+
+export const twoFactorSetup = async (req, res) => {
+  const user = await loadSelf(req);
+  if (user.twoFactorEnabled) return res.status(400).json({ message: 'İki aşamalı doğrulama zaten açık.' });
+  res.json(await twoFactor.startSetup(user, `${req.tenant.name} B2B`));
+};
+
+export const twoFactorEnable = async (req, res) => {
+  try {
+    const recoveryCodes = await twoFactor.enable(await loadSelf(req), req.body.code);
+    res.json({ message: 'İki aşamalı doğrulama açıldı.', recoveryCodes });
+  } catch (error) {
+    res.status(400).json({ message: error.message });
+  }
+};
+
+export const twoFactorDisable = async (req, res) => {
+  try {
+    await twoFactor.disable(await loadSelf(req), req.body.password, req.body.code);
+    res.json({ message: 'İki aşamalı doğrulama kapatıldı.' });
+  } catch (error) {
+    res.status(400).json({ message: error.message });
   }
 };

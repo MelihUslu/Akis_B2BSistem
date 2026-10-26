@@ -3,12 +3,11 @@ const { PrismaClient } = pkg;
 
 const prisma = new PrismaClient();
 
+// Paket tablosu boşsa veritabanı ilk kez kuruluyordur → seed çalıştırılır
 async function main() {
   try {
-    const count = await prisma.user.count();
-    console.log(count);
+    console.log(await prisma.plan.count());
   } catch (error) {
-    // If table doesn't exist yet, return 0
     console.log(0);
   } finally {
     await prisma.$disconnect();

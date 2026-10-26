@@ -1,0 +1,6 @@
+node_modules
+.env
+*.db
+*.db-journal
+uploads/images/*
+!uploads/images/.gitkeep

@@ -1,14 +1,10 @@
-import prisma from '../utils/prisma.js';
+import prisma, { currentTenantId } from '../utils/prisma.js';
+import { getSettingsMap, SETTING_DEFAULTS } from '../services/settingsService.js';
+import { getExchangeRates } from '../services/exchangeRateService.js';
 
 export const getSettings = async (req, res) => {
   try {
-    const settings = await prisma.setting.findMany();
-    // Key-value objesine dönüştür
-    const settingsMap = settings.reduce((acc, s) => {
-      acc[s.key] = s.value;
-      return acc;
-    }, {});
-    res.json(settingsMap);
+    res.json(await getSettingsMap());
   } catch (error) {
     res.status(500).json({ message: 'Ayarlar yüklenemedi.' });
   }
@@ -17,8 +13,11 @@ export const getSettings = async (req, res) => {
 export const updateSetting = async (req, res) => {
   try {
     const { key, value } = req.body;
+    if (!Object.prototype.hasOwnProperty.call(SETTING_DEFAULTS, key)) {
+      return res.status(400).json({ message: 'Bilinmeyen ayar anahtarı.' });
+    }
     const setting = await prisma.setting.upsert({
-      where: { key },
+      where: { tenantId_key: { tenantId: currentTenantId(), key } },
       update: { value: String(value) },
       create: { key, value: String(value) }
     });
@@ -26,4 +25,9 @@ export const updateSetting = async (req, res) => {
   } catch (error) {
     res.status(400).json({ message: 'Ayar güncellenemedi.' });
   }
+};
+
+export const getRates = async (req, res) => {
+  const fx = await getExchangeRates();
+  res.json(fx);
 };

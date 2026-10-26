@@ -1,0 +1,114 @@
+import prisma from '../utils/prisma.js';
+import { encrypt } from '../utils/secretBox.js';
+import * as iyzico from '../services/iyzicoService.js';
+import * as paytr from '../services/paytrService.js';
+import { API_PUBLIC_URL, tenantUrl, tenantPortalUrl } from '../config.js';
+import { tenantPosCreds } from '../services/tenantPosService.js';
+import { tenantAccess, invalidateTenantCache } from '../middlewares/tenantMiddleware.js';
+
+// Giriş ekranı için marka bilgisi (oturum gerektirmez)
+export const getPublicTenant = (req, res) => {
+  const t = req.tenant;
+  const access = tenantAccess(t);
+  res.json({
+    name: t.name,
+    slug: t.slug,
+    logoUrl: t.logoUrl,
+    phone: t.phone,
+    contactEmail: t.contactEmail,
+    address: t.address,
+    taxNumber: t.taxNumber,
+    taxOffice: t.taxOffice,
+    access: { active: access.active, reason: access.reason }
+  });
+};
+
+// Kiracı yöneticisinin firma / marka ayarları
+export const updateTenant = async (req, res) => {
+  try {
+    const { name, logoUrl, phone, contactEmail, address, taxNumber, taxOffice } = req.body;
+    if (name !== undefined && String(name).trim().length < 2) {
+      return res.status(400).json({ message: 'Firma adı en az 2 karakter olmalıdır.' });
+    }
+    const tenant = await prisma.tenant.update({
+      where: { id: req.tenant.id },
+      data: { name: name?.trim(), logoUrl: logoUrl === undefined ? undefined : (logoUrl || null), phone, contactEmail, address, taxNumber, taxOffice }
+    });
+    invalidateTenantCache(tenant.slug);
+    res.json({ message: 'Firma bilgileri güncellendi.', tenant: { name: tenant.name, logoUrl: tenant.logoUrl } });
+  } catch (error) {
+    res.status(400).json({ message: 'Firma bilgileri güncellenemedi.' });
+  }
+};
+
+// ─── Firmanın kendi sanal POS'u (bayilerden tahsilat) ────────────────────────
+
+const mask = (v) => (v ? (v.length > 8 ? `${v.slice(0, 6)}…${v.slice(-4)}` : `${v.slice(0, 2)}…`) : null);
+
+const posView = (t) => ({
+  provider: t.posProvider,
+  mode: t.posMode,
+  apiKeyMasked: mask(t.posApiKey),
+  configured: Boolean(t.posProvider && t.posApiKey && t.posSecretEnc),
+  // PayTR: mağaza panelinde "Bildirim URL" olarak girilmesi gereken adres
+  paytrNotifyUrl: `${API_PUBLIC_URL}/api/public/paytr/notify/${t.slug}`
+});
+
+export const getPosSettings = async (req, res) => {
+  const tenant = await prisma.tenant.findUnique({ where: { id: req.tenant.id } });
+  res.json(posView(tenant));
+};
+
+// Anahtarlar kaydedilmeden önce sağlayıcıda denenir
+export const savePosSettings = async (req, res) => {
+  try {
+    const provider = req.body.provider === 'PAYTR' ? 'PAYTR' : 'IYZICO';
+    const mode = req.body.mode === 'LIVE' ? 'LIVE' : 'SANDBOX';
+    let apiKey;
+    let secret;
+
+    if (provider === 'IYZICO') {
+      apiKey = String(req.body.apiKey || '').trim();
+      const secretKey = String(req.body.secretKey || '').trim();
+      if (!apiKey || !secretKey) return res.status(400).json({ message: 'API anahtarı ve gizli anahtar zorunludur.' });
+      await iyzico.testCredentials({ apiKey, secretKey, baseUrl: mode === 'LIVE' ? iyzico.LIVE_URL : iyzico.SANDBOX_URL });
+      secret = secretKey;
+    } else {
+      apiKey = String(req.body.merchantId || '').trim();
+      const merchantKey = String(req.body.merchantKey || '').trim();
+      const merchantSalt = String(req.body.merchantSalt || '').trim();
+      if (!/^\d+$/.test(apiKey) || !merchantKey || !merchantSalt) {
+        return res.status(400).json({ message: 'Mağaza no (sadece rakam), mağaza parola ve mağaza gizli anahtar zorunludur.' });
+      }
+      const back = `${tenantPortalUrl(req.tenant)}/bayi/finance`;
+      await paytr.testCredentials({ merchantId: apiKey, merchantKey, merchantSalt }, { okUrl: back, failUrl: back });
+      secret = JSON.stringify({ merchantKey, merchantSalt });
+    }
+
+    const tenant = await prisma.tenant.update({
+      where: { id: req.tenant.id },
+      data: { posProvider: provider, posMode: mode, posApiKey: apiKey, posSecretEnc: encrypt(secret) }
+    });
+    invalidateTenantCache(tenant.slug);
+    const name = provider === 'PAYTR' ? 'PayTR' : 'iyzico';
+    res.json({
+      message: provider === 'PAYTR'
+        ? `PayTR bağlantısı doğrulandı (${mode === 'LIVE' ? 'canlı' : 'test'} mod). Son adım: PayTR mağaza panelinde Bildirim URL olarak ${posView(tenant).paytrNotifyUrl} adresini girin.`
+        : `${name} bağlantısı doğrulandı (${mode === 'LIVE' ? 'canlı' : 'test'} ortam). Bayileriniz artık kartla ödeme yapabilir.`,
+      pos: posView(tenant)
+    });
+  } catch (error) {
+    if (error instanceof iyzico.IyzicoError) return res.status(400).json({ message: `iyzico anahtarları doğrulanamadı: ${error.message}` });
+    if (error instanceof paytr.PaytrError) return res.status(400).json({ message: `PayTR anahtarları doğrulanamadı: ${error.message}` });
+    console.error('savePosSettings error:', error);
+    res.status(400).json({ message: 'Sanal POS ayarları kaydedilemedi.' });
+  }
+};
+
+export const removePosSettings = async (req, res) => {
+  const tenant = await prisma.tenant.update({ where: { id: req.tenant.id }, data: { posProvider: null, posApiKey: null, posSecretEnc: null } });
+  invalidateTenantCache(tenant.slug);
+  res.json({ message: 'Sanal POS bağlantısı kaldırıldı.', pos: posView(tenant) });
+};
+
+export { tenantPosCreds };

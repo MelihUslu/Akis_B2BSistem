@@ -1,0 +1,170 @@
+# Akis B2B — Çok Kiracılı B2B Bayi Portalı (SaaS)
+
+Toptancı / üretici firmaların bayilerine online sipariş, cari, ödeme ve teklif süreçlerini sunduğu B2B portal.
+Tek kurulumda çok sayıda firma (kiracı) çalışır. Her firmanın kendi adresi (`firma.akisb2b.com` ya da kendi alan adı `b2b.firmasi.com`), kendi yöneticileri, bayileri ve verisi vardır.
+
+| Kim | Nerede | Ne yapar |
+|---|---|---|
+| **Platform sahibi** | `platform.ROOT_DOMAIN` | Müşteri firmaları, paketleri, abonelik ödemelerini, duyuruları ve destek taleplerini yönetir |
+| **Firma yöneticisi** (müşteri) | `<firma>.ROOT_DOMAIN/admin` | Ürün, bayi, sipariş, finans, kampanya, ekip, entegrasyon ve sanal POS ayarları |
+| **Bayi** | `<firma>.ROOT_DOMAIN/bayi` | Katalog, sepet, sipariş, teklif isteme, iade, cari ekstre, kartla ödeme |
+| **Tanıtım / kayıt** | `ROOT_DOMAIN` | Paketler ve kendi kendine kayıt (deneme süresiyle) |
+
+## Teknolojiler
+
+- **Backend:** Node.js 20, Express 5, Prisma 5 (PostgreSQL 15), JWT, bcrypt, nodemailer, ioredis (isteğe bağlı)
+- **Frontend:** React 19, Vite, Tailwind CSS v4, React Router, Recharts, dnd-kit, lucide-react
+- **Ödeme:** iyzico (platform abonelikleri), firmaların kendi iyzico veya PayTR sanal POS'u (bayi tahsilatı)
+- **Altyapı:** Docker Compose (db + redis + backend + frontend)
+
+## Hızlı başlangıç (geliştirme)
+
+```bash
+cp backend/.env.example backend/.env       # JWT_SECRET ve PLATFORM_ADMIN_* alanlarını doldurun
+cp frontend/.env.example frontend/.env
+docker compose up --build
+```
+
+İlk açılışta `backend/entrypoint.sh` migration'ları uygular, veritabanı boşsa seed çalıştırır (paketler + platform yöneticisi; `SEED_DEMO=true` ise `demo` firması).
+
+| Adres | Açıklama |
+|---|---|
+| http://localhost:5173 | Tanıtım ve kayıt sayfası |
+| http://platform.localhost:5173 | Platform paneli (`PLATFORM_ADMIN_EMAIL` / `PLATFORM_ADMIN_PASSWORD`) |
+| http://demo.localhost:5173 | Demo firma: `admin@demo.com` / `demo12345`, bayi `bayi1@demo.com` / `bayi12345` |
+| http://localhost:5001/health | Backend sağlık kontrolü |
+
+`*.localhost` adresleri modern tarayıcılarda ek ayar olmadan 127.0.0.1'e gider.
+
+Bağımlılık ekledikten sonra konteynerdeki `node_modules` hacmini yenilemek için: `docker compose up --build -V backend`.
+
+### Docker'sız çalıştırma
+
+```bash
+cd backend && npm ci && npx prisma migrate deploy && node prisma/seed.js && npm run dev
+cd frontend && npm ci && npm run dev
+```
+
+### Şema değişikliği
+
+```bash
+cd backend
+npx prisma migrate dev --name aciklama     # yeni migration üretir ve uygular
+# Docker'daki veritabanına uygulamak için:
+docker compose exec backend sh -c "npx prisma migrate deploy && npx prisma generate" && docker compose restart backend
+```
+
+## Mimari
+
+```
+backend/src
+├── server.js               Express uygulaması, rotalar
+├── config.js               Ortam değişkenleri, alan adı yardımcıları
+├── middlewares/            tenantMiddleware (firma çözümleme), authMiddleware (JWT, yetki), rateLimit, apiKeyAuth
+├── controllers/            HTTP uçları
+├── routes/                 Express router'ları
+├── services/               İş kuralları: fiyat, varyant, abonelik, iyzico, PayTR, webhook, bildirim, işlem kaydı, 2FA…
+└── utils/prisma.js         Kiracı izolasyonu yapan Prisma istemcisi
+frontend/src
+├── App.jsx                 Mod seçimi (root / platform / tenant) ve sayfa rotaları (lazy yükleme)
+├── layouts/                AdminLayout, BayiLayout
+├── pages/{admin,bayi,platform,root,print}
+├── components/             Ortak bileşenler (settings/, shared/, admin/, bayi/)
+├── context/                Auth, Tenant, Cart, Theme
+└── services/api.js         api (firma), platformApi, publicApi
+```
+
+### Çok kiracılılık
+
+1. Frontend firmayı adresten bulur: alt alan adı → `X-Tenant: <slug>` başlığı; özel alan adı → `X-Tenant-Host: <host>`.
+2. `resolveTenant` firmayı bulur ve isteği `AsyncLocalStorage` içinde o firmanın bağlamında çalıştırır.
+3. `utils/prisma.js` Prisma uzantısı, kiracıya ait tüm modellerin sorgularına `tenantId` filtresini **otomatik** ekler; bağlam yoksa sorgu hata verir. Böylece bir firmanın verisi diğerine sızamaz.
+4. Platform uçları `runAsPlatform` ile tüm firmalara erişir.
+5. JWT içinde `tenantId` bulunur; başka firmanın adresinde kullanılan token reddedilir.
+
+### Abonelik ve erişim
+
+`TRIAL → ACTIVE ↔ PAST_DUE (3 gün tolerans) → SUSPENDED / CANCELLED`. Erişimi kapanan firmanın bayileri giriş yapamaz, yönetici yalnızca abonelik sayfasına yönlendirilir (HTTP 402). Paket limitleri (bayi, ürün, yönetici sayısı, özel alan adı) `limitService` ile uygulanır.
+
+### Güvenlik
+
+- **İki aşamalı doğrulama (TOTP):** Firma yöneticileri (Hesabım) ve platform yöneticisi (Güvenlik) için; 8 adet tek kullanımlık kurtarma kodu.
+- **İşlem kaydı:** Girişler, başarısız denemeler ve tüm değişiklik istekleri `AuditLog` tablosuna yazılır (şifre / anahtar alanları maskelenir). Firma kendi kaydını Ayarlar → İşlem Kaydı'nda, platform tümünü görür.
+- **Müşteri olarak giriş:** Platform yöneticisi destek için firma sahibinin yetkisiyle 1 saatlik oturum açabilir. Firma sahibine bildirim gider, her işlem "destek oturumu" etiketiyle kaydedilir; bu oturumda şifre, 2FA ve hesap kapatma işlemleri yapılamaz.
+- **İstek sınırlama:** Giriş, kayıt ve doğrulama uçlarında. `REDIS_URL` verilirse sayaçlar Redis'te tutulur (birden çok backend örneği aynı sınırı paylaşır); Redis'e ulaşılamazsa bellek içi sayaca düşer.
+- POS gizli anahtarları AES-256-GCM ile şifrelenir (`ENCRYPTION_KEY`).
+
+### KVKK: veri dışa aktarma ve hesap kapatma
+
+- Firma, Ayarlar → Veri & Hesap'tan tüm verisini Excel olarak indirebilir.
+- Firma sahibi hesabı kapatabilir: abonelik iptal edilir, erişim kapanır, veri 30 gün saklanır. Platform bu sürede hesabı geri açabilir.
+- `AUTO_PURGE_CLOSED=true` ise süresi dolan hesapların verisi saatlik iş tarafından kalıcı silinir. Platform panelinden elle de silinebilir.
+
+### Entegrasyon (ERP)
+
+Firma, Ayarlar → Entegrasyon'dan API anahtarı üretir. `/api/v1` uçları ile ürün / stok / fiyat / bayi aktarımı yapılır, siparişler çekilir. İmzalı (HMAC-SHA256) webhook'lar sipariş ve ödeme olaylarını ERP'ye iletir. Ayrıntılar panelde örnek isteklerle birlikte gösterilir.
+
+## Ortam değişkenleri
+
+### backend/.env
+
+| Değişken | Zorunlu | Açıklama |
+|---|---|---|
+| `DATABASE_URL` | ✓ | PostgreSQL bağlantısı (Docker'da compose verir) |
+| `JWT_SECRET` | ✓ | Uzun rastgele değer (`openssl rand -base64 48`) |
+| `ENCRYPTION_KEY` | canlıda ✓ | POS anahtarlarının şifreleme anahtarı. Sonradan değiştirilirse kayıtlı anahtarlar çözülemez |
+| `ROOT_DOMAIN` | ✓ | Kök alan adı (geliştirmede `localhost`) |
+| `FRONTEND_PROTOCOL`, `FRONTEND_PORT` | | E-posta ve yönlendirme linkleri için (canlıda `https` ve boş port) |
+| `API_PUBLIC_URL` | ✓ | Backend'in dış adresi (iyzico/PayTR geri dönüşleri, dosya linkleri) |
+| `PLATFORM_ADMIN_EMAIL`, `PLATFORM_ADMIN_PASSWORD`, `PLATFORM_ADMIN_NAME` | ilk kurulum | Seed ile oluşturulan platform yöneticisi |
+| `PLATFORM_NAME`, `PLATFORM_ALERT_EMAIL` | | Marka adı; yeni kayıt / destek / ödeme hatası bildirim adresi |
+| `SEED_DEMO` | | `true` ise demo firması oluşturulur |
+| `IYZICO_API_KEY`, `IYZICO_SECRET_KEY`, `IYZICO_BASE_URL` | | Abonelik tahsilatı. Boşsa ödemeler platform panelinden elle işlenir |
+| `SMTP_*`, `MAIL_FROM` | | E-posta. Boşsa içerik konsola yazılır |
+| `REDIS_URL` | | İstek sınırlayıcı için Redis |
+| `CUSTOM_DOMAIN_TARGET` | | Özel alan adlarının CNAME hedefi (varsayılan `custom.ROOT_DOMAIN`) |
+| `AUTO_PURGE_CLOSED` | | Kapatılan hesapların 30 gün sonra otomatik silinmesi |
+
+### frontend/.env
+
+| Değişken | Açıklama |
+|---|---|
+| `VITE_API_URL` | Backend adresi + `/api` (ör. `https://api.akisb2b.com/api`) |
+| `VITE_ROOT_DOMAIN` | Backend'deki `ROOT_DOMAIN` ile aynı |
+| `VITE_DEFAULT_TENANT` | Alt alan adı kullanılamayan ortamda (IP ile erişim) açılacak firma |
+| `VITE_PLATFORM_NAME`, `VITE_SUPPORT_EMAIL`, `VITE_SUPPORT_PHONE` | Marka ve bayi panelindeki destek kutusu |
+
+## Canlıya alma
+
+1. **DNS:** `akisb2b.com`, `*.akisb2b.com` (wildcard) ve `api.akisb2b.com` kayıtlarını sunucuya yönlendirin. Özel alan adı satıyorsanız `custom.akisb2b.com` da sunucuyu göstersin; müşteriler kendi alan adlarına buraya CNAME verir.
+2. **Ortam:** `ROOT_DOMAIN=akisb2b.com`, `FRONTEND_PROTOCOL=https`, `FRONTEND_PORT=` (boş), `API_PUBLIC_URL=https://api.akisb2b.com`, `NODE_ENV=production`, güçlü `JWT_SECRET` ve `ENCRYPTION_KEY`.
+3. **Frontend:** `npm run build` çıktısını (`frontend/dist`) statik olarak sunun; tüm yollar `index.html`'e düşmeli (SPA).
+4. **SSL ve ters vekil:** Caddy, hem `*.akisb2b.com` hem de müşterilerin özel alan adları için sertifikayı ilk istekte otomatik alabilir. `ask` adresi yalnızca sistemde kayıtlı firma alt alan adlarına ve doğrulanmış özel alan adlarına izin verir; böylece rastgele alan adlarına sertifika alınmaz.
+
+```caddy
+{
+	on_demand_tls {
+		ask http://localhost:5001/api/public/domain-check
+	}
+}
+
+api.akisb2b.com {
+	reverse_proxy localhost:5001
+}
+
+https:// {
+	tls {
+		on_demand
+	}
+	root * /srv/akis/frontend/dist
+	try_files {path} /index.html
+	file_server
+}
+```
+
+5. **iyzico:** Canlı anahtarları girip platform panelinde Paketler → paket düzenleme ekranındaki "iyzico" (senkronize et) butonuyla her paketi eşleyin. Bildirim adresi: `https://api.akisb2b.com/api/public/iyzico/webhook`.
+6. **Yedekleme:** PostgreSQL için günlük `pg_dump` ve `backend/uploads` klasörünün yedeği.
+
+## Geliştirme notları
+
+Geçmiş çalışma oturumlarının notları `docs/gelistirme-notlari/` klasöründedir.

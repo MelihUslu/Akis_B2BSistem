@@ -6,18 +6,28 @@ import {
   CreditCard, 
   User as UserIcon,
   LogOut,
-  ChevronRight
+  Zap,
+  RotateCcw,
+  FileSignature,
+  BookMarked,
+  X
 } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
+import TenantBrand from './TenantBrand';
 
-const BayiSidebar = () => {
+// mobile: telefonda açılır menü olarak gösterilir; onNavigate menüyü kapatır
+const BayiSidebar = ({ mobile = false, onNavigate }) => {
   const { logout } = useAuth();
   const navigate = useNavigate();
   const location = useLocation();
 
   const menuItems = [
     { name: 'Ürün Kataloğu', path: '/bayi', icon: ShoppingBag },
+    { name: 'Hızlı Sipariş', path: '/bayi/quick-order', icon: Zap },
+    { name: 'Listelerim', path: '/bayi/lists', icon: BookMarked },
     { name: 'Siparişlerim', path: '/bayi/orders', icon: History },
+    { name: 'Tekliflerim', path: '/bayi/quotes', icon: FileSignature },
+    { name: 'İade / Değişim', path: '/bayi/returns', icon: RotateCcw },
     { name: 'Finansal Durum', path: '/bayi/finance', icon: CreditCard },
     { name: 'Profilim', path: '/bayi/profile', icon: UserIcon },
   ];
@@ -28,23 +38,23 @@ const BayiSidebar = () => {
   };
 
   return (
-    <aside className="w-64 bg-[#0f172a] flex flex-col h-screen sticky top-0 py-8">
+    <aside className={`w-64 bg-[#0f172a] flex-col h-screen top-0 py-8 overflow-y-auto ${mobile ? 'flex' : 'hidden lg:flex sticky'}`}>
       {/* Logo Section */}
-      <div className="px-8 mb-10">
+      <div className="px-8 mb-10 flex justify-between items-start">
         <div className="flex flex-col group cursor-pointer">
-          <span className="text-2xl font-black text-white tracking-tighter uppercase">
-            AKİS <span className="text-indigo-500">B2B</span>
-          </span>
+          <TenantBrand />
           <span className="text-[9px] font-black text-gray-500 uppercase tracking-[0.2em] mt-0.5">BAYİ PANELİ</span>
         </div>
+        {mobile && <button onClick={onNavigate} className="p-2 text-gray-400 hover:text-white"><X className="h-5 w-5" /></button>}
       </div>
       
-      <nav className="flex-1 px-4 space-y-1">
+      <nav className="flex-1 px-4 space-y-1 mb-6">
         {menuItems.map((item) => (
           <NavLink
             key={item.path}
             to={item.path}
             end={item.path === '/bayi'}
+            onClick={onNavigate}
             className={({ isActive }) => `
               flex items-center px-5 py-4 rounded-xl text-sm font-bold transition-all duration-300 group
               ${isActive 
@@ -63,7 +73,12 @@ const BayiSidebar = () => {
         <div className="bg-gradient-to-br from-indigo-600/20 to-purple-600/20 rounded-2xl p-5 border border-indigo-500/20">
           <p className="text-[10px] font-black text-indigo-300 uppercase tracking-widest mb-1">DESTEK</p>
           <p className="text-[11px] text-gray-400 leading-relaxed mb-3">Müşteri temsilcinizle hemen iletişime geçin.</p>
-          <button className="w-full py-2.5 bg-indigo-500 text-white text-[10px] font-black rounded-lg hover:bg-indigo-600 transition-colors">Mesaj Gönder</button>
+          {import.meta.env.VITE_SUPPORT_PHONE && <p className="text-[11px] font-bold text-gray-300">{import.meta.env.VITE_SUPPORT_PHONE}</p>}
+          {import.meta.env.VITE_SUPPORT_EMAIL && (
+            <a href={`mailto:${import.meta.env.VITE_SUPPORT_EMAIL}`} className="mt-3 block w-full py-2.5 bg-indigo-500 text-white text-[10px] font-black rounded-lg hover:bg-indigo-600 transition-colors text-center">
+              {import.meta.env.VITE_SUPPORT_EMAIL}
+            </a>
+          )}
         </div>
       </div>
 

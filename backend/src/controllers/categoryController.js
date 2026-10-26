@@ -2,15 +2,14 @@ import prisma from '../utils/prisma.js';
 
 export const getCategories = async (req, res) => {
   try {
-    const { isAdmin = false, isFlat = false } = req.query;
-    console.log('Kategoriler isteniyor. Query:', { isAdmin, isFlat });
+    const { isFlat = false } = req.query;
+    // Pasif kategoriler sadece ADMIN'e gösterilir
+    const isAdmin = req.user.role === 'ADMIN' && req.query.isAdmin === 'true';
 
     const categories = await prisma.category.findMany({
-      where: (isAdmin === 'true' || isAdmin === true) ? {} : { isActive: true },
+      where: isAdmin ? {} : { isActive: true },
       orderBy: { sortOrder: 'asc' }
     });
-
-    console.log(`Veritabanından ${categories.length} adet kategori bulundu.`);
 
     if (isFlat === 'true' || isFlat === true) {
       const flatList = categories.map(cat => {
@@ -34,8 +33,12 @@ export const getCategories = async (req, res) => {
 
     // Tree yapısı için children include ederek tekrar çek (veya manuel oluştur)
     const categoriesWithChildren = await prisma.category.findMany({
-      where: (isAdmin === 'true' || isAdmin === true) ? {} : { isActive: true },
-      include: { children: true },
+      where: isAdmin ? {} : { isActive: true },
+      // Ürün sayısı yalnızca ana ürünleri sayar (varyantlar ayrı ürün kaydıdır)
+      include: {
+        _count: { select: { products: { where: { parentId: null } } } },
+        children: { where: isAdmin ? {} : { isActive: true }, orderBy: { sortOrder: 'asc' }, include: { _count: { select: { products: { where: { parentId: null } } } } } }
+      },
       orderBy: { sortOrder: 'asc' }
     });
 

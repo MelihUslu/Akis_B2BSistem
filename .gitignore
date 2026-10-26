@@ -1,0 +1,22 @@
+# Bağımlılıklar ve build çıktıları
+node_modules/
+node_modules */
+dist/
+
+# Ortam değişkenleri (örnekleri .env.example dosyalarındadır)
+.env
+.env.*
+!.env.example
+
+# SQLite veritabanları
+*.db
+*.db-journal
+
+# Kullanıcı yüklemeleri
+backend/uploads/images/*
+!backend/uploads/images/.gitkeep
+backend/uploads/support/*
+
+# Sistem / editör
+.DS_Store
+*.log

@@ -25,10 +25,10 @@ const CartPage = () => {
   }
 
   return (
-    <div className="p-10 max-w-7xl mx-auto space-y-10 animate-in fade-in duration-500">
+    <div className="max-w-7xl mx-auto space-y-10 animate-in fade-in duration-500">
       <div className="flex justify-between items-end">
         <div>
-          <h1 className="text-4xl font-black text-gray-900 tracking-tighter">Sepetim</h1>
+          <h1 className="text-2xl md:text-3xl font-black text-gray-900 tracking-tight">Sepetim</h1>
           <p className="text-gray-400 text-sm font-semibold uppercase tracking-widest mt-1">Siparişi Tamamlamaya Hazır Mısınız?</p>
         </div>
         <div className="text-right">

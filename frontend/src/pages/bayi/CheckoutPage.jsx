@@ -1,32 +1,44 @@
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import { useCart } from '../../context/CartContext';
-import { useAuth } from '../../context/AuthContext';
-import { Truck, CreditCard, Landmark, ArrowRight, ShieldCheck } from 'lucide-react';
+import { Truck, CreditCard, Landmark, ArrowRight, ShieldCheck, AlertTriangle, Tag, TicketPercent, X } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
-import api from '../../services/api';
-import CustomAlert from '../../components/CustomAlert';
+import api, { errorMessage } from '../../services/api';
+import useAlert from '../../hooks/useAlert';
+import { formatTRY } from '../../utils/format';
 
 const CheckoutPage = () => {
-  const { cart, cartTotal, clearCart } = useCart();
-  const { user } = useAuth();
+  const { cart, clearCart } = useCart();
   const [paymentMethod, setPaymentMethod] = useState('CURRENT_ACCOUNT');
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [quote, setQuote] = useState(null);
+  const [quoteError, setQuoteError] = useState(null);
+  const [couponInput, setCouponInput] = useState('');
+  const [couponCode, setCouponCode] = useState('');
+  const [couponError, setCouponError] = useState(null);
   const navigate = useNavigate();
+  const { alertElement, showAlert } = useAlert();
 
-  // Alert state
-  const [alert, setAlert] = useState({
-    isOpen: false,
-    type: 'info',
-    title: '',
-    message: '',
-    onConfirm: null,
-  });
+  const payloadItems = cart.map((item) => ({ productId: item.id, quantity: item.quantity }));
 
-  const showAlert = ({ type, title, message, onConfirm }) => {
-    setAlert({ isOpen: true, type, title, message, onConfirm: onConfirm || null });
-  };
+  // Tutarlar sunucuda hesaplanır: bayi iskontosu, miktar indirimi, döviz kuru ve ürün bazlı KDV
+  useEffect(() => {
+    if (cart.length === 0) { setQuote(null); return; }
+    api.post('/orders/quote', { items: payloadItems, couponCode: couponCode || undefined })
+      .then((res) => {
+        // Geçersiz kupon: hatayı kupon alanında göster ve kuponsuz hesapla
+        if (couponCode && !res.data.coupon) {
+          setCouponError(res.data.errors.find(e => /kupon/i.test(e)) || 'Kupon uygulanamadı.');
+          setCouponCode('');
+          return;
+        }
+        setQuote(res.data);
+        setQuoteError(null);
+      })
+      .catch((error) => setQuoteError(errorMessage(error, 'Sipariş özeti hesaplanamadı.')));
+  }, [cart, couponCode]);
 
-  const closeAlert = () => setAlert((prev) => ({ ...prev, isOpen: false }));
+  const creditShort = paymentMethod === 'CURRENT_ACCOUNT' && quote && quote.total > quote.credit.available;
+  const blocked = !quote || quote.errors.length > 0 || creditShort;
 
   const handlePlaceOrder = async () => {
     if (!cart || cart.length === 0) {
@@ -40,33 +52,21 @@ const CheckoutPage = () => {
 
     setIsSubmitting(true);
     try {
-      const orderData = {
-        companyId: user.companyId,
-        items: cart.map((item) => ({
-          productId: item.id,
-          quantity: item.quantity,
-          price: item.price,
-        })),
-        totalAmount: cartTotal * 1.2,
-        paymentMethod,
-      };
-
-      await api.post('/orders', orderData);
+      const res = await api.post('/orders', { items: payloadItems, paymentMethod, couponCode: quote?.coupon?.code });
       clearCart();
 
       showAlert({
         type: 'success',
         title: 'Sipariş Oluşturuldu! 🎉',
-        message: 'Siparişiniz başarıyla alındı. Siparişlerim sayfasından takip edebilirsiniz.',
-        onConfirm: () => navigate('/bayi/orders'),
+        message: `#AK-${res.data.id} numaralı siparişiniz alındı. Onay durumunu sipariş detayından takip edebilirsiniz.`,
+        confirmText: 'Siparişe Git',
+        onConfirm: () => navigate(`/bayi/orders/${res.data.id}`),
       });
     } catch (error) {
-      const errMsg =
-        error.response?.data?.message || 'Beklenmeyen bir hata oluştu. Lütfen tekrar deneyin.';
       showAlert({
         type: 'error',
         title: 'Sipariş Oluşturulamadı',
-        message: errMsg,
+        message: errorMessage(error, 'Beklenmeyen bir hata oluştu. Lütfen tekrar deneyin.'),
       });
     } finally {
       setIsSubmitting(false);
@@ -75,23 +75,14 @@ const CheckoutPage = () => {
 
   return (
     <>
-      {/* Custom Alert Popup */}
-      <CustomAlert
-        isOpen={alert.isOpen}
-        type={alert.type}
-        title={alert.title}
-        message={alert.message}
-        confirmText={alert.type === 'success' ? 'Siparişlerime Git' : 'Tamam'}
-        onConfirm={alert.onConfirm}
-        onClose={closeAlert}
-      />
+      {alertElement}
 
-      <div className="p-10 max-w-5xl mx-auto space-y-12 animate-in fade-in duration-700">
+      <div className="p-1 md:p-10 max-w-5xl mx-auto space-y-8 md:space-y-12 animate-in fade-in duration-700">
         <div className="text-center space-y-4">
           <div className="bg-blue-600 w-16 h-16 rounded-[1.5rem] flex items-center justify-center mx-auto shadow-xl shadow-blue-500/20">
             <ShieldCheck className="h-8 w-8 text-white" />
           </div>
-          <h1 className="text-4xl font-black text-gray-900 tracking-tighter">Siparişi Onayla</h1>
+          <h1 className="text-3xl md:text-3xl font-black text-gray-900 tracking-tight">Siparişi Onayla</h1>
           <p className="text-gray-400 font-medium">
             Lütfen bilgilerinizi kontrol edip siparişinizi tamamlayın.
           </p>
@@ -109,7 +100,7 @@ const CheckoutPage = () => {
                 {
                   id: 'CURRENT_ACCOUNT',
                   name: 'Cari Hesaptan Öde',
-                  desc: 'Bakiye ve risk limitinizden düşülür.',
+                  desc: quote ? `Kullanılabilir limit: ${formatTRY(Math.max(0, quote.credit.available))}` : 'Risk limitinizden düşülür.',
                   icon: Landmark,
                 },
                 {
@@ -159,37 +150,86 @@ const CheckoutPage = () => {
           </div>
 
           {/* Final Summary */}
-          <div className="bg-white border border-gray-100 rounded-[3rem] p-12 shadow-xl shadow-gray-200/50 space-y-10 flex flex-col justify-between">
+          <div className="bg-white border border-gray-100 rounded-[2rem] md:rounded-[3rem] p-6 md:p-12 shadow-xl shadow-gray-200/50 space-y-10 flex flex-col justify-between">
             <div>
               <h3 className="text-lg font-black text-gray-900 tracking-tight mb-8">
                 Sipariş Toplamı
               </h3>
+
+              {quote && quote.lines.length > 0 && (
+                <div className="space-y-3 mb-8 max-h-64 overflow-y-auto custom-scrollbar pr-2">
+                  {quote.lines.map((line) => (
+                    <div key={line.productId} className="flex justify-between items-start text-xs">
+                      <div className="pr-4">
+                        <p className="font-bold text-gray-800">{line.name}</p>
+                        {line.variantLabel && <p className="text-[11px] font-black text-indigo-600">{line.variantLabel}</p>}
+                        <p className="text-gray-400 font-semibold mt-0.5">
+                          {line.quantity} {line.unit} × {formatTRY(line.unitPrice)}
+                          {line.priceSource === 'SPECIAL' && <span className="ml-2 text-emerald-600 font-black">size özel</span>}
+                          {line.qtyDiscount > 0 && (
+                            <span className="ml-2 inline-flex items-center text-emerald-600 font-black"><Tag className="h-3 w-3 mr-0.5" />%{line.qtyDiscount}</span>
+                          )}
+                        </p>
+                      </div>
+                      <span className="font-black text-gray-900 whitespace-nowrap">{formatTRY(line.lineSubtotal)}</span>
+                    </div>
+                  ))}
+                </div>
+              )}
+
               <div className="space-y-6">
                 <div className="flex justify-between items-center text-sm font-bold text-gray-500 uppercase tracking-widest">
-                  <span>Ürünler</span>
-                  <span className="text-gray-900">₺{cartTotal.toLocaleString('tr-TR')}</span>
+                  <span>Ürünler (KDV hariç)</span>
+                  <span className="text-gray-900">{formatTRY(quote?.subtotal)}</span>
                 </div>
+                {quote?.coupon ? (
+                  <div className="flex justify-between items-center text-sm font-bold text-pink-600 uppercase tracking-widest">
+                    <span className="flex items-center">
+                      <TicketPercent className="h-4 w-4 mr-1.5" /> {quote.coupon.code}
+                      <button onClick={() => { setCouponCode(''); setCouponInput(''); }} className="ml-2 text-gray-400 hover:text-red-500"><X className="h-3.5 w-3.5" /></button>
+                    </span>
+                    <span>−{formatTRY(quote.discountAmount)}</span>
+                  </div>
+                ) : (
+                  <form onSubmit={(e) => { e.preventDefault(); setCouponError(null); setCouponCode(couponInput.trim().toUpperCase()); }} className="space-y-1">
+                    <div className="flex gap-2">
+                      <input className="premium-input !py-2.5 font-mono uppercase" placeholder="Kupon kodu" value={couponInput} onChange={(e) => setCouponInput(e.target.value)} />
+                      <button disabled={!couponInput.trim()} className="px-4 rounded-2xl bg-gray-900 text-white text-[10px] font-black uppercase tracking-widest disabled:opacity-40">Uygula</button>
+                    </div>
+                    {couponError && <p className="text-[11px] font-bold text-red-500 normal-case tracking-normal">{couponError}</p>}
+                  </form>
+                )}
                 <div className="flex justify-between items-center text-sm font-bold text-gray-500 uppercase tracking-widest">
-                  <span>KDV (%20)</span>
-                  <span className="text-gray-900">
-                    ₺{(cartTotal * 0.2).toLocaleString('tr-TR')}
-                  </span>
+                  <span>KDV</span>
+                  <span className="text-gray-900">{formatTRY(quote?.vatAmount)}</span>
                 </div>
                 <div className="pt-8 border-t border-gray-50 flex justify-between items-end">
                   <div>
                     <p className="text-[10px] font-black text-blue-600 uppercase tracking-widest">
                       GENEL TOPLAM
                     </p>
-                    <p className="text-5xl font-black text-gray-900 tracking-tighter">
-                      ₺{(cartTotal * 1.2).toLocaleString('tr-TR')}
+                    <p className="text-4xl md:text-5xl font-black text-gray-900 tracking-tighter">
+                      {formatTRY(quote?.total)}
                     </p>
                   </div>
                 </div>
               </div>
+
+              {(quoteError || quote?.errors.length > 0 || creditShort) && (
+                <div className="mt-8 bg-amber-50 border border-amber-100 rounded-2xl p-5 space-y-2">
+                  {[quoteError, ...(quote?.errors || []), creditShort && `Risk limitiniz yetersiz. Kullanılabilir limit: ${formatTRY(Math.max(0, quote.credit.available))}. Finansal Durum sayfasından ödeme yapabilir veya Havale/EFT seçebilirsiniz.`]
+                    .filter(Boolean)
+                    .map((msg) => (
+                      <p key={msg} className="text-xs font-bold text-amber-800 flex items-start">
+                        <AlertTriangle className="h-4 w-4 mr-2 flex-shrink-0 mt-0.5" /> {msg}
+                      </p>
+                    ))}
+                </div>
+              )}
             </div>
 
             <button
-              disabled={isSubmitting}
+              disabled={isSubmitting || blocked}
               onClick={handlePlaceOrder}
               className="w-full btn-gradient py-6 shadow-2xl shadow-blue-600/30 text-lg group disabled:opacity-60 disabled:cursor-not-allowed"
             >

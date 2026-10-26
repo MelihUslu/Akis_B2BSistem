@@ -3,121 +3,83 @@ const { PrismaClient } = pkg;
 import bcrypt from 'bcrypt';
 import dotenv from 'dotenv';
 
-dotenv.config();
+dotenv.config({ quiet: true });
 
 const prisma = new PrismaClient();
 
-async function main() {
-  const adminEmail = process.env.ADMIN_EMAIL || 'admin@akis.com';
-  const adminPassword = process.env.ADMIN_PASSWORD || 'admin123';
-  const hashedAdminPassword = await bcrypt.hash(adminPassword, 10);
-  const hashedBayiPassword = await bcrypt.hash('bayi123', 10);
+// Varsayılan paketler (fiyatlar KDV dahil TRY; Platform panelinden değiştirilebilir). -1 = sınırsız
+const PLANS = [
+  { code: 'STARTER', name: 'Başlangıç', description: 'Küçük bayi ağları için', priceMonthly: 1490, priceYearly: 14900, maxDealers: 25, maxProducts: 500, maxAdmins: 2, trialDays: 14, sortOrder: 1 },
+  { code: 'PRO', name: 'Profesyonel', description: 'Büyüyen dağıtım ağları için', priceMonthly: 3490, priceYearly: 34900, maxDealers: 150, maxProducts: 5000, maxAdmins: 5, trialDays: 14, sortOrder: 2 },
+  { code: 'ENTERPRISE', name: 'Kurumsal', description: 'Sınırsız bayi ve ürün, özel alan adı', priceMonthly: 7990, priceYearly: 79900, maxDealers: -1, maxProducts: -1, maxAdmins: -1, allowCustomDomain: true, trialDays: 14, sortOrder: 3 }
+];
 
-  // 1. Create Admin
-  await prisma.user.upsert({
-    where: { email: adminEmail },
-    update: {},
-    create: {
-      email: adminEmail,
-      password: hashedAdminPassword,
-      name: 'Sistem Yöneticisi',
-      role: 'ADMIN',
-    },
+const DAY = 24 * 60 * 60 * 1000;
+
+async function seedDemoTenant(plan) {
+  if (await prisma.tenant.findUnique({ where: { slug: 'demo' } })) return;
+
+  const tenant = await prisma.tenant.create({
+    data: { slug: 'demo', name: 'Demo Hırdavat', contactEmail: 'demo@example.com', planId: plan.id, status: 'TRIAL', trialEndsAt: new Date(Date.now() + 30 * DAY) }
   });
+  const t = { tenantId: tenant.id };
+  const adminPassword = await bcrypt.hash(process.env.DEMO_ADMIN_PASSWORD || 'demo12345', 10);
+  const bayiPassword = await bcrypt.hash(process.env.DEMO_BAYI_PASSWORD || 'bayi12345', 10);
 
-  // 2. Create Categories
-  const categories = [
-    { name: 'Elektrikli El Aletleri', sortOrder: 1 },
-    { name: 'Bahçe ve Peyzaj', sortOrder: 2 },
-    { name: 'İş Güvenliği', sortOrder: 3 },
-    { name: 'El Aletleri', sortOrder: 4 },
-  ];
+  await prisma.user.create({ data: { ...t, email: 'admin@demo.com', password: adminPassword, name: 'Demo Yönetici', role: 'ADMIN', isOwner: true, emailVerifiedAt: new Date() } });
 
-  const createdCategories = [];
-  for (const cat of categories) {
-    const c = await prisma.category.create({ data: cat });
-    createdCategories.push(c);
+  const categories = [];
+  for (const [i, name] of ['Elektrikli El Aletleri', 'Bahçe ve Peyzaj', 'İş Güvenliği', 'El Aletleri'].entries()) {
+    categories.push(await prisma.category.create({ data: { ...t, name, sortOrder: i + 1 } }));
   }
 
-  // 3. Create Companies (Dealers)
-  const companies = [
-    { name: 'Akis Teknik Hırdavat Ltd.', taxNumber: '1234567890', taxOffice: 'Boğaziçi', authorizedPerson: 'Ahmet Akis', phone: '05551112233', status: 'ACTIVE', riskLimit: 50000, currentBalance: -15000 },
-    { name: 'Usta Yapı Market A.Ş.', taxNumber: '9876543210', taxOffice: 'Kadıköy', authorizedPerson: 'Mehmet Usta', phone: '05552223344', status: 'ACTIVE', riskLimit: 100000, currentBalance: 0 },
-    { name: 'Güven İş Güvenliği', taxNumber: '4567891230', taxOffice: 'Mecidiyeköy', authorizedPerson: 'Selin Güven', phone: '05553334455', status: 'ACTIVE', riskLimit: 25000, currentBalance: 5000 },
-    { name: 'Modern Bahçe Dünyası', taxNumber: '7891234560', taxOffice: 'Üsküdar', authorizedPerson: 'Caner Bahçe', phone: '05554445566', status: 'ACTIVE', riskLimit: 40000, currentBalance: -2500 },
-  ];
-
-  for (const comp of companies) {
-    const createdComp = await prisma.company.create({ data: comp });
-    // Create a user for each company
-    await prisma.user.create({
-      data: {
-        email: `bayi${createdComp.id}@akis.com`,
-        password: hashedBayiPassword,
-        name: `${createdComp.authorizedPerson}`,
-        role: 'BAYI',
-        companyId: createdComp.id
-      }
-    });
+  for (const c of [
+    { name: 'Teknik Hırdavat Ltd.', taxNumber: '1234567890', authorizedPerson: 'Ahmet Yılmaz', riskLimit: 50000, currentBalance: -15000 },
+    { name: 'Usta Yapı Market A.Ş.', taxNumber: '9876543210', authorizedPerson: 'Mehmet Usta', riskLimit: 100000, currentBalance: 0 }
+  ]) {
+    const company = await prisma.company.create({ data: { ...t, ...c, status: 'ACTIVE' } });
+    await prisma.user.create({ data: { ...t, email: `bayi${company.id}@demo.com`, password: bayiPassword, name: c.authorizedPerson, role: 'BAYI', isOwner: true, companyId: company.id, emailVerifiedAt: new Date() } });
   }
 
-  // 4. Create Products
   const products = [
-    { 
-      name: 'Akis 18V Kömürsüz Matkap', 
-      sku: 'AK-18-MATKAP', 
-      brand: 'Akis PRO', 
-      price: 4500, 
-      costPrice: 3200, 
-      stock: 45, 
-      unit: 'Adet', 
-      categoryId: createdCategories[0].id,
-      images: JSON.stringify(['https://images.unsplash.com/photo-1504148455328-497c5efdf156?q=80&w=500']),
-      longDesc: 'Profesyonel kullanım için tasarlanmış yüksek torklu kömürsüz motor teknolojisine sahip matkap.'
-    },
-    { 
-      name: 'Peyzaj Tipi Çim Biçme Makinesi', 
-      sku: 'PY-200-CIM', 
-      brand: 'Akis Garden', 
-      price: 12500, 
-      costPrice: 9000, 
-      stock: 12, 
-      unit: 'Adet', 
-      categoryId: createdCategories[1].id,
-      images: JSON.stringify(['https://images.unsplash.com/photo-1592819695396-064b95e2a660?q=80&w=500']),
-      longDesc: 'Geniş alanlar için ideal, ayarlanabilir kesim yüksekliğine sahip benzinli çim biçme makinesi.'
-    },
-    { 
-      name: 'S1P Çelik Burunlu İş Botu', 
-      sku: 'IG-SB-BOT', 
-      brand: 'SafeStep', 
-      price: 1200, 
-      costPrice: 850, 
-      stock: 120, 
-      unit: 'Çift', 
-      categoryId: createdCategories[2].id,
-      images: JSON.stringify(['https://images.unsplash.com/photo-1542291026-7eec264c27ff?q=80&w=500']),
-      longDesc: 'Dayanıklı deri yapı, çelik burun koruması ve kaymaz taban özellikleri ile tam güvenlik sağlar.'
-    },
-    { 
-      name: '7 Parça Yıldız Anahtar Takımı', 
-      sku: 'EA-7-ANAHTAR', 
-      brand: 'Akis Hand', 
-      price: 850, 
-      costPrice: 550, 
-      stock: 250, 
-      unit: 'Takım', 
-      categoryId: createdCategories[3].id,
-      images: JSON.stringify(['https://images.unsplash.com/photo-1530124560676-44b291d9dccb?q=80&w=500']),
-      longDesc: 'Krom-vanadyum çeliğinden üretilmiş, uzun ömürlü ve hassas ölçülü anahtar takımı.'
-    }
+    { name: 'Akü 18V Kömürsüz Matkap', sku: 'MTK-18V', brand: 'Demo PRO', price: 4500, costPrice: 3200, stock: 45, categoryId: categories[0].id },
+    { name: 'Benzinli Çim Biçme Makinesi', sku: 'CIM-200', brand: 'Demo Garden', price: 250, currency: 'USD', costPrice: 180, stock: 12, categoryId: categories[1].id },
+    { name: 'S1P Çelik Burunlu İş Botu', sku: 'BOT-S1P', brand: 'SafeStep', price: 1200, costPrice: 850, stock: 120, unit: 'Çift', categoryId: categories[2].id },
+    { name: '7 Parça Yıldız Anahtar Takımı', sku: 'ANH-7', brand: 'Demo Hand', price: 850, costPrice: 550, stock: 250, unit: 'Takım', moq: 6, stepQuantity: 6, categoryId: categories[3].id }
   ];
+  for (const [i, p] of products.entries()) {
+    await prisma.product.create({ data: { ...t, ...p, images: '[]', sortOrder: i } });
+  }
+  console.log('[Seed] Demo kiracı oluşturuldu: demo (admin@demo.com)');
+}
 
-  for (const prod of products) {
-    await prisma.product.create({ data: prod });
+async function main() {
+  // 1. Paketler (varsa dokunulmaz)
+  for (const plan of PLANS) {
+    await prisma.plan.upsert({ where: { code: plan.code }, update: {}, create: plan });
   }
 
-  console.log('Seed verileri başarıyla oluşturuldu.');
+  // 2. Platform sahibi (SUPER_ADMIN) — .env: PLATFORM_ADMIN_EMAIL / PLATFORM_ADMIN_PASSWORD
+  const email = (process.env.PLATFORM_ADMIN_EMAIL || '').toLowerCase().trim();
+  const password = process.env.PLATFORM_ADMIN_PASSWORD;
+  if (email && password) {
+    const exists = await prisma.user.findFirst({ where: { email, role: 'SUPER_ADMIN', tenantId: null } });
+    if (!exists) {
+      await prisma.user.create({
+        data: { email, password: await bcrypt.hash(password, 10), name: process.env.PLATFORM_ADMIN_NAME || 'Platform Yöneticisi', role: 'SUPER_ADMIN', emailVerifiedAt: new Date() }
+      });
+      console.log(`[Seed] Platform yöneticisi oluşturuldu: ${email}`);
+    }
+  } else {
+    console.warn('[Seed] PLATFORM_ADMIN_EMAIL / PLATFORM_ADMIN_PASSWORD tanımlı değil, platform yöneticisi oluşturulmadı.');
+  }
+
+  // 3. İsteğe bağlı demo kiracı (SEED_DEMO=true)
+  if (process.env.SEED_DEMO === 'true') {
+    await seedDemoTenant(await prisma.plan.findUnique({ where: { code: 'PRO' } }));
+  }
+
+  console.log('[Seed] Tamamlandı.');
 }
 
 main()

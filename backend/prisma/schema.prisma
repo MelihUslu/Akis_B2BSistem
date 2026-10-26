@@ -7,170 +7,742 @@ generator client {
 }
 
 datasource db {
-  provider = "sqlite"
+  provider = "postgresql"
   url      = env("DATABASE_URL")
 }
 
 model User {
-  id        Int      @id @default(autoincrement())
-  email     String   @unique
-  password  String
-  name      String
-  role      String   @default("BAYI") // Rol tabanlı kontrol: ADMIN, BAYI, PLASIYER
-  companyId Int?
-  company   Company? @relation(fields: [companyId], references: [id])
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
+  id                 Int       @id @default(autoincrement())
+  tenantId           Int? // SUPER_ADMIN (platform sahibi) için boş
+  tenant             Tenant?   @relation(fields: [tenantId], references: [id])
+  email              String
+  password           String
+  name               String
+  role               String    @default("BAYI") // SUPER_ADMIN (platform), ADMIN (kiracı yöneticisi), BAYI, PLASIYER
+  // Firma sahibi (ADMIN) tüm yetkilere sahiptir ve silinemez; bayide ana kullanıcıdır (alt kullanıcı yönetir)
+  isOwner            Boolean   @default(false)
+  permissions        Json? // ADMIN personeli için: ["CATALOG","ORDERS","DEALERS","FINANCE","SETTINGS"]
+  isActive           Boolean   @default(true)
+  lastLoginAt        DateTime?
+  // İki aşamalı doğrulama (TOTP). Gizli anahtar şifreli; yedek kodların sadece özeti saklanır
+  twoFactorEnabled   Boolean   @default(false)
+  twoFactorSecretEnc String?
+  twoFactorRecovery  Json?
+  emailVerifiedAt    DateTime?
+  emailVerifyToken   String?   @unique
+  companyId          Int?
+  company            Company?  @relation(fields: [companyId], references: [id])
+  createdAt          DateTime  @default(now())
+  updatedAt          DateTime  @updatedAt
 
-  orders         Order[]
-  plasiyerPoints PlasiyerPoint[]
+  orders          Order[]
+  plasiyerPoints  PlasiyerPoint[]
+  plasiyerOf      Company[]        @relation("CompanyPlasiyer")
+  notifications   Notification[]
+  stockAlerts     StockAlert[]
+  reconciliations Reconciliation[]
+  returnRequests  ReturnRequest[]
+  quoteRequests   QuoteRequest[]
+  favorites       Favorite[]
+  orderTemplates  OrderTemplate[]
+  supportTickets  SupportTicket[]
+
+  @@index([tenantId])
 }
 
 model Company {
-  id             Int      @id @default(autoincrement())
-  name           String
-  taxNumber      String?  @unique
-  taxOffice      String?
+  id               Int      @id @default(autoincrement())
+  tenantId         Int
+  tenant           Tenant   @relation(fields: [tenantId], references: [id])
+  name             String
+  taxNumber        String?
+  taxOffice        String?
   authorizedPerson String?
-  phone          String?
-  address        String?
-  status         String   @default("PENDING") // PENDING, ACTIVE, PASSIVE
-  riskLimit      Float    @default(0) // Risk Limiti (Açık hesap limiti)
-  currentBalance Float    @default(0) // Güncel Bakiye (Alacaklıysa artı, borçluysa eksi)
-  dealerGroup    String   @default("STANDART") // Bayi Grubu: STANDART, GOLD, VIP
-  netDiscount    Float    @default(0) // Net İskonto (%)
-  minOrderAmount Float    @default(0) // Sepet Alt Limiti
-  createdAt      DateTime @default(now())
-  updatedAt      DateTime @updatedAt
+  phone            String?
+  address          String?
+  status           String   @default("PENDING") // PENDING, ACTIVE, PASSIVE
+  externalCode     String? // ERP cari kodu
+  source           String   @default("ADMIN") // ADMIN (admin ekledi), APPLICATION (bayi başvurusu)
+  applicationNote  String? // Başvuru formundaki mesaj
+  riskLimit        Float    @default(0) // Risk Limiti (Açık hesap limiti)
+  currentBalance   Float    @default(0) // Güncel Bakiye (Alacaklıysa artı, borçluysa eksi)
+  dealerGroup      String   @default("STANDART") // Bayi Grubu: STANDART, GOLD, VIP
+  netDiscount      Float    @default(0) // Net İskonto (%)
+  minOrderAmount   Float    @default(0) // Sepet Alt Limiti
+  paymentTermDays  Int      @default(30) // Vade (gün)
+  plasiyerId       Int? // Bayiden sorumlu plasiyer (prim için)
+  plasiyer         User?    @relation("CompanyPlasiyer", fields: [plasiyerId], references: [id])
+  createdAt        DateTime @default(now())
+  updatedAt        DateTime @updatedAt
 
-  users        User[]
-  orders       Order[]
-  transactions FinancialTransaction[]
+  users           User[]
+  orders          Order[]
+  transactions    FinancialTransaction[]
+  payments        Payment[]
+  reconciliations Reconciliation[]
+  returnRequests  ReturnRequest[]
+  specialPrices   SpecialPrice[]
+  coupons         Coupon[]
+  quoteRequests   QuoteRequest[]
+  orderTemplates  OrderTemplate[]
+
+  @@unique([tenantId, taxNumber])
+  @@unique([tenantId, externalCode])
+  @@index([tenantId])
 }
 
 model Category {
-  id        Int       @id @default(autoincrement())
+  id        Int        @id @default(autoincrement())
+  tenantId  Int
+  tenant    Tenant     @relation(fields: [tenantId], references: [id])
   name      String
   imageUrl  String?
-  sortOrder Int       @default(0)
-  isActive  Boolean   @default(true)
+  sortOrder Int        @default(0)
+  isActive  Boolean    @default(true)
   parentId  Int?
-  parent    Category? @relation("CategoryHierarchy", fields: [parentId], references: [id])
+  parent    Category?  @relation("CategoryHierarchy", fields: [parentId], references: [id])
   children  Category[] @relation("CategoryHierarchy")
   products  Product[]
+
+  @@index([tenantId])
 }
 
 model Product {
-  id              Int      @id @default(autoincrement())
-  name            String
-  brand           String?  // Marka
-  sku             String   @unique
-  barcode         String?
-  shortDesc       String?  // Kısa Açıklama
-  longDesc        String?  // Detaylı Açıklama (HTML)
-  
+  id        Int     @id @default(autoincrement())
+  tenantId  Int
+  tenant    Tenant  @relation(fields: [tenantId], references: [id])
+  name      String
+  brand     String? // Marka
+  sku       String
+  barcode   String?
+  shortDesc String? // Kısa Açıklama
+  longDesc  String? // Detaylı Açıklama (HTML)
+
   // Fiyatlandırma
-  price           Float    // Liste Fiyatı
-  costPrice       Float?   // Maliyet Fiyatı (Sadece Admin)
-  currency        String   @default("TL") // TRY, USD, EUR
-  vatRate         Float    @default(20)   // KDV Oranı (1, 10, 20)
-  
+  price     Float // Liste Fiyatı
+  costPrice Float? // Maliyet Fiyatı (Sadece Admin)
+  currency  String @default("TRY") // TRY, USD, EUR
+  vatRate   Float  @default(20) // KDV Oranı (1, 10, 20)
+
   // Stok ve Operasyonel
-  stock           Int      @default(0)
-  unit            String   @default("Adet") // Adet, Kutu, Koli, Metre, Kg
-  moq             Int      @default(1)    // Minimum Sipariş Miktarı
-  stepQuantity    Int      @default(1)    // Artış Katsayısı
-  
+  stock        Int    @default(0)
+  unit         String @default("Adet") // Adet, Kutu, Koli, Metre, Kg
+  moq          Int    @default(1) // Minimum Sipariş Miktarı
+  stepQuantity Int    @default(1) // Artış Katsayısı
+
   // Medya
-  images          String?  // JSON stringified image array
-  pdfUrl          String?  // Teknik Katalog PDF
-  videoUrl        String?  // YouTube Video Link
-  
+  images   String? // JSON stringified image array
+  pdfUrl   String? // Teknik Katalog PDF
+  videoUrl String? // YouTube Video Link
+
   // Hiyerarşi
-  categoryId      Int?
-  category        Category? @relation(fields: [categoryId], references: [id])
-  
+  categoryId Int?
+  category   Category? @relation(fields: [categoryId], references: [id])
+
   // Varyant Yönetimi (Self-relation)
-  isMaster        Boolean   @default(true) // Ana ürün mü varyant mı?
-  parentId        Int?
-  parent          Product?  @relation("ProductVariants", fields: [parentId], references: [id])
-  variants        Product[] @relation("ProductVariants")
+  isMaster Boolean   @default(true) // Ana ürün mü varyant mı?
+  parentId Int?
+  parent   Product?  @relation("ProductVariants", fields: [parentId], references: [id])
+  variants Product[] @relation("ProductVariants")
 
   // Alternatif/Muadil Ürün İlişkisi
   alternativeToId Int?
   alternativeTo   Product?  @relation("AlternativeProducts", fields: [alternativeToId], references: [id])
   alternatives    Product[] @relation("AlternativeProducts")
 
-  hidePrice       Boolean   @default(false) // Fiyat gizlensin mi?
-  isActive        Boolean   @default(true) // Ürün aktif mi?
-  sortOrder       Int       @default(0) // Sıralama önceliği
-  createdAt    DateTime @default(now())
-  updatedAt    DateTime @updatedAt
+  hidePrice Boolean  @default(false) // Fiyat gizlensin mi?
+  isActive  Boolean  @default(true) // Ürün aktif mi?
+  sortOrder Int      @default(0) // Sıralama önceliği
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
 
-  orderItems   OrderItem[]
+  orderItems     OrderItem[]
+  stockAlerts    StockAlert[]
+  returnRequests ReturnRequest[]
+  // Özel varyant tanımı: ana üründe özellikler (Gramaj, Ambalaj...), varyantta seçilen değerler
+  options        ProductOption[]
+  variantValues  ProductVariantValue[]
+  specialPrices  SpecialPrice[]
+  favorites      Favorite[]
+  quoteItems     QuoteRequestItem[]
+
+  @@unique([tenantId, sku])
+  @@index([tenantId])
 }
 
 model Order {
-  id              Int      @id @default(autoincrement())
-  userId          Int
-  user            User     @relation(fields: [userId], references: [id])
-  companyId       Int
-  company         Company  @relation(fields: [companyId], references: [id])
-  totalAmount     Float
-  paymentMethod   String?  // CURRENT_ACCOUNT, WIRE_TRANSFER
-  status          String   @default("PENDING") // PENDING, PARTIAL_APPROVED, APPROVED, SHIPPED, COMPLETED, CANCELLED
-  trackingNumber  String?  // Kargo Takip No
-  createdAt       DateTime @default(now())
-  updatedAt       DateTime @updatedAt
+  id             Int       @id @default(autoincrement())
+  tenantId       Int
+  tenant         Tenant    @relation(fields: [tenantId], references: [id])
+  userId         Int
+  user           User      @relation(fields: [userId], references: [id])
+  companyId      Int
+  company        Company   @relation(fields: [companyId], references: [id])
+  subtotal       Float     @default(0) // KDV hariç net tutar
+  vatAmount      Float     @default(0)
+  totalAmount    Float // KDV dahil genel toplam
+  debitedAmount  Float     @default(0) // Cariye borç olarak yazılmış tutar (yeniden onayda fark alınır)
+  paymentMethod  String? // CURRENT_ACCOUNT, WIRE_TRANSFER
+  approvedAt     DateTime?
+  shippedAt      DateTime?
+  dueDate        DateTime? // Ödeme vadesi (onay tarihi + bayi vadesi)
+  status         String    @default("PENDING") // PENDING, PARTIAL_APPROVED, APPROVED, SHIPPED, COMPLETED, CANCELLED
+  trackingNumber String? // Kargo Takip No
+  cargoCompany   String? // YURTICI, ARAS, MNG, PTT, UPS, SURAT, DHL, DIGER
+  exportedAt     DateTime? // ERP'ye aktarıldığı an (Entegrasyon API)
+  // Kupon (parçalı onayda indirim yeniden hesaplanabilsin diye kuralı saklanır)
+  couponCode     String?
+  couponType     String? // PERCENT, AMOUNT
+  couponValue    Float?
+  discountAmount Float     @default(0) // KDV hariç kupon indirimi
+  createdAt      DateTime  @default(now())
+  updatedAt      DateTime  @updatedAt
 
-  items           OrderItem[]
-  payments        Payment[]
-  plasiyerPoint   PlasiyerPoint?
+  items          OrderItem[]
+  payments       Payment[]
+  plasiyerPoint  PlasiyerPoint?
+  transactions   FinancialTransaction[]
+  returnRequests ReturnRequest[]
+  quoteRequest   QuoteRequest?
+
+  @@index([tenantId])
 }
 
 model OrderItem {
-  id        Int      @id @default(autoincrement())
-  orderId   Int
-  order     Order    @relation(fields: [orderId], references: [id])
-  productId Int
-  product   Product  @relation(fields: [productId], references: [id])
-  quantity  Int
-  price     Float
-  status    String   @default("APPROVED") // APPROVED, CANCELLED (Parçalı onay için iptal edilen kalemleri işaretlemek amaçlı)
+  id              Int     @id @default(autoincrement())
+  tenantId        Int
+  tenant          Tenant  @relation(fields: [tenantId], references: [id])
+  orderId         Int
+  order           Order   @relation(fields: [orderId], references: [id])
+  productId       Int
+  product         Product @relation(fields: [productId], references: [id])
+  quantity        Int
+  price           Float // Birim net fiyat (TL, iskontolar sonrası, KDV hariç)
+  vatRate         Float   @default(20)
+  status          String  @default("APPROVED") // APPROVED, CANCELLED (Parçalı onay için iptal edilen kalemleri işaretlemek amaçlı)
   isStockDeducted Boolean @default(false)
+  variantLabel    String? // Sipariş anındaki varyant seçimi, örn. "Gramaj: 1 kg · Ambalaj: Kutu"
+
+  returnRequests ReturnRequest[]
+
+  @@index([tenantId])
 }
 
 model Payment {
   id          Int      @id @default(autoincrement())
+  tenantId    Int
+  tenant      Tenant   @relation(fields: [tenantId], references: [id])
   orderId     Int?
   order       Order?   @relation(fields: [orderId], references: [id])
+  companyId   Int?
+  company     Company? @relation(fields: [companyId], references: [id])
   amount      Float
+  method      String   @default("POS") // POS, WIRE_TRANSFER, MANUAL
+  cardLast4   String? // Sadece son 4 hane saklanır
+  reference   String? // Provizyon / referans no
   paymentDate DateTime @default(now())
   status      String   @default("COMPLETED")
+  provider    String? // IYZICO
+  token       String?  @unique // Ödeme formu token'ı (dönüşte doğrulama)
+  userId      Int?
+
+  @@index([tenantId])
 }
 
 model FinancialTransaction {
   id          Int      @id @default(autoincrement())
+  tenantId    Int
+  tenant      Tenant   @relation(fields: [tenantId], references: [id])
   companyId   Int
   company     Company  @relation(fields: [companyId], references: [id])
-  type        String   // DEBT (Borçlandırma), CREDIT (Alacaklandırma)
+  type        String // DEBT (Borçlandırma), CREDIT (Alacaklandırma)
   amount      Float
   description String?
+  orderId     Int?
+  order       Order?   @relation(fields: [orderId], references: [id])
   date        DateTime @default(now())
+
+  @@index([tenantId])
 }
 
 model PlasiyerPoint {
-  id          Int      @id @default(autoincrement())
-  userId      Int      // Plasiyer rolündeki kullanıcının ID'si
-  user        User     @relation(fields: [userId], references: [id])
-  orderId     Int      @unique
-  order       Order    @relation(fields: [orderId], references: [id])
-  points      Float    // Kazanılan prim puanı
-  createdAt   DateTime @default(now())
+  id        Int      @id @default(autoincrement())
+  tenantId  Int
+  tenant    Tenant   @relation(fields: [tenantId], references: [id])
+  userId    Int // Plasiyer rolündeki kullanıcının ID'si
+  user      User     @relation(fields: [userId], references: [id])
+  orderId   Int      @unique
+  order     Order    @relation(fields: [orderId], references: [id])
+  points    Float // Kazanılan prim puanı
+  createdAt DateTime @default(now())
+
+  @@index([tenantId])
 }
 
 model Setting {
-  id    Int    @id @default(autoincrement())
-  key   String @unique
-  value String
+  id       Int    @id @default(autoincrement())
+  tenantId Int
+  tenant   Tenant @relation(fields: [tenantId], references: [id])
+  key      String
+  value    String
+
+  @@unique([tenantId, key])
+}
+
+// Bayinin cari ekstresini onaylaması ("Mutabıkım")
+model Reconciliation {
+  id        Int      @id @default(autoincrement())
+  tenantId  Int
+  tenant    Tenant   @relation(fields: [tenantId], references: [id])
+  companyId Int
+  company   Company  @relation(fields: [companyId], references: [id])
+  userId    Int
+  user      User     @relation(fields: [userId], references: [id])
+  balance   Float // Onaylandığı andaki bakiye
+  periodEnd DateTime // Ekstrenin kapsadığı son tarih
+  createdAt DateTime @default(now())
+
+  @@index([tenantId])
+}
+
+// İade / Değişim (RMA) talepleri
+model ReturnRequest {
+  id          Int       @id @default(autoincrement())
+  tenantId    Int
+  tenant      Tenant    @relation(fields: [tenantId], references: [id])
+  companyId   Int
+  company     Company   @relation(fields: [companyId], references: [id])
+  userId      Int
+  user        User      @relation(fields: [userId], references: [id])
+  orderId     Int
+  order       Order     @relation(fields: [orderId], references: [id])
+  orderItemId Int
+  orderItem   OrderItem @relation(fields: [orderItemId], references: [id])
+  productId   Int
+  product     Product   @relation(fields: [productId], references: [id])
+  quantity    Int
+  type        String    @default("RETURN") // RETURN (İade), EXCHANGE (Değişim)
+  reason      String
+  photos      String? // JSON stringified URL array
+  status      String    @default("PENDING") // PENDING, APPROVED, REJECTED, COMPLETED
+  adminNote   String?
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+
+  @@index([tenantId])
+}
+
+// Uygulama içi bildirimler
+model Notification {
+  id        Int      @id @default(autoincrement())
+  tenantId  Int
+  tenant    Tenant   @relation(fields: [tenantId], references: [id])
+  userId    Int
+  user      User     @relation(fields: [userId], references: [id])
+  type      String // ORDER, PAYMENT_DUE, STOCK, RETURN, PAYMENT, SYSTEM
+  title     String
+  message   String
+  link      String?
+  isRead    Boolean  @default(false)
+  dedupeKey String?  @unique // Aynı bildirimin tekrar gönderilmesini engeller
+  createdAt DateTime @default(now())
+
+  @@index([userId, isRead])
+  @@index([tenantId])
+}
+
+// "Gelince Haber Ver" talepleri
+model StockAlert {
+  id         Int       @id @default(autoincrement())
+  tenantId   Int
+  tenant     Tenant    @relation(fields: [tenantId], references: [id])
+  userId     Int
+  user       User      @relation(fields: [userId], references: [id])
+  productId  Int
+  product    Product   @relation(fields: [productId], references: [id])
+  notifiedAt DateTime?
+  createdAt  DateTime  @default(now())
+
+  @@unique([userId, productId])
+  @@index([tenantId])
+}
+
+// ─── SaaS / Platform katmanı ────────────────────────────────────────────────
+
+// Abonelik paketleri (platform sahibi yönetir)
+model Plan {
+  id                   Int      @id @default(autoincrement())
+  code                 String   @unique // STARTER, PRO, ENTERPRISE
+  name                 String
+  description          String?
+  priceMonthly         Float // KDV dahil, TRY
+  priceYearly          Float
+  maxDealers           Int // -1 = sınırsız
+  maxProducts          Int
+  maxAdmins            Int
+  allowCustomDomain    Boolean  @default(false) // Firmaya özel alan adı (ücretli özellik)
+  trialDays            Int      @default(14)
+  isActive             Boolean  @default(true)
+  isPublic             Boolean  @default(true) // Kayıt sayfasında gösterilsin mi
+  sortOrder            Int      @default(0)
+  // iyzico abonelik ürün/plan referansları (Platform panelinden senkronize edilir)
+  iyzicoProductRef     String?
+  iyzicoMonthlyPlanRef String?
+  iyzicoYearlyPlanRef  String?
+  createdAt            DateTime @default(now())
+  updatedAt            DateTime @updatedAt
+
+  tenants Tenant[]
+}
+
+// Kiracı = platformdan abonelik satın alan müşteri firma
+model Tenant {
+  id                     Int       @id @default(autoincrement())
+  slug                   String    @unique // Alt alan adı: <slug>.alanadi.com
+  name                   String
+  contactEmail           String
+  phone                  String?
+  taxNumber              String?
+  taxOffice              String?
+  address                String?
+  logoUrl                String?
+  status                 String    @default("TRIAL") // TRIAL, ACTIVE, PAST_DUE, SUSPENDED, CANCELLED
+  planId                 Int
+  plan                   Plan      @relation(fields: [planId], references: [id])
+  billingCycle           String    @default("MONTHLY") // MONTHLY, YEARLY
+  trialEndsAt            DateTime?
+  currentPeriodEnd       DateTime?
+  cancelAtPeriodEnd      Boolean   @default(false) // İptal edildi, dönem sonuna kadar açık
+  signupSource           String    @default("PLATFORM") // PLATFORM (sen açtın), SELF (kendi kayıt oldu)
+  notes                  String? // Platform sahibinin iç notları
+  // iyzico abonelik bilgileri
+  iyzicoCustomerRef      String?
+  iyzicoSubscriptionRef  String?   @unique
+  iyzicoCheckoutToken    String?   @unique // Başlatılan ödeme formu; geri dönüşte bu kiracıya ait olduğu doğrulanır
+  // Firmanın bayilerinden tahsilat için kendi sanal POS'u (gizli anahtar şifreli saklanır)
+  posProvider            String? // IYZICO
+  posMode                String    @default("SANDBOX") // SANDBOX, LIVE
+  posApiKey              String?
+  posSecretEnc           String?
+  // Firmaya özel alan adı (örn. b2b.firmasi.com) — DNS TXT kaydı ile doğrulanır
+  customDomain           String?   @unique
+  customDomainToken      String?
+  customDomainVerifiedAt DateTime?
+  // Hesap kapatma (KVKK): kapatma talebinden 30 gün sonra kalıcı silinebilir
+  closedAt               DateTime?
+  deletionScheduledAt    DateTime?
+  createdAt              DateTime  @default(now())
+  updatedAt              DateTime  @updatedAt
+
+  users                User[]
+  companies            Company[]
+  categories           Category[]
+  products             Product[]
+  orders               Order[]
+  orderItems           OrderItem[]
+  payments             Payment[]
+  transactions         FinancialTransaction[]
+  plasiyerPoints       PlasiyerPoint[]
+  settings             Setting[]
+  reconciliations      Reconciliation[]
+  returnRequests       ReturnRequest[]
+  notifications        Notification[]
+  stockAlerts          StockAlert[]
+  subscriptionPayments SubscriptionPayment[]
+  productOptions       ProductOption[]
+  productOptionValues  ProductOptionValue[]
+  productVariantValues ProductVariantValue[]
+  specialPrices        SpecialPrice[]
+  coupons              Coupon[]
+  quoteRequests        QuoteRequest[]
+  quoteRequestItems    QuoteRequestItem[]
+  favorites            Favorite[]
+  orderTemplates       OrderTemplate[]
+  apiKeys              ApiKey[]
+  webhooks             Webhook[]
+  supportTickets       SupportTicket[]
+  supportMessages      SupportMessage[]
+}
+
+// Kiracının platforma yaptığı abonelik ödemeleri (iyzico veya manuel)
+model SubscriptionPayment {
+  id           Int      @id @default(autoincrement())
+  tenantId     Int
+  tenant       Tenant   @relation(fields: [tenantId], references: [id])
+  planCode     String
+  billingCycle String
+  amount       Float
+  status       String   @default("SUCCESS") // SUCCESS, FAILED
+  method       String // IYZICO, MANUAL
+  reference    String?  @unique // iyzico sipariş referansı / dekont no
+  periodStart  DateTime
+  periodEnd    DateTime
+  note         String?
+  createdAt    DateTime @default(now())
+
+  @@index([tenantId])
+}
+
+// ─── Bayi deneyimi ───────────────────────────────────────────────────────────
+
+// Ana ürüne tanımlanan varyant özelliği (örn. "Gramaj", "Ambalaj Türü", "Uzunluk")
+model ProductOption {
+  id        Int     @id @default(autoincrement())
+  tenantId  Int
+  tenant    Tenant  @relation(fields: [tenantId], references: [id])
+  productId Int
+  product   Product @relation(fields: [productId], references: [id], onDelete: Cascade)
+  name      String
+  sortOrder Int     @default(0)
+
+  values ProductOptionValue[]
+
+  @@index([tenantId])
+  @@index([productId])
+}
+
+// Özelliğin seçenekleri (örn. Gramaj → "500 g", "1 kg", "5 kg")
+model ProductOptionValue {
+  id        Int           @id @default(autoincrement())
+  tenantId  Int
+  tenant    Tenant        @relation(fields: [tenantId], references: [id])
+  optionId  Int
+  option    ProductOption @relation(fields: [optionId], references: [id], onDelete: Cascade)
+  value     String
+  sortOrder Int           @default(0)
+
+  variants ProductVariantValue[]
+
+  @@index([tenantId])
+}
+
+// Bir varyantın (alt ürün) her özellik için seçtiği değer
+model ProductVariantValue {
+  id            Int                @id @default(autoincrement())
+  tenantId      Int
+  tenant        Tenant             @relation(fields: [tenantId], references: [id])
+  variantId     Int
+  variant       Product            @relation(fields: [variantId], references: [id], onDelete: Cascade)
+  optionValueId Int
+  optionValue   ProductOptionValue @relation(fields: [optionValueId], references: [id], onDelete: Cascade)
+
+  @@unique([variantId, optionValueId])
+  @@index([tenantId])
+}
+
+// Özel / kademeli fiyat. companyId → o bayiye, dealerGroup → o gruba, ikisi de boş → herkese.
+// minQty: bu miktar ve üzerinde geçerli (kademeli fiyat). Fiyat ürünün döviz cinsinden, KDV hariç nettir.
+model SpecialPrice {
+  id          Int      @id @default(autoincrement())
+  tenantId    Int
+  tenant      Tenant   @relation(fields: [tenantId], references: [id])
+  productId   Int
+  product     Product  @relation(fields: [productId], references: [id], onDelete: Cascade)
+  companyId   Int?
+  company     Company? @relation(fields: [companyId], references: [id], onDelete: Cascade)
+  dealerGroup String?
+  minQty      Int      @default(1)
+  price       Float
+  createdAt   DateTime @default(now())
+
+  @@index([tenantId, productId])
+}
+
+// Kupon / kampanya kodu
+model Coupon {
+  id          Int       @id @default(autoincrement())
+  tenantId    Int
+  tenant      Tenant    @relation(fields: [tenantId], references: [id])
+  code        String
+  description String?
+  type        String // PERCENT, AMOUNT
+  value       Float
+  minSubtotal Float     @default(0) // KDV hariç minimum sepet
+  startsAt    DateTime?
+  endsAt      DateTime?
+  maxUses     Int? // Toplam kullanım sınırı
+  usedCount   Int       @default(0)
+  companyId   Int? // Sadece bu bayi
+  company     Company?  @relation(fields: [companyId], references: [id], onDelete: Cascade)
+  dealerGroup String? // Sadece bu grup
+  isActive    Boolean   @default(true)
+  createdAt   DateTime  @default(now())
+
+  @@unique([tenantId, code])
+}
+
+// Teklif talebi (RFQ): bayi ister → admin fiyat verir → bayi onaylarsa siparişe dönüşür
+model QuoteRequest {
+  id         Int       @id @default(autoincrement())
+  tenantId   Int
+  tenant     Tenant    @relation(fields: [tenantId], references: [id])
+  companyId  Int
+  company    Company   @relation(fields: [companyId], references: [id])
+  userId     Int
+  user       User      @relation(fields: [userId], references: [id])
+  status     String    @default("PENDING") // PENDING, QUOTED, ACCEPTED, REJECTED, CANCELLED
+  note       String?
+  adminNote  String?
+  validUntil DateTime?
+  orderId    Int?      @unique
+  order      Order?    @relation(fields: [orderId], references: [id])
+  createdAt  DateTime  @default(now())
+  updatedAt  DateTime  @updatedAt
+
+  items QuoteRequestItem[]
+
+  @@index([tenantId])
+}
+
+model QuoteRequestItem {
+  id             Int          @id @default(autoincrement())
+  tenantId       Int
+  tenant         Tenant       @relation(fields: [tenantId], references: [id])
+  quoteRequestId Int
+  quoteRequest   QuoteRequest @relation(fields: [quoteRequestId], references: [id], onDelete: Cascade)
+  productId      Int
+  product        Product      @relation(fields: [productId], references: [id])
+  quantity       Int
+  variantLabel   String?
+  quotedPrice    Float? // Admin'in verdiği birim fiyat (TL, KDV hariç)
+
+  @@index([tenantId])
+}
+
+model Favorite {
+  id        Int      @id @default(autoincrement())
+  tenantId  Int
+  tenant    Tenant   @relation(fields: [tenantId], references: [id])
+  userId    Int
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  productId Int
+  product   Product  @relation(fields: [productId], references: [id], onDelete: Cascade)
+  createdAt DateTime @default(now())
+
+  @@unique([userId, productId])
+  @@index([tenantId])
+}
+
+// Kaydedilmiş sepet (sipariş şablonu)
+model OrderTemplate {
+  id        Int      @id @default(autoincrement())
+  tenantId  Int
+  tenant    Tenant   @relation(fields: [tenantId], references: [id])
+  companyId Int
+  company   Company  @relation(fields: [companyId], references: [id], onDelete: Cascade)
+  userId    Int
+  user      User     @relation(fields: [userId], references: [id])
+  name      String
+  items     Json // [{ sku, quantity }]
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([tenantId])
+}
+
+// ─── Entegrasyon (ERP) ───────────────────────────────────────────────────────
+
+// Firmanın ERP / entegratör için ürettiği API anahtarı. Anahtarın kendisi saklanmaz, sadece özeti (hash).
+model ApiKey {
+  id         Int       @id @default(autoincrement())
+  tenantId   Int
+  tenant     Tenant    @relation(fields: [tenantId], references: [id])
+  name       String
+  prefix     String // Anahtarın ilk karakterleri (listede tanımak için)
+  keyHash    String    @unique
+  lastUsedAt DateTime?
+  revokedAt  DateTime?
+  createdAt  DateTime  @default(now())
+
+  @@index([tenantId])
+}
+
+// Olay bildirimi: sipariş oluştu / durum değişti, bayi oluştu vb. → firmanın verdiği adrese POST
+model Webhook {
+  id         Int       @id @default(autoincrement())
+  tenantId   Int
+  tenant     Tenant    @relation(fields: [tenantId], references: [id])
+  url        String
+  events     Json // ["order.created", "order.updated", ...]
+  secret     String // İmza (X-Webhook-Signature, HMAC-SHA256)
+  isActive   Boolean   @default(true)
+  lastStatus Int?
+  lastError  String?
+  lastAt     DateTime?
+  createdAt  DateTime  @default(now())
+
+  @@index([tenantId])
+}
+
+// ─── Platform: işlem kaydı, duyurular, destek ─────────────────────────────────
+
+// Kim, ne zaman, neyi değiştirdi. tenantId boşsa platform işlemidir.
+// Firma silinse de kayıt kalsın diye kiracıya yabancı anahtarla bağlı değildir.
+model AuditLog {
+  id             Int      @id @default(autoincrement())
+  tenantId       Int?
+  actorType      String // USER, PLATFORM, API_KEY, SYSTEM
+  actorId        Int?
+  actorName      String?
+  impersonatedBy String? // Destek oturumunda platform yöneticisinin adı
+  action         String // örn. "Sipariş onaylandı"
+  method         String?
+  path           String?
+  entity         String?
+  entityId       String?
+  details        Json?
+  ip             String?
+  createdAt      DateTime @default(now())
+
+  @@index([tenantId, createdAt])
+  @@index([createdAt])
+}
+
+// Platformdan firma yöneticilerine duyuru (bakım, yeni özellik vb.)
+model Announcement {
+  id        Int       @id @default(autoincrement())
+  title     String
+  body      String
+  level     String    @default("INFO") // INFO, WARNING, MAINTENANCE
+  planCode  String? // Sadece bu paketteki firmalar (boş = herkes)
+  startsAt  DateTime  @default(now())
+  endsAt    DateTime?
+  createdAt DateTime  @default(now())
+}
+
+// Firmanın platforma açtığı destek talebi
+model SupportTicket {
+  id        Int      @id @default(autoincrement())
+  tenantId  Int
+  tenant    Tenant   @relation(fields: [tenantId], references: [id])
+  userId    Int
+  user      User     @relation(fields: [userId], references: [id])
+  subject   String
+  priority  String   @default("NORMAL") // NORMAL, HIGH
+  category  String   @default("OTHER") // TECHNICAL, BILLING, FEATURE, USAGE, OTHER
+  context         Json? // Talep açılırken otomatik eklenen bilgi: son sayfa, tarayıcı, paket…
+  dueAt           DateTime? // Hedef yanıt zamanı (SLA); platform yanıtlayınca boşalır
+  firstResponseAt DateTime? // İlk platform yanıtı (ölçüm için)
+  status    String   @default("OPEN") // OPEN (platform yanıtı bekliyor), ANSWERED, CLOSED
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  messages SupportMessage[]
+
+  @@index([tenantId])
+}
+
+model SupportMessage {
+  id         Int           @id @default(autoincrement())
+  tenantId   Int
+  tenant     Tenant        @relation(fields: [tenantId], references: [id])
+  ticketId   Int
+  ticket     SupportTicket @relation(fields: [ticketId], references: [id], onDelete: Cascade)
+  authorType String // TENANT, PLATFORM
+  authorName String
+  attachments Json? // [{ url, name, type, size }]
+  body       String
+  createdAt  DateTime      @default(now())
+
+  @@index([tenantId])
 }
