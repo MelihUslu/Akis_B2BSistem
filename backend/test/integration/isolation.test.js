@@ -329,3 +329,26 @@ test('çoklu depo: ilk depoya aktarım, depodan sipariş karşılama, iptal, tra
   assert.equal(await whStock(ist.id), 15);
   assert.equal(await stockOf(), 15);
 });
+
+test('bildirimler: personel yalnızca yetkili olduğu konuda bildirim alır; e-posta tercihleri kaydedilir', { skip }, async () => {
+  const a = tenants['itest-a'];
+  const { notifyAdmins } = await import('../../src/services/notificationService.js');
+  const { runWithTenant } = await import('../../src/utils/prisma.js');
+  const bcrypt = (await import('bcrypt')).default;
+  const staff = await runAsPlatform(async () => prisma.user.create({ data: { tenantId: a.id, email: 'katalog@itest-a.test', password: await bcrypt.hash('Test12345', 4), name: 'Katalogcu', role: 'ADMIN', permissions: ['CATALOG'] } }));
+  const owner = await runAsPlatform(() => prisma.user.findFirst({ where: { tenantId: a.id, isOwner: true, role: 'ADMIN' } }));
+  await runWithTenant(a.id, () => notifyAdmins({ type: 'ORDER', title: 'itest yeni sipariş', message: 'x' }));
+  await runWithTenant(a.id, () => notifyAdmins({ type: 'STOCK', title: 'itest stok', message: 'x' }));
+  const got = (userId) => runAsPlatform(() => prisma.notification.findMany({ where: { userId, title: { startsWith: 'itest' } } })).then((l) => l.map((n) => n.type).sort());
+  assert.deepEqual(await got(owner.id), ['ORDER', 'STOCK']);
+  assert.deepEqual(await got(staff.id), ['STOCK']);
+
+  const admin = { tenant: 'itest-a', token: a.token };
+  const prefs = await api('/auth/notification-prefs', admin);
+  assert.equal(prefs.data.prefs.ORDER, true); // varsayılan açık
+  assert.ok(prefs.data.types.some((t) => t.id === 'ORDER'));
+  assert.ok(!prefs.data.types.some((t) => t.id === 'PAYMENT_DUE')); // bayiye özel tür yöneticiye gösterilmez
+  const saved = await api('/auth/notification-prefs', { ...admin, method: 'PUT', body: { prefs: { ORDER: false, HACK: true } } });
+  assert.equal(saved.data.prefs.ORDER, false);
+  assert.equal(saved.data.prefs.HACK, undefined);
+});

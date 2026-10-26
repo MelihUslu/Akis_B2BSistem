@@ -1,7 +1,31 @@
 import prisma, { runWithTenant, runAsPlatform } from '../utils/prisma.js';
 import { getSettingsMap, num } from './settingsService.js';
 import { tenantAccess } from '../middlewares/tenantMiddleware.js';
-import { sendTrialEndingMail } from './mailService.js';
+import { sendTrialEndingMail, sendNotificationMail } from './mailService.js';
+import { wantsEmail, TYPE_PERMISSION } from './notificationPrefs.js';
+import { currentTenantId } from '../utils/prisma.js';
+
+// E-posta için firma bilgisi (ad, portal adresi); kısa süreli önbellek
+const tenantCache = new Map();
+const tenantForMail = async (tenantId) => {
+  const hit = tenantCache.get(tenantId);
+  if (hit && Date.now() - hit.at < 60_000) return hit.tenant;
+  const tenant = await runAsPlatform(() => prisma.tenant.findUnique({ where: { id: tenantId }, select: { id: true, name: true, slug: true, customDomain: true, customDomainVerifiedAt: true } }));
+  tenantCache.set(tenantId, { tenant, at: Date.now() });
+  return tenant;
+};
+
+// Kullanıcı bu türü e-postayla almak istiyorsa bildirimi e-postayla da gönderir (asıl işlemi bekletmez)
+const mailIfWanted = (userId, notification) => {
+  const tenantId = currentTenantId();
+  if (!tenantId) return;
+  prisma.user.findUnique({ where: { id: userId }, select: { email: true, name: true, role: true, isActive: true, notificationPrefs: true } })
+    .then(async (user) => {
+      if (!user?.isActive || !wantsEmail(user, notification.type)) return;
+      await sendNotificationMail({ to: user.email, name: user.name, tenant: await tenantForMail(tenantId), notification });
+    })
+    .catch((err) => console.error('[Bildirim e-postası]', err.message));
+};
 
 const create = async (userId, { type, title, message, link, dedupeKey }) => {
   if (dedupeKey) {
@@ -9,7 +33,9 @@ const create = async (userId, { type, title, message, link, dedupeKey }) => {
     if (exists) return null;
   }
   try {
-    return await prisma.notification.create({ data: { userId, type, title, message, link, dedupeKey } });
+    const notification = await prisma.notification.create({ data: { userId, type, title, message, link, dedupeKey } });
+    mailIfWanted(userId, notification);
+    return notification;
   } catch (error) {
     if (error.code === 'P2002') return null; // Aynı dedupeKey eşzamanlı oluşturulduysa yok say
     throw error;
@@ -23,9 +49,12 @@ export const notifyCompany = async (companyId, payload) => {
   await Promise.all(users.map(u => create(u.id, payload.dedupeKey ? { ...payload, dedupeKey: `${payload.dedupeKey}:u${u.id}` } : payload)));
 };
 
+// Yöneticilere bildirim: personel yalnızca ilgili yetkisi varsa alır (sipariş → Siparişler yetkisi gibi)
 export const notifyAdmins = async (payload) => {
-  const admins = await prisma.user.findMany({ where: { role: 'ADMIN' }, select: { id: true } });
-  await Promise.all(admins.map(u => create(u.id, payload)));
+  const admins = await prisma.user.findMany({ where: { role: 'ADMIN', isActive: true }, select: { id: true, isOwner: true, permissions: true } });
+  const needed = TYPE_PERMISSION[payload.type];
+  const allowed = admins.filter((u) => !needed || u.isOwner || (Array.isArray(u.permissions) && u.permissions.includes(needed)));
+  await Promise.all(allowed.map(u => create(u.id, payload)));
 };
 
 // Bildirim hataları asıl işlemi bozmasın

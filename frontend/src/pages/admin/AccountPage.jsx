@@ -4,6 +4,7 @@ import api, { errorMessage } from '../../services/api';
 import useAlert from '../../hooks/useAlert';
 import { useAuth } from '../../context/AuthContext';
 import TwoFactorSettings from '../../components/settings/TwoFactorSettings';
+import NotificationPrefs from '../../components/settings/NotificationPrefs';
 
 // Yöneticinin kendi hesabı: şifre ve iki aşamalı doğrulama
 const AccountPage = () => {
@@ -36,6 +37,8 @@ const AccountPage = () => {
           <p className="text-gray-500 text-sm mt-1"><UserCircle2 className="h-4 w-4 mr-1" /> {user?.name} · {user?.email}</p>
         </div>
       </div>
+
+      <NotificationPrefs showAlert={showAlert} />
 
       {user?.impersonatedBy ? (
         <div className="card-premium p-6 text-sm text-gray-500">Destek oturumunda şifre ve iki aşamalı doğrulama ayarları değiştirilemez.</div>

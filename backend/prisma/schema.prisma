@@ -35,6 +35,8 @@ model User {
   passwordResetExpires DateTime?
   // Bu andan önce verilen oturumlar geçersizdir (şifre değişince tüm cihazlardan çıkış)
   passwordChangedAt    DateTime?
+  // E-posta bildirim tercihleri: { ORDER: true, PAYMENT: false, … } (yoksa varsayılanlar)
+  notificationPrefs    Json?
   companyId          Int?
   company            Company?  @relation(fields: [companyId], references: [id])
   createdAt          DateTime  @default(now())

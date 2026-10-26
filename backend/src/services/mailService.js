@@ -119,3 +119,22 @@ export const sendPasswordResetMail = ({ to, name, link, brand }) =>
       brand
     )
   });
+
+// Panel bildiriminin e-posta kopyası (kullanıcının tercihine göre)
+export const sendNotificationMail = ({ to, name, tenant, notification }) => {
+  const base = tenant ? tenantPortalUrl(tenant) : '';
+  const link = notification.link ? `${base}${notification.link}` : `${base}/login`;
+  return sendMail({
+    to,
+    fromName: tenant?.name,
+    subject: `${tenant?.name || PLATFORM_NAME()} · ${notification.title}`,
+    html: layout(
+      notification.title,
+      `<p>Merhaba ${name},</p>
+       <p>${notification.message || ''}</p>
+       ${button(link, 'Görüntüle')}
+       <p style="font-size:12px;color:#94a3b8">Bu e-postaları almak istemiyorsanız portalda Hesabım / Profilim → Bildirim tercihleri'nden kapatabilirsiniz.</p>`,
+      tenant?.name
+    )
+  });
+};

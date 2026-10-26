@@ -1,3 +1,4 @@
+import { typesFor, emailPrefs } from '../services/notificationPrefs.js';
 import { issueResetToken, findByResetToken, setNewPassword, passwordProblem } from '../services/passwordResetService.js';
 import { sendPasswordResetMail } from '../services/mailService.js';
 import { tenantPortalUrl } from '../config.js';
@@ -258,4 +259,19 @@ export const resetPassword = async (req, res) => {
   await setNewPassword(user.id, req.body.password);
   audit({ tenantId: req.tenant.id, actorType: 'USER', actorId: user.id, actorName: user.name, action: 'Şifre sıfırlandı (e-posta bağlantısı)', ip: clientIp(req) });
   res.json({ message: 'Şifreniz değiştirildi. Yeni şifrenizle giriş yapabilirsiniz.' });
+};
+
+// ─── Bildirim tercihleri (e-posta) ───────────────────────────────────────────
+
+export const getNotificationPrefs = async (req, res) => {
+  const user = await prisma.user.findUnique({ where: { id: req.user.id }, select: { role: true, notificationPrefs: true } });
+  res.json({ types: typesFor(user.role), prefs: emailPrefs(user) });
+};
+
+export const saveNotificationPrefs = async (req, res) => {
+  const user = await prisma.user.findUnique({ where: { id: req.user.id }, select: { role: true } });
+  const allowed = new Set(typesFor(user.role).map((t) => t.id));
+  const prefs = Object.fromEntries(Object.entries(req.body.prefs || {}).filter(([k]) => allowed.has(k)).map(([k, v]) => [k, v === true]));
+  await prisma.user.update({ where: { id: req.user.id }, data: { notificationPrefs: prefs } });
+  res.json({ message: 'Bildirim tercihleriniz kaydedildi.', prefs: emailPrefs({ role: user.role, notificationPrefs: prefs }) });
 };

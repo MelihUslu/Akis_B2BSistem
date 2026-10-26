@@ -2,6 +2,7 @@ import React, { useEffect, useState } from 'react';
 import { User, Building2, KeyRound, Phone, Mail, MapPin, Award } from 'lucide-react';
 import api, { errorMessage } from '../../services/api';
 import AddressBook from '../../components/shared/AddressBook';
+import NotificationPrefs from '../../components/settings/NotificationPrefs';
 import useAlert from '../../hooks/useAlert';
 import DealerUsersModal from '../../components/admin/DealerUsersModal';
 import { Users } from 'lucide-react';
@@ -104,6 +105,8 @@ const BayiProfile = () => {
           <button type="submit" disabled={saving} className="w-full btn-gradient disabled:opacity-60">{saving ? 'Kaydediliyor...' : 'Şifreyi Güncelle'}</button>
         </form>
       </div>
+
+      <NotificationPrefs showAlert={showAlert} />
 
       <div className="card-premium p-5 md:p-8 space-y-4">
         <h3 className="font-black text-gray-900 flex items-center"><MapPin className="h-5 w-5 mr-2 text-indigo-500" /> Teslimat Adreslerim</h3>
