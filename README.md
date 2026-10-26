@@ -54,6 +54,17 @@ npx prisma migrate dev --name aciklama     # yeni migration üretir ve uygular
 docker compose exec backend sh -c "npx prisma migrate deploy && npx prisma generate" && docker compose restart backend
 ```
 
+## Testler
+
+```bash
+cd backend
+npm test                     # birim testleri: fiyat/iskonto/KDV, TOTP, şifreleme, imzalar (veritabanı gerekmez)
+# Kiracı izolasyonu: boş bir test veritabanı verin (tablolar oluşturulur, test verisi sonunda silinir)
+TEST_DATABASE_URL=postgresql://akis:akis_dev_password@localhost:5433/akis_test npm run test:integration
+```
+
+Her push'ta GitHub Actions (`.github/workflows/ci.yml`) testleri ve arayüz derlemesini çalıştırır.
+
 ## Mimari
 
 ```

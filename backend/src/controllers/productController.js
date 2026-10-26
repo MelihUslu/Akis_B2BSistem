@@ -234,6 +234,8 @@ export const updateProduct = async (req, res) => {
     res.json(product);
   } catch (error) {
     if (error instanceof VariantError) return res.status(400).json({ message: error.message });
+    // Kayıt yok ya da başka firmaya ait (kiracı filtresi nedeniyle bulunamaz)
+    if (error.code === 'P2025') return res.status(404).json({ message: 'Ürün bulunamadı.' });
     console.error(error);
     res.status(400).json({ message: error.code === 'P2002' ? 'Ürün güncellenemedi: SKU başka bir üründe kullanılıyor.' : 'Ürün güncellenemedi.' });
   }

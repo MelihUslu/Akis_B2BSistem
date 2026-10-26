@@ -1,7 +1,8 @@
 import { getExchangeRates, toTRY } from './exchangeRateService.js';
 import { getSettingsMap, num } from './settingsService.js';
 
-const round2 = (n) => Math.round(n * 100) / 100;
+// Kuruşa yuvarlama (yarım yukarı). Kayan nokta hatası (81.2249999… gibi) önce 15 anlamlı basamakta temizlenir.
+const round2 = (n) => Math.round(Number((Number(n) * 100).toPrecision(15))) / 100;
 
 const maskStock = (qty) => {
   if (qty > 100) return '100+';
