@@ -4,6 +4,7 @@ import { tenantAccess } from '../middlewares/tenantMiddleware.js';
 import { sendTrialEndingMail, sendNotificationMail } from './mailService.js';
 import { wantsEmail, TYPE_PERMISSION } from './notificationPrefs.js';
 import { currentTenantId } from '../utils/prisma.js';
+import { withJobLock } from '../utils/redis.js';
 
 // E-posta için firma bilgisi (ad, portal adresi); kısa süreli önbellek
 const tenantCache = new Map();
@@ -161,11 +162,15 @@ const purgeExpiredClosedTenants = async (tenants) => {
   }
 };
 
+// Çok sunuculu kurulumda her iş tek sunucuda çalışır (Redis kilidi); böylece bayilere çift hatırlatma gitmez
 export const startNotificationJobs = () => {
-  const run = () => runScheduledJobs().catch(err => console.error('[Zamanlanmış İş] Hata:', err.message));
+  const run = () => withJobLock('scheduled-hourly', 50 * 60 * 1000, runScheduledJobs).catch(err => console.error('[Zamanlanmış İş] Hata:', err.message));
   setTimeout(run, 10 * 1000);
   setInterval(run, 60 * 60 * 1000); // saatlik
   // Kargo gönderilerinin durumu (takip no, teslim) yarım saatte bir güncellenir
-  const cargo = () => import('./cargoService.js').then((m) => m.syncAllShipments()).catch(err => console.error('[Kargo senkron] Hata:', err.message));
+  const cargo = () => import('./cargoService.js').then((m) => withJobLock('cargo-sync', 25 * 60 * 1000, m.syncAllShipments)).catch(err => console.error('[Kargo senkron] Hata:', err.message));
   setInterval(cargo, 30 * 60 * 1000);
+  // Başarısız webhook gönderimlerinin yeniden denenmesi (30 sn'de bir; çok sunuculu kurulumda kayıt kilidiyle tek gönderim)
+  const hooks = () => import('./webhookService.js').then((m) => m.processWebhookQueue()).catch(err => console.error('[Webhook kuyruğu] Hata:', err.message));
+  setInterval(hooks, 30 * 1000);
 };

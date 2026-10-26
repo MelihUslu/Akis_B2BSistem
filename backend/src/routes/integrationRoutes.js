@@ -1,6 +1,6 @@
 import express from 'express';
 import {
-  listIntegration, createApiKey, revokeApiKey, createWebhook, updateWebhook, deleteWebhook, testWebhook,
+  listIntegration, createApiKey, revokeApiKey, createWebhook, updateWebhook, deleteWebhook, testWebhook, listDeliveries, redeliverWebhook,
   apiListProducts, apiUpdateStock, apiUpdatePrices, apiUpsertProducts, apiListCompanies, apiUpsertCompanies,
   apiSyncBalances, apiListOrders, apiGetOrder, apiMarkExported, apiUpdateOrderStatus
 } from '../controllers/integrationController.js';
@@ -19,6 +19,8 @@ integrationAdminRoutes.post('/webhooks', createWebhook);
 integrationAdminRoutes.patch('/webhooks/:id', updateWebhook);
 integrationAdminRoutes.delete('/webhooks/:id', deleteWebhook);
 integrationAdminRoutes.post('/webhooks/:id/test', testWebhook);
+integrationAdminRoutes.get('/webhooks/:id/deliveries', listDeliveries);
+integrationAdminRoutes.post('/deliveries/:deliveryId/redeliver', redeliverWebhook);
 
 // Dış sistemler (ERP / entegratör): /api/v1, API anahtarı ile
 export const integrationApiRoutes = express.Router();

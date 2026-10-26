@@ -103,6 +103,7 @@ frontend/src
 - **İşlem kaydı:** Girişler, başarısız denemeler ve tüm değişiklik istekleri `AuditLog` tablosuna yazılır (şifre / anahtar alanları maskelenir). Firma kendi kaydını Ayarlar → İşlem Kaydı'nda, platform tümünü görür.
 - **Müşteri olarak giriş:** Platform yöneticisi destek için firma sahibinin yetkisiyle 1 saatlik oturum açabilir. Firma sahibine bildirim gider, her işlem "destek oturumu" etiketiyle kaydedilir; bu oturumda şifre, 2FA ve hesap kapatma işlemleri yapılamaz.
 - **İstek sınırlama:** Giriş, kayıt ve doğrulama uçlarında. `REDIS_URL` verilirse sayaçlar Redis'te tutulur (birden çok backend örneği aynı sınırı paylaşır); Redis'e ulaşılamazsa bellek içi sayaca düşer.
+- **Webhook kuyruğu ve zamanlanmış işler:** Her webhook gönderimi kaydedilir; başarısız olanlar 1 dk → 6 sa aralıklarla 6 kez denenir (panelde gönderim kaydı ve "yeniden gönder"). Kayıt kilidi sayesinde birden çok sunucuda tek gönderim yapılır. Saatlik hatırlatmalar ve kargo senkronu, Redis varsa tek sunucuda çalışır (`utils/redis.js` → `withJobLock`).
 - POS gizli anahtarları AES-256-GCM ile şifrelenir (`ENCRYPTION_KEY`).
 - **Güvenlik başlıkları:** API `helmet` ile sıkı içerik politikası, iframe engeli ve `nosniff` döndürür; arayüz başlıkları ters vekilde (aşağıdaki Caddy örneği) verilir. Görsel olmayan yüklemeler indirme olarak sunulur.
 - **Şifre sıfırlama ve oturumlar:** "Şifremi unuttum" bağlantısı tek kullanımlık ve 1 saat geçerlidir (yalnızca özeti saklanır). Şifre değişince o kullanıcının diğer cihazlardaki oturumları kapanır.

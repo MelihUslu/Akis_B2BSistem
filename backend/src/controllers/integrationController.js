@@ -4,7 +4,7 @@ import prisma from '../utils/prisma.js';
 import { hashApiKey } from '../middlewares/apiKeyAuth.js';
 import { notifyRestocked, safeNotify } from '../services/notificationService.js';
 import { assertWithinLimit, LimitError } from '../services/limitService.js';
-import { WEBHOOK_EVENTS, validateWebhookUrl, sendTestEvent } from '../services/webhookService.js';
+import { WEBHOOK_EVENTS, validateWebhookUrl, sendTestEvent, redeliver, MAX_ATTEMPTS } from '../services/webhookService.js';
 import { variantLabelOf, VARIANT_VALUES_INCLUDE, round2 } from '../services/pricingService.js';
 import { markShipped, markDelivered } from '../services/orderShippingService.js';
 
@@ -81,6 +81,21 @@ export const testWebhook = async (req, res) => {
   if (!hook) return res.status(404).json({ message: 'Webhook bulunamadı.' });
   const result = await sendTestEvent(hook);
   res.json(result.error ? { ok: false, message: `Gönderilemedi: ${result.error}` } : { ok: true, message: `Gönderildi (HTTP ${result.status}).` });
+};
+
+// Webhook gönderim kaydı (son 100) ve elle yeniden gönderme
+export const listDeliveries = async (req, res) => {
+  const where = { webhookId: parseInt(req.params.id), ...(req.query.status && { status: req.query.status }) };
+  const rows = await prisma.webhookDelivery.findMany({ where, orderBy: { createdAt: 'desc' }, take: 100,
+    select: { id: true, event: true, status: true, attempts: true, lastStatusCode: true, lastError: true, nextAttemptAt: true, deliveredAt: true, createdAt: true, body: true } });
+  res.json({ maxAttempts: MAX_ATTEMPTS, data: rows });
+};
+
+export const redeliverWebhook = async (req, res) => {
+  const d = await prisma.webhookDelivery.findUnique({ where: { id: parseInt(req.params.deliveryId) } });
+  if (!d) return res.status(404).json({ message: 'Gönderim bulunamadı.' });
+  const result = await redeliver(d.id);
+  res.json({ message: result?.status === 'SUCCESS' ? `Gönderildi (HTTP ${result.lastStatusCode}).` : `Gönderilemedi: ${result?.lastError || 'bilinmeyen hata'}`, delivery: result });
 };
 
 // ═══ Entegrasyon API'si (/api/v1, API anahtarı ile) ══════════════════════════

@@ -43,13 +43,15 @@ export const validateWebhookUrl = async (raw) => {
 
 export const signPayload = (secret, body) => crypto.createHmac('sha256', secret).update(body).digest('hex');
 
-const deliver = async (hook, event, payload, attempt = 1) => {
-  const body = JSON.stringify({ event, createdAt: new Date().toISOString(), data: payload });
-  let status = null;
-  let error = null;
+// Yeniden deneme aralıkları: 1 dk, 5 dk, 30 dk, 2 sa, 6 sa (toplam 6 deneme)
+const BACKOFF_MS = [60_000, 300_000, 1_800_000, 7_200_000, 21_600_000];
+export const MAX_ATTEMPTS = BACKOFF_MS.length + 1;
+
+// Tek HTTP denemesi
+const post = async (hook, event, body) => {
+  const invalid = await validateWebhookUrl(hook.url);
+  if (invalid) return { status: null, error: invalid };
   try {
-    const invalid = await validateWebhookUrl(hook.url);
-    if (invalid) throw new Error(invalid);
     const res = await fetch(hook.url, {
       method: 'POST',
       headers: {
@@ -62,33 +64,68 @@ const deliver = async (hook, event, payload, attempt = 1) => {
       redirect: 'manual',
       signal: AbortSignal.timeout(8000)
     });
-    status = res.status;
-    if (!res.ok) error = `HTTP ${res.status}`;
+    return { status: res.status, error: res.ok ? null : `HTTP ${res.status}` };
   } catch (err) {
-    error = err.message;
+    return { status: null, error: err.message };
   }
-
-  await runAsPlatform(() => prisma.webhook.update({
-    where: { id: hook.id },
-    data: { lastStatus: status, lastError: error, lastAt: new Date() }
-  })).catch(() => {});
-
-  // Başarısızsa 30 sn ve 5 dk sonra tekrar dene
-  if (error && attempt < 3) {
-    setTimeout(() => deliver(hook, event, payload, attempt + 1), attempt === 1 ? 30_000 : 300_000).unref();
-  }
-  return { status, error };
 };
 
 /**
- * Olayı firmanın aboneliği olan webhook'larına gönderir. İşlemi bekletmez, hatalar loglanır.
+ * Kayıttaki gönderimi bir kez dener. Kayıt önce SENDING'e "kilitlenir": birden çok sunucu çalışsa da
+ * aynı gönderimi yalnızca biri yapar. Başarısızsa bir sonraki deneme zamanı yazılır.
+ */
+export const attemptDelivery = (deliveryId) => runAsPlatform(async () => {
+  const locked = await prisma.webhookDelivery.updateMany({ where: { id: deliveryId, status: 'PENDING' }, data: { status: 'SENDING' } });
+  if (locked.count === 0) return null;
+  const d = await prisma.webhookDelivery.findUnique({ where: { id: deliveryId }, include: { webhook: true } });
+  if (!d.webhook?.isActive) return prisma.webhookDelivery.update({ where: { id: d.id }, data: { status: 'FAILED', lastError: 'Webhook kapalı veya silinmiş' } });
+
+  const { status, error } = await post(d.webhook, d.event, d.body);
+  const attempts = d.attempts + 1;
+  const now = new Date();
+  await prisma.webhook.update({ where: { id: d.webhookId }, data: { lastStatus: status, lastError: error, lastAt: now } }).catch(() => {});
+  return prisma.webhookDelivery.update({
+    where: { id: d.id },
+    data: error
+      ? { status: attempts >= MAX_ATTEMPTS ? 'FAILED' : 'PENDING', attempts, lastStatusCode: status, lastError: String(error).slice(0, 300), nextAttemptAt: new Date(now.getTime() + (BACKOFF_MS[attempts - 1] || 0)) }
+      : { status: 'SUCCESS', attempts, lastStatusCode: status, lastError: null, deliveredAt: now }
+  });
+});
+
+const enqueue = (hook, event, payload) => runAsPlatform(() => prisma.webhookDelivery.create({
+  data: { tenantId: hook.tenantId, webhookId: hook.id, event, body: JSON.stringify({ event, createdAt: new Date().toISOString(), data: payload }) }
+}));
+
+/**
+ * Olayı firmanın aboneliği olan webhook'larına gönderir: kayıt oluşturulur ve hemen denenir;
+ * başarısız olanlar zamanlanmış iş tarafından yeniden denenir. Asıl işlemi bekletmez.
  */
 export const emitEvent = (tenantId, event, payload) => {
   runAsPlatform(() => prisma.webhook.findMany({ where: { tenantId, isActive: true } }))
-    .then(hooks => hooks
-      .filter(h => Array.isArray(h.events) && (h.events.includes(event) || h.events.includes('*')))
-      .forEach(h => deliver(h, event, payload)))
-    .catch(err => console.error('[Webhook]', event, err.message));
+    .then((hooks) => Promise.all(hooks
+      .filter((h) => Array.isArray(h.events) && (h.events.includes(event) || h.events.includes('*')))
+      .map((h) => enqueue(h, event, payload).then((d) => attemptDelivery(d.id)))))
+    .catch((err) => console.error('[Webhook]', event, err.message));
 };
 
-export const sendTestEvent = (hook) => deliver(hook, 'test.ping', { message: 'Bağlantı testi başarılı.' }, 3);
+// Bağlantı testi: kuyruğa girmez, sonucu hemen döner
+export const sendTestEvent = async (hook) => {
+  const body = JSON.stringify({ event: 'test.ping', createdAt: new Date().toISOString(), data: { message: 'Bağlantı testi başarılı.' } });
+  const result = await post(hook, 'test.ping', body);
+  await runAsPlatform(() => prisma.webhook.update({ where: { id: hook.id }, data: { lastStatus: result.status, lastError: result.error, lastAt: new Date() } })).catch(() => {});
+  return result;
+};
+
+// Elle yeniden gönder (başarısız ya da başarılı fark etmez; aynı gövde)
+export const redeliver = (deliveryId) => runAsPlatform(async () => {
+  await prisma.webhookDelivery.update({ where: { id: deliveryId }, data: { status: 'PENDING', nextAttemptAt: new Date() } });
+  return attemptDelivery(deliveryId);
+});
+
+/** Zamanlanmış iş: zamanı gelen yeniden denemeler; takılı kalan (SENDING) kayıtları geri alır; 30 günden eskileri siler */
+export const processWebhookQueue = () => runAsPlatform(async () => {
+  await prisma.webhookDelivery.updateMany({ where: { status: 'SENDING', createdAt: { lt: new Date(Date.now() - 10 * 60_000) } }, data: { status: 'PENDING' } });
+  const due = await prisma.webhookDelivery.findMany({ where: { status: 'PENDING', nextAttemptAt: { lte: new Date() } }, select: { id: true }, orderBy: { nextAttemptAt: 'asc' }, take: 100 });
+  for (const d of due) await attemptDelivery(d.id).catch((err) => console.error('[Webhook kuyruğu]', d.id, err.message));
+  await prisma.webhookDelivery.deleteMany({ where: { createdAt: { lt: new Date(Date.now() - 30 * 86_400_000) } } });
+});

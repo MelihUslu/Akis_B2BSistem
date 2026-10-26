@@ -1,5 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import { KeyRound, Webhook, Copy, Trash2, Plus, Send, BookOpen } from 'lucide-react';
+import WebhookDeliveries from './WebhookDeliveries';
 import api, { errorMessage } from '../../services/api';
 import { formatDate } from '../../utils/format';
 
@@ -20,6 +21,7 @@ const ENDPOINTS = [
 ];
 
 const IntegrationSettings = ({ showAlert, confirm }) => {
+  const [logOf, setLogOf] = useState(null); // gönderim kaydı açık olan webhook
   const [data, setData] = useState(null);
   const [newKey, setNewKey] = useState(null);
   const [keyName, setKeyName] = useState('');
@@ -154,6 +156,8 @@ const IntegrationSettings = ({ showAlert, confirm }) => {
                 Gizli anahtar: <code className="font-mono">{h.secret.slice(0, 12)}…</code> <button onClick={() => copy(h.secret)} className="text-indigo-500 font-bold">kopyala</button>
                 {h.lastAt && <> · Son gönderim {formatDate(h.lastAt, true)}: <span className={h.lastError ? 'text-red-500 font-bold' : 'text-emerald-600 font-bold'}>{h.lastError || `HTTP ${h.lastStatus}`}</span></>}
               </p>
+              <button onClick={() => setLogOf(logOf === h.id ? null : h.id)} className="text-[11px] font-bold text-indigo-600 hover:underline">{logOf === h.id ? 'Gönderim kaydını gizle' : 'Gönderim kaydı'}</button>
+              {logOf === h.id && <WebhookDeliveries hookId={h.id} showAlert={showAlert} />}
             </div>
           ))}
         </div>

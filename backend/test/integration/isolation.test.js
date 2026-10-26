@@ -385,3 +385,57 @@ test('ERP API: OpenAPI belgesi, siparişte adres/fatura, kargo durumu ortak akı
   assert.equal((await v1(`/orders/${order.id}/invoice`, { method: 'PUT', body: { number: 'ERP-1' } })).status, 200);
   assert.equal((await v1(`/orders/${order.id}`)).data.invoice.number, 'ERP-1');
 });
+
+test('webhook kuyruğu: hata kaydedilir, zamanı gelince yeniden denenir, elle yeniden gönderilir, imza doğru', { skip }, async () => {
+  const http = await import('http');
+  const crypto = await import('crypto');
+  const received = [];
+  let failNext = 1;
+  const receiver = http.createServer((req, res) => {
+    let raw = '';
+    req.on('data', (c) => { raw += c; });
+    req.on('end', () => {
+      received.push({ body: raw, sig: req.headers['x-webhook-signature'], event: req.headers['x-webhook-event'] });
+      if (failNext-- > 0) { res.writeHead(500); return res.end(); }
+      res.writeHead(200); res.end('ok');
+    });
+  });
+  await new Promise((r) => receiver.listen(0, '127.0.0.1', r));
+  const a = tenants['itest-a'];
+  const admin = { tenant: 'itest-a', token: a.token };
+  const created = await api('/integrations/webhooks', { ...admin, method: 'POST', body: { url: `http://127.0.0.1:${receiver.address().port}/hook`, events: ['order.updated'] } });
+  assert.equal(created.status, 201, created.data?.message);
+  const hook = created.data.webhook || created.data;
+  const secret = (await runAsPlatform(() => prisma.webhook.findUnique({ where: { id: hook.id } }))).secret;
+
+  const { emitEvent, processWebhookQueue } = await import('../../src/services/webhookService.js');
+  emitEvent(a.id, 'order.updated', { id: 1, status: 'SHIPPED' });
+  emitEvent(a.id, 'order.created', { id: 2 }); // abonelik yok → gönderilmez
+  const deliveries = () => runAsPlatform(() => prisma.webhookDelivery.findMany({ where: { webhookId: hook.id } }));
+  let list = [];
+  for (let i = 0; i < 40 && !(list[0]?.attempts >= 1 && list[0].status !== 'SENDING'); i++) { await new Promise((r) => setTimeout(r, 50)); list = await deliveries(); }
+  assert.equal(list.length, 1);
+  assert.equal(list[0].status, 'PENDING'); // ilk deneme 500 → sıraya alındı
+  assert.equal(list[0].lastStatusCode, 500);
+  assert.ok(list[0].nextAttemptAt > new Date(Date.now() + 30_000)); // ~1 dk sonra
+
+  // Zamanı gelince kuyruk işi yeniden dener
+  await runAsPlatform(() => prisma.webhookDelivery.update({ where: { id: list[0].id }, data: { nextAttemptAt: new Date(Date.now() - 1000) } }));
+  await processWebhookQueue();
+  list = await deliveries();
+  assert.equal(list[0].status, 'SUCCESS');
+  assert.equal(list[0].attempts, 2);
+
+  // İmza: aynı gövdenin HMAC-SHA256'sı; iki denemede gövde aynı
+  const last = received.at(-1);
+  assert.equal(last.sig, crypto.createHmac('sha256', secret).update(last.body).digest('hex'));
+  assert.equal(received[0].body, last.body);
+
+  // Panel: gönderim kaydı ve elle yeniden gönderme
+  const log = await api(`/integrations/webhooks/${hook.id}/deliveries`, admin);
+  assert.equal(log.data.data[0].status, 'SUCCESS');
+  const again = await api(`/integrations/deliveries/${list[0].id}/redeliver`, { ...admin, method: 'POST' });
+  assert.equal(again.data.delivery.status, 'SUCCESS');
+  assert.equal(received.length, 3);
+  receiver.close();
+});

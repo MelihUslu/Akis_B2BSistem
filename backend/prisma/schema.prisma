@@ -532,6 +532,7 @@ model Tenant {
   deliveryAddresses      DeliveryAddress[]
   warehouses             Warehouse[]
   warehouseStocks        WarehouseStock[]
+  webhookDeliveries      WebhookDelivery[]
   // Firmaya özel alan adı (örn. b2b.firmasi.com) — DNS TXT kaydı ile doğrulanır
   customDomain           String?   @unique
   customDomainToken      String?
@@ -783,8 +784,31 @@ model Webhook {
   lastError  String?
   lastAt     DateTime?
   createdAt  DateTime  @default(now())
+  deliveries WebhookDelivery[]
 
   @@index([tenantId])
+}
+
+// Webhook gönderim kaydı ve kalıcı yeniden deneme kuyruğu
+model WebhookDelivery {
+  id             Int       @id @default(autoincrement())
+  tenantId       Int
+  tenant         Tenant    @relation(fields: [tenantId], references: [id])
+  webhookId      Int
+  webhook        Webhook   @relation(fields: [webhookId], references: [id], onDelete: Cascade)
+  event          String
+  body           String // imzalanan gövde (yeniden denemede aynısı gönderilir)
+  status         String    @default("PENDING") // PENDING, SENDING, SUCCESS, FAILED
+  attempts       Int       @default(0)
+  lastStatusCode Int?
+  lastError      String?
+  nextAttemptAt  DateTime  @default(now())
+  deliveredAt    DateTime?
+  createdAt      DateTime  @default(now())
+
+  @@index([tenantId])
+  @@index([status, nextAttemptAt])
+  @@index([webhookId, createdAt])
 }
 
 // ─── Platform: işlem kaydı, duyurular, destek ─────────────────────────────────
