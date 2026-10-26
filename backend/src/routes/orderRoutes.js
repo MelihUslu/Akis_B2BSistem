@@ -1,6 +1,7 @@
 import express from 'express';
 import { orderStats, getOrders, getOrderById, exportOrders, partialApproveOrder, shipOrder, completeOrder, createOrder, quoteOrder } from '../controllers/orderController.js';
 import { verifyToken, checkRole, requirePermission } from '../middlewares/authMiddleware.js';
+import { createShipment, refreshShipment, cancelShipment } from '../controllers/cargoController.js';
 import { getOrderInvoice, issueInvoice, setInvoiceNumber, removeInvoice, invoicePdfRedirect } from '../controllers/invoicingController.js';
 
 const router = express.Router();
@@ -17,6 +18,10 @@ router.get('/:id/invoice/pdf', invoicePdfRedirect);
 router.post('/:id/invoice', requirePermission('ORDERS'), issueInvoice);
 router.put('/:id/invoice', requirePermission('ORDERS'), (req, res) => setInvoiceNumber(req, res, 'MANUAL'));
 router.delete('/:id/invoice', requirePermission('ORDERS'), removeInvoice);
+// Kargo firması entegrasyonu: gönderi oluştur / durumu güncelle / iptal
+router.post('/:id/shipment', requirePermission('ORDERS'), createShipment);
+router.post('/:id/shipment/refresh', requirePermission('ORDERS'), refreshShipment);
+router.delete('/:id/shipment', requirePermission('ORDERS'), cancelShipment);
 router.get('/:id', getOrderById);
 router.post('/quote', checkRole(['BAYI']), quoteOrder);
 router.post('/', checkRole(['BAYI']), createOrder);

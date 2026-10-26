@@ -1,3 +1,4 @@
+import { resolveShippingAddress } from './addressController.js';
 import prisma from '../utils/prisma.js';
 import { loadOrderableProducts, effectiveProduct, variantLabelOf, availableCredit, computeTotals, round2 } from '../services/pricingService.js';
 import { createOrderRecord, OrderError } from './orderController.js';
@@ -174,7 +175,8 @@ export const acceptQuote = async (req, res) => {
 
     let order;
     try {
-      order = await createOrderRecord({ company, userId: req.user.id, paymentMethod, lines, totals, coupon: null });
+      const ship = await resolveShippingAddress(company, req.body.addressId);
+      order = await createOrderRecord({ company, userId: req.user.id, paymentMethod, lines, totals, coupon: null, shippingAddress: ship.address });
     } catch (error) {
       await prisma.quoteRequest.update({ where: { id }, data: { status: 'QUOTED' } }); // Teklif tekrar onaylanabilsin
       throw error;

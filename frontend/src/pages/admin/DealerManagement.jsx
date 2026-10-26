@@ -3,6 +3,7 @@ import api, { errorMessage } from '../../services/api';
 import useAlert from '../../hooks/useAlert';
 import DealerUsersModal from '../../components/admin/DealerUsersModal';
 import FilterTabs from '../../components/shared/FilterTabs';
+import AddressBook from '../../components/shared/AddressBook';
 import { Section, Field, IconInput, TextArea, Segmented } from '../../components/form/FormKit';
 import { useSearchParams, Link } from 'react-router-dom';
 import {
@@ -406,6 +407,10 @@ const DealerManagement = () => {
                     ) : <p className="text-xs text-gray-400 mt-2">Bayi henüz mutabakat onaylamadı.</p>}
                   </div>
                 </div>
+              </div>
+              <div className="rounded-2xl ring-1 ring-gray-100 p-4">
+                <h4 className="text-sm font-black text-gray-900 flex items-center gap-1.5 mb-3"><MapPin className="h-4 w-4 text-gray-400" /> Teslimat adresleri</h4>
+                <AddressBook base={`/companies/${d.id}/addresses`} showAlert={showAlert} />
               </div>
             </div>
 

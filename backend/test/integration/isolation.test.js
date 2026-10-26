@@ -7,11 +7,12 @@ import { test, before, after } from 'node:test';
 import assert from 'node:assert/strict';
 import { execSync } from 'child_process';
 import { startParasutMock } from './parasutMock.js';
+import { startYurticiMock } from './yurticiMock.js';
 
 const DB = process.env.TEST_DATABASE_URL;
 const skip = !DB && 'TEST_DATABASE_URL tanımlı değil';
 
-let server, base, prisma, runAsPlatform, purgeTenant, parasut;
+let server, base, prisma, runAsPlatform, purgeTenant, parasut, yurtici;
 const tenants = {};
 
 const api = (path, { tenant, token, method = 'GET', body } = {}) => fetch(`${base}/api${path}`, {
@@ -25,6 +26,8 @@ before(async () => {
   process.env.DATABASE_URL = DB;
   parasut = await startParasutMock({ eInvoiceVkns: ['1234567890'] });
   process.env.PARASUT_API_URL = parasut.url;
+  yurtici = await startYurticiMock();
+  process.env.YURTICI_TEST_URL = yurtici.url;
   execSync('npx prisma migrate deploy', { env: { ...process.env, DATABASE_URL: DB }, stdio: 'ignore' });
   ({ default: prisma, runAsPlatform } = await import('../../src/utils/prisma.js'));
   ({ purgeTenant } = await import('../../src/services/tenantDataService.js'));
@@ -62,6 +65,7 @@ after(async () => {
   if (skip) return;
   server?.close();
   parasut?.server.close();
+  yurtici?.server.close();
   for (const t of Object.values(tenants)) await purgeTenant(t.id).catch(() => {});
   await prisma.$disconnect();
 });
@@ -212,4 +216,58 @@ test('platform abonelik faturası: ödeme kaydedilince Paraşüt\'te kesilir (KD
   assert.equal(line.unit_price, 1000); // 1200 KDV dahil → 1000 + %20
   assert.equal(line.vat_rate, 20);
   for (const k of ['PARASUT_CLIENT_ID', 'PARASUT_CLIENT_SECRET', 'PARASUT_USERNAME', 'PARASUT_PASSWORD', 'PARASUT_COMPANY_ID']) delete process.env[k];
+});
+
+test('teslimat adresi + kargo (Yurtiçi): adres, siparişe kopyalama, gönderi, takip no ile kargoda, teslim', { skip }, async () => {
+  const a = tenants['itest-a'];
+  const admin = { tenant: 'itest-a', token: a.token };
+  // Bayi kullanıcısı ve adresleri
+  const bcrypt = (await import('bcrypt')).default;
+  const company = await runAsPlatform(async () => {
+    const c = await prisma.company.create({ data: { tenantId: a.id, name: 'Kargo Bayi', status: 'ACTIVE', riskLimit: 100000, taxNumber: '1111111111' } });
+    await prisma.user.create({ data: { tenantId: a.id, companyId: c.id, email: 'bayi@itest-a.test', password: await bcrypt.hash('Test12345', 4), name: 'Bayi', role: 'BAYI', isOwner: true, emailVerifiedAt: new Date() } });
+    return c;
+  });
+  const login = await api('/auth/login', { tenant: 'itest-a', method: 'POST', body: { email: 'bayi@itest-a.test', password: 'Test12345' } });
+  const dealer = { tenant: 'itest-a', token: login.data.token };
+
+  assert.equal((await api('/addresses', { ...dealer, method: 'POST', body: { title: 'Depo' } })).status, 400);
+  const first = await api('/addresses', { ...dealer, method: 'POST', body: { title: 'Merkez', contactName: 'Ali', phone: '05550000000', city: 'İstanbul', district: 'Kadıköy', line: 'Atatürk Caddesi No:1' } });
+  assert.equal(first.data.address.isDefault, true); // ilk adres varsayılan
+  const second = await api('/addresses', { ...dealer, method: 'POST', body: { title: 'Ankara Şube', contactName: 'Veli', phone: '05551111111', city: 'Ankara', district: 'Çankaya', line: 'Kızılay Meydanı No:5', isDefault: true } });
+  const list = await api('/addresses', dealer);
+  assert.equal(list.data.filter((x) => x.isDefault).length, 1);
+  assert.equal(list.data[0].id, second.data.address.id);
+  // Başka firmanın bayisi bu adresi göremez
+  const foreign = await api(`/addresses/${first.data.address.id}`, { tenant: 'itest-b', token: tenants['itest-b'].token, method: 'DELETE' });
+  assert.ok(foreign.status >= 400);
+  assert.ok(await runAsPlatform(() => prisma.deliveryAddress.findUnique({ where: { id: first.data.address.id } })));
+
+  const order = await api('/orders', { ...dealer, method: 'POST', body: { items: [{ productId: a.productId, quantity: 1 }], paymentMethod: 'WIRE_TRANSFER', addressId: first.data.address.id } });
+  assert.equal(order.status, 201, order.data?.message);
+  assert.equal(order.data.shippingAddress.city, 'İstanbul');
+  // Adres sonradan değişse de sipariş eski adresi korur
+  await api(`/addresses/${first.data.address.id}`, { ...dealer, method: 'PATCH', body: { city: 'İzmir' } });
+  const saved = await runAsPlatform(() => prisma.order.findUnique({ where: { id: order.data.id } }));
+  assert.equal(saved.shippingAddress.city, 'İstanbul');
+
+  // Kargo ayarı: yanlış şifre reddedilir, doğrusu kaydedilir
+  assert.equal((await api('/cargo-settings/test', { ...admin, method: 'POST', body: { username: 'YKTEST', password: 'x' } })).status, 400);
+  assert.equal((await api('/cargo-settings', { ...admin, method: 'PUT', body: { provider: 'YURTICI', mode: 'TEST', username: 'YKTEST', password: 'YK' } })).status, 200);
+
+  const id = order.data.id;
+  assert.equal((await api(`/orders/${id}/shipment`, { ...admin, method: 'POST' })).status, 400); // onaylanmadan olmaz
+  await runAsPlatform(() => prisma.order.update({ where: { id }, data: { status: 'APPROVED' } }));
+  const created = await api(`/orders/${id}/shipment`, { ...admin, method: 'POST' });
+  assert.equal(created.status, 200, created.data?.message);
+  assert.equal(created.data.order.shipmentKey, `AK${id}`);
+
+  let r = await api(`/orders/${id}/shipment/refresh`, { ...admin, method: 'POST' });
+  assert.equal(r.data.order.status, 'APPROVED'); // kargo henüz teslim almadı
+  r = await api(`/orders/${id}/shipment/refresh`, { ...admin, method: 'POST' });
+  assert.equal(r.data.order.status, 'SHIPPED');
+  assert.equal(r.data.order.trackingNumber, `YKAK${id}`);
+  r = await api(`/orders/${id}/shipment/refresh`, { ...admin, method: 'POST' });
+  assert.equal(r.data.order.status, 'COMPLETED');
+  assert.ok(company.id);
 });

@@ -15,6 +15,7 @@ const ForgotPassword = lazy(() => import('./pages/ForgotPassword'));
 const ResetPassword = lazy(() => import('./pages/ResetPassword'));
 const PrintOrder = lazy(() => import('./pages/print/PrintOrder'));
 const PrintStatement = lazy(() => import('./pages/print/PrintStatement'));
+const PrintLabel = lazy(() => import('./pages/print/PrintLabel'));
 const AdminLayout = lazy(() => import('./layouts/AdminLayout'));
 const BayiLayout = lazy(() => import('./layouts/BayiLayout'));
 const PlatformApp = lazy(() => import('./pages/platform/PlatformApp'));
@@ -52,6 +53,7 @@ const AppRoutes = () => {
       <Route path="/reset-password" element={<ResetPassword />} />
       <Route path="/basvuru" element={user ? <Navigate to="/" replace /> : <DealerApplication />} />
       <Route path="/print/order/:id" element={<ProtectedRoute allowedRoles={['ADMIN', 'BAYI']}><PrintOrder /></ProtectedRoute>} />
+      <Route path="/print/label/:id" element={<ProtectedRoute allowedRoles={['ADMIN']}><PrintLabel /></ProtectedRoute>} />
       <Route path="/print/statement" element={<ProtectedRoute allowedRoles={['BAYI']}><PrintStatement /></ProtectedRoute>} />
       <Route path="/print/statement/:companyId" element={<ProtectedRoute allowedRoles={['ADMIN']}><PrintStatement /></ProtectedRoute>} />
       

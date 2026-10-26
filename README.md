@@ -113,6 +113,10 @@ frontend/src
 - Firma sahibi hesabı kapatabilir: abonelik iptal edilir, erişim kapanır, veri 30 gün saklanır. Platform bu sürede hesabı geri açabilir.
 - `AUTO_PURGE_CLOSED=true` ise süresi dolan hesapların verisi saatlik iş tarafından kalıcı silinir. Platform panelinden elle de silinebilir.
 
+### Teslimat adresleri ve kargo
+
+Bayi, profilinden birden fazla teslimat adresi (il / ilçe ayrı) tanımlar ve siparişte seçer; seçilen adres siparişe kopyalanır. Firma, Ayarlar → Kargo'dan **Yurtiçi Kargo** web servisini bağlarsa sipariş ekranından tek tıkla gönderi oluşturur ve 10×15 barkodlu etiketi yazdırır. Kargo paketi teslim alınca takip numarası (yarım saatte bir ya da "Durumu güncelle" ile) otomatik gelir, sipariş "Kargoda", teslimde "Teslim edildi" olur ve bayiye bildirilir. Diğer kargo firmalarında takip numarası elle girilir. Yurtiçi istemcisi, Yurtiçi'nin herkese açık test servisine karşı denenmiştir (`YURTICI_LIVE=1 npm run test:integration`).
+
 ### E-fatura / e-arşiv
 
 Firma, Ayarlar → E-Fatura'dan yöntemi seçer:

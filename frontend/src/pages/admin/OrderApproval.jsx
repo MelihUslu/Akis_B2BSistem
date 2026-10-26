@@ -3,13 +3,14 @@ import api, { errorMessage } from '../../services/api';
 import {
   ShoppingCart, CheckCircle, Truck, AlertCircle, PackageCheck, Search, FileSpreadsheet, Printer, ExternalLink,
   X, Clock, Hourglass, Package, CheckCheck, ChevronLeft, ChevronRight, CalendarRange, ArrowDownUp, Ban, Building2,
-  CreditCard, Landmark, Inbox, TicketPercent, Undo2
+  CreditCard, Landmark, Inbox, TicketPercent, Undo2, MapPin, RefreshCw
 } from 'lucide-react';
 import { useSearchParams, Link } from 'react-router-dom';
 import { downloadFile } from '../../utils/download';
 import { CARRIERS, trackingUrl, carrierName } from '../../utils/cargo';
 import useAlert from '../../hooks/useAlert';
 import InvoicePanel from '../../components/shared/InvoicePanel';
+import { formatAddress } from '../../utils/turkey';
 import { formatTRY, formatDate, ORDER_STATUS } from '../../utils/format';
 
 const TABS = [
@@ -186,6 +187,19 @@ const OrderApproval = () => {
       fetchOrders();
     } catch (error) {
       showAlert({ type: 'error', title: 'Hata', message: errorMessage(error, 'Kargo bilgisi kaydedilemedi.') });
+    }
+  };
+
+  // Kargo entegrasyonu: gönderi oluştur / durumu güncelle / iptal
+  const shipmentAction = async (method, suffix) => {
+    try {
+      const res = await api.request({ method, url: `/orders/${selectedOrder.id}/shipment${suffix}` });
+      showAlert({ type: 'success', title: 'Kargo', message: res.data.message });
+      setSelectedOrder((prev) => ({ ...prev, ...res.data.order, items: prev.items }));
+      if (res.data.order?.trackingNumber) setTrackingNumber(res.data.order.trackingNumber);
+      fetchOrders();
+    } catch (error) {
+      showAlert({ type: 'error', title: 'Kargo', message: errorMessage(error, 'İşlem yapılamadı.') });
     }
   };
 
@@ -537,11 +551,43 @@ const OrderApproval = () => {
                   {editable && <p className="text-[11px] text-gray-400 pt-1">Kalem iptal ederseniz tutar ve kupon indirimi kaydettiğinizde yeniden hesaplanır.</p>}
                 </div>
 
+                {/* Teslimat adresi */}
+                <div className="rounded-2xl ring-1 ring-gray-100 p-4">
+                  <h4 className="text-sm font-black text-gray-900 flex items-center gap-2 mb-1.5"><MapPin className="h-4 w-4 text-blue-500" /> Teslimat adresi</h4>
+                  {order.shippingAddress ? (
+                    <div className="text-sm text-gray-700">
+                      <p className="font-bold">{order.shippingAddress.title} · {order.shippingAddress.contactName} {order.shippingAddress.phone && <span className="text-gray-400 font-normal">· {order.shippingAddress.phone}</span>}</p>
+                      <p className="text-xs text-gray-500 mt-0.5">{formatAddress(order.shippingAddress)}</p>
+                    </div>
+                  ) : <p className="text-xs text-gray-400">{order.company?.address || 'Adres girilmemiş.'}</p>}
+                </div>
+
                 <InvoicePanel key={order.id} orderId={order.id} orderStatus={order.status} canManage onError={(message) => showAlert({ type: 'error', title: 'Fatura', message })} />
 
                 {SHIPPABLE.includes(order.status) && (
                   <div className="rounded-2xl ring-1 ring-orange-100 bg-orange-50/40 p-4 space-y-3">
                     <h4 className="text-sm font-black text-gray-900 flex items-center gap-2"><Truck className="h-4 w-4 text-orange-500" /> Kargo</h4>
+                    {stats.cargoEnabled && order.status !== 'SHIPPED' && (
+                      order.shipmentKey && order.shipmentStatus !== 'CANCELLED' ? (
+                        <div className="rounded-xl bg-white ring-1 ring-orange-100 p-3 space-y-2">
+                          <div className="flex flex-wrap items-center gap-2 text-xs">
+                            <span className="font-mono font-bold text-gray-900">{order.shipmentKey}</span>
+                            <span className="px-2 py-0.5 rounded-md bg-orange-100 text-orange-700 font-bold">{order.shipmentInfo || 'Gönderi oluşturuldu'}</span>
+                          </div>
+                          <p className="text-[11px] text-gray-500">Etiketi yazdırıp pakete yapıştırın. Kargo paketi teslim alınca takip numarası otomatik gelir ve sipariş “Kargoda” olur.</p>
+                          <div className="flex flex-wrap gap-2">
+                            <Link to={`/print/label/${order.id}`} className="inline-flex items-center gap-1.5 h-9 px-3 rounded-xl bg-gray-900 text-white text-xs font-bold"><Printer className="h-3.5 w-3.5" /> Etiketi yazdır</Link>
+                            <button onClick={() => shipmentAction('POST', '/refresh')} className="inline-flex items-center gap-1.5 h-9 px-3 rounded-xl bg-gray-100 text-gray-700 text-xs font-bold hover:bg-gray-200"><RefreshCw className="h-3.5 w-3.5" /> Durumu güncelle</button>
+                            <button onClick={() => shipmentAction('DELETE', '')} className="inline-flex items-center gap-1.5 h-9 px-3 rounded-xl text-red-600 text-xs font-bold hover:bg-red-50"><Ban className="h-3.5 w-3.5" /> Gönderiyi iptal et</button>
+                          </div>
+                        </div>
+                      ) : order.status !== 'PENDING' && (
+                        <button onClick={() => shipmentAction('POST', '')} className="w-full inline-flex items-center justify-center gap-2 h-11 rounded-xl bg-orange-500 text-white text-xs font-black uppercase tracking-wider hover:bg-orange-600">
+                          <Truck className="h-4 w-4" /> Yurtiçi Kargo gönderisi oluştur
+                        </button>
+                      )
+                    )}
+                    {stats.cargoEnabled && order.status !== 'SHIPPED' && <p className="text-[11px] text-gray-400">ya da başka bir kargo firmasıyla gönderdiyseniz takip numarasını elle girin:</p>}
                     {order.trackingNumber && (
                       <p className="text-xs text-gray-600">Mevcut: {carrierName(order.cargoCompany)} <b className="text-blue-600">{order.trackingNumber}</b>
                         {trackingUrl(order.cargoCompany, order.trackingNumber) && <a href={trackingUrl(order.cargoCompany, order.trackingNumber)} target="_blank" rel="noreferrer" className="ml-2 inline-flex items-center text-indigo-600 font-bold">takip et <ExternalLink className="h-3 w-3 ml-0.5" /></a>}

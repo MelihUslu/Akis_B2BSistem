@@ -1,12 +1,13 @@
 import React, { useEffect, useState } from 'react';
 import { Link, useParams } from 'react-router-dom';
-import { ArrowLeft, Truck, RotateCcw, RotateCw, Package, Camera, X, Loader2, Printer, ExternalLink } from 'lucide-react';
+import { ArrowLeft, Truck, RotateCcw, RotateCw, Package, Camera, X, Loader2, Printer, ExternalLink, MapPin } from 'lucide-react';
 import { trackingUrl, carrierName } from '../../utils/cargo';
 import api, { errorMessage } from '../../services/api';
 import OrderTimeline from '../../components/OrderTimeline';
 import useReorder from '../../hooks/useReorder';
 import useAlert from '../../hooks/useAlert';
 import InvoicePanel from '../../components/shared/InvoicePanel';
+import { formatAddress } from '../../utils/turkey';
 import { formatTRY, formatDate, firstImage, ORDER_STATUS, RETURN_STATUS } from '../../utils/format';
 
 const RETURNABLE = ['SHIPPED', 'COMPLETED'];
@@ -188,6 +189,17 @@ const BayiOrderDetail = () => {
           )}
         </div>
       </div>
+
+      {order.shippingAddress && (
+        <div className="card-premium p-5 flex items-start gap-3">
+          <MapPin className="h-5 w-5 text-indigo-500 shrink-0 mt-0.5" />
+          <div className="text-sm">
+            <p className="font-black text-gray-900">Teslimat: {order.shippingAddress.title}</p>
+            <p className="text-gray-600 mt-0.5">{formatAddress(order.shippingAddress)}</p>
+            <p className="text-xs text-gray-400 mt-0.5">{order.shippingAddress.contactName} · {order.shippingAddress.phone}</p>
+          </div>
+        </div>
+      )}
 
       {order.invoice?.status === 'ISSUED' && (
         <InvoicePanel orderId={order.id} orderStatus={order.status} onError={(message) => showAlert({ type: 'error', title: 'Fatura', message })} />

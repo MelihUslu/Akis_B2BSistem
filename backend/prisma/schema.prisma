@@ -81,6 +81,7 @@ model Company {
   updatedAt        DateTime @updatedAt
 
   users           User[]
+  addresses       DeliveryAddress[]
   orders          Order[]
   transactions    FinancialTransaction[]
   payments        Payment[]
@@ -204,6 +205,13 @@ model Order {
   updatedAt      DateTime  @updatedAt
 
   invoice        Invoice?
+  shippingAddress Json? // Sipariş anındaki teslimat adresi: { title, contactName, phone, city, district, line, postalCode }
+  // Kargo entegrasyonu: gönderi anahtarı (AK{id}), firmanın kargo sisteminde oluşturuldu mu, son durum
+  shipmentProvider String?
+  shipmentKey      String?
+  shipmentStatus   String? // CREATED, IN_TRANSIT, DELIVERED, CANCELLED, ERROR
+  shipmentInfo     String? // kargo firmasının son durum açıklaması / hata mesajı
+  shipmentSyncedAt DateTime?
   items          OrderItem[]
   payments       Payment[]
   plasiyerPoint  PlasiyerPoint?
@@ -212,6 +220,28 @@ model Order {
   quoteRequest   QuoteRequest?
 
   @@index([tenantId])
+}
+
+// Bayinin teslimat adresleri (şube, depo…). Siparişte seçilen adres siparişe kopyalanır.
+model DeliveryAddress {
+  id          Int      @id @default(autoincrement())
+  tenantId    Int
+  tenant      Tenant   @relation(fields: [tenantId], references: [id])
+  companyId   Int
+  company     Company  @relation(fields: [companyId], references: [id])
+  title       String // "Merkez depo", "Ankara şube"
+  contactName String
+  phone       String
+  city        String
+  district    String
+  line        String // mahalle, cadde, no…
+  postalCode  String?
+  isDefault   Boolean  @default(false)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  @@index([tenantId])
+  @@index([companyId])
 }
 
 // Siparişin faturası (bir sipariş = bir fatura)
@@ -457,6 +487,11 @@ model Tenant {
   invoiceConfigEnc       String?
   invoiceAutoOn          String    @default("MANUAL") // MANUAL, APPROVED, SHIPPED: fatura otomatik ne zaman kesilir
   invoices               Invoice[]
+  // Kargo entegrasyonu (YURTICI). Anahtarlar şifreli JSON.
+  cargoProvider          String?
+  cargoMode              String    @default("TEST") // TEST, LIVE
+  cargoConfigEnc         String?
+  deliveryAddresses      DeliveryAddress[]
   // Firmaya özel alan adı (örn. b2b.firmasi.com) — DNS TXT kaydı ile doğrulanır
   customDomain           String?   @unique
   customDomainToken      String?

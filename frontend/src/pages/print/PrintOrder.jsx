@@ -3,6 +3,7 @@ import { useParams } from 'react-router-dom';
 import api, { errorMessage } from '../../services/api';
 import PrintLayout from './PrintLayout';
 import { formatTRY, formatDate, ORDER_STATUS } from '../../utils/format';
+import { formatAddress } from '../../utils/turkey';
 import { carrierName } from '../../utils/cargo';
 
 const PrintOrder = () => {
@@ -35,6 +36,12 @@ const PrintOrder = () => {
           <p className="text-[10px] font-black text-gray-500 uppercase mb-1">Ödeme / Teslimat</p>
           <p>{order.paymentMethod === 'WIRE_TRANSFER' ? 'Havale / EFT' : 'Cari hesap'}{order.dueDate && ` · Vade: ${formatDate(order.dueDate)}`}</p>
           {order.trackingNumber && <p>{carrierName(order.cargoCompany)} {order.trackingNumber}</p>}
+          {order.shippingAddress && (
+            <p className="text-gray-600 leading-snug mt-1">
+              <b>Teslimat:</b> {order.shippingAddress.contactName} · {order.shippingAddress.phone}<br />
+              {formatAddress(order.shippingAddress)}
+            </p>
+          )}
           <p className="text-gray-600">Sipariş veren: {order.user?.name}</p>
         </div>
       </div>

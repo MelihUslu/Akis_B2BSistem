@@ -4,11 +4,13 @@ import { Truck, CreditCard, Landmark, ArrowRight, ShieldCheck, AlertTriangle, Ta
 import { useNavigate } from 'react-router-dom';
 import api, { errorMessage } from '../../services/api';
 import useAlert from '../../hooks/useAlert';
+import AddressBook from '../../components/shared/AddressBook';
 import { formatTRY } from '../../utils/format';
 
 const CheckoutPage = () => {
   const { cart, clearCart } = useCart();
   const [paymentMethod, setPaymentMethod] = useState('CURRENT_ACCOUNT');
+  const [addressId, setAddressId] = useState(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [quote, setQuote] = useState(null);
   const [quoteError, setQuoteError] = useState(null);
@@ -52,7 +54,7 @@ const CheckoutPage = () => {
 
     setIsSubmitting(true);
     try {
-      const res = await api.post('/orders', { items: payloadItems, paymentMethod, couponCode: quote?.coupon?.code });
+      const res = await api.post('/orders', { items: payloadItems, paymentMethod, couponCode: quote?.coupon?.code, addressId });
       clearCart();
 
       showAlert({
@@ -138,14 +140,11 @@ const CheckoutPage = () => {
               ))}
             </div>
 
-            <div className="bg-gray-50 p-8 rounded-[2rem] border border-gray-100 space-y-4">
+            <div className="bg-gray-50 p-4 md:p-8 rounded-[2rem] border border-gray-100 space-y-4">
               <h4 className="text-[10px] font-black text-gray-400 uppercase tracking-widest flex items-center">
                 <Truck className="mr-2 h-4 w-4" /> Teslimat Adresi
               </h4>
-              <p className="text-sm font-bold text-gray-700 leading-relaxed">
-                Sistemde kayıtlı olan varsayılan şirket adresiniz kullanılacaktır. Değişiklik için
-                müşteri temsilcinizle iletişime geçin.
-              </p>
+              <AddressBook selectable compact value={addressId} onSelect={setAddressId} showAlert={showAlert} />
             </div>
           </div>
 

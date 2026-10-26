@@ -3,12 +3,14 @@ import { quoteCart, availableCredit, round2, computeTotals } from '../services/p
 import { getSettingsMap, num } from '../services/settingsService.js';
 import { notifyCompany, notifyAdmins, notifyRestocked, safeNotify } from '../services/notificationService.js';
 import { emitEvent } from '../services/webhookService.js';
-import { autoInvoice } from '../services/invoiceService.js';
+import { autoInvoice, invoiceCreds } from '../services/invoiceService.js';
+import { cargoCreds } from '../services/cargoService.js';
+import { orderEvent, markShipped, markDelivered } from '../services/orderShippingService.js';
+import { resolveShippingAddress } from './addressController.js';
 import xlsx from 'xlsx';
 import { currentTenantId } from '../utils/prisma.js';
 
 // Webhook için siparişin özet hali
-const orderEvent = (o) => ({ id: o.id, number: `AK-${o.id}`, status: o.status, companyId: o.companyId, total: o.totalAmount, trackingNumber: o.trackingNumber, cargoCompany: o.cargoCompany });
 
 const PAYMENT_METHODS = ['CURRENT_ACCOUNT', 'WIRE_TRANSFER'];
 const EDITABLE_STATUSES = ['PENDING', 'PARTIAL_APPROVED', 'APPROVED'];
@@ -66,7 +68,10 @@ export const orderStats = async (req, res) => {
     counts,
     total: groups.reduce((sum, g) => sum + g._count._all, 0),
     pendingAmount: pendingAgg._sum.totalAmount || 0,
-    oldestPendingAt: oldestPending?.createdAt || null
+    oldestPendingAt: oldestPending?.createdAt || null,
+    // Sipariş ekranındaki "Yurtiçi gönderisi oluştur" / "Paraşüt ile kes" butonları için
+    cargoEnabled: Boolean(cargoCreds(req.tenant)),
+    invoiceEnabled: Boolean(invoiceCreds(req.tenant))
   });
 };
 
@@ -167,7 +172,7 @@ export class OrderError extends Error {}
  * Siparişi kalemleriyle birlikte oluşturur; kupon varsa kullanım sayısını eşzamanlılığa dayanıklı şekilde artırır.
  * lines: [{ productId, quantity, unitPrice, vatRate, variantLabel }] · totals: computeTotals çıktısı
  */
-export const createOrderRecord = ({ company, userId, paymentMethod, lines, totals, coupon }) =>
+export const createOrderRecord = ({ company, userId, paymentMethod, lines, totals, coupon, shippingAddress }) =>
   prisma.$transaction(async (tx) => {
     if (coupon) {
       const claimed = await tx.coupon.updateMany({
@@ -186,6 +191,7 @@ export const createOrderRecord = ({ company, userId, paymentMethod, lines, total
         vatAmount: totals.vatAmount,
         totalAmount: totals.total,
         paymentMethod,
+        shippingAddress: shippingAddress || undefined,
         status: 'PENDING',
         ...(coupon && { couponCode: coupon.code, couponType: coupon.type, couponValue: coupon.value })
       }
@@ -233,13 +239,17 @@ export const createOrder = async (req, res) => {
       }
     }
 
+    const ship = await resolveShippingAddress(company, req.body.addressId);
+    if (ship.error) return res.status(400).json({ message: ship.error });
+
     const order = await createOrderRecord({
       company,
       userId: req.user.id,
       paymentMethod,
       lines: quote.lines,
       totals: quote,
-      coupon: quote.couponRecord
+      coupon: quote.couponRecord,
+      shippingAddress: ship.address
     });
 
     safeNotify(notifyAdmins({
@@ -408,25 +418,7 @@ export const shipOrder = async (req, res) => {
       return res.status(400).json({ message: 'Sadece onaylanmış siparişler kargoya verilebilir.' });
     }
 
-    const order = await prisma.order.update({
-      where: { id: parseInt(id) },
-      data: {
-        status: 'SHIPPED',
-        trackingNumber,
-        cargoCompany: cargoCompany || null,
-        shippedAt: existing.shippedAt || new Date()
-      }
-    });
-
-    safeNotify(notifyCompany(order.companyId, {
-      type: 'ORDER',
-      title: 'Siparişiniz kargoya verildi',
-      message: `#AK-${order.id} numaralı siparişiniz yola çıktı. Takip No: ${order.trackingNumber}`,
-      link: `/bayi/orders/${order.id}`
-    }));
-
-    emitEvent(req.tenant.id, 'order.updated', orderEvent(order));
-    autoInvoice(req.tenant, order.id, 'SHIPPED');
+    const order = await markShipped(req.tenant, existing, { trackingNumber, cargoCompany });
     res.json({ message: 'Sipariş kargoya verildi.', order });
   } catch (error) {
     res.status(400).json({ message: 'Kargo bilgisi güncellenemedi.' });
@@ -441,16 +433,7 @@ export const completeOrder = async (req, res) => {
       return res.status(400).json({ message: 'Sadece kargodaki siparişler teslim edildi olarak işaretlenebilir.' });
     }
 
-    const order = await prisma.order.update({ where: { id: existing.id }, data: { status: 'COMPLETED' } });
-
-    safeNotify(notifyCompany(order.companyId, {
-      type: 'ORDER',
-      title: 'Siparişiniz teslim edildi',
-      message: `#AK-${order.id} numaralı siparişiniz teslim edildi olarak işaretlendi.`,
-      link: `/bayi/orders/${order.id}`
-    }));
-
-    emitEvent(req.tenant.id, 'order.updated', orderEvent(order));
+    const order = await markDelivered(req.tenant, existing);
     res.json({ message: 'Sipariş tamamlandı.', order });
   } catch (error) {
     res.status(400).json({ message: 'Sipariş güncellenemedi.' });

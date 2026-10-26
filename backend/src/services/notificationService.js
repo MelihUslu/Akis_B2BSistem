@@ -136,4 +136,7 @@ export const startNotificationJobs = () => {
   const run = () => runScheduledJobs().catch(err => console.error('[Zamanlanmış İş] Hata:', err.message));
   setTimeout(run, 10 * 1000);
   setInterval(run, 60 * 60 * 1000); // saatlik
+  // Kargo gönderilerinin durumu (takip no, teslim) yarım saatte bir güncellenir
+  const cargo = () => import('./cargoService.js').then((m) => m.syncAllShipments()).catch(err => console.error('[Kargo senkron] Hata:', err.message));
+  setInterval(cargo, 30 * 60 * 1000);
 };
