@@ -210,7 +210,14 @@ https:// {
 ```
 
 5. **iyzico:** Canlı anahtarları girip platform panelinde Paketler → paket düzenleme ekranındaki "iyzico" (senkronize et) butonuyla her paketi eşleyin. Bildirim adresi: `https://api.akisb2b.com/api/public/iyzico/webhook`.
-6. **Yedekleme:** PostgreSQL için günlük `pg_dump` ve `backend/uploads` klasörünün yedeği.
+6. **Yedekleme:** Compose'daki `backup` servisi açılışta ve her gün 03:00'te veritabanını (`pg_dump -Fc`) ve yüklenen dosyaları `./backups` klasörüne alır; `BACKUP_KEEP_DAYS` (varsayılan 14) günden eskileri siler. Bu klasörü ayrıca sunucu dışına (S3, başka sunucu) kopyalayın.
+
+   ```bash
+   docker compose exec backup /scripts/backup.sh                                   # elle yedek
+   docker compose exec backup /scripts/restore.sh /backups/db-…dump deneme_db       # önce ayrı veritabanına geri yükleyip kontrol edin
+   docker compose exec backup /scripts/restore.sh /backups/db-…dump                 # asıl veritabanına (mevcut veri silinir)
+   tar -xzf backups/uploads-….tar.gz -C backend/uploads                            # dosyalar
+   ```
 
 ## Geliştirme notları
 

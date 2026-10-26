@@ -20,3 +20,6 @@ backend/uploads/support/*
 # Sistem / editör
 .DS_Store
 *.log
+
+# Yedekler (asla depoya girmez)
+backups/

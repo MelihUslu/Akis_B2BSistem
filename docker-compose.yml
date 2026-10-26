@@ -55,5 +55,26 @@ services:
       - backend
     restart: always
 
+  # Günlük yedek: veritabanı (pg_dump) + yüklenen dosyalar → ./backups (BACKUP_KEEP_DAYS gün saklanır)
+  backup:
+    image: postgres:15-alpine
+    environment:
+      PGHOST: db
+      PGUSER: ${POSTGRES_USER:-akis}
+      PGPASSWORD: ${POSTGRES_PASSWORD:-akis_dev_password}
+      PGDATABASE: ${POSTGRES_DB:-akis_b2b}
+      BACKUP_KEEP_DAYS: ${BACKUP_KEEP_DAYS:-14}
+      TZ: Europe/Istanbul
+    volumes:
+      - ./scripts:/scripts:ro
+      - ./backups:/backups
+      - ./backend/uploads:/uploads:ro
+    # Açılışta bir yedek alır, sonra her gün 03:00'te
+    entrypoint: ["/bin/sh", "-c", "/scripts/backup.sh; while true; do sleep $$(( ( $$(date -d 03:00 +%s 2>/dev/null || date +%s) + 86400 - $$(date +%s) ) % 86400 + 1 )); /scripts/backup.sh || echo '[yedek] HATA'; done"]
+    depends_on:
+      db:
+        condition: service_healthy
+    restart: always
+
 volumes:
   pgdata_saas: # (Eski "pgdata" volume'ü Mayıs 2026'dan kalma bir denemeye ait, kullanılmıyor)
