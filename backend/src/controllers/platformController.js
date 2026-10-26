@@ -421,10 +421,10 @@ export const purgeTenantData = async (req, res) => {
   if (String(req.body.confirm || '').trim() !== tenant.slug) return res.status(400).json({ message: `Onay için müşteri adresini (${tenant.slug}) yazın.` });
   if (!tenant.closedAt && req.body.force !== true) return res.status(400).json({ message: 'Hesap kapatılmamış. Önce askıya alın / kapatın veya zorla silmeyi onaylayın.' });
 
-  await purgeTenant(tenant.id);
+  const { deletedFiles } = await purgeTenant(tenant.id);
   invalidateTenantCache(tenant.slug);
-  audit({ tenantId: tenant.id, actorType: 'PLATFORM', actorId: req.user.id, actorName: req.user.name, action: 'Platform: firma verisi kalıcı silindi', details: { name: tenant.name, slug: tenant.slug }, ip: clientIp(req) });
-  res.json({ message: `${tenant.name} ve tüm verileri kalıcı olarak silindi.` });
+  audit({ tenantId: tenant.id, actorType: 'PLATFORM', actorId: req.user.id, actorName: req.user.name, action: 'Platform: firma verisi kalıcı silindi', details: { name: tenant.name, slug: tenant.slug, deletedFiles }, ip: clientIp(req) });
+  res.json({ message: `${tenant.name} ve tüm verileri kalıcı olarak silindi (${deletedFiles} dosya).` });
 };
 
 // ─── İşlem kaydı ─────────────────────────────────────────────────────────────

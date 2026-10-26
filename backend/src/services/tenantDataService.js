@@ -1,3 +1,5 @@
+import fs from 'fs/promises';
+import path from 'path';
 import xlsx from 'xlsx';
 import prisma, { runAsPlatform } from '../utils/prisma.js';
 
@@ -46,7 +48,74 @@ export const exportTenantWorkbook = (tenantId) => runAsPlatform(async () => {
 /**
  * Firmanın tüm verisini kalıcı olarak siler (geri alınamaz). İşlem kayıtları korunur.
  */
-export const purgeTenant = (tenantId) => runAsPlatform(() => prisma.$transaction(async (tx) => {
+// ─── Yüklenen dosyalar ───────────────────────────────────────────────────────
+const UPLOAD_DIRS = ['images', 'support'];
+const SAFE_NAME = /^[A-Za-z0-9._-]+$/;
+
+// "…/uploads/images/abc.png" → { dir: 'images', name: 'abc.png' }
+const uploadRef = (url) => {
+  const m = /\/uploads\/(images|support)\/([^/?#]+)/.exec(String(url || ''));
+  return m && SAFE_NAME.test(m[2]) ? { dir: m[1], name: m[2] } : null;
+};
+const parseImages = (v) => { try { return Array.isArray(v) ? v : JSON.parse(v || '[]'); } catch { return []; } };
+
+// Firmanın kayıtlarında geçen ve dosya adı firma önekiyle (t<id>-) başlayan tüm yüklemeler
+const collectTenantFiles = async (tenantId) => {
+  const [products, categories, tenant, messages] = await Promise.all([
+    prisma.product.findMany({ where: { tenantId }, select: { images: true } }),
+    prisma.category.findMany({ where: { tenantId }, select: { imageUrl: true } }),
+    prisma.tenant.findUnique({ where: { id: tenantId }, select: { logoUrl: true } }),
+    prisma.supportMessage.findMany({ where: { tenantId }, select: { attachments: true } })
+  ]);
+  const refs = [
+    ...products.flatMap((p) => parseImages(p.images)),
+    ...categories.map((c) => c.imageUrl),
+    tenant?.logoUrl,
+    ...messages.flatMap((m) => (Array.isArray(m.attachments) ? m.attachments.map((a) => a.url) : []))
+  ].map(uploadRef).filter(Boolean);
+
+  for (const dir of UPLOAD_DIRS) {
+    const prefixed = await fs.readdir(path.join('uploads', dir)).catch(() => []);
+    prefixed.filter((n) => n.startsWith(`t${tenantId}-`)).forEach((name) => refs.push({ dir, name }));
+  }
+  const unique = new Map(refs.map((r) => [`${r.dir}/${r.name}`, r]));
+  return [...unique.values()];
+};
+
+// Önceki sürümlerden kalan öneksiz dosyalar başka bir firma tarafından da kullanılıyorsa silinmez
+const sharedWithOthers = async (tenantId, name) => {
+  const others = { tenantId: { not: tenantId } };
+  const [p, c, t] = await Promise.all([
+    prisma.product.count({ where: { ...others, images: { contains: name } } }),
+    prisma.category.count({ where: { ...others, imageUrl: { contains: name } } }),
+    prisma.tenant.count({ where: { id: { not: tenantId }, logoUrl: { contains: name } } })
+  ]);
+  return p + c + t > 0;
+};
+
+const deleteFiles = async (tenantId, files) => {
+  let deleted = 0;
+  for (const f of files) {
+    if (!f.name.startsWith(`t${tenantId}-`) && await sharedWithOthers(tenantId, f.name)) continue;
+    try {
+      await fs.unlink(path.join('uploads', f.dir, f.name));
+      deleted++;
+    } catch { /* zaten yok */ }
+  }
+  return deleted;
+};
+
+/**
+ * Firmanın tüm verisini ve yüklediği dosyaları kalıcı olarak siler (KVKK).
+ * Dosyalar, veritabanı silmesi başarıyla tamamlandıktan sonra silinir. Silinen dosya sayısını döndürür.
+ */
+export const purgeTenant = async (tenantId) => {
+  const files = await runAsPlatform(() => collectTenantFiles(tenantId));
+  await purgeTenantRecords(tenantId);
+  return { deletedFiles: await runAsPlatform(() => deleteFiles(tenantId, files)) };
+};
+
+const purgeTenantRecords = (tenantId) => runAsPlatform(() => prisma.$transaction(async (tx) => {
   const w = { where: { tenantId } };
   await tx.notification.deleteMany(w);
   await tx.stockAlert.deleteMany(w);
