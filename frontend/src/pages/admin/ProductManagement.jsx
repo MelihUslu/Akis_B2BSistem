@@ -429,7 +429,8 @@ const ProductManagement = () => {
           collisionDetection={closestCenter}
           onDragEnd={handleDragEnd}
         >
-          <table className="w-full text-left">
+          <div className="overflow-x-auto">
+          <table className="w-full min-w-[52rem] text-left">
             <thead className="list-head">
               <tr>
                 <th className="px-10 py-4 text-[10px] font-black text-gray-500 uppercase tracking-[0.15em] whitespace-nowrap">Ürün Detayı</th>
@@ -482,6 +483,7 @@ const ProductManagement = () => {
               )}
             </tbody>
           </table>
+          </div>
         </DndContext>
         <div className="px-8 py-5 bg-gray-50/50 border-t border-gray-100 flex justify-between items-center">
           <div className="flex items-center space-x-3 text-gray-400">

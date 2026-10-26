@@ -5,9 +5,7 @@ import { useTenant } from '../context/TenantContext';
 import TenantBrand from './TenantBrand';
 import { can } from '../utils/permissions';
 import { 
-  LayoutDashboard, Package, Users, ShoppingCart, 
-  CreditCard, Settings, LogOut, Box, UserCheck,
-  ChevronLeft, ChevronRight, RotateCcw, Crown, FileSignature, TicketPercent, LifeBuoy
+  LayoutDashboard, Package, Users, ShoppingCart, CreditCard, Settings, LogOut, Box, UserCheck, ChevronLeft, ChevronRight, RotateCcw, Crown, FileSignature, TicketPercent, LifeBuoy, X
 } from 'lucide-react';
 
 const PLAN_BOX = {
@@ -18,8 +16,10 @@ const PLAN_BOX = {
   ACTIVE: { title: 'ABONELİK', text: 'Paketinizi ve limitlerinizi görüntüleyin.', cta: 'Abonelik' },
 };
 
-const Sidebar = () => {
-  const [isCollapsed, setIsCollapsed] = useState(false);
+// mobile: telefonda çekmece olarak açılır (daraltma yok); onNavigate menüyü kapatır
+const Sidebar = ({ mobile = false, onNavigate }) => {
+  const [collapsedState, setIsCollapsed] = useState(false);
+  const isCollapsed = !mobile && collapsedState;
   const location = useLocation();
   const navigate = useNavigate();
   const { logout, user } = useAuth();
@@ -48,16 +48,20 @@ const Sidebar = () => {
   return (
     <aside className={`
       ${isCollapsed ? 'w-24' : 'w-72'} 
-      flex flex-col h-screen sticky top-0 py-8 transition-all duration-700 ease-in-out relative z-50
+      ${mobile ? 'flex h-full overflow-y-auto' : 'hidden lg:flex h-screen sticky top-0'} flex-col py-8 transition-all duration-700 ease-in-out relative z-50
       bg-[#0f172a]
     `}>
       {/* Collapse Toggle Button */}
-      <button 
-        onClick={() => setIsCollapsed(!isCollapsed)}
-        className="absolute -right-3 top-10 bg-indigo-600 text-white p-1.5 rounded-full shadow-lg hover:bg-indigo-700 transition-colors z-[60]"
-      >
-        {isCollapsed ? <ChevronRight size={14} /> : <ChevronLeft size={14} />}
-      </button>
+      {mobile ? (
+        <button onClick={onNavigate} className="absolute right-4 top-6 p-2 text-gray-400 hover:text-white" aria-label="Menüyü kapat"><X className="h-5 w-5" /></button>
+      ) : (
+        <button 
+          onClick={() => setIsCollapsed(!isCollapsed)}
+          className="absolute -right-3 top-10 bg-indigo-600 text-white p-1.5 rounded-full shadow-lg hover:bg-indigo-700 transition-colors z-[60]"
+        >
+          {isCollapsed ? <ChevronRight size={14} /> : <ChevronLeft size={14} />}
+        </button>
+      )}
 
       {/* Logo Section */}
       <div className={`px-8 mb-10 transition-all ${isCollapsed ? 'px-6' : 'px-8'}`}>
@@ -73,6 +77,7 @@ const Sidebar = () => {
             key={item.path}
             to={item.path}
             end={item.path === '/admin'}
+            onClick={onNavigate}
             title={isCollapsed ? item.name : ''}
             className={({ isActive }) => `
               flex items-center rounded-2xl transition-all duration-300 group
@@ -94,7 +99,7 @@ const Sidebar = () => {
           <div className={`rounded-2xl p-5 border transition-all duration-700 bg-gradient-to-br from-indigo-600/20 to-purple-600/20 border-indigo-500/20`}>
             <p className="text-[10px] font-black text-indigo-500 uppercase tracking-widest mb-1">{planBox.title}</p>
             <p className={`text-[11px] leading-relaxed mb-3 transition-colors duration-700 text-gray-400`}>{planBox.text}</p>
-            <button onClick={() => navigate('/admin/subscription')} className="w-full py-2.5 bg-indigo-500 text-white text-[10px] font-black rounded-lg hover:bg-indigo-600 transition-colors">{planBox.cta}</button>
+            <button onClick={() => { onNavigate?.(); navigate('/admin/subscription'); }} className="w-full py-2.5 bg-indigo-500 text-white text-[10px] font-black rounded-lg hover:bg-indigo-600 transition-colors">{planBox.cta}</button>
           </div>
         </div>
       )}
@@ -103,6 +108,7 @@ const Sidebar = () => {
       <div className="px-4 space-y-2">
         {can(user, 'SETTINGS') && <NavLink
           to="/admin/settings"
+          onClick={onNavigate}
           title={isCollapsed ? 'Ayarlar' : ''}
           className={`flex items-center rounded-2xl text-sm font-bold transition-all duration-700 group ${isCollapsed ? 'justify-center p-4' : 'px-5 py-4'} text-gray-400 hover:text-white hover:bg-white/5`}
         >

@@ -1,6 +1,6 @@
 import React, { Suspense, lazy, useState } from 'react';
 import { Routes, Route, Navigate, NavLink, useNavigate, Link } from 'react-router-dom';
-import { LayoutDashboard, Building2, Layers, Receipt, LogOut, Lock, Mail, Megaphone, LifeBuoy, ScrollText, ShieldCheck } from 'lucide-react';
+import { LayoutDashboard, Building2, Layers, Receipt, LogOut, Lock, Mail, Megaphone, LifeBuoy, ScrollText, ShieldCheck, Menu, X } from 'lucide-react';
 import { platformApi, errorMessage } from '../../services/api';
 import TwoFactorStep from '../../components/TwoFactorStep';
 import ThemeToggle from '../../components/ThemeToggle';
@@ -100,30 +100,48 @@ const MENU = [
   { name: 'Güvenlik', path: '/security', icon: ShieldCheck },
 ];
 
-const PlatformLayout = ({ user, onLogout }) => (
-  <div className="flex min-h-screen bg-[#0f172a]">
-    <aside className="w-64 flex flex-col h-screen sticky top-0 py-8">
-      <div className="px-8 mb-10">
+const PlatformNav = ({ user, onLogout, mobile = false, onNavigate }) => (
+  <aside className={`w-64 flex-col py-8 bg-[#0f172a] ${mobile ? 'flex h-full overflow-y-auto' : 'hidden lg:flex h-screen sticky top-0'}`}>
+    <div className="px-8 mb-10 flex justify-between items-start">
+      <div>
         <span className="text-2xl font-black text-white tracking-tighter uppercase">{import.meta.env.VITE_PLATFORM_NAME || 'Akis B2B'}</span>
         <span className="block text-[9px] font-black text-indigo-400 uppercase tracking-[0.2em] mt-0.5">PLATFORM YÖNETİMİ</span>
       </div>
-      <nav className="flex-1 px-4 space-y-1">
-        {MENU.map((item) => (
-          <NavLink key={item.path} to={item.path} end={item.end}
-            className={({ isActive }) => `flex items-center px-5 py-4 rounded-xl text-sm font-bold transition-all ${isActive ? 'bg-indigo-600/10 text-indigo-400 border-l-2 border-indigo-400' : 'text-gray-400 hover:text-white hover:bg-white/5'}`}>
-            <item.icon className="h-5 w-5 mr-4" /> {item.name}
-          </NavLink>
-        ))}
-      </nav>
-      <div className="px-4 border-t border-white/5 pt-4">
-        <p className="px-5 text-xs font-bold text-gray-500 mb-2 truncate">{user?.name}</p>
-        <button onClick={onLogout} className="w-full flex items-center px-5 py-4 rounded-xl text-sm font-bold text-red-400 hover:bg-red-500/10">
-          <LogOut className="h-5 w-5 mr-4" /> Çıkış Yap
-        </button>
+      {mobile && <button onClick={onNavigate} className="p-2 -mr-4 text-gray-400 hover:text-white" aria-label="Menüyü kapat"><X className="h-5 w-5" /></button>}
+    </div>
+    <nav className="flex-1 px-4 space-y-1">
+      {MENU.map((item) => (
+        <NavLink key={item.path} to={item.path} end={item.end} onClick={onNavigate}
+          className={({ isActive }) => `flex items-center px-5 py-4 rounded-xl text-sm font-bold transition-all ${isActive ? 'bg-indigo-600/10 text-indigo-400 border-l-2 border-indigo-400' : 'text-gray-400 hover:text-white hover:bg-white/5'}`}>
+          <item.icon className="h-5 w-5 mr-4" /> {item.name}
+        </NavLink>
+      ))}
+    </nav>
+    <div className="px-4 border-t border-white/5 pt-4">
+      <p className="px-5 text-xs font-bold text-gray-500 mb-2 truncate">{user?.name}</p>
+      <button onClick={onLogout} className="w-full flex items-center px-5 py-4 rounded-xl text-sm font-bold text-red-400 hover:bg-red-500/10">
+        <LogOut className="h-5 w-5 mr-4" /> Çıkış Yap
+      </button>
+    </div>
+  </aside>
+);
+
+const PlatformLayout = ({ user, onLogout }) => {
+  const [menuOpen, setMenuOpen] = useState(false);
+  return (
+  <div className="flex min-h-screen bg-[#0f172a]">
+    <PlatformNav user={user} onLogout={onLogout} />
+    {menuOpen && (
+      <div className="fixed inset-0 z-50 lg:hidden">
+        <div className="absolute inset-0 bg-black/50" onClick={() => setMenuOpen(false)} />
+        <div className="relative h-full w-64 max-w-[85vw] animate-slide-in-left"><PlatformNav user={user} onLogout={onLogout} mobile onNavigate={() => setMenuOpen(false)} /></div>
       </div>
-    </aside>
-    <main className="flex-1 min-h-screen bg-white rounded-l-[2.5rem] overflow-y-auto custom-scrollbar px-10 py-10 relative">
-      <ThemeToggle className="absolute top-6 right-8" />
+    )}
+    <main className="flex-1 min-w-0 min-h-screen bg-white lg:rounded-l-[2.5rem] overflow-y-auto custom-scrollbar px-3 md:px-8 lg:px-10 py-4 lg:py-10 relative">
+      <div className="flex items-center justify-between lg:block mb-4 lg:mb-0">
+        <button onClick={() => setMenuOpen(true)} className="lg:hidden p-2 -ml-1 rounded-xl text-gray-600 hover:bg-gray-100" aria-label="Menü"><Menu className="h-6 w-6" /></button>
+        <ThemeToggle className="lg:absolute lg:top-6 lg:right-8" />
+      </div>
       <Suspense fallback={<PageLoader />}>
       <Routes>
         <Route index element={<PlatformDashboard />} />
@@ -140,7 +158,8 @@ const PlatformLayout = ({ user, onLogout }) => (
       </Suspense>
     </main>
   </div>
-);
+  );
+};
 
 const PlatformApp = () => {
   const [user, setUser] = useState(readUser);
