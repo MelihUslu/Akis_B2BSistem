@@ -10,6 +10,7 @@ import NotificationBell from '../components/NotificationBell';
 import TenantBrand from '../components/TenantBrand';
 import ThemeToggle from '../components/ThemeToggle';
 import LanguageSwitcher from '../components/LanguageSwitcher';
+import MobileTabBar from '../components/bayi/MobileTabBar';
 import PageLoader from '../components/PageLoader';
 import { t } from '../i18n';
 
@@ -70,7 +71,7 @@ const BayiLayout = () => {
 
             <div className="hidden sm:flex items-center space-x-3 pl-4 border-l border-gray-50 group cursor-pointer">
               <div className="text-right hidden sm:block">
-                <p className="text-xs font-black text-gray-900 leading-none">{user?.name || 'Değerli Bayimiz'}</p>
+                <p className="text-xs font-black text-gray-900 leading-none">{user?.name || t('Değerli Bayimiz')}</p>
                 <p className="text-[10px] font-bold text-indigo-500 uppercase tracking-widest mt-1">{t('Bayi Hesabı')}</p>
               </div>
               <div className="w-8 h-8 bg-gradient-to-br from-indigo-500 to-purple-600 rounded-xl flex items-center justify-center text-white font-black text-[10px] shadow-sm">
@@ -80,7 +81,7 @@ const BayiLayout = () => {
           </div>
         </header>
 
-        <main className="flex-1 overflow-y-auto custom-scrollbar px-3 md:px-8 lg:px-12 py-4 md:py-8 bg-white" style={{ paddingBottom: 'max(1rem, env(safe-area-inset-bottom))' }}>
+        <main className="flex-1 overflow-y-auto custom-scrollbar px-3 md:px-8 lg:px-12 py-4 md:py-8 pb-[calc(5rem+env(safe-area-inset-bottom))] lg:pb-8 bg-white">
           <ErrorBoundary key={pathname}>
           <Suspense fallback={<PageLoader />}>
           <Routes>
@@ -100,6 +101,7 @@ const BayiLayout = () => {
         </main>
       </div>
 
+      <MobileTabBar onMenu={() => setMenuOpen(true)} />
       <CartDrawer isOpen={isCartOpen} onClose={() => setIsCartOpen(false)} />
     </div>
   );

@@ -134,9 +134,9 @@ const ProductCatalog = () => {
         : await api.post(`/products/${product.id}/stock-alert`);
       const update = (p) => (p.id === product.id ? { ...p, hasStockAlert: !isOn } : p);
       setProducts(prev => prev.map(update));
-      showAlert({ type: 'success', title: isOn ? 'Bildirim Kaldırıldı' : 'Haber Vereceğiz', message: res.data.message });
+      showAlert({ type: 'success', title: isOn ? t('Bildirim Kaldırıldı') : t('Haber Vereceğiz'), message: res.data.message });
     } catch (error) {
-      showAlert({ type: 'error', title: t('İşlem Başarısız'), message: error.response?.data?.message || 'Stok bildirimi ayarlanamadı.' });
+      showAlert({ type: 'error', title: t('İşlem Başarısız'), message: error.response?.data?.message || t('Stok bildirimi ayarlanamadı.') });
     }
   };
 
@@ -166,7 +166,7 @@ const ProductCatalog = () => {
              <h1 className="text-3xl md:text-3xl font-black text-gray-900 tracking-tight">{t('Katalog')}</h1>
           </div>
           <p className="text-gray-400 text-sm font-semibold uppercase tracking-widest">
-            {userProfile?.company?.name} Özel İskonto (%{userProfile?.company?.netDiscount || 0})
+            {userProfile?.company?.name} {t('Özel İskonto (%{n})', { n: userProfile?.company?.netDiscount || 0 })}
           </p>
           {rules?.qtyRate > 0 && (
             <p className="mt-2 inline-flex items-center text-[11px] font-black text-emerald-700 bg-emerald-50 px-3 py-1.5 rounded-xl">
@@ -203,7 +203,7 @@ const ProductCatalog = () => {
                </div>
                <div className="text-left">
                  <span className="font-black text-sm block">{t('Tüm Ürünler')}</span>
-                 <span className={`text-[10px] font-bold uppercase tracking-widest ${!selectedCategory ? 'text-indigo-200' : 'text-gray-400'}`}>Tüm Kataloğu Gör</span>
+                 <span className={`text-[10px] font-bold uppercase tracking-widest ${!selectedCategory ? 'text-indigo-200' : 'text-gray-400'}`}>{t('Tüm Kataloğu Gör')}</span>
                </div>
             </button>
 
@@ -226,7 +226,7 @@ const ProductCatalog = () => {
                  </div>
                  <div className="text-left">
                    <span className="font-black text-sm block">{cat.name}</span>
-                   <span className={`text-[10px] font-bold uppercase tracking-widest ${selectedCategory === cat.id ? 'text-indigo-200' : 'text-gray-400'}`}>Kategori</span>
+                   <span className={`text-[10px] font-bold uppercase tracking-widest ${selectedCategory === cat.id ? 'text-indigo-200' : 'text-gray-400'}`}>{t('Kategori')}</span>
                  </div>
               </button>
             ))}
@@ -280,14 +280,14 @@ const ProductCatalog = () => {
 
             <button onClick={() => { setPage(1); setFavoritesOnly(!favoritesOnly); }}
               className={`flex items-center px-4 py-3 rounded-2xl border text-xs font-black ${favoritesOnly ? 'bg-pink-50 border-pink-200 text-pink-600' : 'bg-gray-50 border-gray-100 text-gray-500'}`}>
-              <Heart className={`h-4 w-4 mr-2 ${favoritesOnly ? 'fill-current' : ''}`} /> Favorilerim
+              <Heart className={`h-4 w-4 mr-2 ${favoritesOnly ? 'fill-current' : ''}`} /> {t('Favorilerim')}
             </button>
 
             <button 
               onClick={() => { setPage(1); fetchData(); }}
               className="bg-gray-900 text-white px-8 py-3.5 rounded-2xl text-[11px] font-black uppercase tracking-widest hover:bg-gray-800 transition-colors shadow-lg shadow-gray-900/20"
             >
-              Uygula
+              {t('Uygula')}
             </button>
          </div>
       </div>
@@ -336,7 +336,7 @@ const ProductCatalog = () => {
                 <div className="flex items-center space-x-2 mb-3">
                   <span className="text-[10px] font-black text-indigo-600 uppercase bg-indigo-50 px-2.5 py-1 rounded-md tracking-widest">{product.brand || '—'}</span>
                   {summary ? (
-                    <span className="text-[10px] font-bold text-indigo-500 uppercase bg-indigo-50/60 px-2.5 py-1 rounded-md tracking-widest">{summary.count} seçenek · {product.options?.map(o => o.name).join(', ') || 'Varyant'}</span>
+                    <span className="text-[10px] font-bold text-indigo-500 uppercase bg-indigo-50/60 px-2.5 py-1 rounded-md tracking-widest">{summary.count} seçenek · {product.options?.map(o => o.name).join(', ') || t('Varyant')}</span>
                   ) : (
                     <span className="text-[10px] font-bold text-gray-500 uppercase bg-gray-50 px-2.5 py-1 rounded-md tracking-widest">{t('SKU:')} {product.sku}</span>
                   )}
@@ -347,7 +347,7 @@ const ProductCatalog = () => {
               <div className="flex items-end justify-between mb-8">
                 {summary ? (
                   <div>
-                    <p className="text-[10px] font-bold text-gray-400 uppercase tracking-widest mb-1">{t('Net Fiyat')} <span className="normal-case">(KDV hariç)</span></p>
+                    <p className="text-[10px] font-bold text-gray-400 uppercase tracking-widest mb-1">{t('Net Fiyat')} <span className="normal-case">{t('(KDV hariç)')}</span></p>
                     <p className="text-3xl font-black text-gray-900 tracking-tighter">
                       {summary.minPrice !== null ? <>{formatTRY(summary.minPrice)}<span className="text-sm text-gray-400 font-bold">{t("'den")}</span></> : <span className="text-sm text-gray-500">{t('Teklif isteyin')}</span>}
                     </p>
@@ -355,12 +355,12 @@ const ProductCatalog = () => {
                 ) : product.priceHidden ? (
                   <div>
                     <p className="text-[10px] font-bold text-gray-400 uppercase tracking-widest mb-1">{t('Fiyat')}</p>
-                    <p className="text-sm font-black text-gray-500">{product.rateMissing ? 'Kur bilgisi bekleniyor' : 'Teklif için iletişime geçin'}</p>
+                    <p className="text-sm font-black text-gray-500">{product.rateMissing ? t('Kur bilgisi bekleniyor') : t('Teklif için iletişime geçin')}</p>
                   </div>
                 ) : (
                   <>
                     <div>
-                      <p className="text-[10px] font-bold text-gray-400 uppercase tracking-widest mb-1">{t('Net Fiyat')} <span className="normal-case">(KDV hariç)</span></p>
+                      <p className="text-[10px] font-bold text-gray-400 uppercase tracking-widest mb-1">{t('Net Fiyat')} <span className="normal-case">{t('(KDV hariç)')}</span></p>
                       <div className="flex items-baseline gap-2">
                          <p className="text-3xl font-black text-gray-900 tracking-tighter">
                            {formatTRY(product.netPrice)}
@@ -414,7 +414,7 @@ const ProductCatalog = () => {
                         className={`w-3/5 rounded-2xl py-4 px-2 flex items-center justify-center transition-all duration-300 border ${product.hasStockAlert ? 'bg-emerald-50 border-emerald-100 text-emerald-700' : 'bg-white border-gray-200 text-gray-700 hover:border-indigo-300 hover:text-indigo-600'}`}
                       >
                         {product.hasStockAlert ? <BellOff className="h-4 w-4 mr-2" /> : <BellRing className="h-4 w-4 mr-2" />}
-                        <span className="text-[11px] font-black uppercase tracking-widest">{product.hasStockAlert ? 'Takipte' : 'Gelince Haber Ver'}</span>
+                        <span className="text-[11px] font-black uppercase tracking-widest">{product.hasStockAlert ? t('Takipte') : t('Gelince Haber Ver')}</span>
                       </button>
                     ) : (
                     <button 
@@ -426,7 +426,7 @@ const ProductCatalog = () => {
                       className="w-3/5 bg-gradient-to-r from-indigo-600 to-purple-600 hover:from-indigo-500 hover:to-purple-500 rounded-2xl py-4 px-2 flex items-center justify-center transition-all duration-300 shadow-md hover:shadow-indigo-500/30 hover:-translate-y-0.5 group/btn relative"
                     >
                        <ShoppingCart className="h-4 w-4 mr-2 text-white group-hover/btn:-rotate-12 transition-transform duration-300 relative z-10" />
-                       <span className="text-[11px] font-black text-white uppercase tracking-widest relative z-10">{product.priceHidden ? 'Teklif İste' : 'Sepete Ekle'}</span>
+                       <span className="text-[11px] font-black text-white uppercase tracking-widest relative z-10">{product.priceHidden ? t('Teklif İste') : t('Sepete Ekle')}</span>
                     </button>
                     )}
                  </div>

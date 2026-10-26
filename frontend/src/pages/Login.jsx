@@ -48,7 +48,7 @@ const Login = () => {
         setError(result.message);
       }
     } catch (err) {
-      setError('Sistem bağlantısı kurulamadı.');
+      setError(t('Sistem bağlantısı kurulamadı.'));
     } finally {
       setIsLoading(false);
     }
@@ -77,7 +77,7 @@ const Login = () => {
               {t('Hoş Geldiniz')}
             </h1>
             <p className="text-slate-500 text-sm font-medium">
-              {tenant?.name ? <><b className="text-slate-700">{tenant.name}</b> {t('B2B portalına giriş yapın.')}</> : 'Giriş yaparak devam edin.'}
+              {tenant?.name ? <><b className="text-slate-700">{tenant.name}</b> {t('B2B portalına giriş yapın.')}</> : t('Giriş yaparak devam edin.')}
             </p>
           </div>
 
@@ -146,7 +146,7 @@ const Login = () => {
               disabled={isLoading}
               className="w-full bg-slate-900 hover:bg-black text-white font-bold py-3.5 rounded-xl flex items-center justify-center gap-2 transition-all shadow-lg active:scale-[0.98] text-sm"
             >
-              {isLoading ? "Giriş Yapılıyor..." : "Giriş Yap"}
+              {isLoading ? t('Giriş Yapılıyor...') : t('Giriş Yap')}
               <ChevronRight className="h-4 w-4" />
             </button>
           </form>

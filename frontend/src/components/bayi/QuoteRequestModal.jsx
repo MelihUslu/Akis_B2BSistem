@@ -33,7 +33,7 @@ const QuoteRequestModal = ({ items: initialItems, onClose, onDone }) => {
         <div className="modal-header items-center">
           <div>
             <h3 className="modal-title flex items-center"><FileSignature className="h-5 w-5 mr-2 text-indigo-600" /> {t('Teklif İste')}</h3>
-            <p className="text-xs text-gray-400 font-semibold mt-1">Firma yetkilisi fiyatlandırınca bildirim alırsınız; onaylarsanız sipariş oluşur.</p>
+            <p className="text-xs text-gray-400 font-semibold mt-1">{t('Firma yetkilisi fiyatlandırınca bildirim alırsınız; onaylarsanız sipariş oluşur.')}</p>
           </div>
           <button type="button" onClick={onClose} className="modal-close" aria-label={t('Kapat')}><X className="h-5 w-5" /></button>
         </div>
@@ -53,14 +53,14 @@ const QuoteRequestModal = ({ items: initialItems, onClose, onDone }) => {
             </div>
           ))}
           <div>
-            <label className="premium-label">Not (isteğe bağlı)</label>
+            <label className="premium-label">{t('Not (isteğe bağlı)')}</label>
             <textarea className="premium-input h-24 resize-none" placeholder={t('Teslim tarihi, toplu alım planı vb.')} value={note} onChange={(e) => setNote(e.target.value)} />
           </div>
           {error && <p className="text-xs font-bold text-red-600 bg-red-50 p-3 rounded-xl">{error}</p>}
         </div>
         <div className="p-6 border-t border-gray-100 flex gap-3">
           <button type="button" onClick={onClose} className="flex-1 py-3 border border-gray-200 rounded-xl font-bold text-gray-600 hover:bg-gray-50">{t('Vazgeç')}</button>
-          <button type="submit" disabled={sending} className="flex-1 btn-gradient disabled:opacity-60">{sending ? 'Gönderiliyor...' : 'Talebi Gönder'}</button>
+          <button type="submit" disabled={sending} className="flex-1 btn-gradient disabled:opacity-60">{sending ? t('Gönderiliyor...') : t('Talebi Gönder')}</button>
         </div>
       </form>
     </div>

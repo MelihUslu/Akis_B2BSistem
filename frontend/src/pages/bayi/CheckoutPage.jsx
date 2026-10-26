@@ -179,7 +179,7 @@ const CheckoutPage = () => {
 
               <div className="space-y-6">
                 <div className="flex justify-between items-center text-sm font-bold text-gray-500 uppercase tracking-widest">
-                  <span>Ürünler (KDV hariç)</span>
+                  <span>{t('Ürünler (KDV hariç)')}</span>
                   <span className="text-gray-900">{formatTRY(quote?.subtotal)}</span>
                 </div>
                 {quote?.coupon ? (
@@ -243,7 +243,7 @@ const CheckoutPage = () => {
                 </span>
               ) : (
                 <>
-                  SİPARİŞİ ONAYLA{' '}
+                  {t('SİPARİŞİ ONAYLA')}{' '}
                   <ArrowRight className="inline-block ml-2 h-6 w-6 group-hover:translate-x-2 transition-transform" />
                 </>
               )}

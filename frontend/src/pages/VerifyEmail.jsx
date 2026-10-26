@@ -24,7 +24,7 @@ const VerifyEmail = () => {
       <div className="bg-white rounded-[2rem] shadow-xl border border-slate-100 p-10 max-w-md w-full text-center space-y-6">
         <Icon className={`h-14 w-14 mx-auto ${state.status === 'loading' ? 'animate-spin text-indigo-500' : state.status === 'success' ? 'text-emerald-500' : 'text-red-500'}`} />
         <h1 className="text-2xl font-black text-slate-900">
-          {state.status === 'loading' ? 'Doğrulanıyor...' : state.status === 'success' ? 'Hesabınız hazır!' : 'Doğrulama başarısız'}
+          {state.status === 'loading' ? t('Doğrulanıyor...') : state.status === 'success' ? t('Hesabınız hazır!') : t('Doğrulama başarısız')}
         </h1>
         <p className="text-sm text-slate-500 font-medium">{state.message}</p>
         {state.status !== 'loading' && (

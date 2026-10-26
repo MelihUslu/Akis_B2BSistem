@@ -30,7 +30,7 @@ const TwoFactorStep = ({ onVerify, onCancel }) => {
         <ShieldCheck className="h-5 w-5 text-indigo-600 shrink-0 mt-0.5" />
         <p className="text-xs text-slate-600 leading-relaxed">
           {recovery
-            ? 'Kurulumda kaydettiğiniz kurtarma kodlarından birini girin. Her kod yalnızca bir kez kullanılabilir.'
+            ? t('Kurulumda kaydettiğiniz kurtarma kodlarından birini girin. Her kod yalnızca bir kez kullanılabilir.')
             : t('Hesabınızda iki aşamalı doğrulama açık. Doğrulama uygulamanızdaki (Google Authenticator, Microsoft Authenticator…) 6 haneli kodu girin.')}
         </p>
       </div>
@@ -52,13 +52,13 @@ const TwoFactorStep = ({ onVerify, onCancel }) => {
       />
       <button type="submit" disabled={loading || code.length < 6}
         className="w-full bg-slate-900 hover:bg-black text-white font-bold py-3.5 rounded-xl flex items-center justify-center gap-2 transition-all disabled:opacity-50 text-sm">
-        {loading ? 'Doğrulanıyor...' : 'Doğrula ve Giriş Yap'} <ChevronRight className="h-4 w-4" />
+        {loading ? t('Doğrulanıyor...') : t('Doğrula ve Giriş Yap')} <ChevronRight className="h-4 w-4" />
       </button>
       <div className="flex justify-between text-[12px]">
         <button type="button" onClick={() => { setRecovery(!recovery); setCode(''); setError(''); }} className="font-bold text-indigo-600 hover:underline">
           {recovery ? t('Uygulama kodu gir') : t('Kurtarma kodu kullan')}
         </button>
-        <button type="button" onClick={() => onCancel()} className="text-slate-400 hover:text-slate-700">Geri dön</button>
+        <button type="button" onClick={() => onCancel()} className="text-slate-400 hover:text-slate-700">{t('Geri dön')}</button>
       </div>
     </form>
   );

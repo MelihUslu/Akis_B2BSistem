@@ -12,24 +12,24 @@ datasource db {
 }
 
 model User {
-  id                 Int       @id @default(autoincrement())
-  tenantId           Int? // SUPER_ADMIN (platform sahibi) için boş
-  tenant             Tenant?   @relation(fields: [tenantId], references: [id])
-  email              String
-  password           String
-  name               String
-  role               String    @default("BAYI") // SUPER_ADMIN (platform), ADMIN (kiracı yöneticisi), BAYI, PLASIYER
+  id                   Int       @id @default(autoincrement())
+  tenantId             Int? // SUPER_ADMIN (platform sahibi) için boş
+  tenant               Tenant?   @relation(fields: [tenantId], references: [id])
+  email                String
+  password             String
+  name                 String
+  role                 String    @default("BAYI") // SUPER_ADMIN (platform), ADMIN (kiracı yöneticisi), BAYI, PLASIYER
   // Firma sahibi (ADMIN) tüm yetkilere sahiptir ve silinemez; bayide ana kullanıcıdır (alt kullanıcı yönetir)
-  isOwner            Boolean   @default(false)
-  permissions        Json? // ADMIN personeli için: ["CATALOG","ORDERS","DEALERS","FINANCE","SETTINGS"]
-  isActive           Boolean   @default(true)
-  lastLoginAt        DateTime?
+  isOwner              Boolean   @default(false)
+  permissions          Json? // ADMIN personeli için: ["CATALOG","ORDERS","DEALERS","FINANCE","SETTINGS"]
+  isActive             Boolean   @default(true)
+  lastLoginAt          DateTime?
   // İki aşamalı doğrulama (TOTP). Gizli anahtar şifreli; yedek kodların sadece özeti saklanır
-  twoFactorEnabled   Boolean   @default(false)
-  twoFactorSecretEnc String?
-  twoFactorRecovery  Json?
-  emailVerifiedAt    DateTime?
-  emailVerifyToken   String?   @unique
+  twoFactorEnabled     Boolean   @default(false)
+  twoFactorSecretEnc   String?
+  twoFactorRecovery    Json?
+  emailVerifiedAt      DateTime?
+  emailVerifyToken     String?   @unique
   // Şifre sıfırlama: bağlantıdaki anahtarın yalnızca SHA-256 özeti saklanır
   passwordResetHash    String?   @unique
   passwordResetExpires DateTime?
@@ -37,22 +37,23 @@ model User {
   passwordChangedAt    DateTime?
   // E-posta bildirim tercihleri: { ORDER: true, PAYMENT: false, … } (yoksa varsayılanlar)
   notificationPrefs    Json?
-  companyId          Int?
-  company            Company?  @relation(fields: [companyId], references: [id])
-  createdAt          DateTime  @default(now())
-  updatedAt          DateTime  @updatedAt
+  companyId            Int?
+  company              Company?  @relation(fields: [companyId], references: [id])
+  createdAt            DateTime  @default(now())
+  updatedAt            DateTime  @updatedAt
 
-  orders          Order[]
-  plasiyerPoints  PlasiyerPoint[]
-  plasiyerOf      Company[]        @relation("CompanyPlasiyer")
-  notifications   Notification[]
-  stockAlerts     StockAlert[]
-  reconciliations Reconciliation[]
-  returnRequests  ReturnRequest[]
-  quoteRequests   QuoteRequest[]
-  favorites       Favorite[]
-  orderTemplates  OrderTemplate[]
-  supportTickets  SupportTicket[]
+  orders            Order[]
+  plasiyerPoints    PlasiyerPoint[]
+  plasiyerOf        Company[]          @relation("CompanyPlasiyer")
+  notifications     Notification[]
+  pushSubscriptions PushSubscription[]
+  stockAlerts       StockAlert[]
+  reconciliations   Reconciliation[]
+  returnRequests    ReturnRequest[]
+  quoteRequests     QuoteRequest[]
+  favorites         Favorite[]
+  orderTemplates    OrderTemplate[]
+  supportTickets    SupportTicket[]
 
   @@index([tenantId])
 }
@@ -164,16 +165,16 @@ model Product {
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
-  orderItems     OrderItem[]
-  stockAlerts    StockAlert[]
+  orderItems      OrderItem[]
+  stockAlerts     StockAlert[]
   warehouseStocks WarehouseStock[]
-  returnRequests ReturnRequest[]
+  returnRequests  ReturnRequest[]
   // Özel varyant tanımı: ana üründe özellikler (Gramaj, Ambalaj...), varyantta seçilen değerler
-  options        ProductOption[]
-  variantValues  ProductVariantValue[]
-  specialPrices  SpecialPrice[]
-  favorites      Favorite[]
-  quoteItems     QuoteRequestItem[]
+  options         ProductOption[]
+  variantValues   ProductVariantValue[]
+  specialPrices   SpecialPrice[]
+  favorites       Favorite[]
+  quoteItems      QuoteRequestItem[]
 
   @@unique([tenantId, sku])
   @@index([tenantId])
@@ -207,22 +208,22 @@ model Order {
   createdAt      DateTime  @default(now())
   updatedAt      DateTime  @updatedAt
 
-  invoice        Invoice?
-  warehouseId     Int? // Siparişi karşılayan depo (depo tanımlıysa)
-  warehouse       Warehouse? @relation(fields: [warehouseId], references: [id])
-  shippingAddress Json? // Sipariş anındaki teslimat adresi: { title, contactName, phone, city, district, line, postalCode }
+  invoice          Invoice?
+  warehouseId      Int? // Siparişi karşılayan depo (depo tanımlıysa)
+  warehouse        Warehouse?             @relation(fields: [warehouseId], references: [id])
+  shippingAddress  Json? // Sipariş anındaki teslimat adresi: { title, contactName, phone, city, district, line, postalCode }
   // Kargo entegrasyonu: gönderi anahtarı (AK{id}), firmanın kargo sisteminde oluşturuldu mu, son durum
   shipmentProvider String?
   shipmentKey      String?
   shipmentStatus   String? // CREATED, IN_TRANSIT, DELIVERED, CANCELLED, ERROR
   shipmentInfo     String? // kargo firmasının son durum açıklaması / hata mesajı
   shipmentSyncedAt DateTime?
-  items          OrderItem[]
-  payments       Payment[]
-  plasiyerPoint  PlasiyerPoint?
-  transactions   FinancialTransaction[]
-  returnRequests ReturnRequest[]
-  quoteRequest   QuoteRequest?
+  items            OrderItem[]
+  payments         Payment[]
+  plasiyerPoint    PlasiyerPoint?
+  transactions     FinancialTransaction[]
+  returnRequests   ReturnRequest[]
+  quoteRequest     QuoteRequest?
 
   @@index([tenantId])
 }
@@ -304,20 +305,20 @@ model Invoice {
 }
 
 model OrderItem {
-  id              Int     @id @default(autoincrement())
-  tenantId        Int
-  tenant          Tenant  @relation(fields: [tenantId], references: [id])
-  orderId         Int
-  order           Order   @relation(fields: [orderId], references: [id])
-  productId       Int
-  product         Product @relation(fields: [productId], references: [id])
-  quantity        Int
-  price           Float // Birim net fiyat (TL, iskontolar sonrası, KDV hariç)
-  vatRate         Float   @default(20)
-  status          String  @default("APPROVED") // APPROVED, CANCELLED (Parçalı onay için iptal edilen kalemleri işaretlemek amaçlı)
-  isStockDeducted Boolean @default(false)
+  id               Int     @id @default(autoincrement())
+  tenantId         Int
+  tenant           Tenant  @relation(fields: [tenantId], references: [id])
+  orderId          Int
+  order            Order   @relation(fields: [orderId], references: [id])
+  productId        Int
+  product          Product @relation(fields: [productId], references: [id])
+  quantity         Int
+  price            Float // Birim net fiyat (TL, iskontolar sonrası, KDV hariç)
+  vatRate          Float   @default(20)
+  status           String  @default("APPROVED") // APPROVED, CANCELLED (Parçalı onay için iptal edilen kalemleri işaretlemek amaçlı)
+  isStockDeducted  Boolean @default(false)
   stockWarehouseId Int? // Stok hangi depodan düşüldü (iptal / iadede oraya geri döner)
-  variantLabel    String? // Sipariş anındaki varyant seçimi, örn. "Gramaj: 1 kg · Ambalaj: Kutu"
+  variantLabel     String? // Sipariş anındaki varyant seçimi, örn. "Gramaj: 1 kg · Ambalaj: Kutu"
 
   returnRequests ReturnRequest[]
 
@@ -429,6 +430,24 @@ model ReturnRequest {
 }
 
 // Uygulama içi bildirimler
+// Telefona / masaüstüne push bildirimi için tarayıcı aboneliği (kurulan uygulama kapalıyken de bildirim gelir)
+model PushSubscription {
+  id         Int      @id @default(autoincrement())
+  tenantId   Int
+  tenant     Tenant   @relation(fields: [tenantId], references: [id])
+  userId     Int
+  user       User     @relation(fields: [userId], references: [id])
+  endpoint   String   @unique
+  p256dh     String
+  auth       String
+  userAgent  String?
+  createdAt  DateTime @default(now())
+  lastUsedAt DateTime @default(now())
+
+  @@index([userId])
+  @@index([tenantId])
+}
+
 model Notification {
   id        Int      @id @default(autoincrement())
   tenantId  Int
@@ -493,8 +512,8 @@ model Plan {
 
 // Kiracı = platformdan abonelik satın alan müşteri firma
 model Tenant {
-  id                     Int       @id @default(autoincrement())
-  slug                   String    @unique // Alt alan adı: <slug>.alanadi.com
+  id                     Int               @id @default(autoincrement())
+  slug                   String            @unique // Alt alan adı: <slug>.alanadi.com
   name                   String
   contactEmail           String
   phone                  String?
@@ -502,46 +521,46 @@ model Tenant {
   taxOffice              String?
   address                String?
   logoUrl                String?
-  status                 String    @default("TRIAL") // TRIAL, ACTIVE, PAST_DUE, SUSPENDED, CANCELLED
+  status                 String            @default("TRIAL") // TRIAL, ACTIVE, PAST_DUE, SUSPENDED, CANCELLED
   planId                 Int
-  plan                   Plan      @relation(fields: [planId], references: [id])
-  billingCycle           String    @default("MONTHLY") // MONTHLY, YEARLY
+  plan                   Plan              @relation(fields: [planId], references: [id])
+  billingCycle           String            @default("MONTHLY") // MONTHLY, YEARLY
   trialEndsAt            DateTime?
   currentPeriodEnd       DateTime?
-  cancelAtPeriodEnd      Boolean   @default(false) // İptal edildi, dönem sonuna kadar açık
-  signupSource           String    @default("PLATFORM") // PLATFORM (sen açtın), SELF (kendi kayıt oldu)
+  cancelAtPeriodEnd      Boolean           @default(false) // İptal edildi, dönem sonuna kadar açık
+  signupSource           String            @default("PLATFORM") // PLATFORM (sen açtın), SELF (kendi kayıt oldu)
   notes                  String? // Platform sahibinin iç notları
   // iyzico abonelik bilgileri
   iyzicoCustomerRef      String?
-  iyzicoSubscriptionRef  String?   @unique
-  iyzicoCheckoutToken    String?   @unique // Başlatılan ödeme formu; geri dönüşte bu kiracıya ait olduğu doğrulanır
+  iyzicoSubscriptionRef  String?           @unique
+  iyzicoCheckoutToken    String?           @unique // Başlatılan ödeme formu; geri dönüşte bu kiracıya ait olduğu doğrulanır
   // Firmanın bayilerinden tahsilat için kendi sanal POS'u (gizli anahtar şifreli saklanır)
   posProvider            String? // IYZICO
-  posMode                String    @default("SANDBOX") // SANDBOX, LIVE
+  posMode                String            @default("SANDBOX") // SANDBOX, LIVE
   posApiKey              String?
   posSecretEnc           String?
   // E-fatura: PARASUT (otomatik) veya boş (ERP'den / elle numara girilir). Anahtarlar şifreli JSON.
   invoiceProvider        String?
   invoiceConfigEnc       String?
-  invoiceAutoOn          String    @default("MANUAL") // MANUAL, APPROVED, SHIPPED: fatura otomatik ne zaman kesilir
+  invoiceAutoOn          String            @default("MANUAL") // MANUAL, APPROVED, SHIPPED: fatura otomatik ne zaman kesilir
   invoices               Invoice[]
   // Kargo entegrasyonu (YURTICI). Anahtarlar şifreli JSON.
   cargoProvider          String?
-  cargoMode              String    @default("TEST") // TEST, LIVE
+  cargoMode              String            @default("TEST") // TEST, LIVE
   cargoConfigEnc         String?
   deliveryAddresses      DeliveryAddress[]
   warehouses             Warehouse[]
   warehouseStocks        WarehouseStock[]
   webhookDeliveries      WebhookDelivery[]
   // Firmaya özel alan adı (örn. b2b.firmasi.com) — DNS TXT kaydı ile doğrulanır
-  customDomain           String?   @unique
+  customDomain           String?           @unique
   customDomainToken      String?
   customDomainVerifiedAt DateTime?
   // Hesap kapatma (KVKK): kapatma talebinden 30 gün sonra kalıcı silinebilir
   closedAt               DateTime?
   deletionScheduledAt    DateTime?
-  createdAt              DateTime  @default(now())
-  updatedAt              DateTime  @updatedAt
+  createdAt              DateTime          @default(now())
+  updatedAt              DateTime          @updatedAt
 
   users                User[]
   companies            Company[]
@@ -556,6 +575,7 @@ model Tenant {
   reconciliations      Reconciliation[]
   returnRequests       ReturnRequest[]
   notifications        Notification[]
+  pushSubscriptions    PushSubscription[]
   stockAlerts          StockAlert[]
   subscriptionPayments SubscriptionPayment[]
   productOptions       ProductOption[]
@@ -575,26 +595,26 @@ model Tenant {
 
 // Kiracının platforma yaptığı abonelik ödemeleri (iyzico veya manuel)
 model SubscriptionPayment {
-  id           Int      @id @default(autoincrement())
-  tenantId     Int
-  tenant       Tenant   @relation(fields: [tenantId], references: [id])
-  planCode     String
-  billingCycle String
-  amount       Float
-  status       String   @default("SUCCESS") // SUCCESS, FAILED
-  method       String // IYZICO, MANUAL
-  reference    String?  @unique // iyzico sipariş referansı / dekont no
-  periodStart  DateTime
-  periodEnd    DateTime
-  note         String?
-  createdAt    DateTime @default(now())
-
-  @@index([tenantId])
+  id                Int      @id @default(autoincrement())
+  tenantId          Int
+  tenant            Tenant   @relation(fields: [tenantId], references: [id])
+  planCode          String
+  billingCycle      String
+  amount            Float
+  status            String   @default("SUCCESS") // SUCCESS, FAILED
+  method            String // IYZICO, MANUAL
+  reference         String?  @unique // iyzico sipariş referansı / dekont no
+  periodStart       DateTime
+  periodEnd         DateTime
+  note              String?
+  createdAt         DateTime @default(now())
   // Platformun müşteriye kestiği fatura (PARASUT_* ortam değişkenleri tanımlıysa otomatik)
   invoiceStatus     String? // PENDING, ISSUED, FAILED
   invoiceNumber     String?
   invoiceExternalId String?
   invoiceError      String?
+
+  @@index([tenantId])
 }
 
 // ─── Bayi deneyimi ───────────────────────────────────────────────────────────
@@ -774,17 +794,17 @@ model ApiKey {
 
 // Olay bildirimi: sipariş oluştu / durum değişti, bayi oluştu vb. → firmanın verdiği adrese POST
 model Webhook {
-  id         Int       @id @default(autoincrement())
+  id         Int               @id @default(autoincrement())
   tenantId   Int
-  tenant     Tenant    @relation(fields: [tenantId], references: [id])
+  tenant     Tenant            @relation(fields: [tenantId], references: [id])
   url        String
   events     Json // ["order.created", "order.updated", ...]
   secret     String // İmza (X-Webhook-Signature, HMAC-SHA256)
-  isActive   Boolean   @default(true)
+  isActive   Boolean           @default(true)
   lastStatus Int?
   lastError  String?
   lastAt     DateTime?
-  createdAt  DateTime  @default(now())
+  createdAt  DateTime          @default(now())
   deliveries WebhookDelivery[]
 
   @@index([tenantId])
@@ -850,20 +870,20 @@ model Announcement {
 
 // Firmanın platforma açtığı destek talebi
 model SupportTicket {
-  id        Int      @id @default(autoincrement())
-  tenantId  Int
-  tenant    Tenant   @relation(fields: [tenantId], references: [id])
-  userId    Int
-  user      User     @relation(fields: [userId], references: [id])
-  subject   String
-  priority  String   @default("NORMAL") // NORMAL, HIGH
-  category  String   @default("OTHER") // TECHNICAL, BILLING, FEATURE, USAGE, OTHER
+  id              Int       @id @default(autoincrement())
+  tenantId        Int
+  tenant          Tenant    @relation(fields: [tenantId], references: [id])
+  userId          Int
+  user            User      @relation(fields: [userId], references: [id])
+  subject         String
+  priority        String    @default("NORMAL") // NORMAL, HIGH
+  category        String    @default("OTHER") // TECHNICAL, BILLING, FEATURE, USAGE, OTHER
   context         Json? // Talep açılırken otomatik eklenen bilgi: son sayfa, tarayıcı, paket…
   dueAt           DateTime? // Hedef yanıt zamanı (SLA); platform yanıtlayınca boşalır
   firstResponseAt DateTime? // İlk platform yanıtı (ölçüm için)
-  status    String   @default("OPEN") // OPEN (platform yanıtı bekliyor), ANSWERED, CLOSED
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
+  status          String    @default("OPEN") // OPEN (platform yanıtı bekliyor), ANSWERED, CLOSED
+  createdAt       DateTime  @default(now())
+  updatedAt       DateTime  @updatedAt
 
   messages SupportMessage[]
 
@@ -871,16 +891,16 @@ model SupportTicket {
 }
 
 model SupportMessage {
-  id         Int           @id @default(autoincrement())
-  tenantId   Int
-  tenant     Tenant        @relation(fields: [tenantId], references: [id])
-  ticketId   Int
-  ticket     SupportTicket @relation(fields: [ticketId], references: [id], onDelete: Cascade)
-  authorType String // TENANT, PLATFORM
-  authorName String
+  id          Int           @id @default(autoincrement())
+  tenantId    Int
+  tenant      Tenant        @relation(fields: [tenantId], references: [id])
+  ticketId    Int
+  ticket      SupportTicket @relation(fields: [ticketId], references: [id], onDelete: Cascade)
+  authorType  String // TENANT, PLATFORM
+  authorName  String
   attachments Json? // [{ url, name, type, size }]
-  body       String
-  createdAt  DateTime      @default(now())
+  body        String
+  createdAt   DateTime      @default(now())
 
   @@index([tenantId])
 }

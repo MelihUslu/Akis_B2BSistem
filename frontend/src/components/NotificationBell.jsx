@@ -4,6 +4,7 @@ import { Bell, CheckCheck, Package, Wallet, RotateCcw, ShoppingCart, Info } from
 import api from '../services/api';
 import { formatDate } from '../utils/format';
 import { t } from '../i18n';
+import { enablePush, syncPush } from '../utils/push';
 
 const POLL_MS = 30000;
 
@@ -39,7 +40,7 @@ const NotificationBell = ({ dark = false }) => {
       if (seenIds.current && browserNotificationsSupported() && Notification.permission === 'granted') {
         list
           .filter((n) => !n.isRead && !seenIds.current.has(n.id))
-          .forEach((n) => new Notification(n.title, { body: n.message, tag: `akis-${n.id}` }));
+          .forEach((n) => new Notification(n.title, { body: n.message, tag: `n${n.id}` })); // push ile aynı etiket: çift bildirim olmaz
       }
       seenIds.current = new Set(list.map((n) => n.id));
 
@@ -51,6 +52,7 @@ const NotificationBell = ({ dark = false }) => {
   };
 
   useEffect(() => {
+    syncPush(); // izin daha önce verildiyse bu cihazın push aboneliğini tazeler
     fetchNotifications();
     const timer = setInterval(fetchNotifications, POLL_MS);
     return () => clearInterval(timer);
@@ -80,7 +82,7 @@ const NotificationBell = ({ dark = false }) => {
 
   const requestPermission = async () => {
     if (!browserNotificationsSupported()) return;
-    setPermission(await Notification.requestPermission());
+    setPermission(await enablePush());
   };
 
   return (

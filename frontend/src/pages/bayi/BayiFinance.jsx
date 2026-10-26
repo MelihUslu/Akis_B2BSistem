@@ -34,11 +34,11 @@ const CardPayModal = ({ suggested, provider, onClose }) => {
           <button type="button" onClick={onClose} className="modal-close" aria-label={t('Kapat')}><X className="h-5 w-5" /></button>
         </div>
         <div>
-          <label className="premium-label">Ödeme Tutarı (₺)</label>
+          <label className="premium-label">{t('Ödeme Tutarı (₺)')}</label>
           <input required type="number" step="0.01" min="1" className="premium-input text-lg" value={amount} onChange={(e) => setAmount(e.target.value)} />
         </div>
         {error && <p className="text-xs font-bold text-red-600 bg-red-50 p-3 rounded-xl">{error}</p>}
-        <button type="submit" disabled={loading} className="w-full btn-gradient py-4 disabled:opacity-60"><Lock className="h-4 w-4 mr-2" /> {loading ? 'Yönlendiriliyor...' : 'Güvenli Ödeme Sayfasına Git'}</button>
+        <button type="submit" disabled={loading} className="w-full btn-gradient py-4 disabled:opacity-60"><Lock className="h-4 w-4 mr-2" /> {loading ? t('Yönlendiriliyor...') : t('Güvenli Ödeme Sayfasına Git')}</button>
         <p className="text-[10px] text-center text-gray-400">{t('Kart bilgileriniz')} {provider === 'PAYTR' ? 'PayTR' : 'iyzico'} güvenli ödeme sayfasında işlenir, firmamızda saklanmaz.</p>
       </form>
     </div>
@@ -93,7 +93,7 @@ const PosModal = ({ suggested, onClose, onPaid }) => {
 
         <div className="p-6 space-y-4">
           <div>
-            <label className="premium-label">Ödeme Tutarı (₺)</label>
+            <label className="premium-label">{t('Ödeme Tutarı (₺)')}</label>
             <input required type="number" step="0.01" min="1" className="premium-input text-lg" value={form.amount} onChange={(e) => setForm({ ...form, amount: e.target.value })} />
           </div>
           <div>
@@ -118,7 +118,7 @@ const PosModal = ({ suggested, onClose, onPaid }) => {
           {error && <p className="text-xs font-bold text-red-600 bg-red-50 p-3 rounded-xl">{error}</p>}
 
           <button type="submit" disabled={submitting} className="w-full btn-gradient py-4 disabled:opacity-60">
-            <Lock className="h-4 w-4 mr-2" /> {submitting ? 'İşleniyor...' : `${formatTRY(form.amount)} Öde`}
+            <Lock className="h-4 w-4 mr-2" /> {submitting ? t('İşleniyor...') : t('{amount} Öde', { amount: formatTRY(form.amount) })}
           </button>
           <p className="text-[10px] text-center text-gray-400 font-semibold">{t('Demo ortamıdır, gerçek tahsilat yapılmaz. Kart bilgileriniz saklanmaz (sadece son 4 hane).')}</p>
         </div>
@@ -156,7 +156,7 @@ const BayiFinance = () => {
         success: { type: 'success', title: t('Ödemeniz Alındı'), message: t('Ödemeniz carinize işlendi, risk limitiniz güncellendi. Teşekkür ederiz.') },
         // PayTR: onay sunucuya ayrıca bildirilir, birkaç saniye içinde ekstreye yansır
         pending: { type: 'info', title: t('Ödemeniz Alındı'), message: t('Ödemeniz onaylanınca birkaç saniye içinde carinize işlenir. Ekstreyi yenileyerek kontrol edebilirsiniz.') },
-        failed: { type: 'error', title: t('Ödeme Tamamlanamadı'), message: params.get('message') || 'Lütfen tekrar deneyin.' }
+        failed: { type: 'error', title: t('Ödeme Tamamlanamadı'), message: params.get('message') || t('Lütfen tekrar deneyin.') }
       }[result] || { type: 'info', title: t('Ödeme'), message: t('Ödeme sonucu alınamadı.') });
       if (result === 'pending') setTimeout(fetchStatement, 4000);
       setParams({}, { replace: true });
@@ -220,7 +220,7 @@ const BayiFinance = () => {
           <Link to="/print/statement" className="flex items-center px-4 py-3 rounded-2xl bg-gray-100 text-gray-700 text-xs font-black hover:bg-gray-200"><Printer className="h-4 w-4 mr-1.5" /> {t('Yazdır / PDF')}</Link>
           {posMode && posMode !== 'NONE' && (
             <button onClick={() => setIsPosOpen(true)} className="btn-gradient">
-              <CreditCard className="h-4 w-4 mr-2" /> {posMode === 'DEMO' ? 'Sanal POS ile Öde (Demo)' : 'Kartla Öde'}
+              <CreditCard className="h-4 w-4 mr-2" /> {posMode === 'DEMO' ? t('Sanal POS ile Öde (Demo)') : t('Kartla Öde')}
             </button>
           )}
         </div>
@@ -280,7 +280,7 @@ const BayiFinance = () => {
           <CalendarClock className="h-6 w-6 flex-shrink-0" />
           <p className="text-sm font-bold">
             {t('En yakın vade')}: #AK-{upcomingDue.id} · {formatDate(upcomingDue.dueDate)} · {formatTRY(upcomingDue.totalAmount)}
-            {new Date(upcomingDue.dueDate) < new Date() && ' (vadesi geçti)'}
+            {new Date(upcomingDue.dueDate) < new Date() && t(' (vadesi geçti)')}
           </p>
         </div>
       )}
@@ -310,7 +310,7 @@ const BayiFinance = () => {
                   <td className="px-6 py-4 font-semibold text-gray-800">
                     <span className="inline-flex items-center">
                       {tx.type === 'DEBT' ? <ArrowUpRight className="h-4 w-4 mr-2 text-red-500" /> : <ArrowDownLeft className="h-4 w-4 mr-2 text-emerald-500" />}
-                      {tx.description || (tx.type === 'DEBT' ? 'Borç' : 'Alacak')}
+                      {tx.description || (tx.type === 'DEBT' ? t('Borç') : t('Alacak'))}
                     </span>
                   </td>
                   <td className="px-6 py-4 text-right font-bold text-red-600">{tx.type === 'DEBT' ? formatTRY(tx.amount) : ''}</td>

@@ -96,14 +96,14 @@ const BayiProfile = () => {
             <input required type="password" autoComplete="current-password" className="premium-input" value={form.currentPassword} onChange={(e) => setForm({ ...form, currentPassword: e.target.value })} />
           </div>
           <div>
-            <label className="premium-label">Yeni Şifre (en az 8 karakter)</label>
+            <label className="premium-label">{t('Yeni Şifre (en az 8 karakter)')}</label>
             <input required minLength={8} type="password" autoComplete="new-password" className="premium-input" value={form.newPassword} onChange={(e) => setForm({ ...form, newPassword: e.target.value })} />
           </div>
           <div>
-            <label className="premium-label">Yeni Şifre (Tekrar)</label>
+            <label className="premium-label">{t('Yeni Şifre (Tekrar)')}</label>
             <input required minLength={8} type="password" autoComplete="new-password" className="premium-input" value={form.confirm} onChange={(e) => setForm({ ...form, confirm: e.target.value })} />
           </div>
-          <button type="submit" disabled={saving} className="w-full btn-gradient disabled:opacity-60">{saving ? 'Kaydediliyor...' : 'Şifreyi Güncelle'}</button>
+          <button type="submit" disabled={saving} className="w-full btn-gradient disabled:opacity-60">{saving ? t('Kaydediliyor...') : t('Şifreyi Güncelle')}</button>
         </form>
       </div>
 
@@ -111,7 +111,7 @@ const BayiProfile = () => {
 
       <div className="card-premium p-5 md:p-8 space-y-4">
         <h3 className="font-black text-gray-900 flex items-center"><MapPin className="h-5 w-5 mr-2 text-indigo-500" /> {t('Teslimat Adreslerim')}</h3>
-        <p className="text-sm text-gray-500">Siparişte hangi adrese gönderileceğini seçebilirsiniz; varsayılan adres otomatik seçilir.</p>
+        <p className="text-sm text-gray-500">{t('Siparişte hangi adrese gönderileceğini seçebilirsiniz; varsayılan adres otomatik seçilir.')}</p>
         <AddressBook showAlert={showAlert} />
       </div>
 

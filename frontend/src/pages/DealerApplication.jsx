@@ -55,15 +55,15 @@ const DealerApplication = () => {
               <div><label className="premium-label">{t('Telefon')}</label><input required className="premium-input" value={form.phone} onChange={set('phone')} placeholder={t('05xx xxx xx xx')} /></div>
               <div className="md:col-span-2"><label className="premium-label">{t('Adres')}</label><input className="premium-input" value={form.address} onChange={set('address')} /></div>
               <div><label className="premium-label">{t('Giriş E-postası')}</label><input required type="email" autoComplete="email" className="premium-input" value={form.email} onChange={set('email')} /></div>
-              <div><label className="premium-label">Şifre (en az 8 karakter)</label><input required minLength={8} type="password" autoComplete="new-password" className="premium-input" value={form.password} onChange={set('password')} /></div>
-              <div className="md:col-span-2"><label className="premium-label">Mesajınız (isteğe bağlı)</label><textarea className="premium-input h-24 resize-none" value={form.note} onChange={set('note')} placeholder={t('Faaliyet alanınız, bölgeniz, aylık tahmini alım...')} /></div>
+              <div><label className="premium-label">{t('Şifre (en az 8 karakter)')}</label><input required minLength={8} type="password" autoComplete="new-password" className="premium-input" value={form.password} onChange={set('password')} /></div>
+              <div className="md:col-span-2"><label className="premium-label">{t('Mesajınız (isteğe bağlı)')}</label><textarea className="premium-input h-24 resize-none" value={form.note} onChange={set('note')} placeholder={t('Faaliyet alanınız, bölgeniz, aylık tahmini alım...')} /></div>
             </div>
             <label className="flex items-start gap-3 text-xs text-slate-600">
               <input type="checkbox" className="mt-0.5 h-4 w-4" checked={form.kvkkConsent} onChange={set('kvkkConsent')} />
               <span>{t('Başvurumun değerlendirilmesi için paylaştığım kişisel verilerin {company} tarafından 6698 sayılı KVKK kapsamında işlenmesini kabul ediyorum.', { company: tenant?.name || t('firma') })}</span>
             </label>
             {error && <p className="text-xs font-bold text-red-600 bg-red-50 p-3 rounded-xl">{error}</p>}
-            <button type="submit" disabled={sending || !form.kvkkConsent} className="w-full btn-gradient py-4 disabled:opacity-50">{sending ? 'Gönderiliyor...' : 'Başvuruyu Gönder'}</button>
+            <button type="submit" disabled={sending || !form.kvkkConsent} className="w-full btn-gradient py-4 disabled:opacity-50">{sending ? t('Gönderiliyor...') : t('Başvuruyu Gönder')}</button>
             <p className="text-[11px] text-center text-slate-400">{t('Başvurunuz onaylandığında e-posta ile bilgilendirilir, belirlediğiniz şifreyle giriş yaparsınız.')}</p>
           </form>
         )}

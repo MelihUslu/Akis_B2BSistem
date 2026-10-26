@@ -5,6 +5,7 @@ import { sendTrialEndingMail, sendNotificationMail } from './mailService.js';
 import { wantsEmail, TYPE_PERMISSION } from './notificationPrefs.js';
 import { currentTenantId } from '../utils/prisma.js';
 import { withJobLock } from '../utils/redis.js';
+import { pushToUser } from './pushService.js';
 
 // E-posta için firma bilgisi (ad, portal adresi); kısa süreli önbellek
 const tenantCache = new Map();
@@ -36,6 +37,7 @@ const create = async (userId, { type, title, message, link, dedupeKey }) => {
   try {
     const notification = await prisma.notification.create({ data: { userId, type, title, message, link, dedupeKey } });
     mailIfWanted(userId, notification);
+    pushToUser(userId, notification).catch((err) => console.error('[Push]', err.message));
     return notification;
   } catch (error) {
     if (error.code === 'P2002') return null; // Aynı dedupeKey eşzamanlı oluşturulduysa yok say

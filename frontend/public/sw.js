@@ -3,8 +3,9 @@
  * - API istekleri ve yüklenen dosyalar asla önbelleğe alınmaz (fiyat / stok her zaman günceldir).
  * - Sayfalar: önce ağ, bağlantı yoksa son açılan uygulama kabuğu.
  * - Derlenmiş JS/CSS ve ikonlar: önbellekten, arkada güncellenir.
+ * - Push: sunucudan gelen bildirimi gösterir; tıklanınca uygulamayı ilgili sayfada açar.
  */
-const CACHE = 'b2b-shell-v1';
+const CACHE = 'b2b-shell-v2';
 const SHELL = ['/', '/manifest.webmanifest', '/icon-192.png', '/icon-512.png', '/icon.svg'];
 
 self.addEventListener('install', (event) => {
@@ -48,4 +49,28 @@ self.addEventListener('fetch', (event) => {
       })
     );
   }
+});
+
+self.addEventListener('push', (event) => {
+  let data = {};
+  try { data = event.data ? event.data.json() : {}; } catch { data = { title: event.data?.text() }; }
+  event.waitUntil(self.registration.showNotification(data.title || 'Bildirim', {
+    body: data.body || '',
+    tag: data.tag,
+    icon: '/icon-192.png',
+    badge: '/icon-192.png',
+    data: { url: data.url || '/' },
+  }));
+});
+
+self.addEventListener('notificationclick', (event) => {
+  event.notification.close();
+  const target = new URL(event.notification.data?.url || '/', self.location.origin).href;
+  event.waitUntil(
+    self.clients.matchAll({ type: 'window', includeUncontrolled: true }).then((list) => {
+      const open = list.find((c) => c.url.startsWith(self.location.origin));
+      if (open) return open.focus().then((c) => c.navigate(target));
+      return self.clients.openWindow(target);
+    })
+  );
 });

@@ -14,7 +14,7 @@ const youtubeEmbed = (url) => {
   return id ? `https://www.youtube.com/embed/${id}` : null;
 };
 
-const STOCK_TEXT = { '100+': '100+ stokta', 'Son 5 Ürün': 'Son 5 ürün', 'Tükendi': t('Tükendi') };
+const STOCK_TEXT = { '100+': t('100+ stokta'), 'Son 5 Ürün': t('Son 5 ürün'), 'Tükendi': t('Tükendi') };
 
 // Varsayılan seçim: stoktaki ilk varyant (yoksa ilk varyant)
 const initialSelection = (product) => {
@@ -90,7 +90,7 @@ const ProductDetailModal = ({ product, rules, onClose, onAddToCart, onRequestQuo
       <div className="modal-panel rounded-none md:rounded-[1.75rem] w-full max-w-5xl h-full md:h-auto md:max-h-[90vh] overflow-y-auto! md: flex flex-col md:flex-row">
         <div className="w-full md:w-1/2 bg-gray-50 p-6 md:p-10 flex flex-col relative md:border-r border-gray-100">
           <div className="flex items-center justify-between mb-6">
-            <span className="bg-indigo-100 text-indigo-600 px-4 py-2 rounded-xl text-[10px] font-black uppercase tracking-widest shadow-sm">{product.category?.name || 'Katalog Ürünü'}</span>
+            <span className="bg-indigo-100 text-indigo-600 px-4 py-2 rounded-xl text-[10px] font-black uppercase tracking-widest shadow-sm">{product.category?.name || t('Katalog Ürünü')}</span>
             <div className="flex gap-2">
               <button onClick={() => onToggleFavorite(product)} title={t('Favori')} className={`p-3 rounded-2xl transition-all shadow-sm ${product.isFavorite ? 'bg-pink-50 text-pink-500' : 'hover:bg-white text-gray-400 hover:text-pink-500'}`}>
                 <Heart className={`h-5 w-5 ${product.isFavorite ? 'fill-current' : ''}`} />
@@ -176,7 +176,7 @@ const ProductDetailModal = ({ product, rules, onClose, onAddToCart, onRequestQuo
                 <>
                   <p className="text-4xl md:text-5xl font-black text-indigo-600 tracking-tighter mb-2">{formatTRY(active.netPrice)}</p>
                   <p className="text-xs font-bold text-gray-500">
-                    {active.listPriceTRY !== active.netPrice && <>Liste: <span className="line-through text-gray-400">{formatTRY(active.listPriceTRY)}</span> · </>}
+                    {active.listPriceTRY !== active.netPrice && <>{t('Liste:')} <span className="line-through text-gray-400">{formatTRY(active.listPriceTRY)}</span> · </>}
                     + KDV (%{active.vatRate})
                     {!['TRY', 'TL'].includes(active.currency) && <> · {active.price.toLocaleString('tr-TR')} {active.currency} TCMB kuruyla</>}
                   </p>
@@ -196,7 +196,7 @@ const ProductDetailModal = ({ product, rules, onClose, onAddToCart, onRequestQuo
 
             {product.shortDesc && <p className="text-sm font-semibold text-gray-700 mb-4">{product.shortDesc}</p>}
             <div className="prose prose-sm text-gray-600 mb-6 whitespace-pre-wrap leading-relaxed">
-              {product.longDesc || 'Detaylı açıklama bulunmuyor. Bu ürün hakkında daha fazla bilgi almak için satış temsilciniz ile görüşebilirsiniz.'}
+              {product.longDesc || t('Detaylı açıklama bulunmuyor. Bu ürün hakkında daha fazla bilgi almak için satış temsilciniz ile görüşebilirsiniz.')}
             </div>
 
             {(product.pdfUrl || product.videoUrl) && (
@@ -261,7 +261,7 @@ const ProductDetailModal = ({ product, rules, onClose, onAddToCart, onRequestQuo
             </div>
             <button disabled={hasVariants && !resolved} onClick={() => onRequestQuote([quoteItem()])}
               className={`w-full py-3 rounded-2xl text-xs font-black uppercase tracking-widest flex items-center justify-center disabled:opacity-40 ${active.priceHidden ? 'bg-indigo-600 text-white hover:bg-indigo-700' : 'bg-white border border-gray-200 text-gray-600 hover:border-indigo-300 hover:text-indigo-600'}`}>
-              <FileSignature className="h-4 w-4 mr-2" /> {active.priceHidden ? 'Fiyat Teklifi İste' : 'Toplu Alım İçin Teklif İste'}
+              <FileSignature className="h-4 w-4 mr-2" /> {active.priceHidden ? t('Fiyat Teklifi İste') : t('Toplu Alım İçin Teklif İste')}
             </button>
           </div>
         </div>

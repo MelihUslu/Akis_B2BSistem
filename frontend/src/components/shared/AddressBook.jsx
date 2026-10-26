@@ -24,12 +24,12 @@ export const AddressForm = ({ initial, onSave, onCancel, busy }) => {
         </Field>
         <Field label={t('İlçe')} required><IconInput icon={MapPin} required maxLength={60} value={form.district} onChange={set('district')} /></Field>
         <Field label={t('Posta kodu')}><IconInput maxLength={10} inputMode="numeric" value={form.postalCode || ''} onChange={set('postalCode')} /></Field>
-        <Field label={t('Açık adres')} required className="sm:col-span-2" hint="Mahalle, cadde/sokak, bina ve kapı no">
+        <Field label={t('Açık adres')} required className="sm:col-span-2" hint={t('Mahalle, cadde/sokak, bina ve kapı no')}>
           <TextArea required minLength={10} maxLength={300} className="h-20" value={form.line} onChange={set('line')} />
         </Field>
       </div>
       <label className="flex items-center gap-2 text-xs font-semibold text-gray-600">
-        <input type="checkbox" checked={form.isDefault} onChange={(e) => setForm({ ...form, isDefault: e.target.checked })} /> Varsayılan teslimat adresi yap
+        <input type="checkbox" checked={form.isDefault} onChange={(e) => setForm({ ...form, isDefault: e.target.checked })} /> {t('Varsayılan teslimat adresi yap')}
       </label>
       <div className="flex justify-end gap-2">
         <button type="button" onClick={onCancel} className="inline-flex items-center gap-1 h-9 px-3 rounded-xl text-xs font-bold text-gray-500 hover:bg-gray-100"><X className="h-3.5 w-3.5" /> {t('Vazgeç')}</button>

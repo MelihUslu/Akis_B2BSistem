@@ -14,6 +14,8 @@ import {
 } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
 import TenantBrand from './TenantBrand';
+import InstallAppButton from './InstallAppButton';
+import LanguageSwitcher from './LanguageSwitcher';
 import { t } from '../i18n';
 
 // mobile: telefonda açılır menü olarak gösterilir; onNavigate menüyü kapatır
@@ -23,14 +25,14 @@ const BayiSidebar = ({ mobile = false, onNavigate }) => {
   const location = useLocation();
 
   const menuItems = [
-    { name: 'Ürün Kataloğu', path: '/bayi', icon: ShoppingBag },
-    { name: 'Hızlı Sipariş', path: '/bayi/quick-order', icon: Zap },
-    { name: 'Listelerim', path: '/bayi/lists', icon: BookMarked },
-    { name: 'Siparişlerim', path: '/bayi/orders', icon: History },
-    { name: 'Tekliflerim', path: '/bayi/quotes', icon: FileSignature },
-    { name: 'İade / Değişim', path: '/bayi/returns', icon: RotateCcw },
-    { name: 'Finansal Durum', path: '/bayi/finance', icon: CreditCard },
-    { name: 'Profilim', path: '/bayi/profile', icon: UserIcon },
+    { name: t('Ürün Kataloğu'), path: '/bayi', icon: ShoppingBag },
+    { name: t('Hızlı Sipariş'), path: '/bayi/quick-order', icon: Zap },
+    { name: t('Listelerim'), path: '/bayi/lists', icon: BookMarked },
+    { name: t('Siparişlerim'), path: '/bayi/orders', icon: History },
+    { name: t('Tekliflerim'), path: '/bayi/quotes', icon: FileSignature },
+    { name: t('İade / Değişim'), path: '/bayi/returns', icon: RotateCcw },
+    { name: t('Finansal Durum'), path: '/bayi/finance', icon: CreditCard },
+    { name: t('Profilim'), path: '/bayi/profile', icon: UserIcon },
   ];
 
   const handleLogout = () => {
@@ -68,6 +70,11 @@ const BayiSidebar = ({ mobile = false, onNavigate }) => {
           </NavLink>
         ))}
       </nav>
+
+      <div className="px-6 mb-4 space-y-3">
+        <InstallAppButton />
+        {mobile && <LanguageSwitcher className="w-fit !bg-white/10" />}
+      </div>
 
       {/* Bottom Menu - Premium Upgrade Box style */}
       <div className="px-6 mb-6">

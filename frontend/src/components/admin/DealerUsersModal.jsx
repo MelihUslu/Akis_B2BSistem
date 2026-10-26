@@ -37,7 +37,7 @@ const DealerUsersModal = ({ title, base, isAdmin, onClose, showAlert, confirm, i
   };
 
   const reset = async (u) => {
-    if (!(await confirm({ title: t('Şifre sıfırlansın mı?'), message: `${u.email} adresine yeni şifre gönderilecek.`, confirmText: t('Sıfırla') }))) return;
+    if (!(await confirm({ title: t('Şifre sıfırlansın mı?'), message: t('{email} adresine yeni şifre gönderilecek.', { email: u.email }), confirmText: t('Sıfırla') }))) return;
     const res = await api.post(`${base}/${u.id}/reset-password`);
     showAlert({ type: 'info', title: t('Şifre'), message: res.data.message });
   };
@@ -53,7 +53,7 @@ const DealerUsersModal = ({ title, base, isAdmin, onClose, showAlert, confirm, i
                 <p className="text-xs text-gray-400">{u.email} · Son giriş: {u.lastLoginAt ? formatDate(u.lastLoginAt, true) : '—'}</p>
               </div>
               <div className="flex items-center gap-2">
-                {isAdmin && !u.isOwner && u.isActive && <button onClick={() => patch(u, { isOwner: true })} className="px-2.5 py-1.5 rounded-lg text-[10px] font-black text-amber-700 bg-amber-50">Ana Kullanıcı Yap</button>}
+                {isAdmin && !u.isOwner && u.isActive && <button onClick={() => patch(u, { isOwner: true })} className="px-2.5 py-1.5 rounded-lg text-[10px] font-black text-amber-700 bg-amber-50">{t('Ana Kullanıcı Yap')}</button>}
                 <button onClick={() => reset(u)} className="p-2 rounded-lg text-gray-400 hover:text-orange-500 hover:bg-orange-50" title={t('Şifre sıfırla')}><KeyRound className="h-4 w-4" /></button>
                 {!u.isOwner && (
                   <button onClick={() => patch(u, { isActive: !u.isActive })} className={`px-2.5 py-1.5 rounded-lg text-[10px] font-black ${u.isActive ? 'bg-red-50 text-red-600' : 'bg-emerald-50 text-emerald-700'}`}>

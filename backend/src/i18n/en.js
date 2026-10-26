@@ -83,6 +83,12 @@ export default {
   'Sipariş kalemi bulunamadı.': 'Order item not found.',
   'Dosya yüklenmedi.': 'No file was uploaded.',
 
+  // Anlık bildirim
+  'Anlık bildirimler bu sunucuda kapalı.': 'Push notifications are disabled on this server.',
+  'Bu cihazda anlık bildirimler açıldı.': 'Push notifications enabled on this device.',
+  'Bu cihazda anlık bildirimler kapatıldı.': 'Push notifications disabled on this device.',
+  'Geçersiz push aboneliği.': 'Invalid push subscription.',
+
   // Finans / adres
   'Cari ekstre getirilemedi.': 'The account statement could not be loaded.',
   'Mutabakatınız kaydedildi. Teşekkür ederiz.': 'Your reconciliation has been saved. Thank you.',

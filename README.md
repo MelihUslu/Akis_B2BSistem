@@ -134,6 +134,13 @@ Fatura kesilince bayiye bildirim ve `invoice.issued` webhook'u gider; bayi sipar
 
 > Paraşüt akışı, testlerde Paraşüt API'sini taklit eden bir sunucuyla doğrulanmıştır. Canlıya almadan önce gerçek bir Paraşüt hesabıyla (tercihen test şirketi) bir e-arşiv ve bir e-fatura kesilerek denenmelidir.
 
+### Mobil uygulama (PWA) ve anlık bildirimler
+Portal telefona uygulama olarak kurulur (Android/masaüstü Chrome: menüdeki **Uygulamayı Yükle**; iPhone: Safari → Paylaş → Ana Ekrana Ekle). Mağaza uygulaması gerekmez.
+- Kurulan uygulama firmanın adıyla görünür (manifest firma bilgisiyle tarayıcıda üretilir). Telefonda alt sekme çubuğu: katalog, hızlı sipariş, sepet, siparişler, menü.
+- **Web Push:** bildirim zilinde izin verilince cihaz abone olur; panel bildirimleri uygulama kapalıyken de telefona düşer. Çıkışta cihazın aboneliği silinir. iPhone'da push yalnızca ana ekrana eklenen uygulamada çalışır (iOS 16.4+).
+- `backend/.env`: `VAPID_PUBLIC_KEY`, `VAPID_PRIVATE_KEY`, `VAPID_SUBJECT` (üretmek için `npx web-push generate-vapid-keys`). Boşsa push kapalıdır; panel içi bildirim ve e-posta çalışmaya devam eder. Anahtarlar değişirse cihazlar bir sonraki açılışta kendiliğinden yeniden abone olur.
+- Service worker yalnızca production build'de kaydolur (push izni verilince geliştirmede de kaydolur). Push için site HTTPS üzerinden sunulmalıdır (localhost hariç).
+
 ### Çoklu dil (bayi portalı)
 Bayi portalı, giriş ve başvuru sayfaları Türkçe / İngilizce kullanılabilir (üst bardaki TR/EN seçici; seçim tarayıcıda saklanır). Firma paneli ve platform paneli Türkçedir.
 - Arayüz: `frontend/src/i18n` — anahtar Türkçe metnin kendisidir: `t('Sepete Ekle')`, yer tutucular `t('{n} kalem', { n })`. Çevirisi olmayan metin Türkçe görünür. Yeni dil için `xx.js` sözlüğü ekleyip `DICTS` ve `LANGUAGES`'a ekleyin.

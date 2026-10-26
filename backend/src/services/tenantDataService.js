@@ -118,6 +118,7 @@ export const purgeTenant = async (tenantId) => {
 const purgeTenantRecords = (tenantId) => runAsPlatform(() => prisma.$transaction(async (tx) => {
   const w = { where: { tenantId } };
   await tx.notification.deleteMany(w);
+  await tx.pushSubscription.deleteMany(w);
   await tx.stockAlert.deleteMany(w);
   await tx.favorite.deleteMany(w);
   await tx.orderTemplate.deleteMany(w);

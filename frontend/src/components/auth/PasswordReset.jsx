@@ -51,7 +51,7 @@ export const ForgotPasswordForm = ({ client, path = '/auth/forgot-password', log
             <Mail className="absolute left-4 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-400" />
             <input type="email" required autoFocus placeholder={t('ornek@sirket.com')} className={inputCls} value={email} onChange={(e) => setEmail(e.target.value)} />
           </div>
-          <button disabled={state.loading} className={submitCls}>{state.loading ? 'Gönderiliyor…' : 'Sıfırlama bağlantısı gönder'}</button>
+          <button disabled={state.loading} className={submitCls}>{state.loading ? t('Gönderiliyor…') : t('Sıfırlama bağlantısı gönder')}</button>
         </form>
       )}
       <Link to={loginPath} className="mt-6 inline-flex items-center gap-1.5 text-sm font-bold text-indigo-600 hover:underline"><ArrowLeft className="h-4 w-4" /> {t('Girişe dön')}</Link>
@@ -80,7 +80,7 @@ export const ResetPasswordForm = ({ client, path = '/auth/reset-password', login
 
   if (!token) {
     return (
-      <Shell icon={KeyRound} title={t('Bağlantı eksik')} text="Şifre sıfırlama bağlantısı geçersiz. E-postadaki bağlantıya tıkladığınızdan emin olun.">
+      <Shell icon={KeyRound} title={t('Bağlantı eksik')} text={t('Şifre sıfırlama bağlantısı geçersiz. E-postadaki bağlantıya tıkladığınızdan emin olun.')}>
         <Link to={loginPath} className="inline-flex items-center gap-1.5 text-sm font-bold text-indigo-600 hover:underline"><ArrowLeft className="h-4 w-4" /> {t('Girişe dön')}</Link>
       </Shell>
     );
@@ -88,10 +88,10 @@ export const ResetPasswordForm = ({ client, path = '/auth/reset-password', login
 
   const strength = Math.min(4, [/.{8,}/, /[A-Z]/, /[0-9]/, /[^A-Za-z0-9]/].filter((re) => re.test(form.password)).length);
   return (
-    <Shell icon={Lock} title={t('Yeni şifre belirleyin')} text="En az 8 karakter; büyük harf, rakam ve sembol kullanmanız önerilir. Şifre değişince tüm cihazlardaki oturumlarınız kapanır.">
+    <Shell icon={Lock} title={t('Yeni şifre belirleyin')} text={t('En az 8 karakter; büyük harf, rakam ve sembol kullanmanız önerilir. Şifre değişince tüm cihazlardaki oturumlarınız kapanır.')}>
       {state.message && <Notice ok={state.ok}>{state.message}</Notice>}
       {state.ok ? (
-        <Link to={loginPath} className={`${submitCls} block text-center`}>Giriş yap</Link>
+        <Link to={loginPath} className={`${submitCls} block text-center`}>{t('Giriş yap')}</Link>
       ) : (
         <form onSubmit={submit} className="space-y-4">
           <div className="relative">
@@ -108,7 +108,7 @@ export const ResetPasswordForm = ({ client, path = '/auth/reset-password', login
             <Lock className="absolute left-4 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-400" />
             <input type={show ? 'text' : 'password'} required minLength={8} autoComplete="new-password" placeholder={t('Yeni şifre (tekrar)')} className={inputCls} value={form.confirm} onChange={(e) => setForm({ ...form, confirm: e.target.value })} />
           </div>
-          <button disabled={state.loading} className={submitCls}>{state.loading ? 'Kaydediliyor…' : 'Şifremi değiştir'}</button>
+          <button disabled={state.loading} className={submitCls}>{state.loading ? t('Kaydediliyor…') : t('Şifremi değiştir')}</button>
         </form>
       )}
     </Shell>

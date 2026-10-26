@@ -178,7 +178,7 @@ const BayiOrderDetail = () => {
       <div className="flex flex-col md:flex-row justify-between md:items-end gap-4">
         <div>
           <h1 className="text-2xl md:text-3xl font-black text-gray-900 tracking-tight">{t('Sipariş')} #AK-{order.id}</h1>
-          <p className="text-sm text-gray-400 font-medium mt-1">{formatDate(order.createdAt, true)} · {order.paymentMethod === 'WIRE_TRANSFER' ? 'Havale / EFT' : 'Cari Hesap'}</p>
+          <p className="text-sm text-gray-400 font-medium mt-1">{formatDate(order.createdAt, true)} · {order.paymentMethod === 'WIRE_TRANSFER' ? t('Havale / EFT') : t('Cari Hesap')}</p>
         </div>
         <div className="flex items-center gap-3">
           <span className={`px-4 py-1.5 rounded-full text-xs font-black uppercase ${status.className}`}>{t(status.label)}</span>
@@ -212,7 +212,7 @@ const BayiOrderDetail = () => {
           <div className="mt-8 flex items-center bg-blue-50 px-5 py-4 rounded-2xl border border-blue-100">
             <Truck className="h-5 w-5 text-blue-600 mr-3" />
             <div>
-              <p className="text-[10px] font-black text-blue-400 uppercase tracking-widest">{carrierName(order.cargoCompany) || 'Kargo'} · Takip No</p>
+              <p className="text-[10px] font-black text-blue-400 uppercase tracking-widest">{carrierName(order.cargoCompany) || t('Kargo')} · Takip No</p>
               <p className="text-sm font-black text-blue-700">{order.trackingNumber}</p>
               {trackingUrl(order.cargoCompany, order.trackingNumber) && (
                 <a href={trackingUrl(order.cargoCompany, order.trackingNumber)} target="_blank" rel="noreferrer" className="inline-flex items-center text-xs font-black text-indigo-600 mt-1 hover:underline">{t('Kargom nerede?')} <ExternalLink className="h-3 w-3 ml-1" /></a>
@@ -263,7 +263,7 @@ const BayiOrderDetail = () => {
           })}
         </div>
         <div className="p-6 bg-gray-50/60 space-y-2 text-sm">
-          <div className="flex justify-between font-bold text-gray-500"><span>Ara Toplam (KDV hariç)</span><span className="text-gray-900">{formatTRY(order.subtotal || order.totalAmount / 1.2)}</span></div>
+          <div className="flex justify-between font-bold text-gray-500"><span>{t('Ara Toplam (KDV hariç)')}</span><span className="text-gray-900">{formatTRY(order.subtotal || order.totalAmount / 1.2)}</span></div>
           {order.discountAmount > 0 && <div className="flex justify-between font-bold text-pink-600"><span>{t('Kupon')} {order.couponCode}</span><span>−{formatTRY(order.discountAmount)}</span></div>}
           <div className="flex justify-between font-bold text-gray-500"><span>{t('KDV')}</span><span className="text-gray-900">{formatTRY(order.vatAmount || order.totalAmount - order.totalAmount / 1.2)}</span></div>
           <div className="flex justify-between font-black text-gray-900 text-lg pt-2"><span>{t('Genel Toplam')}</span><span>{formatTRY(order.totalAmount)}</span></div>
