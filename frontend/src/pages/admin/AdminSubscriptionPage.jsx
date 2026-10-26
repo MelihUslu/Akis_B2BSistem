@@ -212,7 +212,13 @@ const AdminSubscriptionPage = () => {
                     <p className="text-xs font-bold text-gray-800">{p.planCode} · {p.billingCycle === 'YEARLY' ? 'Yıllık' : 'Aylık'}</p>
                     <p className="text-[10px] text-gray-400 font-semibold">{formatDate(p.createdAt)}</p>
                   </div>
-                  <span className={`text-xs font-black ${p.status === 'SUCCESS' ? 'text-emerald-600' : 'text-red-500'}`}>{p.status === 'SUCCESS' ? formatTRY(p.amount) : 'Başarısız'}</span>
+                  <div className="text-right">
+                    <span className={`text-xs font-black ${p.status === 'SUCCESS' ? 'text-emerald-600' : 'text-red-500'}`}>{p.status === 'SUCCESS' ? formatTRY(p.amount) : 'Başarısız'}</span>
+                    {p.invoiceStatus === 'ISSUED' && (
+                      <button onClick={() => api.get(`/billing/payments/${p.id}/invoice`).then((r) => window.open(r.data.url, '_blank', 'noopener')).catch(() => {})}
+                        className="block ml-auto text-[10px] font-bold text-indigo-600 hover:underline">Fatura{p.invoiceNumber ? ` ${p.invoiceNumber}` : ''} ↗</button>
+                    )}
+                  </div>
                 </div>
               ))}
             </div>

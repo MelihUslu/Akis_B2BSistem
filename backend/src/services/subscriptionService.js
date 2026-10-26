@@ -1,3 +1,4 @@
+import { queueSubscriptionInvoice } from './platformInvoiceService.js';
 import prisma from '../utils/prisma.js';
 import { invalidateTenantCache } from '../middlewares/tenantMiddleware.js';
 
@@ -48,6 +49,7 @@ export const recordSuccessfulPayment = async ({
   ]);
 
   invalidateTenantCache(tenant.slug);
+  queueSubscriptionInvoice(payment.id);
   return { duplicate: false, payment };
 };
 

@@ -6,6 +6,7 @@ import {
 } from '../controllers/integrationController.js';
 import { verifyToken, requirePermission } from '../middlewares/authMiddleware.js';
 import { apiKeyAuth } from '../middlewares/apiKeyAuth.js';
+import { setInvoiceNumber } from '../controllers/invoicingController.js';
 import { rateLimit } from '../middlewares/rateLimit.js';
 
 // Panel: anahtar ve webhook yönetimi (X-Tenant + oturum)
@@ -33,3 +34,8 @@ integrationApiRoutes.get('/orders', apiListOrders);
 integrationApiRoutes.get('/orders/:id', apiGetOrder);
 integrationApiRoutes.post('/orders/:id/exported', apiMarkExported);
 integrationApiRoutes.patch('/orders/:id/status', apiUpdateOrderStatus);
+// ERP'de kesilen faturanın numarası / PDF adresi (bayi sipariş detayında görür)
+integrationApiRoutes.put('/orders/:id/invoice', (req, res) => {
+  req.user = { role: 'ADMIN' }; // API anahtarı firma yöneticisi yetkisiyle çalışır
+  return setInvoiceNumber(req, res, 'ERP');
+});

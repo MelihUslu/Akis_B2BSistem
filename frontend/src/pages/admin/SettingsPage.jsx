@@ -7,10 +7,11 @@ import TeamSettings from '../../components/settings/TeamSettings';
 import IntegrationSettings from '../../components/settings/IntegrationSettings';
 import PosSettings from '../../components/settings/PosSettings';
 import DomainSettings from '../../components/settings/DomainSettings';
+import InvoiceSettings from '../../components/settings/InvoiceSettings';
 import DataSettings from '../../components/settings/DataSettings';
 import AuditLogTable from '../../components/shared/AuditLogTable';
 
-const TABS = [['general', 'Genel'], ['team', 'Ekip ve Yetkiler'], ['integration', 'Entegrasyon (ERP)'], ['pos', 'Sanal POS'], ['domain', 'Alan Adı'], ['audit', 'İşlem Kaydı'], ['data', 'Veri & Hesap']];
+const TABS = [['general', 'Genel'], ['team', 'Ekip ve Yetkiler'], ['integration', 'Entegrasyon (ERP)'], ['pos', 'Sanal POS'], ['invoice', 'E-Fatura'], ['domain', 'Alan Adı'], ['audit', 'İşlem Kaydı'], ['data', 'Veri & Hesap']];
 
 // Firma adı, logo ve iletişim bilgileri: giriş ekranında ve panellerde görünür
 const BrandingCard = ({ showAlert }) => {
@@ -174,6 +175,7 @@ const SettingsPage = () => {
       {tab === 'team' && <TeamSettings showAlert={showAlert} confirm={confirm} />}
       {tab === 'integration' && <IntegrationSettings showAlert={showAlert} confirm={confirm} />}
       {tab === 'pos' && <PosSettings showAlert={showAlert} confirm={confirm} />}
+      {tab === 'invoice' && <InvoiceSettings showAlert={showAlert} confirm={confirm} />}
       {tab === 'domain' && <DomainSettings showAlert={showAlert} confirm={confirm} />}
       {tab === 'data' && <DataSettings showAlert={showAlert} />}
       {tab === 'audit' && (

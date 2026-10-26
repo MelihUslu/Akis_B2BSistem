@@ -2,7 +2,7 @@ import express from 'express';
 import {
   platformLogin, getDashboard, listTenants, getTenant, createTenant, updateTenant, addManualPayment,
   resetTenantAdminPassword, listPlans, createPlan, updatePlan, syncPlanToIyzico, listPayments,
-  platformVerifyTwoFactor, platformForgotPassword, platformResetPassword, platformTwoFactorStatus, platformTwoFactorSetup, platformTwoFactorEnable, platformTwoFactorDisable,
+  platformVerifyTwoFactor, platformForgotPassword, platformResetPassword, retrySubscriptionInvoice, subscriptionInvoicePdfUrl, platformTwoFactorStatus, platformTwoFactorSetup, platformTwoFactorEnable, platformTwoFactorDisable,
   impersonateTenant, exportTenantData, reopenTenant, purgeTenantData, platformAuditLogs,
   listAnnouncements, createAnnouncement, deleteAnnouncement, listSupportTickets, getSupportTicket, replySupportTicket
 } from '../controllers/platformController.js';
@@ -41,6 +41,8 @@ router.post('/plans', createPlan);
 router.patch('/plans/:id', updatePlan);
 router.post('/plans/:id/sync-iyzico', syncPlanToIyzico);
 router.get('/payments', listPayments);
+router.post('/payments/:id/invoice', retrySubscriptionInvoice);
+router.get('/payments/:id/invoice/pdf', subscriptionInvoicePdfUrl);
 router.post('/tenants/:id/impersonate', impersonateTenant);
 router.get('/tenants/:id/export', exportTenantData);
 router.post('/tenants/:id/reopen', reopenTenant);

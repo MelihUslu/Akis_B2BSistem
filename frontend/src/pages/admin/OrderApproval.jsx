@@ -9,6 +9,7 @@ import { useSearchParams, Link } from 'react-router-dom';
 import { downloadFile } from '../../utils/download';
 import { CARRIERS, trackingUrl, carrierName } from '../../utils/cargo';
 import useAlert from '../../hooks/useAlert';
+import InvoicePanel from '../../components/shared/InvoicePanel';
 import { formatTRY, formatDate, ORDER_STATUS } from '../../utils/format';
 
 const TABS = [
@@ -406,7 +407,10 @@ const OrderApproval = () => {
                     </td>
                     <td className="px-3 py-3 whitespace-nowrap">
                       <p className="font-mono text-sm font-bold text-gray-900">#AK-{order.id}</p>
-                      <p className="text-[11px] text-gray-400">{order.items.length} kalem{cancelledItems ? ` · ${cancelledItems} iptal` : ''}</p>
+                      <p className="text-[11px] text-gray-400">{order.items.length} kalem{cancelledItems ? ` · ${cancelledItems} iptal` : ''}
+                        {order.invoice?.status === 'ISSUED' && <span className="ml-1.5 text-emerald-600 font-bold" title={`Fatura: ${order.invoice.number || ''}`}>· faturalı</span>}
+                        {order.invoice?.status === 'FAILED' && <span className="ml-1.5 text-red-500 font-bold" title={order.invoice.errorMessage || ''}>· fatura hatası</span>}
+                      </p>
                     </td>
                     <td className="px-3 py-3 max-w-[16rem]">
                       <p className="text-sm font-semibold text-gray-800 truncate">{order.company?.name}</p>
@@ -532,6 +536,8 @@ const OrderApproval = () => {
                   <div className="flex justify-between pt-2 border-t border-gray-200 font-black text-gray-900"><span>Kayıtlı sipariş tutarı</span><span className="tabular-nums">{formatTRY(order.totalAmount)}</span></div>
                   {editable && <p className="text-[11px] text-gray-400 pt-1">Kalem iptal ederseniz tutar ve kupon indirimi kaydettiğinizde yeniden hesaplanır.</p>}
                 </div>
+
+                <InvoicePanel key={order.id} orderId={order.id} orderStatus={order.status} canManage onError={(message) => showAlert({ type: 'error', title: 'Fatura', message })} />
 
                 {SHIPPABLE.includes(order.status) && (
                   <div className="rounded-2xl ring-1 ring-orange-100 bg-orange-50/40 p-4 space-y-3">

@@ -3,6 +3,7 @@ import { quoteCart, availableCredit, round2, computeTotals } from '../services/p
 import { getSettingsMap, num } from '../services/settingsService.js';
 import { notifyCompany, notifyAdmins, notifyRestocked, safeNotify } from '../services/notificationService.js';
 import { emitEvent } from '../services/webhookService.js';
+import { autoInvoice } from '../services/invoiceService.js';
 import xlsx from 'xlsx';
 import { currentTenantId } from '../utils/prisma.js';
 
@@ -16,7 +17,8 @@ const orderInclude = {
   user: { select: { name: true, email: true } },
   company: { select: { id: true, name: true, taxNumber: true, taxOffice: true, address: true, phone: true, externalCode: true } },
   items: { include: { product: { select: { id: true, name: true, sku: true, unit: true, images: true, isActive: true, parent: { select: { name: true, images: true } } } } } },
-  returnRequests: { select: { id: true, orderItemId: true, quantity: true, status: true } }
+  returnRequests: { select: { id: true, orderItemId: true, quantity: true, status: true } },
+  invoice: { select: { status: true, number: true, documentType: true, provider: true, issuedAt: true, errorMessage: true } }
 };
 
 export const getOrders = async (req, res) => {
@@ -382,6 +384,7 @@ export const partialApproveOrder = async (req, res) => {
     }));
     safeNotify(notifyRestocked(restockedIds));
     emitEvent(req.tenant.id, 'order.updated', orderEvent(updatedOrder));
+    if (['APPROVED', 'PARTIAL_APPROVED'].includes(updatedOrder.status)) autoInvoice(req.tenant, updatedOrder.id, 'APPROVED');
 
     res.json({ message: 'Sipariş güncellendi, stok ve cari hesap işlendi.', updatedOrder });
   } catch (error) {
@@ -423,6 +426,7 @@ export const shipOrder = async (req, res) => {
     }));
 
     emitEvent(req.tenant.id, 'order.updated', orderEvent(order));
+    autoInvoice(req.tenant, order.id, 'SHIPPED');
     res.json({ message: 'Sipariş kargoya verildi.', order });
   } catch (error) {
     res.status(400).json({ message: 'Kargo bilgisi güncellenemedi.' });

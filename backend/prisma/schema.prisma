@@ -203,12 +203,35 @@ model Order {
   createdAt      DateTime  @default(now())
   updatedAt      DateTime  @updatedAt
 
+  invoice        Invoice?
   items          OrderItem[]
   payments       Payment[]
   plasiyerPoint  PlasiyerPoint?
   transactions   FinancialTransaction[]
   returnRequests ReturnRequest[]
   quoteRequest   QuoteRequest?
+
+  @@index([tenantId])
+}
+
+// Siparişin faturası (bir sipariş = bir fatura)
+model Invoice {
+  id           Int       @id @default(autoincrement())
+  tenantId     Int
+  tenant       Tenant    @relation(fields: [tenantId], references: [id])
+  orderId      Int       @unique
+  order        Order     @relation(fields: [orderId], references: [id])
+  provider     String // PARASUT, ERP, MANUAL
+  status       String    @default("PENDING") // PENDING, ISSUED, FAILED
+  documentType String? // E_FATURA, E_ARSIV, KAGIT
+  number       String?
+  externalId   String? // Sağlayıcıdaki fatura kaydı (Paraşüt sales_invoice id)
+  pdfUrl       String? // ERP / elle yüklenen PDF; Paraşüt'te PDF istendiğinde alınır
+  amount       Float?
+  errorMessage String?
+  issuedAt     DateTime?
+  createdAt    DateTime  @default(now())
+  updatedAt    DateTime  @updatedAt
 
   @@index([tenantId])
 }
@@ -429,6 +452,11 @@ model Tenant {
   posMode                String    @default("SANDBOX") // SANDBOX, LIVE
   posApiKey              String?
   posSecretEnc           String?
+  // E-fatura: PARASUT (otomatik) veya boş (ERP'den / elle numara girilir). Anahtarlar şifreli JSON.
+  invoiceProvider        String?
+  invoiceConfigEnc       String?
+  invoiceAutoOn          String    @default("MANUAL") // MANUAL, APPROVED, SHIPPED: fatura otomatik ne zaman kesilir
+  invoices               Invoice[]
   // Firmaya özel alan adı (örn. b2b.firmasi.com) — DNS TXT kaydı ile doğrulanır
   customDomain           String?   @unique
   customDomainToken      String?
@@ -486,6 +514,11 @@ model SubscriptionPayment {
   createdAt    DateTime @default(now())
 
   @@index([tenantId])
+  // Platformun müşteriye kestiği fatura (PARASUT_* ortam değişkenleri tanımlıysa otomatik)
+  invoiceStatus     String? // PENDING, ISSUED, FAILED
+  invoiceNumber     String?
+  invoiceExternalId String?
+  invoiceError      String?
 }
 
 // ─── Bayi deneyimi ───────────────────────────────────────────────────────────

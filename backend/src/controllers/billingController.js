@@ -155,3 +155,15 @@ export const cancelRenewal = async (req, res) => {
     res.status(500).json({ message: 'İptal işlemi yapılamadı.' });
   }
 };
+
+// Platformun firmaya kestiği abonelik faturasının PDF'i
+export const subscriptionInvoice = async (req, res) => {
+  const payment = await prisma.subscriptionPayment.findFirst({ where: { id: parseInt(req.params.id), tenantId: req.tenant.id } });
+  if (!payment?.invoiceExternalId) return res.status(404).json({ message: 'Bu ödemenin faturası henüz kesilmedi.' });
+  try {
+    const { subscriptionInvoicePdf } = await import('../services/platformInvoiceService.js');
+    res.json({ url: await subscriptionInvoicePdf(payment.invoiceExternalId) });
+  } catch (error) {
+    res.status(400).json({ message: error.message });
+  }
+};

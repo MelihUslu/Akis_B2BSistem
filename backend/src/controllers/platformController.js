@@ -13,6 +13,8 @@ import { audit, clientIp } from '../services/auditService.js';
 import { exportTenantWorkbook, purgeTenant } from '../services/tenantDataService.js';
 import { notifyUser } from '../services/notificationService.js';
 import { cleanAttachments } from '../services/supportService.js';
+import { issueSubscriptionInvoice, subscriptionInvoicePdf } from '../services/platformInvoiceService.js';
+import { platformCreds } from '../services/invoiceService.js';
 import { issueResetToken, findByResetToken, setNewPassword, passwordProblem } from '../services/passwordResetService.js';
 import { sendPasswordResetMail } from '../services/mailService.js';
 import { platformUrl } from '../config.js';
@@ -539,4 +541,19 @@ export const platformResetPassword = async (req, res) => {
   await setNewPassword(user.id, req.body.password);
   audit({ actorType: 'PLATFORM', actorId: user.id, actorName: user.name, action: 'Platform: şifre sıfırlandı', ip: clientIp(req) });
   res.json({ message: 'Şifreniz değiştirildi. Yeni şifrenizle giriş yapabilirsiniz.' });
+};
+
+// ─── Abonelik faturaları ─────────────────────────────────────────────────────
+
+export const retrySubscriptionInvoice = async (req, res) => {
+  if (!platformCreds()) return res.status(400).json({ message: 'Platformun Paraşüt hesabı tanımlı değil (PARASUT_* ortam değişkenleri).' });
+  const payment = await issueSubscriptionInvoice(parseInt(req.params.id));
+  if (!payment) return res.status(404).json({ message: 'Ödeme bulunamadı.' });
+  res.status(payment.invoiceStatus === 'FAILED' ? 400 : 200).json({ message: payment.invoiceStatus === 'ISSUED' ? 'Fatura kesildi.' : payment.invoiceError || 'Fatura kesilemedi.', payment });
+};
+
+export const subscriptionInvoicePdfUrl = async (req, res) => {
+  const payment = await prisma.subscriptionPayment.findUnique({ where: { id: parseInt(req.params.id) } });
+  if (!payment?.invoiceExternalId) return res.status(404).json({ message: 'Fatura bulunamadı.' });
+  try { res.json({ url: await subscriptionInvoicePdf(payment.invoiceExternalId) }); } catch (error) { res.status(400).json({ message: error.message }); }
 };

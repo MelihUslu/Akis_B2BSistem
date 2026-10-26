@@ -113,6 +113,17 @@ frontend/src
 - Firma sahibi hesabı kapatabilir: abonelik iptal edilir, erişim kapanır, veri 30 gün saklanır. Platform bu sürede hesabı geri açabilir.
 - `AUTO_PURGE_CLOSED=true` ise süresi dolan hesapların verisi saatlik iş tarafından kalıcı silinir. Platform panelinden elle de silinebilir.
 
+### E-fatura / e-arşiv
+
+Firma, Ayarlar → E-Fatura'dan yöntemi seçer:
+
+- **Paraşüt ile otomatik:** Fatura Paraşüt'te oluşturulur; alıcının vergi numarası GİB e-fatura listesindeyse e-fatura, değilse e-arşiv gönderilir. Elle, sipariş onaylanınca ya da kargolanınca kesilebilir. Hata olursa sipariş ekranında görünür ve yeniden denenir.
+- **ERP'den veya elle:** ERP faturayı keser ve numara/PDF adresini `PUT /api/v1/orders/{id}/invoice` ile yazar ya da yönetici sipariş ekranından girer.
+
+Fatura kesilince bayiye bildirim ve `invoice.issued` webhook'u gider; bayi sipariş detayında PDF'i açar. Platformun abonelik faturaları `PARASUT_*` ortam değişkenleri tanımlıysa ödeme alınınca otomatik kesilir.
+
+> Paraşüt akışı, testlerde Paraşüt API'sini taklit eden bir sunucuyla doğrulanmıştır. Canlıya almadan önce gerçek bir Paraşüt hesabıyla (tercihen test şirketi) bir e-arşiv ve bir e-fatura kesilerek denenmelidir.
+
 ### Entegrasyon (ERP)
 
 Firma, Ayarlar → Entegrasyon'dan API anahtarı üretir. `/api/v1` uçları ile ürün / stok / fiyat / bayi aktarımı yapılır, siparişler çekilir. İmzalı (HMAC-SHA256) webhook'lar sipariş ve ödeme olaylarını ERP'ye iletir. Ayrıntılar panelde örnek isteklerle birlikte gösterilir.
@@ -137,6 +148,8 @@ Firma, Ayarlar → Entegrasyon'dan API anahtarı üretir. `/api/v1` uçları ile
 | `REDIS_URL` | | İstek sınırlayıcı için Redis |
 | `CUSTOM_DOMAIN_TARGET` | | Özel alan adlarının CNAME hedefi (varsayılan `custom.ROOT_DOMAIN`) |
 | `AUTO_PURGE_CLOSED` | | Kapatılan hesapların 30 gün sonra otomatik silinmesi |
+| `PARASUT_*`, `SUBSCRIPTION_VAT_RATE` | | Platformun abonelik faturaları (Paraşüt) |
+| `TZ` | | Tarih filtreleri ve raporların saat dilimi (varsayılan `Europe/Istanbul`) |
 
 ### frontend/.env
 

@@ -6,6 +6,7 @@ import api, { errorMessage } from '../../services/api';
 import OrderTimeline from '../../components/OrderTimeline';
 import useReorder from '../../hooks/useReorder';
 import useAlert from '../../hooks/useAlert';
+import InvoicePanel from '../../components/shared/InvoicePanel';
 import { formatTRY, formatDate, firstImage, ORDER_STATUS, RETURN_STATUS } from '../../utils/format';
 
 const RETURNABLE = ['SHIPPED', 'COMPLETED'];
@@ -187,6 +188,10 @@ const BayiOrderDetail = () => {
           )}
         </div>
       </div>
+
+      {order.invoice?.status === 'ISSUED' && (
+        <InvoicePanel orderId={order.id} orderStatus={order.status} onError={(message) => showAlert({ type: 'error', title: 'Fatura', message })} />
+      )}
 
       <div className="card-premium p-5 md:p-8 overflow-x-auto">
         <OrderTimeline order={order} />
