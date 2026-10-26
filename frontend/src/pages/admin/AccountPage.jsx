@@ -16,6 +16,7 @@ const AccountPage = () => {
     if (pw.newPassword !== pw.repeat) return showAlert({ type: 'error', title: 'Hata', message: 'Yeni şifreler eşleşmiyor.' });
     try {
       const res = await api.post('/auth/change-password', { currentPassword: pw.currentPassword, newPassword: pw.newPassword });
+      if (res.data.token) localStorage.setItem('akis_token', res.data.token);
       setPw({ currentPassword: '', newPassword: '', repeat: '' });
       showAlert({ type: 'success', title: 'Şifre Değişti', message: res.data.message });
     } catch (err) {

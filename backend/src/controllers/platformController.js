@@ -13,6 +13,9 @@ import { audit, clientIp } from '../services/auditService.js';
 import { exportTenantWorkbook, purgeTenant } from '../services/tenantDataService.js';
 import { notifyUser } from '../services/notificationService.js';
 import { cleanAttachments } from '../services/supportService.js';
+import { issueResetToken, findByResetToken, setNewPassword, passwordProblem } from '../services/passwordResetService.js';
+import { sendPasswordResetMail } from '../services/mailService.js';
+import { platformUrl } from '../config.js';
 
 const DAY = 24 * 60 * 60 * 1000;
 const TENANT_STATUSES = ['TRIAL', 'ACTIVE', 'PAST_DUE', 'SUSPENDED', 'CANCELLED'];
@@ -507,4 +510,33 @@ export const replySupportTicket = async (req, res) => {
     type: 'SYSTEM', title: `Destek talebiniz yanıtlandı (#${ticket.id})`, message: body.slice(0, 160), link: '/admin/support'
   }));
   res.json({ message: 'Yanıt gönderildi.' });
+};
+
+// ─── Platform yöneticisi: şifremi unuttum ────────────────────────────────────
+
+const PLATFORM_USER = { role: 'SUPER_ADMIN', tenantId: null };
+
+export const platformForgotPassword = async (req, res) => {
+  const email = String(req.body.email || '').toLowerCase().trim();
+  try {
+    const user = email && await prisma.user.findFirst({ where: { ...PLATFORM_USER, email } });
+    if (user) {
+      const token = await issueResetToken(user.id);
+      await sendPasswordResetMail({ to: user.email, name: user.name, link: `${platformUrl()}/reset-password?token=${token}` });
+      audit({ actorType: 'PLATFORM', actorId: user.id, actorName: user.name, action: 'Platform: şifre sıfırlama bağlantısı istendi', ip: clientIp(req) });
+    }
+  } catch (error) {
+    console.error('[Platform şifre sıfırlama]', error.message);
+  }
+  res.json({ message: 'Bu e-posta adresi kayıtlıysa şifre sıfırlama bağlantısı gönderildi.' });
+};
+
+export const platformResetPassword = async (req, res) => {
+  const problem = passwordProblem(req.body.password);
+  if (problem) return res.status(400).json({ message: problem });
+  const user = await findByResetToken(req.body.token, PLATFORM_USER);
+  if (!user) return res.status(400).json({ message: 'Bağlantı geçersiz veya süresi dolmuş.' });
+  await setNewPassword(user.id, req.body.password);
+  audit({ actorType: 'PLATFORM', actorId: user.id, actorName: user.name, action: 'Platform: şifre sıfırlandı', ip: clientIp(req) });
+  res.json({ message: 'Şifreniz değiştirildi. Yeni şifrenizle giriş yapabilirsiniz.' });
 };

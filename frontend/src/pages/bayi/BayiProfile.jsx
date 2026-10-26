@@ -35,6 +35,7 @@ const BayiProfile = () => {
     setSaving(true);
     try {
       const res = await api.post('/auth/change-password', { currentPassword: form.currentPassword, newPassword: form.newPassword });
+      if (res.data.token) localStorage.setItem('akis_token', res.data.token);
       setForm({ currentPassword: '', newPassword: '', confirm: '' });
       showAlert({ type: 'success', title: 'Şifre Güncellendi', message: res.data.message });
     } catch (error) {

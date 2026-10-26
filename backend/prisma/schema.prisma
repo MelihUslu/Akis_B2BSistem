@@ -30,6 +30,11 @@ model User {
   twoFactorRecovery  Json?
   emailVerifiedAt    DateTime?
   emailVerifyToken   String?   @unique
+  // Şifre sıfırlama: bağlantıdaki anahtarın yalnızca SHA-256 özeti saklanır
+  passwordResetHash    String?   @unique
+  passwordResetExpires DateTime?
+  // Bu andan önce verilen oturumlar geçersizdir (şifre değişince tüm cihazlardan çıkış)
+  passwordChangedAt    DateTime?
   companyId          Int?
   company            Company?  @relation(fields: [companyId], references: [id])
   createdAt          DateTime  @default(now())

@@ -1,7 +1,7 @@
 import express from 'express';
 import {
   register, login, getMe, changePassword, listUsers,
-  verifyTwoFactorLogin, twoFactorStatus, twoFactorSetup, twoFactorEnable, twoFactorDisable
+  verifyTwoFactorLogin, forgotPassword, resetPassword, twoFactorStatus, twoFactorSetup, twoFactorEnable, twoFactorDisable
 } from '../controllers/authController.js';
 import { verifyToken, checkRole, requirePermission, blockImpersonation } from '../middlewares/authMiddleware.js';
 import { rateLimit } from '../middlewares/rateLimit.js';
@@ -9,6 +9,8 @@ import { rateLimit } from '../middlewares/rateLimit.js';
 const router = express.Router();
 
 router.post('/login', rateLimit({ windowMs: 15 * 60 * 1000, max: 20, message: 'Çok fazla giriş denemesi. 15 dakika sonra tekrar deneyin.' }), login);
+router.post('/forgot-password', rateLimit({ windowMs: 15 * 60 * 1000, max: 5, message: 'Çok fazla deneme. 15 dakika sonra tekrar deneyin.' }), forgotPassword);
+router.post('/reset-password', rateLimit({ windowMs: 15 * 60 * 1000, max: 10 }), resetPassword);
 router.post('/2fa/verify', rateLimit({ windowMs: 15 * 60 * 1000, max: 10, message: 'Çok fazla hatalı kod. 15 dakika sonra tekrar deneyin.' }), verifyTwoFactorLogin);
 router.get('/me', verifyToken, getMe);
 router.get('/2fa', verifyToken, twoFactorStatus);

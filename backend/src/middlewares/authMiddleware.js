@@ -1,4 +1,5 @@
 import jwt from 'jsonwebtoken';
+import { sessionRevoked } from '../services/passwordResetService.js';
 import prisma from '../utils/prisma.js';
 import { JWT_SECRET } from '../config.js';
 import { tenantAccess, ACCESS_MESSAGES } from './tenantMiddleware.js';
@@ -32,7 +33,7 @@ export const verifyToken = async (req, res, next) => {
     // Askıya alınan bayi veya silinen kullanıcı, token süresi dolmadan da sistemden çıkarılır
     const user = await prisma.user.findUnique({
       where: { id: decoded.id },
-      select: { id: true, name: true, email: true, role: true, companyId: true, isOwner: true, permissions: true, isActive: true, company: { select: { status: true } } }
+      select: { id: true, name: true, email: true, role: true, companyId: true, isOwner: true, permissions: true, isActive: true, passwordChangedAt: true, company: { select: { status: true } } }
     });
 
     if (!user) {
@@ -40,6 +41,9 @@ export const verifyToken = async (req, res, next) => {
     }
     if (!user.isActive) {
       return res.status(401).json({ message: 'Kullanıcı hesabınız devre dışı bırakılmış.' });
+    }
+    if (sessionRevoked(decoded, user.passwordChangedAt)) {
+      return res.status(401).json({ message: 'Şifreniz değiştirildi. Lütfen yeniden giriş yapın.' });
     }
     if (user.role === 'BAYI' && user.company?.status !== 'ACTIVE') {
       return res.status(401).json({ message: 'Hesabınız askıya alınmıştır. Lütfen firma yetkilisiyle iletişime geçin.' });
@@ -80,6 +84,7 @@ export const verifyPlatform = async (req, res, next) => {
     }
     const user = await prisma.user.findFirst({ where: { id: decoded.id, role: 'SUPER_ADMIN', tenantId: null } });
     if (!user) return res.status(401).json({ message: 'Kullanıcı bulunamadı.' });
+    if (sessionRevoked(decoded, user.passwordChangedAt)) return res.status(401).json({ message: 'Şifreniz değiştirildi. Lütfen yeniden giriş yapın.' });
     req.user = { id: user.id, role: user.role, name: user.name };
     next();
   } catch (error) {

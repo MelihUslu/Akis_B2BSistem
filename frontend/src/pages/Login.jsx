@@ -133,9 +133,9 @@ const Login = () => {
                 <input type="checkbox" className="w-4 h-4 rounded border-slate-300 text-indigo-600 focus:ring-indigo-600/20" />
                 <span className="text-[12px] text-slate-500 group-hover:text-slate-900 transition-colors">Beni Hatırla</span>
               </label>
-              <span className="text-[12px] text-slate-400" title={tenant?.contactEmail || ''}>
-                Şifrenizi mi unuttunuz? Yöneticinize başvurun.
-              </span>
+              <Link to="/forgot-password" className="text-[12px] font-semibold text-indigo-600 hover:underline">
+                Şifremi unuttum
+              </Link>
             </div>
 
             <button

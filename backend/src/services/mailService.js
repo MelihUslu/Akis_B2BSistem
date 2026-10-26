@@ -26,7 +26,8 @@ export const sendMail = async ({ to, subject, html, fromName }) => {
 
   if (!transporter) {
     if (process.env.NODE_ENV !== 'production') {
-      console.log(`[MAIL - SMTP tanımlı değil] Kime: ${to} | Konu: ${subject}\n${html.replace(/<[^>]+>/g, ' ').replace(/\s+/g, ' ').trim()}`);
+      const links = [...html.matchAll(/href="([^"]+)"/g)].map((m) => m[1]);
+      console.log(`[MAIL - SMTP tanımlı değil] Kime: ${to} | Konu: ${subject}\n${html.replace(/<[^>]+>/g, ' ').replace(/\s+/g, ' ').trim()}${links.length ? `\nBağlantılar: ${links.join(' ')}` : ''}`);
     } else {
       console.warn(`[MAIL] SMTP tanımlı değil, mail gönderilemedi: ${to} - ${subject}`);
     }
@@ -102,3 +103,19 @@ export const sendPlatformAlert = ({ subject, text }) =>
   process.env.PLATFORM_ALERT_EMAIL
     ? sendMail({ to: process.env.PLATFORM_ALERT_EMAIL, subject: `[Platform] ${subject}`, html: layout(subject, `<p>${text}</p><p>${button(platformUrl(), 'Platform paneli')}</p>`) })
     : Promise.resolve({ delivered: false });
+
+// "Şifremi unuttum" bağlantısı (firma kullanıcıları firmanın adıyla, platform yöneticisi platform adıyla)
+export const sendPasswordResetMail = ({ to, name, link, brand }) =>
+  sendMail({
+    to,
+    fromName: brand,
+    subject: `${brand || PLATFORM_NAME()} · Şifre sıfırlama`,
+    html: layout(
+      'Şifrenizi sıfırlayın',
+      `<p>Merhaba ${name},</p>
+       <p>Hesabınız için şifre sıfırlama talebi aldık. Yeni şifre belirlemek için aşağıdaki butona tıklayın. Bağlantı <b>1 saat</b> geçerlidir ve yalnızca bir kez kullanılabilir.</p>
+       ${button(link, 'Yeni şifre belirle')}
+       <p style="font-size:13px;color:#64748b">Bu talebi siz yapmadıysanız bu e-postayı yok sayabilirsiniz; şifreniz değişmez.</p>`,
+      brand
+    )
+  });

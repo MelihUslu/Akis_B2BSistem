@@ -1,3 +1,6 @@
+import { issueResetToken, findByResetToken, setNewPassword, passwordProblem } from '../services/passwordResetService.js';
+import { sendPasswordResetMail } from '../services/mailService.js';
+import { tenantPortalUrl } from '../config.js';
 import bcrypt from 'bcrypt';
 import jwt from 'jsonwebtoken';
 import prisma from '../utils/prisma.js';
@@ -152,10 +155,11 @@ export const changePassword = async (req, res) => {
 
     await prisma.user.update({
       where: { id: user.id },
-      data: { password: await bcrypt.hash(newPassword, 10) }
+      data: { password: await bcrypt.hash(newPassword, 10), passwordChangedAt: new Date() }
     });
 
-    res.json({ message: 'Şifreniz başarıyla güncellendi.' });
+    // Diğer cihazlardaki oturumlar kapanır; bu cihaz yeni oturumla devam eder
+    res.json({ message: 'Şifreniz güncellendi. Diğer cihazlardaki oturumlarınız kapatıldı.', ...sessionFor(user, req.tenant.id) });
   } catch (error) {
     res.status(500).json({ message: 'Şifre güncellenemedi.' });
   }
@@ -224,4 +228,34 @@ export const twoFactorDisable = async (req, res) => {
   } catch (error) {
     res.status(400).json({ message: error.message });
   }
+};
+
+// ─── Şifremi unuttum ─────────────────────────────────────────────────────────
+
+// E-posta kayıtlı olsun olmasın aynı yanıt döner (hangi adreslerin kayıtlı olduğu dışarıdan anlaşılamaz)
+export const forgotPassword = async (req, res) => {
+  const email = String(req.body.email || '').toLowerCase().trim();
+  const generic = { message: 'Bu e-posta adresi kayıtlıysa şifre sıfırlama bağlantısı gönderildi. Gelen kutunuzu (ve gereksiz klasörünü) kontrol edin.' };
+  if (!email) return res.status(400).json({ message: 'E-posta adresinizi girin.' });
+  try {
+    const user = await prisma.user.findFirst({ where: { email, isActive: true } });
+    if (user) {
+      const token = await issueResetToken(user.id);
+      await sendPasswordResetMail({ to: user.email, name: user.name, brand: req.tenant.name, link: `${tenantPortalUrl(req.tenant)}/reset-password?token=${token}` });
+      audit({ tenantId: req.tenant.id, actorType: 'USER', actorId: user.id, actorName: user.name, action: 'Şifre sıfırlama bağlantısı istendi', ip: clientIp(req) });
+    }
+  } catch (error) {
+    console.error('[Şifre sıfırlama]', error.message);
+  }
+  res.json(generic);
+};
+
+export const resetPassword = async (req, res) => {
+  const problem = passwordProblem(req.body.password);
+  if (problem) return res.status(400).json({ message: problem });
+  const user = await findByResetToken(req.body.token);
+  if (!user) return res.status(400).json({ message: 'Bağlantı geçersiz veya süresi dolmuş. Yeni bir sıfırlama bağlantısı isteyin.' });
+  await setNewPassword(user.id, req.body.password);
+  audit({ tenantId: req.tenant.id, actorType: 'USER', actorId: user.id, actorName: user.name, action: 'Şifre sıfırlandı (e-posta bağlantısı)', ip: clientIp(req) });
+  res.json({ message: 'Şifreniz değiştirildi. Yeni şifrenizle giriş yapabilirsiniz.' });
 };

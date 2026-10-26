@@ -2,7 +2,7 @@ import express from 'express';
 import {
   platformLogin, getDashboard, listTenants, getTenant, createTenant, updateTenant, addManualPayment,
   resetTenantAdminPassword, listPlans, createPlan, updatePlan, syncPlanToIyzico, listPayments,
-  platformVerifyTwoFactor, platformTwoFactorStatus, platformTwoFactorSetup, platformTwoFactorEnable, platformTwoFactorDisable,
+  platformVerifyTwoFactor, platformForgotPassword, platformResetPassword, platformTwoFactorStatus, platformTwoFactorSetup, platformTwoFactorEnable, platformTwoFactorDisable,
   impersonateTenant, exportTenantData, reopenTenant, purgeTenantData, platformAuditLogs,
   listAnnouncements, createAnnouncement, deleteAnnouncement, listSupportTickets, getSupportTicket, replySupportTicket
 } from '../controllers/platformController.js';
@@ -18,6 +18,8 @@ const router = express.Router();
 router.use(platformContext);
 
 router.post('/auth/login', rateLimit({ windowMs: 15 * 60 * 1000, max: 10 }), platformLogin);
+router.post('/auth/forgot-password', rateLimit({ windowMs: 15 * 60 * 1000, max: 5, message: 'Çok fazla deneme. 15 dakika sonra tekrar deneyin.' }), platformForgotPassword);
+router.post('/auth/reset-password', rateLimit({ windowMs: 15 * 60 * 1000, max: 10 }), platformResetPassword);
 router.post('/auth/2fa/verify', rateLimit({ windowMs: 15 * 60 * 1000, max: 10 }), platformVerifyTwoFactor);
 
 router.use(verifyPlatform, auditTrail);

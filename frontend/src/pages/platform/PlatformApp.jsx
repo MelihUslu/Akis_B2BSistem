@@ -1,10 +1,11 @@
 import React, { Suspense, lazy, useState } from 'react';
-import { Routes, Route, Navigate, NavLink, useNavigate } from 'react-router-dom';
+import { Routes, Route, Navigate, NavLink, useNavigate, Link } from 'react-router-dom';
 import { LayoutDashboard, Building2, Layers, Receipt, LogOut, Lock, Mail, Megaphone, LifeBuoy, ScrollText, ShieldCheck } from 'lucide-react';
 import { platformApi, errorMessage } from '../../services/api';
 import TwoFactorStep from '../../components/TwoFactorStep';
 import ThemeToggle from '../../components/ThemeToggle';
 import PageLoader from '../../components/PageLoader';
+import { ForgotPasswordForm, ResetPasswordForm } from '../../components/auth/PasswordReset';
 
 const PlatformDashboard = lazy(() => import('./PlatformDashboard'));
 const PlatformTenants = lazy(() => import('./PlatformTenants'));
@@ -81,6 +82,7 @@ const PlatformLogin = ({ onLogin }) => {
           <input required type="password" placeholder="Şifre" className="premium-input pl-11" value={form.password} onChange={(e) => setForm({ ...form, password: e.target.value })} />
         </div>
         <button disabled={loading} className="w-full bg-slate-900 hover:bg-black text-white font-bold py-3.5 rounded-xl text-sm disabled:opacity-60">{loading ? 'Giriş yapılıyor...' : 'Giriş Yap'}</button>
+        <Link to="/forgot-password" className="block text-center text-xs font-semibold text-indigo-600 hover:underline">Şifremi unuttum</Link>
       </form>
       )}
     </div>
@@ -154,6 +156,8 @@ const PlatformApp = () => {
   if (!user) {
     return (
       <Routes>
+        <Route path="/forgot-password" element={<ForgotPasswordForm client={platformApi} brand="Platform" />} />
+        <Route path="/reset-password" element={<ResetPasswordForm client={platformApi} />} />
         <Route path="*" element={<PlatformLogin onLogin={(u) => { setUser(u); navigate('/'); }} />} />
       </Routes>
     );

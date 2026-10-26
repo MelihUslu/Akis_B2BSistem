@@ -11,6 +11,8 @@ const Login = lazy(() => import('./pages/Login'));
 const VerifyEmail = lazy(() => import('./pages/VerifyEmail'));
 const DealerApplication = lazy(() => import('./pages/DealerApplication'));
 const Impersonate = lazy(() => import('./pages/Impersonate'));
+const ForgotPassword = lazy(() => import('./pages/ForgotPassword'));
+const ResetPassword = lazy(() => import('./pages/ResetPassword'));
 const PrintOrder = lazy(() => import('./pages/print/PrintOrder'));
 const PrintStatement = lazy(() => import('./pages/print/PrintStatement'));
 const AdminLayout = lazy(() => import('./layouts/AdminLayout'));
@@ -46,6 +48,8 @@ const AppRoutes = () => {
       <Route path="/impersonate" element={<Impersonate />} />
       <Route path="/login" element={user ? <Navigate to={user.role === 'ADMIN' ? '/admin' : '/bayi'} /> : <Login />} />
       <Route path="/verify-email" element={<VerifyEmail />} />
+      <Route path="/forgot-password" element={<ForgotPassword />} />
+      <Route path="/reset-password" element={<ResetPassword />} />
       <Route path="/basvuru" element={user ? <Navigate to="/" replace /> : <DealerApplication />} />
       <Route path="/print/order/:id" element={<ProtectedRoute allowedRoles={['ADMIN', 'BAYI']}><PrintOrder /></ProtectedRoute>} />
       <Route path="/print/statement" element={<ProtectedRoute allowedRoles={['BAYI']}><PrintStatement /></ProtectedRoute>} />
