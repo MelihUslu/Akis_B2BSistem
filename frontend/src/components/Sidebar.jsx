@@ -5,7 +5,7 @@ import { useTenant } from '../context/TenantContext';
 import TenantBrand from './TenantBrand';
 import { can } from '../utils/permissions';
 import { 
-  LayoutDashboard, Package, Users, ShoppingCart, CreditCard, Settings, LogOut, Box, UserCheck, ChevronLeft, ChevronRight, RotateCcw, Crown, FileSignature, TicketPercent, LifeBuoy, X
+  LayoutDashboard, Package, Users, ShoppingCart, CreditCard, BarChart3, Settings, LogOut, Box, UserCheck, ChevronLeft, ChevronRight, RotateCcw, Crown, FileSignature, TicketPercent, LifeBuoy, X
 } from 'lucide-react';
 
 const PLAN_BOX = {
@@ -41,9 +41,10 @@ const Sidebar = ({ mobile = false, onNavigate }) => {
     { name: 'İade / RMA', path: '/admin/returns', icon: RotateCcw, perm: 'ORDERS' },
     { name: 'Kampanyalar', path: '/admin/coupons', icon: TicketPercent, perm: 'CATALOG' },
     { name: 'Finans & Prim', path: '/admin/finance', icon: CreditCard, perm: 'FINANCE' },
+    { name: 'Raporlar', path: '/admin/reports', icon: BarChart3, perm: ['ORDERS', 'FINANCE'] },
     { name: 'Abonelik', path: '/admin/subscription', icon: Crown, perm: 'SETTINGS' },
     { name: 'Destek', path: '/admin/support', icon: LifeBuoy },
-  ].filter(item => !item.perm || can(user, item.perm));
+  ].filter(item => !item.perm || [].concat(item.perm).some((p) => can(user, p)));
 
   return (
     <aside className={`

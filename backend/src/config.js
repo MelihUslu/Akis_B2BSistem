@@ -2,6 +2,10 @@ import dotenv from 'dotenv';
 
 dotenv.config({ quiet: true });
 
+// Tarih filtreleri ("bugün", "1–31 Ekim") ve raporlar firma saatine göre yorumlanır.
+// Sunucu UTC'de çalışsa bile gece yarısı sınırları Türkiye saatine göre olur.
+process.env.TZ = process.env.TZ || 'Europe/Istanbul';
+
 if (!process.env.JWT_SECRET) {
   console.error('[Config] JWT_SECRET tanımlı değil. Lütfen backend/.env dosyasına güçlü bir JWT_SECRET ekleyin.');
   process.exit(1);

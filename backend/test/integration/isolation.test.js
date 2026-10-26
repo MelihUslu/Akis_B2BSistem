@@ -93,3 +93,33 @@ test('olmayan firma adresi 404', { skip }, async () => {
   const res = await api('/tenant/public', { tenant: 'yok-boyle-firma' });
   assert.equal(res.status, 404);
 });
+
+test('satış raporu: kupon orantılı düşülür, iptal kalem sayılmaz, diğer firma görmez', { skip }, async () => {
+  const a = tenants['itest-a'];
+  const day = new Date().toLocaleDateString('sv-SE'); // yerel tarih (YYYY-MM-DD)
+  await runAsPlatform(async () => {
+    await prisma.product.update({ where: { id: a.productId }, data: { costPrice: 6, currency: 'TL' } });
+    const company = await prisma.company.create({ data: { tenantId: a.id, name: 'Rapor Bayi', status: 'ACTIVE' } });
+    const user = await prisma.user.findFirst({ where: { tenantId: a.id } });
+    await prisma.order.create({
+      data: {
+        tenantId: a.id, companyId: company.id, userId: user.id, status: 'APPROVED', totalAmount: 0, discountAmount: 20,
+        items: { create: [
+          { tenantId: a.id, productId: a.productId, quantity: 10, price: 10, vatRate: 20, status: 'APPROVED' },
+          { tenantId: a.id, productId: a.productId, quantity: 5, price: 10, vatRate: 20, status: 'CANCELLED' }
+        ] }
+      }
+    });
+  });
+  const res = await api(`/reports/sales?from=${day}&to=${day}`, { tenant: 'itest-a', token: a.token });
+  assert.equal(res.status, 200);
+  // 10 × 10 = 100, 20 TL kupon → 80 ciro; maliyet 10 × 6 = 60 → kâr 20 (%25)
+  assert.equal(res.data.summary.revenue, 80);
+  assert.equal(res.data.summary.quantity, 10);
+  assert.equal(res.data.summary.grossProfit, 20);
+  assert.equal(res.data.summary.margin, 25);
+  assert.equal(res.data.dealers[0].name, 'Rapor Bayi');
+
+  const other = await api(`/reports/sales?from=${day}&to=${day}`, { tenant: 'itest-b', token: tenants['itest-b'].token });
+  assert.equal(other.data.summary.revenue, 0);
+});

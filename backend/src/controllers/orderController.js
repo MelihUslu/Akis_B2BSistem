@@ -76,7 +76,7 @@ const orderWhere = (req) => {
   return {
     ...(req.user.role === 'BAYI' && { companyId: req.user.companyId }),
     ...(status && { status }),
-    ...((from || to) && { createdAt: { ...(from && { gte: new Date(from) }), ...(to && { lte: new Date(`${to}T23:59:59`) }) } }),
+    ...((from || to) && { createdAt: { ...(from && { gte: new Date(`${from}T00:00:00`) }), ...(to && { lte: new Date(`${to}T23:59:59.999`) }) } }),
     ...(term && {
       OR: [
         ...(Number.isInteger(orderNo) ? [{ id: orderNo }] : []),

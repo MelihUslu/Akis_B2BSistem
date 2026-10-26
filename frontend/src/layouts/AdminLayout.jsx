@@ -25,11 +25,12 @@ const QuoteManagement = lazy(() => import('../pages/admin/QuoteManagement'));
 const CouponManagement = lazy(() => import('../pages/admin/CouponManagement'));
 const SupportPage = lazy(() => import('../pages/admin/SupportPage'));
 const AccountPage = lazy(() => import('../pages/admin/AccountPage'));
+const ReportsPage = lazy(() => import('../pages/admin/ReportsPage'));
 
-// Yetkisi olmayan sayfaya doğrudan girilirse
+// Yetkisi olmayan sayfaya doğrudan girilirse (perm: tek yetki ya da yetkilerden biri)
 const Guard = ({ perm, children }) => {
   const { user } = useAuth();
-  if (can(user, perm)) return children;
+  if ([].concat(perm).some((p) => can(user, p))) return children;
   return (
     <div className="py-24 text-center space-y-3">
       <ShieldOff className="h-12 w-12 mx-auto text-gray-300" />
@@ -43,7 +44,7 @@ const Guard = ({ perm, children }) => {
 const PAGE_NAMES = {
   '/admin': 'Ana Sayfa', '/admin/products': 'Ürün Yönetimi', '/admin/categories': 'Kategoriler', '/admin/dealers': 'Bayi Yönetimi',
   '/admin/orders': 'Siparişler', '/admin/quotes': 'Teklifler', '/admin/returns': 'İade / RMA', '/admin/coupons': 'Kampanyalar',
-  '/admin/finance': 'Finans & Prim', '/admin/subscription': 'Abonelik', '/admin/settings': 'Ayarlar', '/admin/account': 'Hesabım'
+  '/admin/finance': 'Finans & Prim', '/admin/reports': 'Raporlar', '/admin/subscription': 'Abonelik', '/admin/settings': 'Ayarlar', '/admin/account': 'Hesabım'
 };
 const useRememberLastPage = () => {
   const location = useLocation();
@@ -120,6 +121,7 @@ const AdminLayout = () => {
               <Route path="subscription" element={<Guard perm="SETTINGS"><AdminSubscriptionPage /></Guard>} />
               <Route path="quotes" element={<Guard perm="ORDERS"><QuoteManagement /></Guard>} />
               <Route path="coupons" element={<Guard perm="CATALOG"><CouponManagement /></Guard>} />
+              <Route path="reports" element={<Guard perm={['ORDERS', 'FINANCE']}><ReportsPage /></Guard>} />
               <Route path="support" element={<SupportPage />} />
               <Route path="account" element={<AccountPage />} />
             </Routes>
