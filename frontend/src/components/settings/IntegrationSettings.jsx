@@ -68,6 +68,7 @@ const IntegrationSettings = ({ showAlert, confirm }) => {
     <div className="space-y-6">
       <div className="card-premium p-6 space-y-3 bg-gradient-to-br from-indigo-50/60 to-white">
         <h3 className="font-black text-gray-900 flex items-center"><BookOpen className="h-5 w-5 mr-2 text-indigo-500" /> ERP / Muhasebe Entegrasyonu Nasıl Çalışır?</h3>
+        <a href="/developer" target="_blank" rel="noreferrer" className="inline-flex items-center gap-1.5 text-xs font-bold text-indigo-600 hover:underline">API dokümanını aç (yazılımcınızla paylaşın) ↗</a>
         <ol className="text-sm text-gray-600 space-y-1 list-decimal ml-5">
           <li>Aşağıdan bir <b>API anahtarı</b> oluşturun ve ERP danışmanınıza / entegratörünüze verin.</li>
           <li>ERP; stok, fiyat, ürün ve cari bakiyelerini bu API ile gönderir (Logo, Mikro, Netsis, Paraşüt... hepsi uyumlu).</li>

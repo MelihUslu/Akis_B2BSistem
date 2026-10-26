@@ -13,6 +13,7 @@ const DealerApplication = lazy(() => import('./pages/DealerApplication'));
 const Impersonate = lazy(() => import('./pages/Impersonate'));
 const ForgotPassword = lazy(() => import('./pages/ForgotPassword'));
 const ResetPassword = lazy(() => import('./pages/ResetPassword'));
+const ApiDocs = lazy(() => import('./pages/developer/ApiDocs'));
 const PrintOrder = lazy(() => import('./pages/print/PrintOrder'));
 const PrintStatement = lazy(() => import('./pages/print/PrintStatement'));
 const PrintLabel = lazy(() => import('./pages/print/PrintLabel'));
@@ -49,6 +50,7 @@ const AppRoutes = () => {
       <Route path="/impersonate" element={<Impersonate />} />
       <Route path="/login" element={user ? <Navigate to={user.role === 'ADMIN' ? '/admin' : '/bayi'} /> : <Login />} />
       <Route path="/verify-email" element={<VerifyEmail />} />
+      <Route path="/developer" element={<ApiDocs />} />
       <Route path="/forgot-password" element={<ForgotPassword />} />
       <Route path="/reset-password" element={<ResetPassword />} />
       <Route path="/basvuru" element={user ? <Navigate to="/" replace /> : <DealerApplication />} />

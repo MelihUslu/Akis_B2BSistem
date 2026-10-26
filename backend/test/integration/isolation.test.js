@@ -352,3 +352,36 @@ test('bildirimler: personel yalnızca yetkili olduğu konuda bildirim alır; e-p
   assert.equal(saved.data.prefs.ORDER, false);
   assert.equal(saved.data.prefs.HACK, undefined);
 });
+
+test('ERP API: OpenAPI belgesi, siparişte adres/fatura, kargo durumu ortak akıştan', { skip }, async () => {
+  const a = tenants['itest-a'];
+  const spec = await fetch(`${base}/api/v1/openapi.json`).then((r) => r.json());
+  assert.equal(spec.openapi, '3.1.0');
+  assert.ok(spec.paths['/orders/{id}/invoice'].put);
+
+  const key = (await api('/integrations/keys', { tenant: 'itest-a', token: a.token, method: 'POST', body: { name: 'ERP test' } })).data;
+  const raw = key.key || key.apiKey || key.token;
+  assert.ok(raw, JSON.stringify(key));
+  const v1 = (path, opts = {}) => fetch(`${base}/api/v1${path}`, { method: opts.method || 'GET', headers: { 'X-API-Key': raw, 'Content-Type': 'application/json' }, body: opts.body && JSON.stringify(opts.body) }).then(async (r) => ({ status: r.status, data: await r.json() }));
+
+  const order = await runAsPlatform(async () => {
+    const company = await prisma.company.findFirst({ where: { tenantId: a.id, name: 'Kargo Bayi' } });
+    const user = await prisma.user.findFirst({ where: { tenantId: a.id, companyId: company.id } });
+    return prisma.order.create({ data: { tenantId: a.id, companyId: company.id, userId: user.id, status: 'APPROVED', totalAmount: 10, shippingAddress: { title: 'Depo', city: 'Bursa', district: 'Nilüfer', line: 'Organize Sanayi 1. Cad.' }, items: { create: [{ tenantId: a.id, productId: a.productId, quantity: 1, price: 10, vatRate: 0 }] } } });
+  });
+  const got = await v1(`/orders/${order.id}`);
+  assert.equal(got.data.shippingAddress.city, 'Bursa');
+  assert.equal(got.data.invoice, null);
+  const shipped = await v1(`/orders/${order.id}/status`, { method: 'PATCH', body: { status: 'SHIPPED', trackingNumber: 'ARAS123', cargoCompany: 'aras' } });
+  assert.equal(shipped.data.status, 'SHIPPED');
+  // Bildirim arka planda oluşur (asıl işlemi bekletmez); kısa süre beklenir
+  let n = 0;
+  for (let i = 0; i < 20 && !n; i++) {
+    await new Promise((r) => setTimeout(r, 50));
+    n = await runAsPlatform(() => prisma.notification.count({ where: { title: 'Siparişiniz kargoya verildi', message: { contains: 'ARAS123' } } }));
+  }
+  assert.ok(n >= 1); // bayiye bildirim ortak akıştan gitti
+  assert.equal((await v1(`/orders/${order.id}/status`, { method: 'PATCH', body: { status: 'COMPLETED' } })).data.status, 'COMPLETED');
+  assert.equal((await v1(`/orders/${order.id}/invoice`, { method: 'PUT', body: { number: 'ERP-1' } })).status, 200);
+  assert.equal((await v1(`/orders/${order.id}`)).data.invoice.number, 'ERP-1');
+});

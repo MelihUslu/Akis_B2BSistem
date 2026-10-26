@@ -2,11 +2,11 @@ import { setStock, reconcileStock } from '../services/stockService.js';
 import crypto from 'crypto';
 import prisma from '../utils/prisma.js';
 import { hashApiKey } from '../middlewares/apiKeyAuth.js';
-import { notifyRestocked, notifyCompany, safeNotify } from '../services/notificationService.js';
+import { notifyRestocked, safeNotify } from '../services/notificationService.js';
 import { assertWithinLimit, LimitError } from '../services/limitService.js';
 import { WEBHOOK_EVENTS, validateWebhookUrl, sendTestEvent } from '../services/webhookService.js';
 import { variantLabelOf, VARIANT_VALUES_INCLUDE, round2 } from '../services/pricingService.js';
-import { emitEvent } from '../services/webhookService.js';
+import { markShipped, markDelivered } from '../services/orderShippingService.js';
 
 const MAX_BATCH = 1000;
 const batch = (req, res) => {
@@ -272,14 +272,17 @@ const orderOut = (o) => ({
   id: o.id, number: `AK-${o.id}`, status: o.status, createdAt: o.createdAt, approvedAt: o.approvedAt, exportedAt: o.exportedAt,
   paymentMethod: o.paymentMethod, subtotal: o.subtotal, discountAmount: o.discountAmount, vatAmount: o.vatAmount, total: o.totalAmount,
   couponCode: o.couponCode, dueDate: o.dueDate, cargoCompany: o.cargoCompany, trackingNumber: o.trackingNumber,
-  company: { id: o.company.id, externalCode: o.company.externalCode, name: o.company.name, taxNumber: o.company.taxNumber },
+  company: { id: o.company.id, externalCode: o.company.externalCode, name: o.company.name, taxNumber: o.company.taxNumber, taxOffice: o.company.taxOffice },
+  shippingAddress: o.shippingAddress || null,
+  warehouse: o.warehouse ? { code: o.warehouse.code, name: o.warehouse.name } : null,
+  invoice: o.invoice ? { status: o.invoice.status, number: o.invoice.number, documentType: o.invoice.documentType, issuedAt: o.invoice.issuedAt } : null,
   items: o.items.map(i => ({
     sku: i.product.sku, name: i.product.parent?.name || i.product.name, variantLabel: i.variantLabel,
     quantity: i.quantity, unitPrice: i.price, vatRate: i.vatRate, status: i.status
   }))
 });
 
-const ORDER_INCLUDE = { company: true, items: { include: { product: { select: { sku: true, name: true, parent: { select: { name: true } } } } } } };
+const ORDER_INCLUDE = { company: true, warehouse: true, invoice: true, items: { include: { product: { select: { sku: true, name: true, parent: { select: { name: true } } } } } } };
 
 // ?exported=false → ERP'ye henüz aktarılmamış siparişler · ?status=APPROVED · ?since=2026-01-01
 export const apiListOrders = async (req, res) => {
@@ -319,21 +322,14 @@ export const apiUpdateOrderStatus = async (req, res) => {
   if (!['SHIPPED', 'COMPLETED'].includes(status)) return res.status(400).json({ error: 'status SHIPPED veya COMPLETED olmalıdır (onay/iptal panelden yapılır).' });
   if (!['APPROVED', 'PARTIAL_APPROVED', 'SHIPPED'].includes(order.status)) return res.status(409).json({ error: `Sipariş durumu ${order.status}; bu işlem yapılamaz.` });
 
-  const updated = await prisma.order.update({
-    where: { id },
-    data: {
-      status,
-      ...(req.body.trackingNumber && { trackingNumber: String(req.body.trackingNumber) }),
-      ...(req.body.cargoCompany && { cargoCompany: String(req.body.cargoCompany).toUpperCase() }),
-      ...(status === 'SHIPPED' && !order.shippedAt && { shippedAt: new Date() })
-    }
-  });
-  emitEvent(req.tenant.id, 'order.updated', { id, number: `AK-${id}`, status: updated.status, companyId: order.companyId, total: updated.totalAmount, trackingNumber: updated.trackingNumber, cargoCompany: updated.cargoCompany });
-  safeNotify(notifyCompany(order.companyId, {
-    type: 'ORDER',
-    title: status === 'SHIPPED' ? 'Siparişiniz kargoya verildi' : 'Siparişiniz teslim edildi',
-    message: `#AK-${id}${updated.trackingNumber ? ` · Takip No: ${updated.trackingNumber}` : ''}`,
-    link: `/bayi/orders/${id}`
-  }));
+  // Panelden yapılan işlemle aynı akış: bayiye bildirim, webhook, (ayarlıysa) otomatik fatura
+  let updated = order;
+  if (status === 'SHIPPED' || order.status !== 'SHIPPED') {
+    updated = await markShipped(req.tenant, order, {
+      trackingNumber: req.body.trackingNumber ? String(req.body.trackingNumber) : order.trackingNumber,
+      cargoCompany: req.body.cargoCompany ? String(req.body.cargoCompany).toUpperCase() : order.cargoCompany
+    });
+  }
+  if (status === 'COMPLETED') updated = await markDelivered(req.tenant, updated);
   res.json({ ok: true, status: updated.status });
 };

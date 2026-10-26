@@ -4,6 +4,7 @@ import cors from 'cors';
 import helmet from 'helmet';
 import { isAllowedOrigin } from './config.js';
 import accountRoutes from './routes/accountRoutes.js';
+import { openApiSpec } from './docs/openapi.js';
 import reportRoutes from './routes/reportRoutes.js';
 import invoicingRoutes from './routes/invoicingRoutes.js';
 import addressRoutes from './routes/addressRoutes.js';
@@ -68,6 +69,8 @@ app.use('/uploads', express.static('uploads', {
 // Kiracıdan bağımsız uçlar
 app.use('/api/public', publicRoutes);
 app.use('/api/platform', platformRoutes);
+// API dokümanı (herkese açık; gizli bilgi içermez)
+app.get('/api/v1/openapi.json', (req, res) => res.json(openApiSpec()));
 // ERP / entegratör API'si (API anahtarı ile, firma anahtardan belirlenir)
 app.use('/api/v1', integrationApiRoutes);
 

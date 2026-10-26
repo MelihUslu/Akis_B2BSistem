@@ -134,7 +134,9 @@ Fatura kesilince bayiye bildirim ve `invoice.issued` webhook'u gider; bayi sipar
 
 ### Entegrasyon (ERP)
 
-Firma, Ayarlar → Entegrasyon'dan API anahtarı üretir. `/api/v1` uçları ile ürün / stok / fiyat / bayi aktarımı yapılır, siparişler çekilir. İmzalı (HMAC-SHA256) webhook'lar sipariş ve ödeme olaylarını ERP'ye iletir. Ayrıntılar panelde örnek isteklerle birlikte gösterilir.
+Firma, Ayarlar → Entegrasyon'dan API anahtarı üretir. `/api/v1` uçları ile ürün / stok / fiyat / bayi aktarımı yapılır, siparişler (teslimat adresi, depo ve fatura bilgisiyle) çekilir, kargo ve fatura bilgisi geri yazılır. İmzalı (HMAC-SHA256) webhook'lar sipariş, ödeme, iade ve fatura olaylarını ERP'ye iletir.
+
+**API dokümanı:** her firma portalında `/developer` sayfası (giriş gerektirmez; ERP yazılımcısıyla paylaşılır). Makine okunur tanım: `GET /api/v1/openapi.json` (OpenAPI 3.1, Redocly ile doğrulanmıştır; Postman / kod üreticilere içe aktarılabilir).
 
 ## Ortam değişkenleri
 
