@@ -7,6 +7,7 @@ import { assertWithinLimit, LimitError } from '../services/limitService.js';
 import { WEBHOOK_EVENTS, validateWebhookUrl, sendTestEvent, redeliver, MAX_ATTEMPTS } from '../services/webhookService.js';
 import { variantLabelOf, VARIANT_VALUES_INCLUDE, round2 } from '../services/pricingService.js';
 import { markShipped, markDelivered } from '../services/orderShippingService.js';
+import { emitEvent } from '../services/webhookService.js';
 
 const MAX_BATCH = 1000;
 const batch = (req, res) => {
@@ -21,12 +22,15 @@ const page = (req) => {
   return { take: limit, skip: (p - 1) * limit, page: p, limit };
 };
 const currency = (c) => (c === 'TL' ? 'TRY' : c);
+// Test anahtarı: istek doğrulanır, sonuç hesaplanır ama veritabanına yazılmaz
+const dryRun = (req) => req.apiKey?.isTest === true;
+const out = (req, body) => (dryRun(req) ? { ...body, dryRun: true } : body);
 
 // ═══ Yönetim (firma admini, SETTINGS) ════════════════════════════════════════
 
 export const listIntegration = async (req, res) => {
   const [keys, webhooks] = await Promise.all([
-    prisma.apiKey.findMany({ where: { revokedAt: null }, orderBy: { createdAt: 'desc' }, select: { id: true, name: true, prefix: true, lastUsedAt: true, createdAt: true } }),
+    prisma.apiKey.findMany({ where: { revokedAt: null }, orderBy: { createdAt: 'desc' }, select: { id: true, name: true, prefix: true, isTest: true, lastUsedAt: true, createdAt: true } }),
     prisma.webhook.findMany({ orderBy: { createdAt: 'desc' } })
   ]);
   res.json({ keys, webhooks, events: WEBHOOK_EVENTS });
@@ -35,8 +39,9 @@ export const listIntegration = async (req, res) => {
 // Anahtar sadece oluşturulduğunda bir kez gösterilir; veritabanında özeti saklanır
 export const createApiKey = async (req, res) => {
   const name = String(req.body.name || '').trim() || 'ERP';
-  const key = `akb2b_${crypto.randomBytes(24).toString('base64url')}`;
-  const created = await prisma.apiKey.create({ data: { name, prefix: key.slice(0, 12), keyHash: hashApiKey(key) } });
+  const isTest = req.body.isTest === true;
+  const key = `akb2b_${isTest ? 'test_' : ''}${crypto.randomBytes(24).toString('base64url')}`;
+  const created = await prisma.apiKey.create({ data: { name, isTest, prefix: key.slice(0, isTest ? 17 : 12), keyHash: hashApiKey(key) } });
   res.status(201).json({ message: 'API anahtarı oluşturuldu. Bu anahtar bir daha gösterilmeyecek, güvenli bir yere kaydedin.', key, id: created.id });
 };
 
@@ -132,12 +137,14 @@ export const apiUpdateStock = async (req, res) => {
       if (!w) { result.notFound.push(`${item.sku} (depo: ${item.warehouse})`); continue; }
       warehouseId = w.id;
     }
-    const updated = await setStock(prisma, product.id, stock, warehouseId);
-    if (product.stock <= 0 && updated.stock > 0) restocked.push(product.id);
+    if (!dryRun(req)) {
+      const updated = await setStock(prisma, product.id, stock, warehouseId);
+      if (product.stock <= 0 && updated.stock > 0) restocked.push(product.id);
+    }
     result.updated++;
   }
   safeNotify(notifyRestocked(restocked));
-  res.json(result);
+  res.json(out(req, result));
 };
 
 // [{ sku, price, currency? }] — liste fiyatları (KDV hariç)
@@ -147,13 +154,12 @@ export const apiUpdatePrices = async (req, res) => {
   for (const item of items) {
     const price = parseFloat(item.price);
     if (!item.sku || !Number.isFinite(price) || price < 0) continue;
-    const updated = await prisma.product.updateMany({
-      where: { sku: String(item.sku) },
-      data: { price, ...(item.currency && { currency: currency(item.currency) }) }
-    });
+    const updated = dryRun(req)
+      ? { count: await prisma.product.count({ where: { sku: String(item.sku) } }) }
+      : await prisma.product.updateMany({ where: { sku: String(item.sku) }, data: { price, ...(item.currency && { currency: currency(item.currency) }) } });
     if (updated.count === 0) result.notFound.push(item.sku); else result.updated++;
   }
-  res.json(result);
+  res.json(out(req, result));
 };
 
 // [{ sku, name, price, currency, vatRate, stock, unit, brand, barcode, category }] — SKU varsa günceller, yoksa ekler
@@ -166,7 +172,7 @@ export const apiUpsertProducts = async (req, res) => {
       let categoryId;
       if (item.category) {
         const cat = await prisma.category.findFirst({ where: { name: String(item.category) } })
-          || await prisma.category.create({ data: { name: String(item.category) } });
+          || (dryRun(req) ? { id: null } : await prisma.category.create({ data: { name: String(item.category) } }));
         categoryId = cat.id;
       }
       const data = {
@@ -183,21 +189,25 @@ export const apiUpsertProducts = async (req, res) => {
       };
       const existing = await prisma.product.findFirst({ where: { sku: String(item.sku) } });
       if (existing) {
-        await prisma.product.update({ where: { id: existing.id }, data });
-        await reconcileStock(prisma, existing.id, data.stock);
+        if (!dryRun(req)) {
+          await prisma.product.update({ where: { id: existing.id }, data });
+          await reconcileStock(prisma, existing.id, data.stock);
+        }
         result.updated++;
       } else {
         if (!data.name || data.price === undefined) throw new Error('yeni ürün için name ve price zorunlu');
         await assertWithinLimit(req.tenant, 'products');
-        const created = await prisma.product.create({ data: { ...data, sku: String(item.sku), images: '[]' } });
-        await reconcileStock(prisma, created.id, data.stock);
+        if (!dryRun(req)) {
+          const created = await prisma.product.create({ data: { ...data, sku: String(item.sku), images: '[]' } });
+          await reconcileStock(prisma, created.id, data.stock);
+        }
         result.created++;
       }
     } catch (error) {
       result.errors.push({ index: i, sku: item.sku, error: error instanceof LimitError ? error.message : error.message.split('\n').pop() });
     }
   }
-  res.json(result);
+  res.json(out(req, result));
 };
 
 const companyOut = (c) => ({
@@ -245,19 +255,19 @@ export const apiUpsertCompanies = async (req, res) => {
       };
       const existing = await findCompany(item);
       if (existing) {
-        await prisma.company.update({ where: { id: existing.id }, data });
+        if (!dryRun(req)) await prisma.company.update({ where: { id: existing.id }, data });
         result.updated++;
       } else {
         if (!data.name) throw new Error('yeni cari için name zorunlu');
         await assertWithinLimit(req.tenant, 'dealers');
-        await prisma.company.create({ data: { ...data, status: 'ACTIVE' } });
+        if (!dryRun(req)) await prisma.company.create({ data: { ...data, status: 'ACTIVE' } });
         result.created++;
       }
     } catch (error) {
       result.errors.push({ index: i, externalCode: item.externalCode, error: error instanceof LimitError ? error.message : error.message.split('\n').pop() });
     }
   }
-  res.json(result);
+  res.json(out(req, result));
 };
 
 // [{ externalCode | taxNumber, balance }] — ERP'deki güncel cari bakiye (artı = alacaklı, eksi = borçlu).
@@ -272,6 +282,7 @@ export const apiSyncBalances = async (req, res) => {
     if (!company) { result.notFound.push(item.externalCode || item.taxNumber); continue; }
     const diff = round2(balance - company.currentBalance);
     if (diff === 0) { result.unchanged++; continue; }
+    if (dryRun(req)) { result.updated++; continue; }
     await prisma.$transaction([
       prisma.financialTransaction.create({
         data: { companyId: company.id, type: diff > 0 ? 'CREDIT' : 'DEBT', amount: Math.abs(diff), description: item.description || 'ERP bakiye düzeltmesi' }
@@ -280,7 +291,7 @@ export const apiSyncBalances = async (req, res) => {
     ]);
     result.updated++;
   }
-  res.json(result);
+  res.json(out(req, result));
 };
 
 const orderOut = (o) => ({
@@ -323,9 +334,11 @@ export const apiGetOrder = async (req, res) => {
 
 // ERP siparişi aldı: tekrar çekilmesin
 export const apiMarkExported = async (req, res) => {
-  const updated = await prisma.order.updateMany({ where: { id: parseInt(req.params.id) }, data: { exportedAt: new Date() } });
+  const updated = dryRun(req)
+    ? { count: await prisma.order.count({ where: { id: parseInt(req.params.id) } }) }
+    : await prisma.order.updateMany({ where: { id: parseInt(req.params.id) }, data: { exportedAt: new Date() } });
   if (updated.count === 0) return res.status(404).json({ error: 'Sipariş bulunamadı.' });
-  res.json({ ok: true });
+  res.json(out(req, { ok: true }));
 };
 
 // ERP'den kargo bilgisi / teslim durumu
@@ -337,6 +350,7 @@ export const apiUpdateOrderStatus = async (req, res) => {
   if (!['SHIPPED', 'COMPLETED'].includes(status)) return res.status(400).json({ error: 'status SHIPPED veya COMPLETED olmalıdır (onay/iptal panelden yapılır).' });
   if (!['APPROVED', 'PARTIAL_APPROVED', 'SHIPPED'].includes(order.status)) return res.status(409).json({ error: `Sipariş durumu ${order.status}; bu işlem yapılamaz.` });
 
+  if (dryRun(req)) return res.json(out(req, { ok: true, status }));
   // Panelden yapılan işlemle aynı akış: bayiye bildirim, webhook, (ayarlıysa) otomatik fatura
   let updated = order;
   if (status === 'SHIPPED' || order.status !== 'SHIPPED') {
@@ -347,4 +361,19 @@ export const apiUpdateOrderStatus = async (req, res) => {
   }
   if (status === 'COMPLETED') updated = await markDelivered(req.tenant, updated);
   res.json({ ok: true, status: updated.status });
+};
+
+// Örnek olay: entegratör gerçek sipariş beklemeden webhook alıcısını dener (gövdede test: true)
+const SAMPLES = {
+  'order.created': { id: 0, number: 'AK-0', status: 'PENDING', companyId: 0, total: 1180, trackingNumber: null, cargoCompany: null },
+  'order.updated': { id: 0, number: 'AK-0', status: 'SHIPPED', companyId: 0, total: 1180, trackingNumber: '1234567890', cargoCompany: 'YURTICI' },
+  'invoice.issued': { orderId: 0, number: 'TST2026000000001', documentType: 'E_ARSIV', provider: 'PARASUT', issuedAt: new Date().toISOString() }
+};
+export const apiSendSampleEvent = async (req, res) => {
+  const event = String(req.body.event || 'order.created');
+  if (!WEBHOOK_EVENTS[event]) return res.status(400).json({ error: `Bilinmeyen olay. Geçerli olaylar: ${Object.keys(WEBHOOK_EVENTS).join(', ')}` });
+  const hooks = await prisma.webhook.count({ where: { isActive: true } });
+  if (!hooks) return res.status(400).json({ error: 'Firmada aktif webhook yok (Ayarlar → Entegrasyon).' });
+  emitEvent(req.tenant.id, event, { ...(SAMPLES[event] || { id: 0 }), test: true });
+  res.status(202).json({ ok: true, message: `${event} örnek olayı abone webhook'lara gönderiliyor.` });
 };

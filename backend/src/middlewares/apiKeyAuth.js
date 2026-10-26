@@ -20,7 +20,8 @@ export const apiKeyAuth = async (req, res, next) => {
     if (!tenantAccess(key.tenant).active) return res.status(402).json({ error: 'Firmanın aboneliği aktif değil.' });
 
     req.tenant = key.tenant;
-    req.apiKey = { id: key.id, name: key.name };
+    req.apiKey = { id: key.id, name: key.name, isTest: key.isTest };
+    if (key.isTest) res.set('X-Test-Mode', 'true');
     // Son kullanım zamanı (dakikada en fazla bir kez yazılır)
     if (!key.lastUsedAt || Date.now() - key.lastUsedAt.getTime() > 60_000) {
       runAsPlatform(() => prisma.apiKey.update({ where: { id: key.id }, data: { lastUsedAt: new Date() } })).catch(() => {});

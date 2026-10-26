@@ -25,6 +25,7 @@ const IntegrationSettings = ({ showAlert, confirm }) => {
   const [data, setData] = useState(null);
   const [newKey, setNewKey] = useState(null);
   const [keyName, setKeyName] = useState('');
+  const [keyIsTest, setKeyIsTest] = useState(false); // test anahtarı: yazmalar kaydedilmez
   const [hook, setHook] = useState(null);
 
   const load = () => api.get('/integrations').then((r) => setData(r.data)).catch(() => {});
@@ -32,7 +33,7 @@ const IntegrationSettings = ({ showAlert, confirm }) => {
 
   const createKey = async () => {
     try {
-      const res = await api.post('/integrations/keys', { name: keyName || 'ERP' });
+      const res = await api.post('/integrations/keys', { name: keyName || 'ERP', isTest: keyIsTest });
       setNewKey(res.data.key);
       setKeyName('');
       load();
@@ -95,6 +96,7 @@ const IntegrationSettings = ({ showAlert, confirm }) => {
 
       <div className="card-premium p-6 space-y-4">
         <h3 className="font-black text-gray-900 flex items-center"><KeyRound className="h-5 w-5 mr-2 text-indigo-500" /> API Anahtarları</h3>
+        <p className="text-xs text-gray-500"><b>Test anahtarı</b> entegrasyonu kurarken kullanılır: gerçek veriyi okur, yazma isteklerini doğrulayıp sonucu döndürür ama hiçbir şeyi kaydetmez (yanıtta <code className="font-mono">dryRun: true</code>).</p>
         {newKey && (
           <div className="bg-amber-50 border border-amber-200 rounded-2xl p-4 space-y-2">
             <p className="text-xs font-black text-amber-800">Bu anahtar bir daha gösterilmeyecek. Şimdi kopyalayın:</p>
@@ -104,15 +106,20 @@ const IntegrationSettings = ({ showAlert, confirm }) => {
             </div>
           </div>
         )}
-        <div className="flex gap-2">
-          <input className="premium-input" placeholder="Anahtar adı (örn. Logo Tiger)" value={keyName} onChange={(e) => setKeyName(e.target.value)} />
+        <div className="flex flex-wrap gap-2">
+          <input className="premium-input flex-1 min-w-[12rem]" placeholder="Anahtar adı (örn. Logo Tiger)" value={keyName} onChange={(e) => setKeyName(e.target.value)} />
+          <div className="flex bg-gray-100 p-1 rounded-xl text-xs font-bold">
+            <button type="button" onClick={() => setKeyIsTest(false)} className={`px-3 rounded-lg ${!keyIsTest ? 'bg-white shadow-sm text-emerald-700' : 'text-gray-500'}`}>Canlı</button>
+            <button type="button" onClick={() => setKeyIsTest(true)} className={`px-3 rounded-lg ${keyIsTest ? 'bg-white shadow-sm text-amber-700' : 'text-gray-500'}`}>Test</button>
+          </div>
           <button onClick={createKey} className="btn-gradient whitespace-nowrap"><Plus className="h-4 w-4 mr-1" /> Anahtar Oluştur</button>
         </div>
         <div className="divide-y divide-gray-50">
           {data.keys.length === 0 && <p className="text-sm text-gray-400 py-4">Henüz anahtar yok.</p>}
           {data.keys.map(k => (
             <div key={k.id} className="py-3 flex items-center justify-between">
-              <div><p className="text-sm font-bold text-gray-800">{k.name} <code className="text-xs text-gray-400 font-mono">{k.prefix}…</code></p>
+              <div><p className="text-sm font-bold text-gray-800">{k.name} <code className="text-xs text-gray-400 font-mono">{k.prefix}…</code>
+                {k.isTest && <span className="ml-2 px-1.5 py-0.5 rounded-md bg-amber-100 text-amber-700 text-[10px] font-bold">TEST · yazmaz</span>}</p>
                 <p className="text-[11px] text-gray-400">Oluşturma: {formatDate(k.createdAt)} · Son kullanım: {k.lastUsedAt ? formatDate(k.lastUsedAt, true) : 'hiç'}</p></div>
               <button onClick={() => revoke(k)} className="p-2 text-gray-300 hover:text-red-500"><Trash2 className="h-4 w-4" /></button>
             </div>

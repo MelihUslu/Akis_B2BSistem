@@ -764,6 +764,7 @@ model ApiKey {
   name       String
   prefix     String // Anahtarın ilk karakterleri (listede tanımak için)
   keyHash    String    @unique
+  isTest     Boolean   @default(false) // Test anahtarı: yazma istekleri doğrulanır ama kaydedilmez
   lastUsedAt DateTime?
   revokedAt  DateTime?
   createdAt  DateTime  @default(now())

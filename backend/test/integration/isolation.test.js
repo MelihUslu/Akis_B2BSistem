@@ -439,3 +439,34 @@ test('webhook kuyruğu: hata kaydedilir, zamanı gelince yeniden denenir, elle y
   assert.equal(received.length, 3);
   receiver.close();
 });
+
+test('test (sandbox) API anahtarı: okur, yazmaları doğrular ama kaydetmez', { skip }, async () => {
+  const a = tenants['itest-a'];
+  const created = (await api('/integrations/keys', { tenant: 'itest-a', token: a.token, method: 'POST', body: { name: 'Sandbox', isTest: true } })).data;
+  assert.match(created.key, /^akb2b_test_/);
+  const v1 = (path, opts = {}) => fetch(`${base}/api/v1${path}`, { method: opts.method || 'GET', headers: { 'X-API-Key': created.key, 'Content-Type': 'application/json' }, body: opts.body && JSON.stringify(opts.body) })
+    .then(async (r) => ({ status: r.status, testHeader: r.headers.get('x-test-mode'), data: await r.json() }));
+  const before = await runAsPlatform(() => prisma.product.findUnique({ where: { id: a.productId } }));
+
+  const list = await v1('/products');
+  assert.equal(list.testHeader, 'true');
+  assert.ok(list.data.data.some((p) => p.sku === 'SKU-itest-a')); // gerçek veri okunur
+
+  const stock = await v1('/products/stock', { method: 'PUT', body: [{ sku: 'SKU-itest-a', stock: 9999 }, { sku: 'YOK', stock: 1 }] });
+  assert.deepEqual(stock.data, { updated: 1, notFound: ['YOK'], dryRun: true });
+  const prices = await v1('/products/prices', { method: 'PUT', body: [{ sku: 'SKU-itest-a', price: 1 }] });
+  assert.equal(prices.data.updated, 1);
+  const upsert = await v1('/products/upsert', { method: 'POST', body: [{ sku: 'YENI-SANDBOX', name: 'Yeni', price: 5, category: 'Sandbox Kategori' }, { sku: 'EKSIK' }] });
+  assert.equal(upsert.data.created, 1);
+  assert.equal(upsert.data.errors.length, 1); // doğrulama test modunda da çalışır
+
+  const after = await runAsPlatform(() => prisma.product.findUnique({ where: { id: a.productId } }));
+  assert.equal(after.stock, before.stock);
+  assert.equal(after.price, before.price);
+  assert.equal(await runAsPlatform(() => prisma.product.count({ where: { sku: 'YENI-SANDBOX' } })), 0);
+  assert.equal(await runAsPlatform(() => prisma.category.count({ where: { name: 'Sandbox Kategori' } })), 0);
+
+  const sample = await v1('/webhooks/test', { method: 'POST', body: { event: 'order.updated' } });
+  assert.ok([202, 400].includes(sample.status)); // webhook varsa 202
+  assert.equal((await v1('/webhooks/test', { method: 'POST', body: { event: 'yok.boyle' } })).status, 400);
+});

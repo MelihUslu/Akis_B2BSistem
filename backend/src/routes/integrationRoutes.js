@@ -2,11 +2,12 @@ import express from 'express';
 import {
   listIntegration, createApiKey, revokeApiKey, createWebhook, updateWebhook, deleteWebhook, testWebhook, listDeliveries, redeliverWebhook,
   apiListProducts, apiUpdateStock, apiUpdatePrices, apiUpsertProducts, apiListCompanies, apiUpsertCompanies,
-  apiSyncBalances, apiListOrders, apiGetOrder, apiMarkExported, apiUpdateOrderStatus
+  apiSyncBalances, apiListOrders, apiGetOrder, apiMarkExported, apiUpdateOrderStatus, apiSendSampleEvent
 } from '../controllers/integrationController.js';
 import { verifyToken, requirePermission } from '../middlewares/authMiddleware.js';
 import { apiKeyAuth } from '../middlewares/apiKeyAuth.js';
 import { setInvoiceNumber } from '../controllers/invoicingController.js';
+import prisma from '../utils/prisma.js';
 import { rateLimit } from '../middlewares/rateLimit.js';
 
 // Panel: anahtar ve webhook yönetimi (X-Tenant + oturum)
@@ -37,7 +38,14 @@ integrationApiRoutes.get('/orders/:id', apiGetOrder);
 integrationApiRoutes.post('/orders/:id/exported', apiMarkExported);
 integrationApiRoutes.patch('/orders/:id/status', apiUpdateOrderStatus);
 // ERP'de kesilen faturanın numarası / PDF adresi (bayi sipariş detayında görür)
-integrationApiRoutes.put('/orders/:id/invoice', (req, res) => {
+integrationApiRoutes.put('/orders/:id/invoice', async (req, res) => {
   req.user = { role: 'ADMIN' }; // API anahtarı firma yöneticisi yetkisiyle çalışır
+  if (req.apiKey?.isTest) {
+    const exists = await prisma.order.count({ where: { id: parseInt(req.params.id) } });
+    if (!exists) return res.status(404).json({ error: 'Sipariş bulunamadı.' });
+    if (!String(req.body.number || '').trim()) return res.status(400).json({ error: 'Fatura numarası girin.' });
+    return res.json({ ok: true, dryRun: true });
+  }
   return setInvoiceNumber(req, res, 'ERP');
 });
+integrationApiRoutes.post('/webhooks/test', apiSendSampleEvent);

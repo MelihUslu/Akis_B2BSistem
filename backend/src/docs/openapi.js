@@ -23,7 +23,8 @@ const build = () => ({
     description: [
       'ERP, muhasebe ve entegratör yazılımlarının firma verisine erişimi içindir.',
       'API anahtarı firma yönetim panelinde **Ayarlar → Entegrasyon** sayfasından oluşturulur ve yalnızca o firmanın verisine erişir.',
-      'Tutarlar TL (aksi belirtilmedikçe) ve KDV hariçtir. Tarihler ISO 8601 biçimindedir.'
+      'Tutarlar TL (aksi belirtilmedikçe) ve KDV hariçtir. Tarihler ISO 8601 biçimindedir.',
+      '**Test anahtarı** (`akb2b_test_…`): gerçek veriyi okur; yazma istekleri doğrulanır ve sonuç döner ama kaydedilmez (yanıtta `dryRun: true`, başlıkta `X-Test-Mode: true`). Entegrasyonu canlı veriye dokunmadan geliştirmek için kullanın.'
     ].join('\n\n')
   },
   servers: [{ url: `${API_PUBLIC_URL}/api/v1` }],
@@ -108,6 +109,14 @@ const build = () => ({
         parameters: [{ name: 'id', in: 'path', required: true, schema: { type: 'integer' } }],
         requestBody: { required: true, ...json({ type: 'object', required: ['status'], properties: { status: { type: 'string', enum: ['SHIPPED', 'COMPLETED'] }, trackingNumber: { type: 'string' }, cargoCompany: { type: 'string', enum: ['YURTICI', 'ARAS', 'MNG', 'SURAT', 'PTT', 'UPS', 'DHL', 'DIGER'] } } }, { status: 'SHIPPED', trackingNumber: '1234567890', cargoCompany: 'ARAS' }) },
         responses: { 200: { description: 'Tamam', ...json({ type: 'object', properties: { ok: { type: 'boolean' }, status: { type: 'string' } } }) }, 409: { description: 'Sipariş bu işlem için uygun durumda değil' }, ...errors }
+      }
+    },
+    '/webhooks/test': {
+      post: {
+        tags: ['Siparişler'], summary: 'Örnek webhook olayı gönder',
+        description: 'Gerçek sipariş beklemeden webhook alıcınızı denemek içindir. Seçilen olay, örnek verilerle (data.test = true) firmanın abone webhook\'larına gönderilir.',
+        requestBody: { required: true, ...json({ type: 'object', properties: { event: { type: 'string', enum: Object.keys(WEBHOOK_EVENTS) } } }, { event: 'order.created' }) },
+        responses: { 202: { description: 'Gönderiliyor' }, 400: { description: 'Bilinmeyen olay ya da aktif webhook yok' }, ...errors }
       }
     },
     '/orders/{id}/invoice': {
