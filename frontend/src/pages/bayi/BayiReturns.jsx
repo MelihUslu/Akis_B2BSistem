@@ -4,6 +4,8 @@ import { RotateCcw, Package } from 'lucide-react';
 import api from '../../services/api';
 import { formatDate, firstImage, RETURN_STATUS } from '../../utils/format';
 import { t } from '../../i18n';
+import PageHeader from '../../components/shared/PageHeader';
+import EmptyState from '../../components/shared/EmptyState';
 
 const BayiReturns = () => {
   const [returns, setReturns] = useState([]);
@@ -18,22 +20,12 @@ const BayiReturns = () => {
 
   return (
     <div className="space-y-6">
-      <div>
-        <div className="flex items-center gap-4">
-          <div className="bg-gradient-to-br from-orange-500 to-orange-700 p-3 md:p-3.5 rounded-2xl shadow-lg shadow-orange-500/25 shrink-0"><RotateCcw className="h-6 w-6 text-white" /></div>
-          <div>
-            <h1 className="text-2xl md:text-3xl font-black text-gray-900 tracking-tight">{t('İade / Değişim Taleplerim')}</h1>
-            <p className="text-gray-500 text-sm mt-1">{t('Yeni talep oluşturmak için ilgili siparişin detay sayfasına gidin.')}</p>
-          </div>
-        </div>
-      </div>
+      <PageHeader icon={RotateCcw} tone="orange" title={t('İade / Değişim Taleplerim')} subtitle={t('Yeni talep oluşturmak için ilgili siparişin detay sayfasına gidin.')} />
 
       {isLoading ? (
         <div className="text-center py-12 text-gray-400">{t('Yükleniyor...')}</div>
       ) : returns.length === 0 ? (
-        <div className="text-center py-12 bg-white rounded-2xl border border-dashed border-gray-200 text-gray-400">
-          {t('Henüz iade veya değişim talebiniz yok.')}
-        </div>
+        <EmptyState icon={RotateCcw}>{t('Henüz iade veya değişim talebiniz yok.')}</EmptyState>
       ) : (
         <div className="space-y-4">
           {returns.map((r) => {

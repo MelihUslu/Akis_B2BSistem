@@ -7,6 +7,8 @@ import QuoteDocument from '../../components/quotes/QuoteDocument';
 import { formatTRY, formatDate } from '../../utils/format';
 import { QUOTE_STATUS } from '../../utils/quote';
 import { t } from '../../i18n';
+import PageHeader from '../../components/shared/PageHeader';
+import EmptyState from '../../components/shared/EmptyState';
 
 const BayiQuotes = () => {
   const [quotes, setQuotes] = useState(null);
@@ -61,16 +63,10 @@ const BayiQuotes = () => {
   return (
     <div className="space-y-6">
       {alertElement}
-      <div className="flex items-center gap-4">
-        <div className="bg-gradient-to-br from-indigo-500 to-indigo-700 p-3 md:p-3.5 rounded-2xl shadow-lg shadow-indigo-500/25 shrink-0"><FileSignature className="h-6 w-6 text-white" /></div>
-        <div>
-          <h1 className="text-2xl md:text-3xl font-black text-gray-900 tracking-tight">{t('Tekliflerim')}</h1>
-          <p className="text-gray-500 text-sm mt-1">{t('Ürün detayından veya sepetten teklif isteyebilirsiniz. Onayladığınız teklif, teklif fiyatlarıyla siparişe dönüşür.')}</p>
-        </div>
-      </div>
+      <PageHeader icon={FileSignature} title={t('Tekliflerim')} subtitle={t('Ürün detayından veya sepetten teklif isteyebilirsiniz. Onayladığınız teklif, teklif fiyatlarıyla siparişe dönüşür.')} />
 
       {quotes.length === 0 ? (
-        <div className="text-center py-12 bg-white rounded-2xl border border-dashed border-gray-200 text-gray-400">{t('Henüz teklifiniz yok.')}</div>
+        <EmptyState icon={FileSignature}>{t('Henüz teklifiniz yok.')}</EmptyState>
       ) : quotes.map((q) => {
         const status = QUOTE_STATUS[q.status] || QUOTE_STATUS.PREPARING;
         const doc = q.document;

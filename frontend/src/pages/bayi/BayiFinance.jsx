@@ -46,6 +46,7 @@ const CardPayModal = ({ suggested, provider, onClose }) => {
 };
 import { formatTRY, formatMoney, formatDate } from '../../utils/format';
 import { t } from '../../i18n';
+import PageHeader from '../../components/shared/PageHeader';
 
 const formatCard = (v) => v.replace(/\D/g, '').slice(0, 16).replace(/(\d{4})(?=\d)/g, '$1 ');
 const formatExpiry = (v) => {
@@ -204,46 +205,36 @@ const BayiFinance = () => {
         />
       )}
 
-      <div className="flex flex-col md:flex-row justify-between md:items-end gap-4">
-        <div>
-          <div className="flex items-center gap-4">
-          <div className="bg-gradient-to-br from-blue-500 to-blue-700 p-3 md:p-3.5 rounded-2xl shadow-lg shadow-blue-500/25 shrink-0"><CreditCard className="h-6 w-6 text-white" /></div>
-          <div>
-            <h1 className="text-2xl md:text-3xl font-black text-gray-900 tracking-tight">{t('Finansal Durum')}</h1>
-            <p className="text-gray-500 text-sm mt-1">{t('Cari bakiye, risk limiti ve hesap ekstrenizi inceleyin.')}</p>
-          </div>
-        </div>
-        </div>
-        <div className="flex flex-wrap gap-2">
-          <button onClick={() => downloadFile('/finance/my-statement/export', {}, 'ekstre.xlsx')} className="flex items-center px-4 py-3 rounded-2xl bg-emerald-50 text-emerald-700 text-xs font-black hover:bg-emerald-100"><FileSpreadsheet className="h-4 w-4 mr-1.5" /> {t('Excel')}</button>
-          <Link to="/print/statement" className="flex items-center px-4 py-3 rounded-2xl bg-gray-100 text-gray-700 text-xs font-black hover:bg-gray-200"><Printer className="h-4 w-4 mr-1.5" /> {t('Yazdır / PDF')}</Link>
+      <PageHeader icon={CreditCard} tone="blue" title={t('Finansal Durum')} subtitle={t('Cari bakiye, risk limiti ve hesap ekstrenizi inceleyin.')}
+        actions={<>
+          <button onClick={() => downloadFile('/finance/my-statement/export', {}, 'ekstre.xlsx')} className="flex items-center h-11 px-4 rounded-2xl bg-white border border-gray-100 shadow-sm text-xs font-bold text-gray-600 hover:text-emerald-700 hover:border-emerald-200"><FileSpreadsheet className="h-4 w-4 mr-1.5" /> {t("Excel'e Aktar")}</button>
+          <Link to="/print/statement" className="flex items-center h-11 px-4 rounded-2xl bg-white border border-gray-100 shadow-sm text-xs font-bold text-gray-600 hover:text-gray-900"><Printer className="h-4 w-4 mr-1.5" /> {t('Yazdır / PDF')}</Link>
           {posMode && posMode !== 'NONE' && (
             <button onClick={() => setIsPosOpen(true)} className="btn-gradient">
               <CreditCard className="h-4 w-4 mr-2" /> {posMode === 'DEMO' ? t('Sanal POS ile Öde (Demo)') : t('Kartla Öde')}
             </button>
           )}
-        </div>
-      </div>
+        </>} />
 
       <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-        <div className="bg-white p-5 md:p-8 rounded-3xl border border-gray-100 shadow-sm relative overflow-hidden">
+        <div className="bg-white p-5 md:p-6 rounded-2xl border border-gray-100 shadow-sm relative overflow-hidden">
           <div className="relative z-10">
-            <p className="text-sm font-medium text-gray-400 mb-1">{t('Güncel Bakiyeniz')}</p>
+            <p className="text-[10px] font-black text-gray-400 uppercase tracking-wider mb-2">{t('Güncel Bakiyeniz')}</p>
             <h2 className={`text-3xl font-black ${balance >= 0 ? 'text-green-600' : 'text-red-600'}`}>
               {money(Math.abs(balance))}
             </h2>
             <p className="text-xs text-gray-400 mt-2 font-bold uppercase tracking-wider">
-              {balance >= 0 ? 'ALACAKLI DURUMDASINIZ' : t('TOPLAM BORÇ TUTARI')}{cur !== 'TRY' && ` · ${cur}`}
+              {balance >= 0 ? t('ALACAKLI DURUMDASINIZ') : t('TOPLAM BORÇ TUTARI')}{cur !== 'TRY' && ` · ${cur}`}
             </p>
             {cur !== 'TRY' && <p className="text-[11px] text-gray-400 mt-2">{t('Cari hesabınız {cur} olarak tutulur. Kartla ödemeler TL alınır ve günün kuruyla {cur} olarak işlenir.', { cur })}</p>}
           </div>
-          <div className="absolute top-0 right-0 p-8 opacity-10">
-            <Wallet className="h-24 w-24 text-blue-600" />
+          <div className="absolute top-0 right-0 p-6 opacity-10">
+            <Wallet className="h-20 w-20 text-blue-600" />
           </div>
         </div>
 
-        <div className="bg-white p-5 md:p-8 rounded-3xl border border-gray-100 shadow-sm">
-          <p className="text-sm font-medium text-gray-400 mb-1">{t('Risk Limitiniz')}</p>
+        <div className="bg-white p-5 md:p-6 rounded-2xl border border-gray-100 shadow-sm">
+          <p className="text-[10px] font-black text-gray-400 uppercase tracking-wider mb-2">{t('Risk Limitiniz')}</p>
           <h2 className="text-3xl font-black text-gray-900">{money(riskLimit)}</h2>
           <div className="mt-4 w-full bg-gray-100 h-2 rounded-full overflow-hidden">
             <div
@@ -257,9 +248,9 @@ const BayiFinance = () => {
           {credit.reserved > 0 && <p className="text-[10px] text-amber-600 mt-1 font-bold uppercase">{t('Onay bekleyen siparişler:')} {money(credit.reserved)}</p>}
         </div>
 
-        <div className="bg-white p-5 md:p-8 rounded-3xl border border-gray-100 shadow-sm flex flex-col justify-between">
+        <div className="bg-white p-5 md:p-6 rounded-2xl border border-gray-100 shadow-sm flex flex-col justify-between">
           <div>
-            <p className="text-sm font-medium text-gray-400 mb-1">{t('Cari Mutabakat')}</p>
+            <p className="text-[10px] font-black text-gray-400 uppercase tracking-wider mb-2">{t('Cari Mutabakat')}</p>
             {lastReconciliation ? (
               <p className="text-sm font-bold text-gray-700">
                 {t('Son onay:')} {formatDate(lastReconciliation.createdAt)}<br />
@@ -276,7 +267,7 @@ const BayiFinance = () => {
       </div>
 
       {upcomingDue && (
-        <div className={`${new Date(upcomingDue.dueDate) < new Date() ? 'bg-red-50 border-red-100 text-red-800' : 'bg-amber-50 border-amber-100 text-amber-800'} border p-5 rounded-3xl flex items-center space-x-4`}>
+        <div className={`${new Date(upcomingDue.dueDate) < new Date() ? 'bg-red-50 border-red-100 text-red-800' : 'bg-amber-50 border-amber-100 text-amber-800'} border p-5 rounded-2xl flex items-center space-x-4`}>
           <CalendarClock className="h-6 w-6 flex-shrink-0" />
           <p className="text-sm font-bold">
             {t('En yakın vade')}: #AK-{upcomingDue.id} · {formatDate(upcomingDue.dueDate)} · {formatTRY(upcomingDue.totalAmount)}
@@ -332,8 +323,8 @@ const BayiFinance = () => {
           <Info className="h-5 w-5" />
         </div>
         <div>
-          <h4 className="font-bold text-blue-900">{t('Bilgilendirme')}</h4>
-          <p className="text-sm text-blue-700 mt-1 leading-relaxed">
+          <h4 className="font-bold text-blue-800">{t('Bilgilendirme')}</h4>
+          <p className="text-sm text-blue-800/80 mt-1 leading-relaxed">
             {t('Sanal POS ödemeleri anında bakiyenize yansır ve risk limitiniz otomatik olarak tekrar açılır. Havale bildirimleri için {contact} ile iletişime geçin. Vade süreniz: {days} gün.', {
               contact: company.plasiyer ? t('müşteri temsilciniz {name} ({email})', { name: company.plasiyer.name, email: company.plasiyer.email }) : t('finans birimimiz'),
               days: company.paymentTermDays

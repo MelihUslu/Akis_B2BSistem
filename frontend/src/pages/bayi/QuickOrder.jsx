@@ -5,6 +5,7 @@ import { useCart } from '../../context/CartContext';
 import useAlert from '../../hooks/useAlert';
 import { formatTRY, normalizeQty } from '../../utils/format';
 import { t } from '../../i18n';
+import PageHeader from '../../components/shared/PageHeader';
 
 let rowSeq = 0;
 const nextKey = () => ++rowSeq;
@@ -75,17 +76,9 @@ const QuickOrder = () => {
   };
 
   return (
-    <div className="space-y-6 md:space-y-8 max-w-6xl mx-auto">
+    <div className="space-y-6 md:space-y-8">
       {alertElement}
-      <div>
-        <div className="flex items-center gap-4">
-          <div className="bg-gradient-to-br from-indigo-500 to-indigo-700 p-3 md:p-3.5 rounded-2xl shadow-lg shadow-indigo-500/25 shrink-0"><Zap className="h-6 w-6 text-white" /></div>
-          <div>
-            <h1 className="text-2xl md:text-3xl font-black text-gray-900 tracking-tight">{t('Hızlı Sipariş')}</h1>
-            <p className="text-gray-500 text-sm mt-1">{t("SKU / barkod ve miktar girin ya da Excel'den iki sütunu (SKU, Miktar) kopyalayıp yapıştırın.")}</p>
-          </div>
-        </div>
-      </div>
+      <PageHeader icon={Zap} title={t('Hızlı Sipariş')} subtitle={t("SKU / barkod ve miktar girin ya da Excel'den iki sütunu (SKU, Miktar) kopyalayıp yapıştırın.")} />
 
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
         <div className="card-premium p-6 space-y-3">

@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react';
 import api from '../../services/api';
 import { 
-  ShoppingCart, Search, Package,
+  ShoppingCart, ShoppingBag, Search, Package,
   CheckCircle2, AlertCircle, XCircle, 
   Eye, Minus, Plus,
   Filter, SlidersHorizontal, BellRing, BellOff, Tag, Heart, Layers
@@ -12,6 +12,7 @@ import { useCart } from '../../context/CartContext';
 import useAlert from '../../hooks/useAlert';
 import { formatTRY, firstImage, normalizeQty } from '../../utils/format';
 import { t } from '../../i18n';
+import PageHeader from '../../components/shared/PageHeader';
 
 // Varyantlı ürün kartı özeti: en düşük fiyat, stok durumu, seçenek sayısı
 const variantSummary = (p) => {
@@ -161,28 +162,22 @@ const ProductCatalog = () => {
       {alertElement}
       
       {/* Header Area */}
-      <div className="flex flex-col xl:flex-row justify-between items-start xl:items-end mb-8 gap-6">
-        <div>
-          <div className="flex items-center space-x-4 mb-2">
-             <div className="bg-indigo-600 w-2 h-8 rounded-full" />
-             <h1 className="text-3xl md:text-3xl font-black text-gray-900 tracking-tight">{t('Katalog')}</h1>
-          </div>
-          <p className="text-gray-400 text-sm font-semibold uppercase tracking-widest">
-            {userProfile?.company?.name} {t('Özel İskonto (%{n})', { n: userProfile?.company?.netDiscount || 0 })}
-          </p>
+      <div className="flex flex-col xl:flex-row justify-between items-start xl:items-center mb-8 gap-6">
+        <PageHeader icon={ShoppingBag} title={t('Katalog')}
+          subtitle={<>{userProfile?.company?.name} · {t('Özel İskonto (%{n})', { n: userProfile?.company?.netDiscount || 0 })}</>}>
           {rules?.qtyRate > 0 && (
             <p className="mt-2 inline-flex items-center text-[11px] font-black text-emerald-700 bg-emerald-50 px-3 py-1.5 rounded-xl">
               <Tag className="h-3.5 w-3.5 mr-1.5" /> {rules.qtyThreshold} ve üzeri alımlarda sepette ekstra %{rules.qtyRate} indirim
             </p>
           )}
-        </div>
+        </PageHeader>
         
         <form onSubmit={(e) => { e.preventDefault(); refresh(); }} className="relative w-full xl:w-[32rem] group">
           <Search className="absolute left-6 top-1/2 -translate-y-1/2 h-5 w-5 text-gray-300 group-focus-within:text-indigo-600 transition-all" />
           <input 
             type="text" 
             placeholder={t('Ürün adı, SKU veya barkod...')} 
-            className="w-full pl-16 pr-6 py-4 md:py-5 bg-white border border-gray-100 rounded-[2rem] text-sm font-bold focus:ring-4 focus:ring-indigo-100 shadow-sm transition-all outline-none placeholder:text-gray-300"
+            className="w-full pl-16 pr-6 py-4 bg-white border border-gray-100 rounded-2xl text-sm font-bold focus:ring-4 focus:ring-indigo-100 shadow-sm transition-all outline-none placeholder:text-gray-300"
             value={search}
             onChange={e => setSearch(e.target.value)}
           />
@@ -196,7 +191,7 @@ const ProductCatalog = () => {
               onClick={() => setSelectedCategory('')}
               className={`flex items-center space-x-4 px-6 py-4 rounded-2xl border transition-all min-w-max ${
                 !selectedCategory 
-                  ? 'bg-indigo-600 text-white border-indigo-600 shadow-xl shadow-indigo-500/30' 
+                  ? 'bg-indigo-600 text-white border-indigo-600 shadow-md shadow-indigo-500/20' 
                   : 'bg-white text-gray-700 border-gray-100 hover:border-indigo-200 hover:shadow-md'
               }`}
             >
@@ -215,7 +210,7 @@ const ProductCatalog = () => {
                 onClick={() => setSelectedCategory(cat.id)}
                 className={`flex items-center space-x-4 px-6 py-4 rounded-2xl border transition-all min-w-max ${
                   selectedCategory === cat.id 
-                    ? 'bg-indigo-600 text-white border-indigo-600 shadow-xl shadow-indigo-500/30' 
+                    ? 'bg-indigo-600 text-white border-indigo-600 shadow-md shadow-indigo-500/20' 
                     : 'bg-white text-gray-700 border-gray-100 hover:border-indigo-200 hover:shadow-md'
                 }`}
               >
@@ -326,7 +321,11 @@ const ProductCatalog = () => {
             <div className="aspect-[4/3] bg-gradient-to-br from-gray-50 to-gray-100 rounded-[2rem] flex items-center justify-center p-8 group-hover:from-indigo-50/50 group-hover:to-purple-50/50 transition-colors duration-500 mb-6 overflow-hidden relative">
               <div className="absolute inset-0 bg-white/20 mix-blend-overlay"></div>
               {firstImage(product.images) ? (
-                 <img src={firstImage(product.images)} className="w-full h-full object-contain relative z-10 group-hover:scale-110 transition-transform duration-700 drop-shadow-xl" />
+                 <>
+                   {/* Görsel yüklenemezse (silinmiş dosya) kırık resim yerine ürün ikonu gösterilir */}
+                   <img src={firstImage(product.images)} alt={product.name} onError={(e) => e.currentTarget.classList.add('broken', 'hidden')} className="peer w-full h-full object-contain relative z-10 group-hover:scale-110 transition-transform duration-700 drop-shadow-xl" />
+                   <Package className="hidden peer-[.broken]:block h-20 w-20 text-gray-300 relative z-10" />
+                 </>
               ) : (
                  <Package className="h-20 w-20 text-gray-300 relative z-10 group-hover:scale-110 transition-transform duration-500" />
               )}

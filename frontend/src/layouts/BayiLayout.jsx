@@ -1,7 +1,7 @@
 import { Suspense, lazy, useState } from 'react';
-import { Routes, Route, useLocation } from 'react-router-dom';
+import { Routes, Route, useLocation, Link } from 'react-router-dom';
 import ErrorBoundary from '../components/ErrorBoundary';
-import { ShoppingCart, User, Menu } from 'lucide-react';
+import { ShoppingCart, Menu, ChevronDown } from 'lucide-react';
 import { useCart } from '../context/CartContext';
 import { useAuth } from '../context/AuthContext';
 import BayiSidebar from '../components/BayiSidebar';
@@ -25,6 +25,8 @@ const QuickOrder = lazy(() => import('../pages/bayi/QuickOrder'));
 const BayiQuotes = lazy(() => import('../pages/bayi/BayiQuotes'));
 const BayiLists = lazy(() => import('../pages/bayi/BayiLists'));
 
+const initials = (name = '') => name.split(' ').filter(Boolean).slice(0, 2).map((w) => w[0]).join('').toLocaleUpperCase('tr-TR');
+
 const BayiLayout = () => {
   const { cartCount, isCartOpen, setIsCartOpen } = useCart();
   const { user } = useAuth();
@@ -47,7 +49,7 @@ const BayiLayout = () => {
           style={{ paddingTop: 'max(1rem, env(safe-area-inset-top))' }}>
           <div className="flex-1 flex items-center gap-3 min-w-0">
              <button onClick={() => setMenuOpen(true)} className="lg:hidden p-2 -ml-2 rounded-xl text-gray-600 hover:bg-gray-100" aria-label={t('Menü')}><Menu className="h-6 w-6" /></button>
-             <div className="truncate"><TenantBrand textClass="text-gray-900" /></div>
+             <div className="truncate lg:hidden"><TenantBrand textClass="text-gray-900" /></div>
           </div>
           
           <div className="flex items-center space-x-3 md:space-x-6">
@@ -69,15 +71,16 @@ const BayiLayout = () => {
 
             <div className="h-8 w-px bg-gray-100 hidden sm:block" />
 
-            <div className="hidden sm:flex items-center space-x-3 pl-4 border-l border-gray-50 group cursor-pointer">
+            <Link to="/bayi/profile" title={t('Profilim')} className="hidden sm:flex items-center space-x-3 pl-4 border-l border-gray-50 group">
               <div className="text-right hidden sm:block">
                 <p className="text-xs font-black text-gray-900 leading-none">{user?.name || t('Değerli Bayimiz')}</p>
-                <p className="text-[10px] font-bold text-indigo-500 uppercase tracking-widest mt-1">{t('Bayi Hesabı')}</p>
+                <p className="text-[8px] font-black text-indigo-500 uppercase tracking-widest mt-1">{t('Bayi Hesabı')}</p>
               </div>
-              <div className="w-8 h-8 bg-gradient-to-br from-indigo-500 to-purple-600 rounded-xl flex items-center justify-center text-white font-black text-[10px] shadow-sm">
-                 <User className="h-4 w-4" />
+              <div className="w-8 h-8 bg-indigo-100 rounded-xl flex items-center justify-center text-indigo-600 font-black text-[10px] shadow-sm">
+                {initials(user?.name)}
               </div>
-            </div>
+              <ChevronDown className="hidden md:block h-3 w-3 text-gray-300 group-hover:text-indigo-500" />
+            </Link>
           </div>
         </header>
 

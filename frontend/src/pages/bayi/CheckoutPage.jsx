@@ -7,6 +7,7 @@ import useAlert from '../../hooks/useAlert';
 import AddressBook from '../../components/shared/AddressBook';
 import { formatTRY } from '../../utils/format';
 import { t } from '../../i18n';
+import PageHeader from '../../components/shared/PageHeader';
 
 const CheckoutPage = () => {
   const { cart, clearCart } = useCart();
@@ -81,16 +82,8 @@ const CheckoutPage = () => {
     <>
       {alertElement}
 
-      <div className="p-1 md:p-10 max-w-5xl mx-auto space-y-8 md:space-y-12 animate-in fade-in duration-700">
-        <div className="text-center space-y-4">
-          <div className="bg-blue-600 w-16 h-16 rounded-[1.5rem] flex items-center justify-center mx-auto shadow-xl shadow-blue-500/20">
-            <ShieldCheck className="h-8 w-8 text-white" />
-          </div>
-          <h1 className="text-3xl md:text-3xl font-black text-gray-900 tracking-tight">{t('Siparişi Onayla')}</h1>
-          <p className="text-gray-400 font-medium">
-            {t('Lütfen bilgilerinizi kontrol edip siparişinizi tamamlayın.')}
-          </p>
-        </div>
+      <div className="space-y-6 md:space-y-8 animate-in fade-in duration-700">
+        <PageHeader icon={ShieldCheck} tone="blue" title={t('Siparişi Onayla')} subtitle={t('Lütfen bilgilerinizi kontrol edip siparişinizi tamamlayın.')} />
 
         <div className="grid grid-cols-1 md:grid-cols-2 gap-10">
           {/* Payment Method */}

@@ -310,6 +310,7 @@ export default {
   'Finansal bilgiler yüklenemedi.': 'Financial information could not be loaded.',
   'Güncel Bakiyeniz': 'Current Balance',
   'TOPLAM BORÇ TUTARI': 'TOTAL AMOUNT DUE',
+  'ALACAKLI DURUMDASINIZ': 'YOU ARE IN CREDIT',
   'Risk Limitiniz': 'Your Credit Limit',
   'LİMİT KULLANIMI: %{pct} · KULLANILABİLİR: {amount}': 'LIMIT USED: {pct}% · AVAILABLE: {amount}',
   'Onay bekleyen siparişler:': 'Orders pending approval:',

@@ -8,6 +8,7 @@ import DealerUsersModal from '../../components/admin/DealerUsersModal';
 import { Users } from 'lucide-react';
 import { formatTRY } from '../../utils/format';
 import { t } from '../../i18n';
+import PageHeader from '../../components/shared/PageHeader';
 
 const Field = ({ icon: Icon, label, value }) => (
   <div className="flex items-start space-x-3">
@@ -52,17 +53,9 @@ const BayiProfile = () => {
   const company = me.company || {};
 
   return (
-    <div className="space-y-6 md:space-y-8 max-w-5xl mx-auto">
+    <div className="space-y-6 md:space-y-8">
       {alertElement}
-      <div>
-        <div className="flex items-center gap-4">
-          <div className="bg-gradient-to-br from-indigo-500 to-indigo-700 p-3 md:p-3.5 rounded-2xl shadow-lg shadow-indigo-500/25 shrink-0"><User className="h-6 w-6 text-white" /></div>
-          <div>
-            <h1 className="text-2xl md:text-3xl font-black text-gray-900 tracking-tight">{t('Hesap Ayarları')}</h1>
-            <p className="text-gray-500 text-sm mt-1">{t('Firma bilgileriniz ve giriş güvenliğiniz.')}</p>
-          </div>
-        </div>
-      </div>
+      <PageHeader icon={User} title={t('Hesap Ayarları')} subtitle={t('Firma bilgileriniz ve giriş güvenliğiniz.')} />
 
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
         <div className="card-premium p-5 md:p-8 space-y-6">

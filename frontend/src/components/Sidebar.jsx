@@ -68,7 +68,7 @@ const Sidebar = ({ mobile = false, onNavigate }) => {
       {/* Logo Section */}
       <div className={`px-8 mb-10 transition-all ${isCollapsed ? 'px-6' : 'px-8'}`}>
         <div className="flex items-center group cursor-pointer">
-          <TenantBrand compact={isCollapsed} textClass="text-white" />
+          <TenantBrand compact={isCollapsed} textClass="text-white" onDark />
         </div>
       </div>
 

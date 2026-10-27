@@ -42,10 +42,10 @@ const BayiSidebar = ({ mobile = false, onNavigate }) => {
   return (
     <aside className={`w-64 bg-[#0f172a] flex-col h-screen top-0 py-8 overflow-y-auto ${mobile ? 'flex' : 'hidden lg:flex sticky'}`}>
       {/* Logo Section */}
-      <div className="px-8 mb-10 flex justify-between items-start">
-        <div className="flex flex-col group cursor-pointer">
-          <TenantBrand />
-          <span className="text-[9px] font-black text-gray-500 uppercase tracking-[0.2em] mt-0.5">{t('BAYİ PANELİ')}</span>
+      <div className="px-8 mb-8 flex justify-between items-start">
+        <div className="flex flex-col items-start">
+          <TenantBrand onDark />
+          <span className="text-[9px] font-black text-indigo-400 uppercase tracking-[0.2em] mt-2">{t('BAYİ PANELİ')}</span>
         </div>
         {mobile && <button onClick={onNavigate} className="p-2 text-gray-400 hover:text-white"><X className="h-5 w-5" /></button>}
       </div>
@@ -80,7 +80,7 @@ const BayiSidebar = ({ mobile = false, onNavigate }) => {
         <div className="bg-gradient-to-br from-indigo-600/20 to-purple-600/20 rounded-2xl p-5 border border-indigo-500/20">
           <p className="text-[10px] font-black text-indigo-300 uppercase tracking-widest mb-1">{t('DESTEK')}</p>
           <p className="text-[11px] text-gray-400 leading-relaxed mb-3">{t('Müşteri temsilcinizle hemen iletişime geçin.')}</p>
-          {import.meta.env.VITE_SUPPORT_PHONE && <p className="text-[11px] font-bold text-gray-300">{import.meta.env.VITE_SUPPORT_PHONE}</p>}
+          {import.meta.env.VITE_SUPPORT_PHONE && <p className="text-[11px] font-bold text-white/80">{import.meta.env.VITE_SUPPORT_PHONE}</p>}
           {import.meta.env.VITE_SUPPORT_EMAIL && (
             <a href={`mailto:${import.meta.env.VITE_SUPPORT_EMAIL}`} className="mt-3 block w-full py-2.5 bg-indigo-500 text-white text-[10px] font-black rounded-lg hover:bg-indigo-600 transition-colors text-center">
               {import.meta.env.VITE_SUPPORT_EMAIL}

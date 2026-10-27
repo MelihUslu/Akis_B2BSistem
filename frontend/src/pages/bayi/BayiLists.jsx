@@ -7,6 +7,8 @@ import ProductDetailModal from '../../components/bayi/ProductDetailModal';
 import QuoteRequestModal from '../../components/bayi/QuoteRequestModal';
 import { formatTRY, formatDate, firstImage, normalizeQty } from '../../utils/format';
 import { t } from '../../i18n';
+import PageHeader from '../../components/shared/PageHeader';
+import EmptyState from '../../components/shared/EmptyState';
 
 const TABS = [
   { id: 'favorites', label: t('Favorilerim'), icon: Heart },
@@ -123,7 +125,7 @@ const BayiLists = () => {
   const list = { favorites, frequent }[tab];
 
   return (
-    <div className="space-y-6 max-w-5xl mx-auto">
+    <div className="space-y-6">
       {alertElement}
       {detail && (
         <ProductDetailModal product={detail} onClose={() => setDetail(null)} onAddToCart={addOne}
@@ -134,15 +136,7 @@ const BayiLists = () => {
           onDone={(message) => { setQuoteItems(null); setDetail(null); showAlert({ type: 'success', title: t('Teklif Talebi Gönderildi'), message }); }} />
       )}
 
-      <div>
-        <div className="flex items-center gap-4">
-          <div className="bg-gradient-to-br from-indigo-500 to-indigo-700 p-3 md:p-3.5 rounded-2xl shadow-lg shadow-indigo-500/25 shrink-0"><BookMarked className="h-6 w-6 text-white" /></div>
-          <div>
-            <h1 className="text-2xl md:text-3xl font-black text-gray-900 tracking-tight">{t('Listelerim')}</h1>
-            <p className="text-gray-500 text-sm mt-1">{t('Favorileriniz, sık aldığınız ürünler ve kayıtlı sepetleriniz.')}</p>
-          </div>
-        </div>
-      </div>
+      <PageHeader icon={BookMarked} title={t('Listelerim')} subtitle={t('Favorileriniz, sık aldığınız ürünler ve kayıtlı sepetleriniz.')} />
 
       <div className="flex bg-gray-50 p-1 rounded-xl border border-gray-100 w-full sm:w-fit overflow-x-auto">
         {TABS.map(item => (
@@ -152,27 +146,25 @@ const BayiLists = () => {
         ))}
       </div>
 
-      {tab !== 'templates' && (
-        <div className="card-premium divide-y divide-gray-50">
+      {tab !== 'templates' && (list?.length === 0 ? (
+        <EmptyState icon={tab === 'favorites' ? Heart : Repeat}>
+          {tab === 'favorites' ? t('Henüz favori ürününüz yok. Katalogda ürün kartındaki kalbe tıklayın.') : t('Son 6 ayda sipariş verdiğiniz ürün bulunmuyor.')}
+        </EmptyState>
+      ) : (
+        <div className="bg-white rounded-2xl border border-gray-100 shadow-sm divide-y divide-gray-50">
           {!list ? <p className="p-8 text-center text-gray-400">{t('Yükleniyor...')}</p>
-            : list.length === 0 ? (
-              <p className="p-10 text-center text-gray-400 font-bold">
-                {tab === 'favorites' ? t('Henüz favori ürününüz yok. Katalogda ürün kartındaki kalbe tıklayın.') : t('Son 6 ayda sipariş verdiğiniz ürün bulunmuyor.')}
-              </p>
-            ) : list.map(p => (
+            : list.map(p => (
               <ProductRow key={p.id} product={p} onAdd={(x) => addOne(x)} onOpen={setDetail}
                 extra={tab === 'frequent' ? t('{orders} siparişte, toplam {qty} {unit}', { orders: p.orderCount, qty: p.totalQuantity, unit: p.unit }) : null} />
             ))}
         </div>
-      )}
+      ))}
 
       {tab === 'templates' && (
         <div className="space-y-4">
           {!templates ? <p className="p-8 text-center text-gray-400">{t('Yükleniyor...')}</p>
             : templates.length === 0 ? (
-              <div className="text-center py-12 bg-white rounded-2xl border border-dashed border-gray-200 text-gray-400 font-bold">
-                {t('Henüz şablon yok. Sepetinizdeki "Şablon Kaydet" ile düzenli siparişlerinizi kaydedin.')}
-              </div>
+              <EmptyState icon={BookMarked}>{t('Henüz şablon yok. Sepetinizdeki "Şablon Kaydet" ile düzenli siparişlerinizi kaydedin.')}</EmptyState>
             ) : templates.map(tpl => (
               <div key={tpl.id} className="bg-white rounded-2xl border border-gray-100 shadow-sm p-5 flex flex-col md:flex-row md:items-center justify-between gap-4">
                 <div className="min-w-0">

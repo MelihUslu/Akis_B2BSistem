@@ -9,6 +9,8 @@ import useReorder from '../../hooks/useReorder';
 import useAlert from '../../hooks/useAlert';
 import { formatTRY, formatDate, ORDER_STATUS } from '../../utils/format';
 import { t } from '../../i18n';
+import PageHeader from '../../components/shared/PageHeader';
+import EmptyState from '../../components/shared/EmptyState';
 
 const BayiOrders = () => {
   const [orders, setOrders] = useState([]);
@@ -48,24 +50,14 @@ const BayiOrders = () => {
   return (
     <div className="space-y-6">
       {alertElement}
-      <div>
-        <div className="flex items-center gap-4">
-          <div className="bg-gradient-to-br from-blue-500 to-blue-700 p-3 md:p-3.5 rounded-2xl shadow-lg shadow-blue-500/25 shrink-0"><History className="h-6 w-6 text-white" /></div>
-          <div>
-            <h1 className="text-2xl md:text-3xl font-black text-gray-900 tracking-tight">{t('Sipariş Geçmişim')}</h1>
-            <p className="text-gray-500 text-sm mt-1">{t('Geçmiş ve mevcut tüm siparişlerinizin durumunu takip edin.')}</p>
-          </div>
-        </div>
-        <button onClick={() => downloadFile('/orders/export', {}, 'siparislerim.xlsx')} className="mt-3 flex items-center px-4 py-2 rounded-xl bg-emerald-50 text-emerald-700 text-xs font-black hover:bg-emerald-100"><FileSpreadsheet className="h-4 w-4 mr-1.5" /> {t("Excel'e Aktar")}</button>
-      </div>
+      <PageHeader icon={History} tone="blue" title={t('Sipariş Geçmişim')} subtitle={t('Geçmiş ve mevcut tüm siparişlerinizin durumunu takip edin.')}
+        actions={<button onClick={() => downloadFile('/orders/export', {}, 'siparislerim.xlsx')} className="flex items-center h-11 px-4 rounded-2xl bg-white border border-gray-100 shadow-sm text-xs font-bold text-gray-600 hover:text-emerald-700 hover:border-emerald-200"><FileSpreadsheet className="h-4 w-4 mr-1.5" /> {t("Excel'e Aktar")}</button>} />
 
       <div className="space-y-4">
         {isLoading ? (
           <div className="text-center py-12 text-gray-400">{t('Yükleniyor...')}</div>
         ) : orders.length === 0 ? (
-          <div className="text-center py-12 bg-white rounded-2xl border border-dashed border-gray-200 text-gray-400">
-            {t('Henüz siparişiniz bulunmuyor.')}
-          </div>
+          <EmptyState icon={History}>{t('Henüz siparişiniz bulunmuyor.')}</EmptyState>
         ) : orders.map((order) => {
           const status = ORDER_STATUS[order.status] || ORDER_STATUS.PENDING;
           return (
