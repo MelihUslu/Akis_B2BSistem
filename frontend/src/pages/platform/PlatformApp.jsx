@@ -1,7 +1,7 @@
 import { Suspense, lazy, useState } from 'react';
 import { Routes, Route, Navigate, NavLink, useNavigate, useLocation, Link } from 'react-router-dom';
 import ErrorBoundary from '../../components/ErrorBoundary';
-import { LayoutDashboard, Building2, Layers, Receipt, LogOut, Lock, Mail, Megaphone, LifeBuoy, ScrollText, ShieldCheck, Menu, X, Bug, BookOpen, Activity } from 'lucide-react';
+import { LayoutDashboard, Building2, Layers, Receipt, LogOut, Lock, Mail, Megaphone, LifeBuoy, ScrollText, ShieldCheck, Menu, X, Bug, BookOpen, Activity, Gauge } from 'lucide-react';
 import { platformApi, errorMessage } from '../../services/api';
 import TwoFactorStep from '../../components/TwoFactorStep';
 import ThemeToggle from '../../components/ThemeToggle';
@@ -19,6 +19,7 @@ const PlatformAudit = lazy(() => import('./PlatformAudit'));
 const PlatformSecurity = lazy(() => import('./PlatformSecurity'));
 const PlatformErrors = lazy(() => import('./PlatformErrors'));
 const PlatformSystem = lazy(() => import('./PlatformSystem'));
+const PlatformMonitoring = lazy(() => import('./PlatformMonitoring'));
 const PlatformHelp = lazy(() => import('./PlatformHelp'));
 
 const readUser = () => {
@@ -102,9 +103,11 @@ const MENU = [
   { name: 'Yardım Merkezi', path: '/help', icon: BookOpen },
   { name: 'Duyurular', path: '/announcements', icon: Megaphone },
   { name: 'İşlem Kaydı', path: '/audit', icon: ScrollText },
+  { name: 'Güvenlik', path: '/security', icon: ShieldCheck },
+  { group: 'Geliştirici' },
+  { name: 'İzleme', path: '/monitoring', icon: Gauge },
   { name: 'Hatalar', path: '/errors', icon: Bug },
   { name: 'Sistem Durumu', path: '/system', icon: Activity },
-  { name: 'Güvenlik', path: '/security', icon: ShieldCheck },
 ];
 
 const PlatformNav = ({ user, onLogout, mobile = false, onNavigate }) => (
@@ -117,7 +120,9 @@ const PlatformNav = ({ user, onLogout, mobile = false, onNavigate }) => (
       {mobile && <button onClick={onNavigate} className="p-2 -mr-4 text-gray-400 hover:text-white" aria-label="Menüyü kapat"><X className="h-5 w-5" /></button>}
     </div>
     <nav className="flex-1 px-4 space-y-1">
-      {MENU.map((item) => (
+      {MENU.map((item) => item.group ? (
+        <p key={item.group} className="px-5 pt-5 pb-1 text-[10px] font-black text-gray-500 uppercase tracking-[0.2em]">{item.group}</p>
+      ) : (
         <NavLink key={item.path} to={item.path} end={item.end} onClick={onNavigate}
           className={({ isActive }) => `flex items-center px-5 py-4 rounded-xl text-sm font-bold transition-all ${isActive ? 'bg-indigo-600/10 text-indigo-400 border-l-2 border-indigo-400' : 'text-gray-400 hover:text-white hover:bg-white/5'}`}>
           <item.icon className="h-5 w-5 mr-4" /> {item.name}
@@ -165,6 +170,7 @@ const PlatformLayout = ({ user, onLogout }) => {
         <Route path="security" element={<PlatformSecurity />} />
         <Route path="errors" element={<PlatformErrors />} />
         <Route path="system" element={<PlatformSystem />} />
+        <Route path="monitoring" element={<PlatformMonitoring />} />
         <Route path="*" element={<Navigate to="/" replace />} />
       </Routes>
       </Suspense>

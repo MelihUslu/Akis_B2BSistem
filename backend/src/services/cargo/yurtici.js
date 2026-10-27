@@ -1,3 +1,4 @@
+import { trackExternal } from '../monitoring.js';
 /**
  * Yurtiçi Kargo "ShippingOrderDispatcherServices" SOAP istemcisi.
  * createShipment: gönderi kaydı (kargoKey ile) · queryShipment: durum ve takip no · cancelShipment: iptal.
@@ -20,7 +21,9 @@ const pick = (xml, name) => {
   return m ? m[1].replace(/&lt;/g, '<').replace(/&gt;/g, '>').replace(/&amp;/g, '&').trim() : null;
 };
 
-const call = async (creds, operation, inner) => {
+const call = (creds, operation, inner) => trackExternal('Yurtiçi Kargo', operation, () => callRaw(creds, operation, inner));
+
+const callRaw = async (creds, operation, inner) => {
   const body = `<?xml version="1.0" encoding="UTF-8"?>
 <soapenv:Envelope xmlns:soapenv="http://schemas.xmlsoap.org/soap/envelope/" xmlns:ship="${NS}">
   <soapenv:Body><ship:${operation}>${inner}</ship:${operation}></soapenv:Body>

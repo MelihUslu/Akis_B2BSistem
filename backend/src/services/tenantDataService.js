@@ -161,5 +161,9 @@ const purgeTenantRecords = (tenantId) => runAsPlatform(() => prisma.$transaction
   await tx.company.updateMany({ ...w, data: { plasiyerId: null } });
   await tx.user.deleteMany(w);
   await tx.company.deleteMany(w);
+  // İzleme kayıtları (firmaya bağlı API istekleri, dış servis çağrıları, yavaş istekler)
+  await tx.apiRequestLog.deleteMany(w);
+  await tx.externalCall.deleteMany(w);
+  await tx.slowRequest.deleteMany(w);
   await tx.tenant.delete({ where: { id: tenantId } });
 }, { timeout: 60000 }));

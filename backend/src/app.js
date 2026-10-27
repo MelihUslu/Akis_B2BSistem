@@ -8,6 +8,7 @@ import accountRoutes from './routes/accountRoutes.js';
 import { openApiSpec } from './docs/openapi.js';
 import { recordRequestError } from './services/errorTracker.js';
 import { systemHealth } from './services/systemStatus.js';
+import { requestMetrics } from './services/monitoring.js';
 import reportRoutes from './routes/reportRoutes.js';
 import invoicingRoutes from './routes/invoicingRoutes.js';
 import addressRoutes from './routes/addressRoutes.js';
@@ -62,6 +63,7 @@ app.use(cors({
   },
   allowedHeaders: ['Content-Type', 'Authorization', 'X-Tenant', 'X-Tenant-Host', 'X-Lang']
 }));
+app.use(requestMetrics); // Platform → İzleme: uç bazında istek sayısı, süre, hata oranı
 app.use(express.json({ limit: '1mb' }));
 app.use(langMiddleware);
 // Yüklenen dosyalar: görseller tarayıcıda gösterilir, diğer destek ekleri (PDF, Excel…) indirilir

@@ -1,5 +1,7 @@
 import crypto from 'crypto';
 import prisma, { runAsPlatform, currentTenantId } from '../utils/prisma.js';
+import { noteServerError } from './monitoring.js';
+import { captureSentry } from './sentry.js';
 
 /**
  * Hata izleme. Aynı hata (mesaj + ilk yığın satırı) tek kayıtta toplanır; ilk kez görülen hata
@@ -20,15 +22,21 @@ export const recordError = async ({ source = 'SERVER', error, message, stack, me
     const topFrame = (stk || '').split('\n').find((l) => l.trim().startsWith('at ')) || '';
     const fingerprint = crypto.createHash('sha1').update(`${source}|${normalize(msg)}|${topFrame.replace(/:\d+:\d+\)?$/, '')}|${path?.replace(/\/\d+/g, '/:id') || ''}`).digest('hex');
     const tenant = tenantId ?? currentTenantId() ?? null;
+    if (source === 'SERVER') noteServerError();
+    const before = await runAsPlatform(() => prisma.errorLog.findUnique({ where: { fingerprint }, select: { resolvedAt: true } }));
     const row = await runAsPlatform(() => prisma.errorLog.upsert({
       where: { fingerprint },
       create: { fingerprint, source, message: msg, stack: stk, method: clip(method, 10), path: clip(path, 300), statusCode, tenantId: tenant, userId, userAgent: clip(userAgent, 300) },
       update: { count: { increment: 1 }, lastSeenAt: new Date(), resolvedAt: null, tenantId: tenant, userId, statusCode }
     }));
-    if (row.count === 1) {
+    // Yeni hata ve "çözüldü" işaretlenmiş hatanın tekrar etmesi (regresyon) e-postayla bildirilir
+    const regression = Boolean(before?.resolvedAt);
+    if (row.count === 1 || regression) {
       const { sendPlatformAlert } = await import('./mailService.js');
-      sendPlatformAlert({ subject: `Yeni hata (${source}): ${msg.slice(0, 80)}`, text: `${method || ''} ${path || ''}\n${msg}\n\n${(stk || '').slice(0, 1500)}` }).catch(() => {});
+      const label = regression ? 'Çözüldü denen hata tekrarladı' : 'Yeni hata';
+      sendPlatformAlert({ subject: `${label} (${source}): ${msg.slice(0, 80)}`, text: `${method || ''} ${path || ''}\n${msg}\n\n${(stk || '').slice(0, 1500)}` }).catch(() => {});
     }
+    captureSentry(error, { source, path, tenantId: tenant });
   } catch {
     /* hata kaydı yapılamadı; asıl akış etkilenmez */
   } finally {

@@ -5,6 +5,8 @@ import { sendTrialEndingMail, sendNotificationMail } from './mailService.js';
 import { wantsEmail, TYPE_PERMISSION } from './notificationPrefs.js';
 import { currentTenantId } from '../utils/prisma.js';
 import { withJobLock } from '../utils/redis.js';
+import { trackJob, cleanupMonitoring, startMetricsFlush } from './monitoring.js';
+import { sendDailyDigestIfDue } from './monitoringReport.js';
 import { pushToUser } from './pushService.js';
 
 // E-posta için firma bilgisi (ad, portal adresi); kısa süreli önbellek
@@ -187,14 +189,22 @@ const purgeExpiredClosedTenants = async (tenants) => {
 };
 
 // Çok sunuculu kurulumda her iş tek sunucuda çalışır (Redis kilidi); böylece bayilere çift hatırlatma gitmez
+// Her çalışma Platform → İzleme → Arka plan işleri'nde görünür; hata veren iş uyarı e-postası gönderir
 export const startNotificationJobs = () => {
-  const run = () => withJobLock('scheduled-hourly', 50 * 60 * 1000, runScheduledJobs).catch(err => console.error('[Zamanlanmış İş] Hata:', err.message));
+  const run = () => withJobLock('scheduled-hourly', 50 * 60 * 1000, () => trackJob('Saatlik işler (hatırlatmalar, deneme süresi)', async () => {
+    await runScheduledJobs();
+    await cleanupMonitoring();
+  })).catch(err => console.error('[Zamanlanmış İş] Hata:', err.message));
   setTimeout(run, 10 * 1000);
   setInterval(run, 60 * 60 * 1000); // saatlik
   // Kargo gönderilerinin durumu (takip no, teslim) yarım saatte bir güncellenir
-  const cargo = () => import('./cargoService.js').then((m) => withJobLock('cargo-sync', 25 * 60 * 1000, m.syncAllShipments)).catch(err => console.error('[Kargo senkron] Hata:', err.message));
+  const cargo = () => import('./cargoService.js').then((m) => withJobLock('cargo-sync', 25 * 60 * 1000, () => trackJob('Kargo durum senkronu', m.syncAllShipments))).catch(err => console.error('[Kargo senkron] Hata:', err.message));
   setInterval(cargo, 30 * 60 * 1000);
   // Başarısız webhook gönderimlerinin yeniden denenmesi (30 sn'de bir; çok sunuculu kurulumda kayıt kilidiyle tek gönderim)
-  const hooks = () => import('./webhookService.js').then((m) => m.processWebhookQueue()).catch(err => console.error('[Webhook kuyruğu] Hata:', err.message));
+  const hooks = () => import('./webhookService.js').then((m) => trackJob('Webhook kuyruğu', m.processWebhookQueue, { quietSuccess: true })).catch(err => console.error('[Webhook kuyruğu] Hata:', err.message));
   setInterval(hooks, 30 * 1000);
+  // Günlük özet e-postası (08:00, PLATFORM_ALERT_EMAIL)
+  const digest = () => withJobLock('daily-digest', 50 * 60 * 1000, () => sendDailyDigestIfDue()).catch(err => console.error('[Günlük özet] Hata:', err.message));
+  setInterval(digest, 10 * 60 * 1000);
+  startMetricsFlush();
 };

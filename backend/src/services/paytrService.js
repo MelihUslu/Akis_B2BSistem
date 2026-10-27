@@ -1,4 +1,5 @@
 import crypto from 'crypto';
+import { trackExternal } from './monitoring.js';
 
 /**
  * PayTR iFrame API (firmanın bayilerinden tahsilat).
@@ -48,12 +49,15 @@ export const getPaymentToken = async (creds, { amount, merchantOid, email, userI
     lang: 'tr'
   });
 
-  const res = await fetch(TOKEN_URL, { method: 'POST', body: form, signal: AbortSignal.timeout(15000) });
-  const data = await res.json().catch(() => ({}));
-  if (data.status !== 'success' || !data.token) {
-    console.error('[PayTR] get-token:', res.status, data.reason);
-    throw new PaytrError(data.reason || `PayTR isteği başarısız (HTTP ${res.status}).`);
-  }
+  const data = await trackExternal('PayTR', 'get-token', async () => {
+    const res = await fetch(TOKEN_URL, { method: 'POST', body: form, signal: AbortSignal.timeout(15000) });
+    const body = await res.json().catch(() => ({}));
+    if (body.status !== 'success' || !body.token) {
+      console.error('[PayTR] get-token:', res.status, body.reason);
+      throw new PaytrError(body.reason || `PayTR isteği başarısız (HTTP ${res.status}).`);
+    }
+    return body;
+  });
   return { token: data.token, paymentPageUrl: PAYMENT_PAGE(data.token), paymentAmount };
 };
 

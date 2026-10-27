@@ -1,3 +1,4 @@
+import { trackExternal } from '../monitoring.js';
 /**
  * Paraşüt API v4 istemcisi (https://apidocs.parasut.com).
  * Akış: OAuth (password grant) → cari bul/oluştur → ürün bul/oluştur → satış faturası →
@@ -14,6 +15,10 @@ const getToken = async (creds) => {
   const key = `${creds.clientId}:${creds.username}`;
   const hit = tokens.get(key);
   if (hit && hit.expiresAt > Date.now() + 60_000) return hit.token;
+  return trackExternal('Paraşüt', 'oauth/token', () => fetchToken(creds, key));
+};
+
+const fetchToken = async (creds, key) => {
   const res = await fetch(`${BASE}/oauth/token`, {
     method: 'POST',
     headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
@@ -32,8 +37,12 @@ const getToken = async (creds) => {
 const errorText = (data, status) =>
   (Array.isArray(data?.errors) ? data.errors.map((e) => e.detail || e.title).filter(Boolean).join(' · ') : '') || `HTTP ${status}`;
 
-const request = async (creds, path, { method = 'GET', body, company = true } = {}) => {
+const request = async (creds, path, opts = {}) => {
   const token = await getToken(creds);
+  return trackExternal('Paraşüt', `${opts.method || 'GET'} ${path.split('?')[0].replace(/\/\d+/g, '/:id')}`, () => requestRaw(creds, token, path, opts));
+};
+
+const requestRaw = async (creds, token, path, { method = 'GET', body, company = true } = {}) => {
   const url = `${BASE}/v4${company ? `/${creds.companyId}` : ''}${path}`;
   const res = await fetch(url, {
     method,

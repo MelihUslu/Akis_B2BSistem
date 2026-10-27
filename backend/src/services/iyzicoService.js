@@ -1,4 +1,5 @@
 import crypto from 'crypto';
+import { trackExternal } from './monitoring.js';
 
 /**
  * iyzico Abonelik (Subscription) API istemcisi.
@@ -42,7 +43,10 @@ const authHeaders = (creds, path, body) => {
 };
 
 // creds verilmezse platformun hesabı kullanılır; firmanın sanal POS'u için kendi anahtarları verilir
-const request = async (method, path, payload, creds = platformCreds()) => {
+const request = (method, path, payload, creds = platformCreds()) =>
+  trackExternal('iyzico', `${method} ${path.split('?')[0].replace(/\/\d+/g, '/:id')}`, () => requestRaw(method, path, payload, creds));
+
+const requestRaw = async (method, path, payload, creds) => {
   if (!creds.apiKey || !creds.secretKey) throw new IyzicoError('iyzico yapılandırılmamış.');
   const body = payload ? JSON.stringify(payload) : '';
   const res = await fetch(creds.baseUrl + path, {

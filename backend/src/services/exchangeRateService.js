@@ -1,4 +1,5 @@
 import { getSettingsMap, num } from './settingsService.js';
+import { trackExternal } from './monitoring.js';
 
 const TCMB_URL = 'https://www.tcmb.gov.tr/kurlar/today.xml';
 const CACHE_MS = 60 * 60 * 1000; // 1 saat
@@ -12,7 +13,9 @@ const parseCurrency = (xml, code) => {
   return selling ? parseFloat(selling[1]) : null;
 };
 
-const fetchFromTcmb = async () => {
+const fetchFromTcmb = () => trackExternal('TCMB', 'today.xml', fetchFromTcmbRaw);
+
+const fetchFromTcmbRaw = async () => {
   const res = await fetch(TCMB_URL, { signal: AbortSignal.timeout(5000) });
   if (!res.ok) throw new Error(`TCMB HTTP ${res.status}`);
   const xml = await res.text();

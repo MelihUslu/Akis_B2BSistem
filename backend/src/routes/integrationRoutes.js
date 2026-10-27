@@ -6,6 +6,7 @@ import {
 } from '../controllers/integrationController.js';
 import { verifyToken, requirePermission } from '../middlewares/authMiddleware.js';
 import { apiKeyAuth } from '../middlewares/apiKeyAuth.js';
+import { apiRequestLogger } from '../services/monitoring.js';
 import { setInvoiceNumber } from '../controllers/invoicingController.js';
 import prisma from '../utils/prisma.js';
 import { rateLimit } from '../middlewares/rateLimit.js';
@@ -25,7 +26,7 @@ integrationAdminRoutes.post('/deliveries/:deliveryId/redeliver', redeliverWebhoo
 
 // Dış sistemler (ERP / entegratör): /api/v1, API anahtarı ile
 export const integrationApiRoutes = express.Router();
-integrationApiRoutes.use(apiKeyAuth, rateLimit({ windowMs: 60 * 1000, max: 600, message: 'Dakikalık istek sınırı aşıldı (600).' }));
+integrationApiRoutes.use(apiRequestLogger, apiKeyAuth, rateLimit({ windowMs: 60 * 1000, max: 600, message: 'Dakikalık istek sınırı aşıldı (600).' }));
 integrationApiRoutes.get('/products', apiListProducts);
 integrationApiRoutes.put('/products/stock', apiUpdateStock);
 integrationApiRoutes.put('/products/prices', apiUpdatePrices);

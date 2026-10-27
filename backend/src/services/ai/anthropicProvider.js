@@ -1,5 +1,6 @@
 import Anthropic from '@anthropic-ai/sdk';
 import { AiError } from './index.js';
+import { trackExternal } from '../monitoring.js';
 
 /**
  * Claude (Anthropic) sağlayıcısı. Yanıt, verilen JSON şemasına uyacak şekilde yapılandırılmış çıktı ile istenir;
@@ -17,7 +18,7 @@ export const createProvider = ({ apiKey }) => {
   const generateJson = async ({ system, prompt, schema, maxTokens = 16000 }) => {
     let response;
     try {
-      response = await client.beta.messages.create({
+      response = await trackExternal('Yapay zekâ', model, () => client.beta.messages.create({
         model,
         max_tokens: maxTokens,
         // Güvenlik sınıflandırıcısı reddederse istek, sağlayıcının önerdiği modelde otomatik tekrarlanır
@@ -26,7 +27,7 @@ export const createProvider = ({ apiKey }) => {
         system,
         messages: [{ role: 'user', content: prompt }],
         output_config: { effort, format: { type: 'json_schema', schema } }
-      });
+      }));
     } catch (error) {
       if (error instanceof Anthropic.APIConnectionTimeoutError) throw new AiError('TIMEOUT');
       if (error instanceof Anthropic.RateLimitError) throw new AiError('RATE_LIMIT');

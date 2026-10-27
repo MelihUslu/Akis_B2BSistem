@@ -1,4 +1,5 @@
 import { tenantUrl, platformUrl, tenantPortalUrl } from '../config.js';
+import { trackExternal } from './monitoring.js';
 
 /**
  * SMTP ayarları (.env): SMTP_HOST, SMTP_PORT, SMTP_USER, SMTP_PASS, SMTP_SECURE, MAIL_FROM
@@ -35,12 +36,12 @@ export const sendMail = async ({ to, subject, html, fromName }) => {
   }
 
   const address = process.env.MAIL_FROM || process.env.SMTP_USER;
-  await transporter.sendMail({
+  await trackExternal('SMTP', 'sendMail', () => transporter.sendMail({
     from: fromName ? `"${fromName.replace(/"/g, '')}" <${address.replace(/^.*<|>$/g, '')}>` : address,
     to,
     subject,
     html
-  });
+  }));
   return { delivered: true };
 };
 
@@ -99,9 +100,11 @@ export const sendTrialEndingMail = ({ to, tenant, daysLeft }) =>
     )
   });
 
+// Metin HTML olarak kaçırılır (hata mesajı / yığın içeriği), satır sonları korunur
+const plainToHtml = (text) => String(text ?? '').replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/\n/g, '<br>');
 export const sendPlatformAlert = ({ subject, text }) =>
   process.env.PLATFORM_ALERT_EMAIL
-    ? sendMail({ to: process.env.PLATFORM_ALERT_EMAIL, subject: `[Platform] ${subject}`, html: layout(subject, `<p>${text}</p><p>${button(platformUrl(), 'Platform paneli')}</p>`) })
+    ? sendMail({ to: process.env.PLATFORM_ALERT_EMAIL, subject: `[Platform] ${subject}`, html: layout(plainToHtml(subject), `<p>${plainToHtml(text)}</p><p>${button(platformUrl(), 'Platform paneli')}</p>`) })
     : Promise.resolve({ delivered: false });
 
 // "Şifremi unuttum" bağlantısı (firma kullanıcıları firmanın adıyla, platform yöneticisi platform adıyla)

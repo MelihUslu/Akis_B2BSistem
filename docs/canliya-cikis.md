@@ -73,6 +73,9 @@ docker compose -f docker-compose.prod.yml logs -f backend   # "Server is running
 
 - **Dış izleme:** UptimeRobot, Better Stack gibi bir servise `https://api.akisb2b.com/health/ready` adresini ekleyin. Veritabanına ulaşılamazsa 503 döner. Kontrol aralığı 1–5 dakika olabilir, uyarı e-posta veya SMS ile gelmeli.
 - **Uygulama hataları:** Platform → **Hatalar**. Yeni bir hata ilk görüldüğünde `PLATFORM_ALERT_EMAIL` adresine e-posta gider; bunun için SMTP tanımlı olmalı.
+- **İzleme (Platform → Geliştirici → İzleme):** uç bazında istek sayısı, süre ve hata oranı; yavaş istekler (1 sn üzeri); arka plan işleri; dış servis çağrıları (iyzico, PayTR, Paraşüt, Yurtiçi, TCMB, yapay zekâ, SMTP); ERP API istekleri. Kayıtlar 7–30 gün tutulur.
+- **Uyarı e-postaları** (`PLATFORM_ALERT_EMAIL`): yeni hata, "çözüldü" işaretlenen hatanın tekrarlaması, son 10 dakikada `ALERT_ERROR_SPIKE` (varsayılan 30) sunucu hatası ve hata veren arka plan işi için gönderilir. Aynı konu saatte en fazla bir kez gelir. Her sabah `DIGEST_HOUR` (varsayılan 08:00) saatinde günlük özet gider; kapatmak için `DAILY_DIGEST=false`.
+- **Sentry (isteğe bağlı):** `npm install @sentry/node` yapıp `SENTRY_DSN` tanımlayın.
 - **Sistem Durumu:** Son yedek 26 saatten eskiyse kırmızı görünür.
 - **Disk:** `df -h` ile disk doluluğunu izleyin. Yedekler `BACKUP_KEEP_DAYS` (varsayılan 14) günden sonra silinir.
 
