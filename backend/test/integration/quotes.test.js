@@ -28,6 +28,7 @@ before(async () => {
   process.env.DATABASE_URL = DB;
   process.env.AI_PROVIDER = 'mock';
   process.env.AI_DAILY_LIMIT = '0';
+  process.env.FX_FIXED = 'USD:40,EUR:45';
   execSync('npx prisma migrate deploy', { env: { ...process.env, DATABASE_URL: DB }, stdio: 'ignore' });
   ({ default: prisma, runAsPlatform } = await import('../../src/utils/prisma.js'));
   ({ purgeTenant } = await import('../../src/services/tenantDataService.js'));
@@ -468,4 +469,72 @@ test('cari: bayiye dönüştürme, notlar, gizli belgeler, ekstre bağlantısıy
   assert.ok(login.data.token);
   const my = await api('/finance/my-statement', { token: login.data.token });
   assert.equal(my.data.company.currentBalance, -320);
+});
+
+test('dövizli cari: USD fiyatlı ürün USD cariye liste fiyatıyla, tahsilat kurla, raporlar para birimine göre', { skip }, async () => {
+  const usdProduct = await P(() => prisma.product.create({ data: { tenantId: A().tenantId, name: 'İthal Pompa', sku: 'USD-PUMP', price: 100, currency: 'USD', vatRate: 20, stock: 50 } }));
+  const c = await api('/partners', { token: A().owner, method: 'POST', body: { kind: 'CUSTOMER', name: 'Dolar Müşterisi', currency: 'USD', riskLimit: 5000 } });
+  assert.equal(c.status, 201);
+  const id = c.data.id;
+  assert.equal(c.data.currency, 'USD');
+
+  // Teklif (TL: 100 USD × 40 = 4000 TL, 2 adet, KDV %20) → kabul → sipariş → onay: cariye 240 USD borç
+  const q = await api('/quotes/draft', { token: A().owner, method: 'POST', body: { companyId: id, validUntil: valid(), items: [{ productId: usdProduct.id, quantity: 2 }] } });
+  assert.equal((await api(`/quotes/${q.data.id}/submit`, { token: A().owner, method: 'POST' })).status, 200);
+  const share = await api(`/quotes/${q.data.id}/share`, { token: A().owner, method: 'POST', body: {} });
+  await api(`/quote-links/${share.data.url.split('/teklif/')[1]}/respond`, { method: 'POST', body: { type: 'ACCEPTED', revision: 1, name: 'Ali' } });
+  const conv = await api(`/quotes/${q.data.id}/convert`, { token: A().owner, method: 'POST', body: { paymentMethod: 'CURRENT_ACCOUNT', confirmWarnings: true } });
+  assert.equal(conv.status, 201, JSON.stringify(conv.data));
+  const order = await P(() => prisma.order.findUnique({ where: { id: conv.data.orderId }, include: { items: true } }));
+  assert.equal(order.totalAmount, 9600);
+  assert.equal(order.fxRates.USD, 40);
+  // Kur değişse bile sipariş kendi kuruyla işlenir
+  process.env.FX_FIXED = 'USD:42,EUR:45';
+  const appr = await api(`/orders/${order.id}/partial-approve`, { token: A().owner, method: 'PATCH', body: { itemStatuses: order.items.map((i) => ({ itemId: i.id, status: 'APPROVED' })) } });
+  assert.equal(appr.status, 200, JSON.stringify(appr.data));
+  let tx = await api(`/partners/${id}/transactions`, { token: A().owner });
+  assert.equal(tx.data.balance, -240);
+  assert.equal(tx.data.rows[0].currency, 'USD');
+  assert.equal(tx.data.rows[0].rate, 40);
+  assert.equal(tx.data.rows[0].amountTRY, 9600);
+
+  // TL tahsilat (kur 42): 4200 TL → 100 USD; USD tahsilat: 40 USD
+  const p1 = await api(`/partners/${id}/payments`, { token: A().owner, method: 'POST', body: { direction: 'IN', method: 'WIRE_TRANSFER', amount: 4200, currency: 'TRY' } });
+  assert.equal(p1.status, 201, JSON.stringify(p1.data));
+  assert.equal(p1.data.payment.accountAmount, 100);
+  const p2 = await api(`/partners/${id}/payments`, { token: A().owner, method: 'POST', body: { direction: 'IN', method: 'CASH', amount: 40, currency: 'USD', rate: 41.5 } });
+  assert.equal(p2.data.payment.accountAmount, 40);
+  assert.equal((await api(`/partners/${id}/payments`, { token: A().owner, method: 'POST', body: { direction: 'IN', method: 'CASH', amount: 1, currency: 'EUR' } })).status, 400);
+  tx = await api(`/partners/${id}/transactions`, { token: A().owner });
+  assert.equal(tx.data.balance, -100);
+  assert.equal(tx.data.rows[0].amountTRY, 1660); // 40 × 41,5
+
+  // Ters kayıt orijinal kurla
+  const usdPay = tx.data.rows[0];
+  await api(`/partners/${id}/transactions/${usdPay.id}/reverse`, { token: A().owner, method: 'POST', body: { reason: 'deneme' } });
+  tx = await api(`/partners/${id}/transactions`, { token: A().owner });
+  assert.equal(tx.data.balance, -140);
+  assert.equal(tx.data.rows[0].rate, 41.5);
+
+  // Hareketi olan carinin para birimi değişmez
+  assert.equal((await api(`/partners/${id}`, { token: A().owner, method: 'PATCH', body: { name: 'Dolar Müşterisi', currency: 'EUR' } })).status, 400);
+
+  // Kur farkı (bilgi) ve raporlar
+  const detail = await api(`/partners/${id}`, { token: A().owner });
+  assert.equal(detail.data.summary.fx.currency, 'USD');
+  assert.equal(detail.data.summary.fx.balanceTRY, -5880); // 140 × 42
+  const summary = await api('/finance/summary', { token: A().owner });
+  const usd = summary.data.receivable.byCurrency.find((g) => g.currency === 'USD');
+  assert.ok(usd && usd.amount >= 140);
+  const aging = await api('/finance/aging', { token: A().owner });
+  assert.ok(aging.data.totalsByCurrency.USD.total >= 140);
+  assert.equal(aging.data.rows.find((r) => r.id === id).currency, 'USD');
+
+  // Risk limiti USD: kullanılabilir = 5000 − 140 = 4860 USD
+  const { availableCredit } = await import('../../src/services/pricingService.js');
+  const company = await P(() => prisma.company.findUnique({ where: { id } }));
+  const credit = await (await import('../../src/utils/prisma.js')).runWithTenant(A().tenantId, () => availableCredit(prisma, company));
+  assert.equal(credit.available, 4860);
+  assert.equal(credit.availableTRY, 204120);
+  process.env.FX_FIXED = 'USD:40,EUR:45';
 });

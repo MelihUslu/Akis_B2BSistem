@@ -621,8 +621,8 @@ export const acceptQuote = async (req, res) => {
     const company = await prisma.company.findUnique({ where: { id: req.user.companyId } });
 
     if (paymentMethod === 'CURRENT_ACCOUNT' && rev && parseInt(req.body.revision) === quote.sentRevision) {
-      const { available } = await availableCredit(prisma, company);
-      if (rev.snapshot.totals.total > available) {
+      const { availableTRY: available } = await availableCredit(prisma, company);
+      if (available === null || rev.snapshot.totals.total > available) {
         return res.status(400).json({ message: `Risk limitiniz yetersiz. Kullanılabilir limit: ₺${Math.max(0, available).toLocaleString('tr-TR')}. Havale/EFT seçebilirsiniz.` });
       }
     }

@@ -7,6 +7,7 @@ import { sendStatementMail } from '../services/mailService.js';
 import { notifyAdmins, safeNotify } from '../services/notificationService.js';
 import { audit, clientIp } from '../services/auditService.js';
 import { listTransactions } from '../services/partnerLedgerService.js';
+import { formatMoney } from '../services/money.js';
 import { PARTNER_DOC_DIR, PARTNER_DOC_TYPES } from '../middlewares/upload.js';
 import { fail, loadPartner, PartnerError } from './partnerController.js';
 
@@ -97,7 +98,6 @@ export const deleteDocument = async (req, res) => {
 
 const tokenHash = (t) => crypto.createHash('sha256').update(String(t)).digest('hex');
 const EMAIL = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-const fmtTRY = (n) => `₺${Math.abs(Number(n) || 0).toLocaleString('tr-TR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
 
 /**
  * Cariye ekstre bağlantısı (30 gün geçerli). Bağlantıdaki anahtar tahmin edilemez ve yalnızca özeti saklanır.
@@ -121,7 +121,8 @@ export const createStatementLink = async (req, res) => {
     const url = `${tenantPortalUrl(req.tenant)}/ekstre/${token}`;
     let delivered = 0;
     for (const to of recipients) {
-      const r = await sendStatementMail({ to, tenant: req.tenant, companyName: company.name, balanceText: company.currentBalance < 0 ? `${fmtTRY(company.currentBalance)} (borç)` : company.currentBalance > 0 ? `${fmtTRY(company.currentBalance)} (alacak)` : '₺0,00', url, message: str(req.body.message, 1000) })
+      const money = formatMoney(Math.abs(company.currentBalance), company.currency);
+      const r = await sendStatementMail({ to, tenant: req.tenant, companyName: company.name, balanceText: company.currentBalance < 0 ? `${money} (borç)` : company.currentBalance > 0 ? `${money} (alacak)` : money, url, message: str(req.body.message, 1000) })
         .catch(() => ({ delivered: false }));
       if (r.delivered) delivered++;
     }
@@ -152,7 +153,7 @@ export const viewStatementLink = async (req, res) => {
   const t = req.tenant;
   res.json({
     seller: { name: t.name, address: t.address, taxOffice: t.taxOffice, taxNumber: t.taxNumber, phone: t.phone, email: t.contactEmail, logoUrl: t.logoUrl },
-    company: { name: link.company.name, taxOffice: link.company.taxOffice, taxNumber: link.company.taxNumber, address: link.company.address, externalCode: link.company.externalCode },
+    company: { name: link.company.name, taxOffice: link.company.taxOffice, taxNumber: link.company.taxNumber, address: link.company.address, externalCode: link.company.externalCode, currency: link.company.currency },
     periodEnd: link.periodEnd,
     balance: link.balance,
     openingBalance,

@@ -8,6 +8,7 @@ import { assertWithinLimit, LimitError } from '../services/limitService.js';
 import { sendCredentialsMail } from '../services/mailService.js';
 import { partnerSummary, LedgerError } from '../services/partnerLedgerService.js';
 import { round2 } from '../services/pricingService.js';
+import { normalizeCurrency, assertCurrencyChangeAllowed, CurrencyError, postEntry, currentRate } from '../services/accountPosting.js';
 
 /**
  * Cari Hesaplar: bayiler, portal dışı müşteriler ve tedarikçiler tek listede.
@@ -33,7 +34,7 @@ export class PartnerError extends Error {
 }
 
 export const fail = (res, error, fallback) => {
-  if (error instanceof PartnerError || error instanceof LedgerError) return res.status(error.status).json({ message: error.message });
+  if (error instanceof PartnerError || error instanceof LedgerError || error instanceof CurrencyError) return res.status(error.status).json({ message: error.message });
   if (error instanceof LimitError) return res.status(error.status).json({ message: error.message, code: error.code });
   if (error.code === 'P2002') return res.status(400).json({ message: 'Bu vergi numarası, cari kodu veya e-posta başka bir kayıtta kullanılıyor.' });
   console.error(fallback, error);
@@ -71,6 +72,14 @@ const ownerIdOf = async (v) => {
   return id;
 };
 
+// Cari para birimi (TRY, USD, EUR); boşsa TL
+export const currencyOf = (v) => {
+  if (v === undefined || v === null || v === '') return undefined;
+  const c = normalizeCurrency(v);
+  if (!c) throw new PartnerError('Para birimi TL, USD veya EUR olmalı.');
+  return c;
+};
+
 const emailOf = (v) => {
   const email = str(v, 160);
   if (email && !EMAIL.test(email)) throw new PartnerError('Geçersiz e-posta adresi.');
@@ -95,7 +104,7 @@ const cardData = (b, kind) => ({
 
 const listSelect = {
   id: true, kind: true, name: true, externalCode: true, taxNumber: true, taxOffice: true, phone: true, email: true,
-  authorizedPerson: true, status: true, currentBalance: true, riskLimit: true, paymentTermDays: true, createdAt: true, tags: true,
+  authorizedPerson: true, status: true, currentBalance: true, currency: true, riskLimit: true, paymentTermDays: true, createdAt: true, tags: true,
   address: true, owner: { select: { id: true, name: true } },
   _count: { select: { users: true, contacts: true, orders: true } },
   contacts: { orderBy: { isPrimary: 'desc' }, take: 1, select: { name: true, title: true, phone: true, email: true } }
@@ -182,9 +191,10 @@ export const createPartner = async (req, res) => {
     if (!data.name) throw new PartnerError('Unvan / ad soyad zorunludur.');
     const ownerId = await ownerIdOf(req.body.ownerId);
     const contacts = contactsOf(req.body.contacts);
+    const currency = currencyOf(req.body.currency) || 'TRY';
     const company = await prisma.company.create({
       data: {
-        ...data, kind, status: 'ACTIVE', source: 'ADMIN', ...(ownerId !== undefined && { ownerId }),
+        ...data, kind, currency, status: 'ACTIVE', source: 'ADMIN', ...(ownerId !== undefined && { ownerId }),
         ...(contacts.length && { contacts: { create: contacts.map((c) => ({ ...c, tenantId: req.tenant.id })) } })
       },
       select: listSelect
@@ -215,6 +225,11 @@ export const updatePartner = async (req, res) => {
       if (['ACTIVE', 'PASSIVE'].includes(req.body.status)) data.status = req.body.status;
     }
     if (ownerId !== undefined) data.ownerId = ownerId;
+    const currency = currencyOf(req.body.currency);
+    if (currency && currency !== before.currency) {
+      await assertCurrencyChangeAllowed(before, currency);
+      data.currency = currency;
+    }
     await prisma.$transaction(async (tx) => {
       await tx.company.update({ where: { id: before.id }, data });
       if (contacts) {
@@ -303,7 +318,7 @@ export const exportPartners = async (req, res) => {
     const rows = await prisma.company.findMany({ where, select: listSelect, orderBy: { name: 'asc' }, take: 20000 });
     sendWorkbook(res, rows.map((c) => ({
       'Tür': KIND_LABEL[c.kind], 'Cari Kodu': c.externalCode || '', 'Unvan': c.name, 'Vergi Dairesi': c.taxOffice || '', 'Vergi No': c.taxNumber || '',
-      'Telefon': c.phone || '', 'E-posta': c.email || '', 'Adres': c.address || '', 'Vade (gün)': c.paymentTermDays, 'Risk Limiti': c.riskLimit,
+      'Telefon': c.phone || '', 'E-posta': c.email || '', 'Adres': c.address || '', 'Vade (gün)': c.paymentTermDays, 'Para Birimi': c.currency === 'TRY' ? 'TL' : c.currency, 'Risk Limiti': c.riskLimit,
       'Bakiye': round2(c.currentBalance), 'Bakiye Durumu': c.currentBalance < 0 ? 'Borçlu' : c.currentBalance > 0 ? 'Alacaklı' : '',
       'Etiketler': c.tags.join(', '), 'Sorumlu': c.owner?.name || '', 'Yetkili Adı': c.contacts[0]?.name || c.authorizedPerson || '',
       'Yetkili Telefon': c.contacts[0]?.phone || '', 'Yetkili E-posta': c.contacts[0]?.email || '', 'Durum': c.status === 'PASSIVE' ? 'Pasif' : 'Aktif'
@@ -316,8 +331,8 @@ export const exportPartners = async (req, res) => {
 // İçe aktarma şablonu (örnek iki satırla)
 export const importTemplate = (req, res) => {
   sendWorkbook(res, [
-    { 'Tür': 'Müşteri', 'Cari Kodu': '120.01.001', 'Unvan': 'Örnek Kafe Ltd. Şti.', 'Vergi Dairesi': 'Kadıköy', 'Vergi No': '1234567890', 'Telefon': '0212 000 00 00', 'E-posta': 'muhasebe@ornek.com', 'Adres': 'Moda Cad. No:1 Kadıköy / İstanbul', 'Vade (gün)': 30, 'Risk Limiti': 50000, 'Açılış Borcu': 12500, 'Açılış Alacağı': '', 'Etiketler': 'İstanbul, Toptan', 'Yetkili Adı': 'Ayşe Yılmaz', 'Yetkili Görevi': 'Satın alma', 'Yetkili Telefon': '0532 000 00 00', 'Yetkili E-posta': 'ayse@ornek.com', 'Not': '' },
-    { 'Tür': 'Tedarikçi', 'Cari Kodu': '320.01.001', 'Unvan': 'Örnek Ambalaj San. A.Ş.', 'Vergi Dairesi': 'Gebze', 'Vergi No': '9876543210', 'Telefon': '', 'E-posta': '', 'Adres': '', 'Vade (gün)': 60, 'Risk Limiti': '', 'Açılış Borcu': '', 'Açılış Alacağı': 8000, 'Etiketler': 'Hammadde', 'Yetkili Adı': '', 'Yetkili Görevi': '', 'Yetkili Telefon': '', 'Yetkili E-posta': '', 'Not': '' }
+    { 'Tür': 'Müşteri', 'Cari Kodu': '120.01.001', 'Unvan': 'Örnek Kafe Ltd. Şti.', 'Vergi Dairesi': 'Kadıköy', 'Vergi No': '1234567890', 'Telefon': '0212 000 00 00', 'E-posta': 'muhasebe@ornek.com', 'Adres': 'Moda Cad. No:1 Kadıköy / İstanbul', 'Vade (gün)': 30, 'Para Birimi': 'TL', 'Risk Limiti': 50000, 'Açılış Borcu': 12500, 'Açılış Alacağı': '', 'Etiketler': 'İstanbul, Toptan', 'Yetkili Adı': 'Ayşe Yılmaz', 'Yetkili Görevi': 'Satın alma', 'Yetkili Telefon': '0532 000 00 00', 'Yetkili E-posta': 'ayse@ornek.com', 'Not': '' },
+    { 'Tür': 'Tedarikçi', 'Cari Kodu': '320.01.001', 'Unvan': 'Örnek Ambalaj San. A.Ş.', 'Vergi Dairesi': 'Gebze', 'Vergi No': '9876543210', 'Telefon': '', 'E-posta': '', 'Adres': '', 'Vade (gün)': 60, 'Para Birimi': 'USD', 'Risk Limiti': '', 'Açılış Borcu': '', 'Açılış Alacağı': 8000, 'Etiketler': 'Hammadde', 'Yetkili Adı': '', 'Yetkili Görevi': '', 'Yetkili Telefon': '', 'Yetkili E-posta': '', 'Not': '' }
   ], 'Cariler', 'cari-aktarim-sablonu.xlsx', [10, 14, 34, 16, 14, 16, 26, 34, 10, 12, 12, 13, 18, 18, 16, 16, 24, 20]);
 };
 
@@ -384,14 +399,16 @@ export const importPartners = async (req, res) => {
         if (!data.name) throw new PartnerError('Unvan zorunlu.');
         const contactName = str(cell(row, 'Yetkili Adı', 'Yetkili'), 120);
         const contact = contactName && { name: contactName, title: str(cell(row, 'Yetkili Görevi'), 80), phone: str(cell(row, 'Yetkili Telefon'), 40), email: emailOf(cell(row, 'Yetkili E-posta')), isPrimary: true, sortOrder: 0 };
+        const rowCurrency = currencyOf(cell(row, 'Para Birimi', 'Döviz'));
         const debt = Math.max(0, num(cell(row, 'Açılış Borcu')) ?? 0);
         const credit = Math.max(0, num(cell(row, 'Açılış Alacağı')) ?? 0);
         const opening = round2(credit - debt); // eksi: cari bize borçlu
 
         if (existing) {
+          if (rowCurrency && rowCurrency !== existing.currency) await assertCurrencyChangeAllowed(existing, rowCurrency);
           if (!dryRun) {
             await prisma.$transaction(async (tx) => {
-              await tx.company.update({ where: { id: existing.id }, data });
+              await tx.company.update({ where: { id: existing.id }, data: { ...data, ...(rowCurrency && { currency: rowCurrency }) } });
               if (contact && !(await tx.companyContact.findFirst({ where: { companyId: existing.id, name: contact.name } }))) {
                 await tx.companyContact.create({ data: { ...contact, isPrimary: !(await tx.companyContact.count({ where: { companyId: existing.id } })), companyId: existing.id } });
               }
@@ -399,21 +416,24 @@ export const importPartners = async (req, res) => {
           }
           results.push({ line, action: 'update', name: data.name, message: opening ? 'Güncellendi. Açılış bakiyesi yalnızca yeni kartta yazılır; yok sayıldı.' : 'Güncellendi.' });
         } else {
+          const currency = rowCurrency || 'TRY';
+          // Açılış bakiyesi carinin para birimindedir; TL karşılığı güncel kurla saklanır
+          const rate = opening ? await currentRate(currency) : 1;
           if (!dryRun) {
             await prisma.$transaction(async (tx) => {
               const c = await tx.company.create({
-                data: { ...data, kind: targetKind, status: 'ACTIVE', source: 'ADMIN', currentBalance: opening, ...(contact && { contacts: { create: [{ ...contact, tenantId: currentTenantId() }] } }) }
+                data: { ...data, kind: targetKind, currency, status: 'ACTIVE', source: 'ADMIN', ...(contact && { contacts: { create: [{ ...contact, tenantId: currentTenantId() }] } }) }
               });
               if (opening) {
-                await tx.financialTransaction.create({ data: { companyId: c.id, type: opening > 0 ? 'CREDIT' : 'DEBT', amount: Math.abs(opening), description: 'Açılış bakiyesi (Excel aktarımı)', source: 'OPENING', createdByName: req.user.name } });
+                await postEntry(tx, { company: c, type: opening > 0 ? 'CREDIT' : 'DEBT', amount: Math.abs(opening), rate, description: 'Açılış bakiyesi (Excel aktarımı)', source: 'OPENING', createdByName: req.user.name });
               }
             });
           }
-          results.push({ line, action: 'create', name: data.name, kind: targetKind, message: opening ? `Açılış: ${opening < 0 ? 'borçlu' : 'alacaklı'} ${Math.abs(opening).toLocaleString('tr-TR')} ₺` : '' });
+          results.push({ line, action: 'create', name: data.name, kind: targetKind, message: opening ? `Açılış: ${opening < 0 ? 'borçlu' : 'alacaklı'} ${Math.abs(opening).toLocaleString('tr-TR')} ${currency === 'TRY' ? 'TL' : currency}` : (currency !== 'TRY' ? `${currency} cari` : '') });
         }
       } catch (error) {
-        const message = error instanceof PartnerError ? error.message : error.code === 'P2002' ? 'Cari kodu veya vergi no başka bir kartta kayıtlı.' : 'Satır işlenemedi.';
-        if (!(error instanceof PartnerError) && error.code !== 'P2002') console.error('importPartners row', line, error);
+        const message = error instanceof PartnerError || error instanceof CurrencyError ? error.message : error.code === 'P2002' ? 'Cari kodu veya vergi no başka bir kartta kayıtlı.' : 'Satır işlenemedi.';
+        if (!(error instanceof PartnerError) && !(error instanceof CurrencyError) && error.code !== 'P2002') console.error('importPartners row', line, error);
         results.push({ line, action: 'error', name: cell(row, 'Unvan') || '', message });
       }
     }

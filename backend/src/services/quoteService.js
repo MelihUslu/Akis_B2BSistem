@@ -141,7 +141,8 @@ export const priceQuoteLines = async (company, items, { db = prisma, settings } 
   return {
     lines,
     totals: { ...totals, listTotal, discountTotal: round2(Math.max(0, listTotal - totals.subtotal)) },
-    approval: { reasons: [...new Set(approvalReasons)], limit }
+    approval: { reasons: [...new Set(approvalReasons)], limit },
+    rates: ctx.rates
   };
 };
 
@@ -255,6 +256,7 @@ export const buildSnapshot = ({ quote, tenant, company, priced, preparedByName, 
   preparedBy: preparedByName || null,
   seller: sellerOf(tenant),
   customer: customerOf(company),
+  fxRates: priced.rates || null, // teklif anındaki kurlar: dövizli cariye siparişte bu kurla yazılır
   items: priced.lines.filter((l) => l.productId).map((l) => ({
     productId: l.productId, sku: l.sku, name: l.name, variantLabel: l.variantLabel || null,
     quantity: l.quantity, unit: l.unit, packInfo: l.packInfo || null,
@@ -382,8 +384,9 @@ export const conversionCheck = async (quote, { paymentMethod }) => {
     if (raw.stock < i.quantity) warnings.push(`${i.name} (${i.sku}): stok ${raw.stock} ${i.unit}, teklif ${i.quantity} ${i.unit}.`);
   }
   if (paymentMethod === 'CURRENT_ACCOUNT') {
-    const { available } = await availableCredit(prisma, company);
-    if (rev.snapshot.totals.total > available) warnings.push(`Müşterinin kullanılabilir risk limiti (₺${Math.max(0, available).toLocaleString('tr-TR')}) teklif tutarından düşük.`);
+    const { availableTRY: available } = await availableCredit(prisma, company);
+    if (available === null) warnings.push('Müşterinin cari dövizi için kur alınamadı; risk limiti kontrol edilemedi.');
+    else if (rev.snapshot.totals.total > available) warnings.push(`Müşterinin kullanılabilir risk limiti (TL karşılığı ₺${Math.max(0, available).toLocaleString('tr-TR')}) teklif tutarından düşük.`);
   }
   return { blockers, warnings, rev, company };
 };
@@ -403,7 +406,7 @@ export const convertQuote = async ({ quote, userId, paymentMethod, shippingAddre
     const lines = rev.snapshot.items.map((i) => ({ productId: i.productId, quantity: i.quantity, unitPrice: i.unitPrice, vatRate: i.vatRate, variantLabel: i.variantLabel }));
     const totals = computeTotals(lines, null);
     const company = await prisma.company.findUnique({ where: { id: quote.companyId } });
-    const order = await createOrder({ company, userId, paymentMethod, lines, totals, coupon: null, shippingAddress });
+    const order = await createOrder({ company, userId, paymentMethod, lines, totals, coupon: null, shippingAddress, fxRates: rev.snapshot.fxRates || undefined });
     await prisma.quoteRequest.update({ where: { id: quote.id }, data: { orderId: order.id } });
     return order;
   } catch (error) {

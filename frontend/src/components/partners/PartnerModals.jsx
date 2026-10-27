@@ -4,6 +4,7 @@ import api, { errorMessage } from '../../services/api';
 import Modal from '../shared/Modal';
 import { Field, Segmented, Toggle } from '../form/FormKit';
 import { PAYMENT_METHODS, transactionTypes } from '../../utils/partner';
+import { formatMoney } from '../../utils/format';
 
 const today = () => new Date().toISOString().slice(0, 10);
 const cancelBtn = (onClose) => <button type="button" onClick={onClose} className="px-4 h-11 rounded-xl text-sm font-black text-gray-600 bg-gray-100 hover:bg-gray-200">Vazgeç</button>;
@@ -12,7 +13,12 @@ const cancelBtn = (onClose) => <button type="button" onClick={onClose} className
  * Tahsilat (cariden para girişi) veya ödeme (cariye para çıkışı). Kayıttan sonra makbuz yazdırılabilir.
  */
 export const PaymentModal = ({ partner, direction: initial, onClose, onSaved }) => {
-  const [form, setForm] = useState({ direction: initial, method: 'CASH', amount: '', date: today(), bankName: '', reference: '', dueDate: '', note: '' });
+  const account = partner.currency || 'TRY';
+  const [form, setForm] = useState({ direction: initial, method: 'CASH', amount: '', date: today(), bankName: '', reference: '', dueDate: '', note: '', currency: account, rate: partner.summary?.fx?.rate || '' });
+  // Dövizli caride ödeme TL veya cari dövizinde alınabilir; cariye kurla çevrilerek işlenir
+  const r = parseFloat(String(form.rate).replace(',', '.')) || 0;
+  const amt = parseFloat(form.amount) || 0;
+  const posted = account === 'TRY' ? null : form.currency === 'TRY' ? (r ? amt / r : null) : amt;
   const [saved, setSaved] = useState(null);
   const [error, setError] = useState(null);
   const [busy, setBusy] = useState(false);
@@ -51,12 +57,23 @@ export const PaymentModal = ({ partner, direction: initial, onClose, onSaved }) 
       footer={<>{cancelBtn(onClose)}<button disabled={busy} className="btn-gradient disabled:opacity-50">Kaydet</button></>}>
       <Segmented size="sm" value={form.direction} onChange={(direction) => setForm({ ...form, direction })}
         options={[{ value: 'IN', label: 'Tahsilat (para girişi)' }, { value: 'OUT', label: 'Ödeme (para çıkışı)' }]} />
+      {account !== 'TRY' && (
+        <div className="grid grid-cols-2 gap-3 rounded-xl bg-indigo-50/60 p-3">
+          <Field label="Ödenen para">
+            <Segmented size="sm" value={form.currency} onChange={(currency) => setForm({ ...form, currency })} options={[{ value: account, label: account }, { value: 'TRY', label: 'TL' }]} />
+          </Field>
+          <Field label={`Kur (1 ${account} = ? TL)`} hint="Varsayılan: güncel TCMB satış kuru">
+            <input type="number" min="0" step="0.0001" className="premium-input !bg-white" value={form.rate} onChange={set('rate')} />
+          </Field>
+          {posted !== null && amt > 0 && <p className="col-span-2 text-xs font-bold text-indigo-800">Cariye işlenecek: {formatMoney(posted, account)}{form.currency === account && r ? ` (TL karşılığı ${formatMoney(amt * r, 'TRY')})` : ''}</p>}
+        </div>
+      )}
       <Field label="Yöntem">
         <Segmented size="sm" value={form.method} onChange={(method) => setForm({ ...form, method })}
           options={['CASH', 'WIRE_TRANSFER', 'CARD', 'CHECK', 'NOTE'].map((m) => ({ value: m, label: PAYMENT_METHODS[m] }))} />
       </Field>
       <div className="grid grid-cols-2 gap-3">
-        <Field label="Tutar (₺)" required><input required autoFocus type="number" min="0.01" step="0.01" className="premium-input" value={form.amount} onChange={set('amount')} /></Field>
+        <Field label={`Tutar (${form.currency === 'TRY' ? '₺' : form.currency})`} required><input required autoFocus type="number" min="0.01" step="0.01" className="premium-input" value={form.amount} onChange={set('amount')} /></Field>
         <Field label="Tarih"><input type="date" max={today()} className="premium-input" value={form.date} onChange={set('date')} /></Field>
         {['WIRE_TRANSFER', 'CHECK', 'CARD'].includes(form.method) && <Field label="Banka"><input className="premium-input" value={form.bankName} onChange={set('bankName')} /></Field>}
         <Field label={['CHECK', 'NOTE'].includes(form.method) ? 'Çek / senet no' : 'Belge / dekont no'}><input className="premium-input" value={form.reference} onChange={set('reference')} /></Field>
@@ -72,7 +89,8 @@ export const PaymentModal = ({ partner, direction: initial, onClose, onSaved }) 
 // Manuel borç / alacak (fatura, masraf, alış faturası…)
 export const TransactionModal = ({ partner, onClose, onSaved }) => {
   const types = transactionTypes(partner.kind);
-  const [form, setForm] = useState({ type: types[0].id, amount: '', description: '' });
+  const account = partner.currency || 'TRY';
+  const [form, setForm] = useState({ type: types[0].id, amount: '', description: '', rate: partner.summary?.fx?.rate || '' });
   const [error, setError] = useState(null);
   const submit = async (e) => {
     e.preventDefault();
@@ -95,7 +113,10 @@ export const TransactionModal = ({ partner, onClose, onSaved }) => {
           </button>
         ))}
       </div>
-      <Field label="Tutar (₺)" required><input required type="number" min="0.01" step="0.01" className="premium-input" value={form.amount} onChange={(e) => setForm({ ...form, amount: e.target.value })} /></Field>
+      <div className={account === 'TRY' ? '' : 'grid grid-cols-2 gap-3'}>
+        <Field label={`Tutar (${account === 'TRY' ? '₺' : account})`} required><input required type="number" min="0.01" step="0.01" className="premium-input" value={form.amount} onChange={(e) => setForm({ ...form, amount: e.target.value })} /></Field>
+        {account !== 'TRY' && <Field label={`Kur (1 ${account} = ? TL)`} hint="TL karşılığı için"><input type="number" min="0" step="0.0001" className="premium-input" value={form.rate} onChange={(e) => setForm({ ...form, rate: e.target.value })} /></Field>}
+      </div>
       <Field label="Açıklama"><input className="premium-input" placeholder="Örn: 2026/154 nolu fatura" value={form.description} onChange={(e) => setForm({ ...form, description: e.target.value })} /></Field>
       <p className="text-[11px] text-gray-400">Para girişi / çıkışı için “Tahsilat al” veya “Ödeme yap” kullanın (makbuz kesilir).</p>
       {error && <p className="text-xs font-bold text-red-600">{error}</p>}

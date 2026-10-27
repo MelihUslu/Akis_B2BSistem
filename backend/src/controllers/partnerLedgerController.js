@@ -29,7 +29,7 @@ export const createPayment = async (req, res) => {
 export const getPayment = async (req, res) => {
   const payment = await prisma.payment.findUnique({
     where: { id: parseInt(req.params.paymentId) || 0 },
-    include: { company: { select: { id: true, name: true, kind: true, taxOffice: true, taxNumber: true, address: true, phone: true, externalCode: true, currentBalance: true } } }
+    include: { company: { select: { id: true, name: true, kind: true, taxOffice: true, taxNumber: true, address: true, phone: true, externalCode: true, currentBalance: true, currency: true } } }
   });
   if (!payment || !payment.company) return res.status(404).json({ message: 'Tahsilat bulunamadı.' });
   res.json({ ...payment, methodLabel: PAYMENT_METHODS[payment.method] || payment.method });
@@ -65,11 +65,14 @@ export const exportTransactions = async (req, res) => {
       'Alacak': t.type === 'CREDIT' ? t.amount : '',
       'Bakiye': t.balanceAfter,
       'Bakiye Durumu': t.balanceAfter < 0 ? 'Borçlu' : t.balanceAfter > 0 ? 'Alacaklı' : '',
+      'Para Birimi': t.currency === 'TRY' ? 'TL' : t.currency,
+      'Kur': t.currency === 'TRY' ? '' : t.rate,
+      'TL Karşılığı': t.amountTRY ?? '',
       'Not': t.reversed ? 'Ters kaydedildi' : '',
       'Giren': t.createdByName || ''
     }));
     if (!req.query.from) data.unshift({ 'Tarih': '', 'Kaynak': '', 'Açıklama': 'Açılış bakiyesi', 'Borç': '', 'Alacak': '', 'Bakiye': openingBalance, 'Bakiye Durumu': '', 'Not': '', 'Giren': '' });
-    sendWorkbook(res, data, 'Hareketler', `cari-hareketler-${company.id}-${new Date().toISOString().slice(0, 10)}.xlsx`, [12, 14, 60, 14, 14, 14, 12, 16, 18]);
+    sendWorkbook(res, data, 'Hareketler', `cari-hareketler-${company.id}-${new Date().toISOString().slice(0, 10)}.xlsx`, [12, 14, 60, 14, 14, 14, 12, 10, 10, 14, 16, 18]);
   } catch (error) {
     fail(res, error, 'Excel oluşturulamadı.');
   }
@@ -93,11 +96,14 @@ export const getAging = async (req, res) => {
     const report = await agingReport({ kinds: kinds.length ? kinds : ['DEALER', 'CUSTOMER'] });
     if (req.query.format === 'xlsx') {
       const data = report.rows.map((r) => ({
-        'Cari': r.name, 'Cari Kodu': r.externalCode || '', 'Tür': r.kind === 'DEALER' ? 'Bayi' : 'Müşteri', 'Telefon': r.phone || '',
+        'Cari': r.name, 'Cari Kodu': r.externalCode || '', 'Tür': r.kind === 'DEALER' ? 'Bayi' : 'Müşteri', 'Telefon': r.phone || '', 'Para Birimi': r.currency === 'TRY' ? 'TL' : r.currency,
         ...Object.fromEntries(AGING_BUCKETS.map((b) => [b.label, r[b.key]])), 'Toplam Borç': r.total
       }));
-      data.push({ 'Cari': 'TOPLAM', ...Object.fromEntries(AGING_BUCKETS.map((b) => [b.label, report.totals[b.key]])), 'Toplam Borç': report.totals.total });
-      return sendWorkbook(res, data, 'Yaşlandırma', `borc-yaslandirma-${new Date().toISOString().slice(0, 10)}.xlsx`, [34, 14, 10, 16, 16, 12, 12, 12, 12, 18, 14]);
+      for (const [cur, t] of Object.entries(report.totalsByCurrency)) {
+        data.push({ 'Cari': `TOPLAM (${cur === 'TRY' ? 'TL' : cur})`, 'Para Birimi': cur === 'TRY' ? 'TL' : cur, ...Object.fromEntries(AGING_BUCKETS.map((b) => [b.label, t[b.key]])), 'Toplam Borç': t.total });
+      }
+      data.push({ 'Cari': 'GENEL TOPLAM (güncel kurla TL)', 'Para Birimi': 'TL', ...Object.fromEntries(AGING_BUCKETS.map((b) => [b.label, report.totals[b.key]])), 'Toplam Borç': report.totals.total });
+      return sendWorkbook(res, data, 'Yaşlandırma', `borc-yaslandirma-${new Date().toISOString().slice(0, 10)}.xlsx`, [34, 14, 10, 16, 10, 16, 12, 12, 12, 12, 18, 14]);
     }
     res.json(report);
   } catch (error) {

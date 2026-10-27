@@ -1,5 +1,7 @@
 import prisma from '../utils/prisma.js';
 import { round2 } from './pricingService.js';
+import { postEntry, rateOrCurrent, normalizeCurrency, CURRENCY_LABEL } from './accountPosting.js';
+import { getExchangeRates } from './exchangeRateService.js';
 
 /**
  * Cari defteri: tahsilat / ödeme kaydı, ters kayıt, hareket listesi, yaşlandırma ve cari özeti.
@@ -53,6 +55,14 @@ export const recordPayment = async ({ company, body, user }) => {
   const dueDate = body.dueDate ? new Date(`${String(body.dueDate).slice(0, 10)}T12:00:00`) : null;
   if (['CHECK', 'NOTE'].includes(method) && (!dueDate || Number.isNaN(dueDate.getTime()))) throw new LedgerError(`${PAYMENT_METHODS[method]} için vade tarihi girin.`);
 
+  // Ödenen para TL ya da carinin dövizi olabilir; dövizli caride kur elle verilebilir (yoksa güncel kur)
+  const account = company.currency || 'TRY';
+  const paid = normalizeCurrency(body.currency) || account;
+  if (![account, 'TRY'].includes(paid)) throw new LedgerError(`Bu cariye TL veya ${CURRENCY_LABEL[account]} ile ödeme alınabilir.`);
+  const rate = await rateOrCurrent(account, body.rate);
+  const amountTRY = paid === 'TRY' ? amount : round2(amount * rate);
+  const accountAmount = paid === account ? amount : round2(amountTRY / rate);
+
   const reference = str(body.reference, 80);
   const bankName = str(body.bankName, 80);
   const note = str(body.note, 500);
@@ -64,19 +74,19 @@ export const recordPayment = async ({ company, body, user }) => {
         const receiptNo = (agg._max.receiptNo || 0) + 1;
         const payment = await tx.payment.create({
           data: {
-            companyId: company.id, amount, method, direction, status: 'COMPLETED', paymentDate: date, receiptNo,
+            companyId: company.id, amount, currency: paid, rate, accountAmount, method, direction, status: 'COMPLETED', paymentDate: date, receiptNo,
             reference, bankName, dueDate: ['CHECK', 'NOTE'].includes(method) ? dueDate : null, note,
             userId: user.id, createdByName: user.name
           }
         });
         const label = direction === 'IN' ? 'Tahsilat' : 'Ödeme';
-        const description = [`${label} · ${PAYMENT_METHODS[method]}`, `Makbuz ${receiptNo}`, reference, bankName, dueDate && ['CHECK', 'NOTE'].includes(method) && `vade ${dueDate.toLocaleDateString('tr-TR')}`, note]
+        const fx = paid !== account ? `${amount.toLocaleString('tr-TR', { minimumFractionDigits: 2 })} ${CURRENCY_LABEL[paid]} (kur ${rate})` : null;
+        const description = [`${label} · ${PAYMENT_METHODS[method]}`, `Makbuz ${receiptNo}`, fx, reference, bankName, dueDate && ['CHECK', 'NOTE'].includes(method) && `vade ${dueDate.toLocaleDateString('tr-TR')}`, note]
           .filter(Boolean).join(' · ');
-        const delta = direction === 'IN' ? amount : -amount;
-        await tx.financialTransaction.create({
-          data: { companyId: company.id, type: direction === 'IN' ? 'CREDIT' : 'DEBT', amount, description, date, source: 'PAYMENT', paymentId: payment.id, createdByName: user.name }
+        await postEntry(tx, {
+          company, type: direction === 'IN' ? 'CREDIT' : 'DEBT', amount: accountAmount, amountTRY, rate,
+          description, date, source: 'PAYMENT', paymentId: payment.id, createdByName: user.name
         });
-        await tx.company.update({ where: { id: company.id }, data: { currentBalance: { increment: delta } } });
         return payment;
       });
     } catch (error) {
@@ -100,20 +110,18 @@ export const reverseTransaction = async ({ id, reason, user }) => {
   if (!why) throw new LedgerError('Ters kayıt nedenini yazın.');
   try {
     return await prisma.$transaction(async (tx) => {
-      const reversal = await tx.financialTransaction.create({
-        data: {
-          companyId: original.companyId,
-          type: original.type === 'DEBT' ? 'CREDIT' : 'DEBT',
-          amount: original.amount,
-          description: `Ters kayıt: ${original.description || ''} — ${why}`.slice(0, 500),
-          source: 'REVERSAL',
-          reversalOfId: original.id,
-          createdByName: user.name
-        }
+      // Orijinal hareketin tutarı ve kuruyla, ters yönde (borç ters kaydı cariyi alacaklandırır)
+      const reversal = await postEntry(tx, {
+        company: { id: original.companyId, currency: original.currency },
+        type: original.type === 'DEBT' ? 'CREDIT' : 'DEBT',
+        amount: original.amount,
+        amountTRY: original.amountTRY ?? undefined,
+        rate: original.rate,
+        description: `Ters kayıt: ${original.description || ''} — ${why}`.slice(0, 500),
+        source: 'REVERSAL',
+        reversalOfId: original.id,
+        createdByName: user.name
       });
-      // Borç ters kaydı cariyi alacaklandırır (bakiye artar), alacak ters kaydı borçlandırır
-      const delta = original.type === 'DEBT' ? original.amount : -original.amount;
-      await tx.company.update({ where: { id: original.companyId }, data: { currentBalance: { increment: delta } } });
       if (original.paymentId) await tx.payment.update({ where: { id: original.paymentId }, data: { status: 'CANCELLED' } });
       return reversal;
     });
@@ -188,15 +196,28 @@ export const agingReport = async ({ kinds = ['DEALER', 'CUSTOMER'], companyId } 
   const companies = await prisma.company.findMany({
     where: { kind: { in: kinds }, currentBalance: { lt: 0 }, ...(companyId && { id: companyId }) },
     select: {
-      id: true, name: true, kind: true, externalCode: true, phone: true, currentBalance: true, paymentTermDays: true,
+      id: true, name: true, kind: true, externalCode: true, phone: true, currentBalance: true, paymentTermDays: true, currency: true,
       transactions: { where: debtWhere, orderBy: [{ date: 'desc' }, { id: 'desc' }], select: { amount: true, date: true, order: { select: { dueDate: true } } } }
     },
     orderBy: { currentBalance: 'asc' }
   });
   const now = new Date();
-  const rows = companies.map(({ transactions, ...c }) => ({ ...c, ...agingFor(c, transactions, now) }));
-  const totals = Object.fromEntries([...AGING_BUCKETS.map((b) => b.key), 'total'].map((k) => [k, round2(rows.reduce((s, r) => s + r[k], 0))]));
-  return { buckets: AGING_BUCKETS, rows, totals };
+  const fx = (await getExchangeRates()).rates || {};
+  const rows = companies.map(({ transactions, ...c }) => {
+    const a = agingFor(c, transactions, now);
+    const rate = c.currency === 'TRY' ? 1 : fx[c.currency];
+    return { ...c, ...a, totalTRY: rate ? round2(a.total * rate) : null };
+  }).sort((x, y) => (y.totalTRY ?? 0) - (x.totalTRY ?? 0));
+  // Farklı para birimleri toplanmaz: her para birimi için ayrı toplam, ayrıca güncel kurla TL karşılığı
+  const keys = [...AGING_BUCKETS.map((b) => b.key), 'total'];
+  const totalsByCurrency = {};
+  for (const r of rows) {
+    const t = totalsByCurrency[r.currency] || Object.fromEntries(keys.map((k) => [k, 0]));
+    for (const k of keys) t[k] = round2(t[k] + r[k]);
+    totalsByCurrency[r.currency] = t;
+  }
+  const totalsTRY = Object.fromEntries(keys.map((k) => [k, round2(Object.entries(totalsByCurrency).reduce((s, [cur, t]) => s + t[k] * (cur === 'TRY' ? 1 : (fx[cur] || 0)), 0))]));
+  return { buckets: AGING_BUCKETS, rows, totalsByCurrency, totals: totalsTRY, rates: fx };
 };
 
 // Cari özet kartı: son 12 ay satış / alış, son sipariş ve tahsilat, açık teklifler
@@ -206,8 +227,8 @@ export const partnerSummary = async (company) => {
   const [sales, lastOrder, lastIn, lastOut, openQuotes, purchases, aging] = await Promise.all([
     prisma.order.aggregate({ where: { companyId: company.id, status: { in: SOLD }, createdAt: { gte: since } }, _sum: { totalAmount: true }, _count: { _all: true } }),
     prisma.order.findFirst({ where: { companyId: company.id, status: { not: 'CANCELLED' } }, orderBy: { createdAt: 'desc' }, select: { id: true, createdAt: true, totalAmount: true } }),
-    prisma.payment.findFirst({ where: { companyId: company.id, status: 'COMPLETED', direction: 'IN' }, orderBy: { paymentDate: 'desc' }, select: { amount: true, paymentDate: true, method: true } }),
-    prisma.payment.findFirst({ where: { companyId: company.id, status: 'COMPLETED', direction: 'OUT' }, orderBy: { paymentDate: 'desc' }, select: { amount: true, paymentDate: true, method: true } }),
+    prisma.payment.findFirst({ where: { companyId: company.id, status: 'COMPLETED', direction: 'IN' }, orderBy: { paymentDate: 'desc' }, select: { amount: true, currency: true, paymentDate: true, method: true } }),
+    prisma.payment.findFirst({ where: { companyId: company.id, status: 'COMPLETED', direction: 'OUT' }, orderBy: { paymentDate: 'desc' }, select: { amount: true, currency: true, paymentDate: true, method: true } }),
     prisma.quoteRequest.count({ where: { companyId: company.id, status: { in: ['PENDING', 'DRAFT', 'PENDING_APPROVAL', 'QUOTED'] } } }),
     // Tedarikçide alış = elle / açılış / ERP alacak kayıtları (tahsilat ve ters kayıt hariç)
     company.kind === 'SUPPLIER'
@@ -215,7 +236,20 @@ export const partnerSummary = async (company) => {
       : null,
     company.currentBalance < 0 && company.kind !== 'SUPPLIER' ? agingReport({ kinds: [company.kind], companyId: company.id }) : null
   ]);
+  // Dövizli caride kur farkı (bilgi): bakiyenin güncel kurla TL karşılığı − hareketlerin işlendiği kurlarla TL karşılığı.
+  // Eksi: cari borcunun TL değeri arttı (lehimize); artı: aleyhimize. Açılış/hareket dışı bakiye hesaba katılmaz.
+  let fx = null;
+  if ((company.currency || 'TRY') !== 'TRY') {
+    const rate = (await getExchangeRates()).rates?.[company.currency] || null;
+    const book = await prisma.financialTransaction.groupBy({ by: ['type'], where: { companyId: company.id }, _sum: { amount: true, amountTRY: true } });
+    const sum = (t, f) => book.find((b) => b.type === t)?._sum[f] || 0;
+    const bookTRY = round2(sum('CREDIT', 'amountTRY') - sum('DEBT', 'amountTRY'));
+    const covered = round2(sum('CREDIT', 'amount') - sum('DEBT', 'amount'));
+    const valueTRY = rate ? round2(covered * rate) : null;
+    fx = { currency: company.currency, rate, balanceTRY: rate ? round2(company.currentBalance * rate) : null, bookTRY, difference: valueTRY === null ? null : round2(valueTRY - bookTRY) };
+  }
   return {
+    fx,
     sales12m: round2(sales._sum.totalAmount || 0),
     orders12m: sales._count._all,
     avgOrder: sales._count._all ? round2((sales._sum.totalAmount || 0) / sales._count._all) : 0,

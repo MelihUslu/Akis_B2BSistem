@@ -1,5 +1,6 @@
 import { setStock, reconcileStock } from '../services/stockService.js';
 import crypto from 'crypto';
+import { postEntry, currentRate, normalizeCurrency } from '../services/accountPosting.js';
 import prisma from '../utils/prisma.js';
 import { hashApiKey } from '../middlewares/apiKeyAuth.js';
 import { notifyRestocked, safeNotify } from '../services/notificationService.js';
@@ -213,7 +214,7 @@ export const apiUpsertProducts = async (req, res) => {
 const companyOut = (c) => ({
   id: c.id, externalCode: c.externalCode, name: c.name, taxNumber: c.taxNumber, taxOffice: c.taxOffice,
   authorizedPerson: c.authorizedPerson, phone: c.phone, address: c.address, status: c.status,
-  dealerGroup: c.dealerGroup, riskLimit: c.riskLimit, balance: c.currentBalance, netDiscount: c.netDiscount, kind: c.kind
+  dealerGroup: c.dealerGroup, riskLimit: c.riskLimit, balance: c.currentBalance, currency: c.currency, netDiscount: c.netDiscount, kind: c.kind
 });
 
 export const apiListCompanies = async (req, res) => {
@@ -261,7 +262,9 @@ export const apiUpsertCompanies = async (req, res) => {
       } else {
         if (!data.name) throw new Error('yeni cari için name zorunlu');
         if ((data.kind || 'DEALER') === 'DEALER') await assertWithinLimit(req.tenant, 'dealers');
-        if (!dryRun(req)) await prisma.company.create({ data: { ...data, status: 'ACTIVE' } });
+        // Para birimi yalnızca yeni caride belirlenir (hareketi olan carininki değişmez)
+        const currency = normalizeCurrency(item.currency) || 'TRY';
+        if (!dryRun(req)) await prisma.company.create({ data: { ...data, currency, status: 'ACTIVE' } });
         result.created++;
       }
     } catch (error) {
@@ -284,12 +287,10 @@ export const apiSyncBalances = async (req, res) => {
     const diff = round2(balance - company.currentBalance);
     if (diff === 0) { result.unchanged++; continue; }
     if (dryRun(req)) { result.updated++; continue; }
-    await prisma.$transaction([
-      prisma.financialTransaction.create({
-        data: { companyId: company.id, source: 'ERP', type: diff > 0 ? 'CREDIT' : 'DEBT', amount: Math.abs(diff), description: item.description || 'ERP bakiye düzeltmesi' }
-      }),
-      prisma.company.update({ where: { id: company.id }, data: { currentBalance: balance } })
-    ]);
+    // balance carinin para birimindedir (TRY / USD / EUR)
+    const rate = await currentRate(company.currency).catch(() => null);
+    if (!rate) { result.notFound.push(`${item.externalCode || item.taxNumber} (kur alınamadı)`); continue; }
+    await prisma.$transaction((tx) => postEntry(tx, { company, type: diff > 0 ? 'CREDIT' : 'DEBT', amount: Math.abs(diff), rate, source: 'ERP', description: item.description || 'ERP bakiye düzeltmesi' }));
     result.updated++;
   }
   res.json(out(req, result));

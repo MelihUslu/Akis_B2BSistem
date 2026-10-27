@@ -1,4 +1,5 @@
 import { useState, useEffect } from 'react';
+import { CURRENCY_SYMBOL } from '../../utils/format';
 import api, { errorMessage } from '../../services/api';
 import useAlert from '../../hooks/useAlert';
 import DealerUsersModal from '../../components/admin/DealerUsersModal';
@@ -29,7 +30,7 @@ const DealerManagement = () => {
     name: '', taxNumber: '', taxOffice: '', authorizedPerson: '',
     phone: '', address: '', email: '', password: '',
     riskLimit: 0, dealerGroup: 'STANDART', netDiscount: 0, minOrderAmount: 0,
-    paymentTermDays: 30, plasiyerId: '',
+    paymentTermDays: 30, plasiyerId: '', currency: 'TRY',
     status: 'ACTIVE'
   };
   const [formData, setFormData] = useState(emptyForm);
@@ -221,7 +222,7 @@ const DealerManagement = () => {
                 <td className="px-8 py-6">
                   <div className="flex items-baseline gap-1 tabular-nums">
                     <span className={`text-[15px] font-black ${dealer.currentBalance < 0 ? 'text-gray-900' : 'text-emerald-600'}`}>{(dealer.currentBalance || 0).toLocaleString('tr-TR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span>
-                    <span className="text-[10px] font-bold text-gray-400">₺</span>
+                    <span className="text-[10px] font-bold text-gray-400">{CURRENCY_SYMBOL[dealer.currency] || '₺'}</span>
                     <span className={`ml-1 text-[10px] font-bold ${dealer.currentBalance < 0 ? 'text-red-500' : 'text-emerald-600'}`}>{dealer.currentBalance < 0 ? 'borç' : dealer.currentBalance > 0 ? 'alacak' : ''}</span>
                   </div>
                   {dealer.riskLimit > 0 && (() => {
@@ -232,7 +233,7 @@ const DealerManagement = () => {
                         <div className="h-1.5 rounded-full bg-gray-100 overflow-hidden">
                           <div className={`h-full rounded-full ${used >= 90 ? 'bg-red-500' : used >= 70 ? 'bg-amber-500' : 'bg-emerald-500'}`} style={{ width: `${used}%` }} />
                         </div>
-                        <p className="text-[10px] text-gray-400 font-semibold mt-1 tabular-nums">Limit {dealer.riskLimit.toLocaleString('tr-TR')} ₺</p>
+                        <p className="text-[10px] text-gray-400 font-semibold mt-1 tabular-nums">Limit {dealer.riskLimit.toLocaleString('tr-TR')} {CURRENCY_SYMBOL[dealer.currency] || '₺'}</p>
                       </div>
                     );
                   })()}
@@ -297,6 +298,7 @@ const DealerManagement = () => {
         const owner = d.users?.find((u) => u.isOwner) || d.users?.[0];
         const lastRec = d.reconciliations?.[0];
         const fmt = (n) => (Number(n) || 0).toLocaleString('tr-TR', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+        const sym = CURRENCY_SYMBOL[d.currency] || '₺'; // bakiye ve limit carinin para biriminde
         const initials = (d.name || '?').trim().split(/\s+/).slice(0, 2).map((w) => w[0]).join('').toLocaleUpperCase('tr-TR');
         const infoRows = [
           { icon: UserCheck, label: 'Yetkili', value: d.authorizedPerson },
@@ -332,7 +334,7 @@ const DealerManagement = () => {
               <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
                 <div className="col-span-2 rounded-2xl bg-white ring-1 ring-gray-100 shadow-sm p-4">
                   <p className="text-[10px] font-bold text-gray-400 uppercase tracking-wider flex items-center gap-1"><Wallet className="h-3 w-3" /> Güncel bakiye</p>
-                  <p className={`text-2xl font-black tabular-nums mt-1 ${balance < 0 ? 'text-red-600' : 'text-emerald-600'}`}>{fmt(Math.abs(balance))} ₺
+                  <p className={`text-2xl font-black tabular-nums mt-1 ${balance < 0 ? 'text-red-600' : 'text-emerald-600'}`}>{fmt(Math.abs(balance))} {sym}
                     <span className="ml-2 text-xs font-bold">{balance < 0 ? 'borç' : balance > 0 ? 'alacak' : ''}</span>
                   </p>
                   {used !== null && (
@@ -340,7 +342,7 @@ const DealerManagement = () => {
                       <div className="h-1.5 rounded-full bg-gray-100 overflow-hidden">
                         <div className={`h-full rounded-full ${used >= 90 ? 'bg-red-500' : used >= 70 ? 'bg-amber-500' : 'bg-emerald-500'}`} style={{ width: `${used}%` }} />
                       </div>
-                      <p className="text-[11px] text-gray-400 mt-1 tabular-nums">Risk limitinin %{used.toFixed(0)}'i kullanılıyor · limit {fmt(d.riskLimit)} ₺</p>
+                      <p className="text-[11px] text-gray-400 mt-1 tabular-nums">Risk limitinin %{used.toFixed(0)}'i kullanılıyor · limit {fmt(d.riskLimit)} {sym}</p>
                     </div>
                   )}
                 </div>
@@ -401,7 +403,7 @@ const DealerManagement = () => {
                   <div className="rounded-2xl ring-1 ring-gray-100 p-4">
                     <h4 className="text-sm font-black text-gray-900 flex items-center gap-1.5"><CheckCircle2 className="h-4 w-4 text-gray-400" /> Son mutabakat</h4>
                     {lastRec ? (
-                      <p className="text-xs text-gray-600 mt-2">{new Date(lastRec.createdAt).toLocaleDateString('tr-TR')} tarihinde <b className="tabular-nums">{fmt(Math.abs(lastRec.balance))} ₺ {lastRec.balance < 0 ? 'borç' : 'alacak'}</b> bakiye onaylandı.</p>
+                      <p className="text-xs text-gray-600 mt-2">{new Date(lastRec.createdAt).toLocaleDateString('tr-TR')} tarihinde <b className="tabular-nums">{fmt(Math.abs(lastRec.balance))} {sym} {lastRec.balance < 0 ? 'borç' : 'alacak'}</b> bakiye onaylandı.</p>
                     ) : <p className="text-xs text-gray-400 mt-2">Bayi henüz mutabakat onaylamadı.</p>}
                   </div>
                 </div>
@@ -506,9 +508,13 @@ const DealerManagement = () => {
                   <Segmented value={formData.dealerGroup} onChange={(v) => setFormData({ ...formData, dealerGroup: v })}
                     options={[{ value: 'STANDART', label: 'Standart', icon: Users }, { value: 'GOLD', label: 'Gold', icon: Award }, { value: 'VIP', label: 'VIP', icon: Crown }]} />
                 </Field>
+                <Field label="Cari Para Birimi" hint="Bakiye, risk limiti ve ekstre bu para biriminde tutulur. Siparişler TL'dir, cariye sipariş anındaki kurla çevrilerek yazılır. Hareketi olan carinin para birimi değiştirilemez.">
+                  <Segmented size="sm" value={formData.currency || 'TRY'} onChange={(v) => setFormData({ ...formData, currency: v })}
+                    options={[{ value: 'TRY', label: '₺ TL' }, { value: 'USD', label: '$ USD' }, { value: 'EUR', label: '€ EUR' }]} />
+                </Field>
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                   <Field label="Risk Limiti" hint="Açık bakiye bu tutarı aşınca sipariş durur.">
-                    <IconInput type="number" min="0" icon={ShieldCheck} suffix="₺" value={formData.riskLimit} onChange={set('riskLimit')} />
+                    <IconInput type="number" min="0" icon={ShieldCheck} suffix={CURRENCY_SYMBOL[formData.currency] || '₺'} value={formData.riskLimit} onChange={set('riskLimit')} />
                   </Field>
                   <Field label="Net İskonto" hint="Tüm liste fiyatlarına uygulanır.">
                     <IconInput type="number" min="0" max="100" step="0.01" icon={Percent} suffix="%" value={formData.netDiscount} onChange={set('netDiscount')} />

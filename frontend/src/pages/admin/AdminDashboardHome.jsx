@@ -10,7 +10,7 @@ import {
 } from 'recharts';
 import api from '../../services/api';
 import { useAuth } from '../../context/AuthContext';
-import { formatTRY, formatDate, ORDER_STATUS } from '../../utils/format';
+import { formatTRY, formatDate, ORDER_STATUS, formatMoney } from '../../utils/format';
 
 const STATUS_COLORS = {
   PENDING: '#f97316', APPROVED: '#10b981', PARTIAL_APPROVED: '#f59e0b',
@@ -427,7 +427,7 @@ const AdminDashboardHome = () => {
                   </div>
                   <div className="flex items-end justify-between">
                     <div>
-                      <p className="text-lg font-black text-gray-900 tracking-tighter">{formatTRY(-d.balance)}</p>
+                      <p className="text-lg font-black text-gray-900 tracking-tighter">{formatMoney(-d.balance, d.currency)}</p>
                       <p className="text-[9px] font-black text-indigo-500 uppercase tracking-widest mt-1">{d.phone || 'Telefon yok'}</p>
                     </div>
                     <div className="text-right">

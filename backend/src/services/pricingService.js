@@ -302,24 +302,29 @@ export const quoteCart = async (prisma, company, items, { couponCode } = {}) => 
     coupon: coupon && { code: coupon.code, type: coupon.type, value: coupon.value, description: coupon.description },
     couponRecord: coupon,
     errors,
-    rules: { qtyThreshold: ctx.qtyThreshold, qtyRate: ctx.qtyRate }
+    rules: { qtyThreshold: ctx.qtyThreshold, qtyRate: ctx.qtyRate },
+    rates: ctx.rates // sipariş anındaki kurlar (dövizli cariye bu kurla yazılır)
   };
 };
 
 /**
  * Açık hesap kullanılabilir limiti: risk limiti + bakiye − onay bekleyen cari siparişler.
- * (Bakiye eksi ise borçtur.)
+ * (Bakiye eksi ise borçtur.) Limit ve bakiye carinin para birimindedir; bekleyen siparişler TL olduğundan
+ * dövizli caride güncel kurla çevrilir. availableTRY, TL sipariş tutarıyla karşılaştırmak içindir
+ * (kur alınamazsa dövizli caride null).
  */
 export const availableCredit = async (prisma, company) => {
   const pending = await prisma.order.aggregate({
     where: { companyId: company.id, status: 'PENDING', paymentMethod: 'CURRENT_ACCOUNT' },
     _sum: { totalAmount: true }
   });
-  const reserved = pending._sum.totalAmount || 0;
-  return {
-    reserved: round2(reserved),
-    available: round2(company.riskLimit + company.currentBalance - reserved)
-  };
+  const reservedTRY = pending._sum.totalAmount || 0;
+  const currency = company.currency || 'TRY';
+  const rate = currency === 'TRY' ? 1 : ((await getExchangeRates()).rates?.[currency] || null);
+  if (!rate) return { currency, rate: null, reserved: null, available: null, availableTRY: null };
+  const reserved = round2(reservedTRY / rate);
+  const available = round2(company.riskLimit + company.currentBalance - reserved);
+  return { currency, rate, reserved, available, availableTRY: round2(available * rate) };
 };
 
 export { round2, maskStock };

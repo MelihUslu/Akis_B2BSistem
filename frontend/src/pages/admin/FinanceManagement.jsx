@@ -3,11 +3,15 @@ import { Link } from 'react-router-dom';
 import { CreditCard, Award, CheckCircle2, AlertTriangle, CalendarClock, ArrowDownLeft, ArrowUpRight, BookUser, Banknote, ChevronRight, Hourglass, FileSpreadsheet } from 'lucide-react';
 import { downloadFile } from '../../utils/download';
 import api from '../../services/api';
-import { formatTRY, formatDate } from '../../utils/format';
+import { formatTRY, formatDate, formatMoney } from '../../utils/format';
 import { PARTNER_KINDS, AGING_LABELS } from '../../utils/partner';
 
 const cariLink = (id) => `/admin/partners?id=${id}`;
 const METHOD = { POS: 'Sanal POS', WIRE_TRANSFER: 'Havale / EFT', MANUAL: 'Manuel', CASH: 'Nakit', CARD: 'Kredi kartı', CHECK: 'Çek', NOTE: 'Senet' };
+
+// Para birimi bazında tutarlar ("₺1.000 · $250"); farklı dövizler toplanmaz, üstte güncel kurla TL karşılığı
+const byCurrencyText = (group) => group.byCurrency.filter((g) => g.currency !== 'TRY' || group.byCurrency.length > 1)
+  .map((g) => formatMoney(g.amount, g.currency)).join(' · ');
 
 const Stat = ({ icon: Icon, tone, label, value, sub }) => (
   <div className="bg-white rounded-2xl border border-gray-100 shadow-sm p-5 flex items-start gap-4">
@@ -67,10 +71,10 @@ const FinanceManagement = () => {
 
       {!summary ? <div className="text-center py-12 text-gray-400">Yükleniyor...</div> : summary.error ? <div className="text-center py-12 text-gray-500">Finans özeti yüklenemedi.</div> : (<>
         <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-4">
-          <Stat icon={ArrowDownLeft} tone="bg-red-50 text-red-500" label="Toplam alacağımız" value={formatTRY(summary.receivable.amount)} sub={`${summary.receivable.count} borçlu bayi / müşteri`} />
+          <Stat icon={ArrowDownLeft} tone="bg-red-50 text-red-500" label="Toplam alacağımız" value={formatTRY(summary.receivable.amountTRY)} sub={<>{summary.receivable.count} borçlu bayi / müşteri{byCurrencyText(summary.receivable) && <><br />{byCurrencyText(summary.receivable)} (güncel kurla TL)</>}</>} />
           <Stat icon={AlertTriangle} tone="bg-orange-50 text-orange-500" label="Vadesi geçen" value={formatTRY(summary.overdue.amount)} sub={`${summary.overdue.count} sipariş`} />
           <Stat icon={CalendarClock} tone="bg-amber-50 text-amber-500" label="7 gün içinde vadesi gelen" value={formatTRY(summary.upcoming.amount)} sub={`${summary.upcoming.count} sipariş`} />
-          <Stat icon={ArrowUpRight} tone="bg-slate-100 text-slate-600" label="Tedarikçilere borcumuz" value={formatTRY(summary.payable.amount)} sub={`${summary.payable.count} tedarikçi`} />
+          <Stat icon={ArrowUpRight} tone="bg-slate-100 text-slate-600" label="Tedarikçilere borcumuz" value={formatTRY(summary.payable.amountTRY)} sub={<>{summary.payable.count} tedarikçi{byCurrencyText(summary.payable) && <><br />{byCurrencyText(summary.payable)}</>}</>} />
         </div>
 
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
@@ -89,14 +93,14 @@ const FinanceManagement = () => {
             {summary.debtors.map((d) => (
               <Row key={d.id} to={cariLink(d.id)} title={d.name}
                 sub={<>{PARTNER_KINDS[d.kind]?.label}{d.riskLimit > 0 && ` · limit ${formatTRY(d.riskLimit)}`}{d.phone && ` · ${d.phone}`}</>}
-                right={formatTRY(-d.currentBalance)} rightClass="text-red-600" />
+                right={formatMoney(-d.currentBalance, d.currency)} rightClass="text-red-600" />
             ))}
           </Card>
 
           <Card icon={Banknote} iconClass="text-emerald-500" title="Son tahsilatlar" empty={!summary.payments.length && 'Henüz tahsilat yok.'}>
             {summary.payments.map((p) => (
               <Row key={p.id} to={p.company ? cariLink(p.company.id) : '/admin/partners'} title={p.company?.name || '—'}
-                sub={`${METHOD[p.method] || p.method}${p.receiptNo ? ` · makbuz ${p.receiptNo}` : ''} · ${formatDate(p.paymentDate, true)}`} right={formatTRY(p.amount)} rightClass="text-emerald-600" />
+                sub={`${METHOD[p.method] || p.method}${p.receiptNo ? ` · makbuz ${p.receiptNo}` : ''} · ${formatDate(p.paymentDate, true)}`} right={formatMoney(p.amount, p.currency)} rightClass="text-emerald-600" />
             ))}
           </Card>
 
@@ -124,12 +128,19 @@ const FinanceManagement = () => {
                     {aging.rows.slice(0, 50).map((r) => (
                       <tr key={r.id} className="hover:bg-gray-50">
                         <td className="px-4 py-2"><Link to={cariLink(r.id)} className="font-bold text-gray-800 hover:text-indigo-600">{r.name}</Link></td>
-                        {AGING_LABELS.map(([k]) => <td key={k} className={`px-3 py-2 text-right tabular-nums ${r[k] > 0 && ['d60', 'd90', 'd90plus'].includes(k) ? 'text-red-600 font-black' : 'text-gray-700'}`}>{r[k] > 0 ? formatTRY(r[k]) : '—'}</td>)}
-                        <td className="px-4 py-2 text-right font-black tabular-nums">{formatTRY(r.total)}</td>
+                        {AGING_LABELS.map(([k]) => <td key={k} className={`px-3 py-2 text-right tabular-nums ${r[k] > 0 && ['d60', 'd90', 'd90plus'].includes(k) ? 'text-red-600 font-black' : 'text-gray-700'}`}>{r[k] > 0 ? formatMoney(r[k], r.currency) : '—'}</td>)}
+                        <td className="px-4 py-2 text-right font-black tabular-nums">{formatMoney(r.total, r.currency)}</td>
+                      </tr>
+                    ))}
+                    {Object.keys(aging.totalsByCurrency || {}).length > 1 && Object.entries(aging.totalsByCurrency).map(([cur, t]) => (
+                      <tr key={cur} className="bg-gray-50/60 font-bold">
+                        <td className="px-4 py-2">Toplam ({cur === 'TRY' ? 'TL' : cur})</td>
+                        {AGING_LABELS.map(([k]) => <td key={k} className="px-3 py-2 text-right tabular-nums">{formatMoney(t[k], cur)}</td>)}
+                        <td className="px-4 py-2 text-right tabular-nums">{formatMoney(t.total, cur)}</td>
                       </tr>
                     ))}
                     <tr className="bg-gray-50 font-black">
-                      <td className="px-4 py-2">Toplam</td>
+                      <td className="px-4 py-2">{Object.keys(aging.totalsByCurrency || {}).length > 1 ? 'Genel toplam (güncel kurla TL)' : 'Toplam'}</td>
                       {AGING_LABELS.map(([k]) => <td key={k} className="px-3 py-2 text-right tabular-nums">{formatTRY(aging.totals[k])}</td>)}
                       <td className="px-4 py-2 text-right tabular-nums">{formatTRY(aging.totals.total)}</td>
                     </tr>

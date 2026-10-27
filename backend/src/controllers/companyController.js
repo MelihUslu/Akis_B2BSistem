@@ -5,6 +5,7 @@ import crypto from 'crypto';
 import { sendCredentialsMail, sendMail } from '../services/mailService.js';
 import { notifyAdmins, safeNotify } from '../services/notificationService.js';
 import { emitEvent } from '../services/webhookService.js';
+import { normalizeCurrency, assertCurrencyChangeAllowed } from '../services/accountPosting.js';
 import { tenantUrl, tenantPortalUrl } from '../config.js';
 
 const generatePassword = () => crypto.randomBytes(9).toString('base64url').slice(0, 12);
@@ -105,6 +106,7 @@ export const createCompany = async (req, res) => {
         netDiscount: parseFloat(netDiscount) || 0,
         minOrderAmount: parseFloat(minOrderAmount) || 0,
         paymentTermDays: parseInt(paymentTermDays) || 30,
+        currency: normalizeCurrency(req.body.currency) || 'TRY',
         plasiyerId: parseOptionalInt(plasiyerId) ?? null,
         externalCode: req.body.externalCode || null,
         users: {
@@ -155,6 +157,11 @@ export const updateCompany = async (req, res) => {
     const before = await prisma.company.findUnique({ where: { id: parseInt(id) }, include: { users: { where: { role: 'BAYI' } } } });
     if (!before || before.kind !== 'DEALER') return res.status(404).json({ message: 'Bayi bulunamadı.' });
     const approving = before.status === 'PENDING' && status === 'ACTIVE';
+    const currency = req.body.currency !== undefined ? normalizeCurrency(req.body.currency) : undefined;
+    if (req.body.currency !== undefined && !currency) return res.status(400).json({ message: 'Para birimi TL, USD veya EUR olmalı.' });
+    if (currency && currency !== before.currency) {
+      try { await assertCurrencyChangeAllowed(before, currency); } catch (e) { return res.status(400).json({ message: e.message }); }
+    }
     if (approving) await assertWithinLimit(req.tenant, 'dealers');
 
     const company = await prisma.company.update({
@@ -168,6 +175,7 @@ export const updateCompany = async (req, res) => {
         paymentTermDays: parseOptionalInt(paymentTermDays),
         plasiyerId: plasiyerId === '' || plasiyerId === null ? null : parseOptionalInt(plasiyerId),
         externalCode: req.body.externalCode === undefined ? undefined : (req.body.externalCode || null),
+        currency,
       },
     });
 

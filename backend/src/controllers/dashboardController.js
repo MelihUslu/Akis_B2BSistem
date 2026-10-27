@@ -38,7 +38,7 @@ export const getDashboard = async (req, res) => {
       prisma.company.findMany({
         where: { currentBalance: { lt: 0 }, kind: { in: ['DEALER', 'CUSTOMER'] } },
         select: {
-          id: true, name: true, currentBalance: true, phone: true,
+          id: true, name: true, currentBalance: true, currency: true, phone: true,
           orders: { where: { dueDate: { not: null } }, orderBy: { dueDate: 'asc' }, take: 1, select: { dueDate: true } }
         },
         orderBy: { currentBalance: 'asc' },
@@ -89,7 +89,7 @@ export const getDashboard = async (req, res) => {
         .slice(0, 6),
       pendingOrders,
       lowStock,
-      debtors: debtors.map(d => ({ id: d.id, name: d.name, phone: d.phone, balance: d.currentBalance, nextDue: d.orders[0]?.dueDate || null }))
+      debtors: debtors.map(d => ({ id: d.id, name: d.name, phone: d.phone, balance: d.currentBalance, currency: d.currency, nextDue: d.orders[0]?.dueDate || null }))
     });
   } catch (error) {
     console.error('Dashboard error:', error);

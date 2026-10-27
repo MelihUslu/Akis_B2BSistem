@@ -548,4 +548,6 @@ export default {
   'İtiraz nedeni': 'Reason for objection',
   'Borçlu': 'debit',
   'Alacaklı': 'credit',
+  // Dövizli cari
+  'Cari hesabınız {cur} olarak tutulur. Kartla ödemeler TL alınır ve günün kuruyla {cur} olarak işlenir.': 'Your account is kept in {cur}. Card payments are charged in TRY and posted in {cur} at the daily rate.',
 };

@@ -3,6 +3,11 @@ import { locale } from '../i18n';
 export const formatTRY = (value) =>
   `₺${(Number(value) || 0).toLocaleString('tr-TR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
 
+// Cari para birimiyle tutar: ₺1.234,50 · $1.234,50 · €1.234,50
+export const CURRENCY_SYMBOL = { TRY: '₺', USD: '$', EUR: '€' };
+export const formatMoney = (value, currency = 'TRY') =>
+  `${CURRENCY_SYMBOL[currency] ?? ''}${(Number(value) || 0).toLocaleString('tr-TR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}${CURRENCY_SYMBOL[currency] ? '' : ` ${currency}`}`;
+
 export const formatDate = (value, withTime = false) =>
   value
     ? new Date(value).toLocaleString(locale(), withTime

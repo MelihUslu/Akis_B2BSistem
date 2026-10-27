@@ -14,7 +14,7 @@ import { LedgerTab, NotesTab, DocumentsTab } from '../../components/partners/Par
 import { useAuth } from '../../context/AuthContext';
 import { can } from '../../utils/permissions';
 import { downloadFile } from '../../utils/download';
-import { formatTRY, formatDate } from '../../utils/format';
+import { formatTRY, formatDate, formatMoney } from '../../utils/format';
 import { PARTNER_KINDS, balanceText, PAYMENT_METHODS, AGING_LABELS } from '../../utils/partner';
 
 const Badge = ({ kind }) => {
@@ -37,16 +37,26 @@ const SummaryTab = ({ p }) => {
     <div className="space-y-5">
       <div className="grid grid-cols-2 sm:grid-cols-3 gap-2">
         {supplier ? <>
-          <Stat label="Son 12 ay alış" value={formatTRY(s.purchases12m)} />
-          <Stat label="Son ödeme" value={s.lastPaymentOut ? formatTRY(s.lastPaymentOut.amount) : '—'} sub={s.lastPaymentOut && `${formatDate(s.lastPaymentOut.paymentDate)} · ${PAYMENT_METHODS[s.lastPaymentOut.method] || ''}`} />
+          <Stat label="Son 12 ay alış" value={formatMoney(s.purchases12m, p.currency)} />
+          <Stat label="Son ödeme" value={s.lastPaymentOut ? formatMoney(s.lastPaymentOut.amount, s.lastPaymentOut.currency) : '—'} sub={s.lastPaymentOut && `${formatDate(s.lastPaymentOut.paymentDate)} · ${PAYMENT_METHODS[s.lastPaymentOut.method] || ''}`} />
         </> : <>
           <Stat label="Son 12 ay satış" value={formatTRY(s.sales12m)} sub={`${s.orders12m} sipariş`} />
           <Stat label="Ortalama sipariş" value={s.orders12m ? formatTRY(s.avgOrder) : '—'} />
           <Stat label="Son sipariş" value={s.lastOrder ? formatDate(s.lastOrder.createdAt) : '—'} sub={s.lastOrder && `#AK-${s.lastOrder.id} · ${formatTRY(s.lastOrder.totalAmount)}`} />
-          <Stat label="Son tahsilat" value={s.lastPaymentIn ? formatTRY(s.lastPaymentIn.amount) : '—'} sub={s.lastPaymentIn && `${formatDate(s.lastPaymentIn.paymentDate)} · ${PAYMENT_METHODS[s.lastPaymentIn.method] || ''}`} />
+          <Stat label="Son tahsilat" value={s.lastPaymentIn ? formatMoney(s.lastPaymentIn.amount, s.lastPaymentIn.currency) : '—'} sub={s.lastPaymentIn && `${formatDate(s.lastPaymentIn.paymentDate)} · ${PAYMENT_METHODS[s.lastPaymentIn.method] || ''}`} />
           <Stat label="Açık teklif" value={s.openQuotes} />
         </>}
       </div>
+
+      {s.fx && (
+        <div className="rounded-xl bg-indigo-50/60 p-3 text-xs text-indigo-900 space-y-1">
+          <p className="font-black">{p.currency} cari · güncel kur {s.fx.rate ? `1 ${p.currency} = ${s.fx.rate.toLocaleString('tr-TR')} TL` : 'alınamadı'}</p>
+          {s.fx.balanceTRY !== null && <p>Bakiyenin güncel TL karşılığı: <b>{formatTRY(Math.abs(s.fx.balanceTRY))}</b> {p.currentBalance < 0 ? '(borç)' : p.currentBalance > 0 ? '(alacak)' : ''}</p>}
+          {s.fx.difference !== null && Math.abs(s.fx.difference) >= 1 && ( // 1 TL altı kuruş yuvarlamasıdır
+            <p>Kur farkı (bilgi): <b className={s.fx.difference < 0 ? 'text-emerald-700' : 'text-red-600'}>{formatTRY(Math.abs(s.fx.difference))} {s.fx.difference < 0 ? 'lehimize' : 'aleyhimize'}</b> — hareketlerin işlendiği kurlara göre. Kur farkı faturası muhasebe programınızda düzenlenir.</p>
+          )}
+        </div>
+      )}
 
       {s.aging && (
         <div>
@@ -55,7 +65,7 @@ const SummaryTab = ({ p }) => {
             {AGING_LABELS.map(([k, label]) => (
               <div key={k} className={`rounded-lg p-2 text-center ${s.aging[k] > 0 ? (['d60', 'd90', 'd90plus'].includes(k) ? 'bg-red-50' : k === 'd30' ? 'bg-amber-50' : 'bg-gray-50') : 'bg-gray-50/50'}`}>
                 <p className="text-[9px] font-bold text-gray-500 leading-tight">{label}</p>
-                <p className={`text-xs font-black tabular-nums ${s.aging[k] > 0 && ['d60', 'd90', 'd90plus'].includes(k) ? 'text-red-600' : 'text-gray-800'}`}>{s.aging[k] > 0 ? formatTRY(s.aging[k]) : '—'}</p>
+                <p className={`text-xs font-black tabular-nums ${s.aging[k] > 0 && ['d60', 'd90', 'd90plus'].includes(k) ? 'text-red-600' : 'text-gray-800'}`}>{s.aging[k] > 0 ? formatMoney(s.aging[k], p.currency) : '—'}</p>
               </div>
             ))}
           </div>
@@ -90,7 +100,7 @@ const SummaryTab = ({ p }) => {
           <p className="text-sm font-black text-gray-900">Ekstre / mutabakat istekleri</p>
           {p.statementLinks.map((l) => (
             <p key={l.id} className="text-xs text-gray-600">
-              {formatDate(l.createdAt)} · {formatTRY(l.balance)} · {l.emailed ? `e-posta: ${l.sentTo}` : 'bağlantı'} ·{' '}
+              {formatDate(l.createdAt)} · {formatMoney(l.balance, p.currency)} · {l.emailed ? `e-posta: ${l.sentTo}` : 'bağlantı'} ·{' '}
               {l.response === 'AGREED' ? <b className="text-emerald-600">Mutabık ({l.responderName})</b>
                 : l.response === 'DISPUTED' ? <b className="text-red-600">İtiraz ({l.responderName}): {l.responseNote}</b>
                   : new Date(l.expiresAt) < new Date() ? <span className="text-gray-400">süresi doldu</span> : <span className="text-amber-600 font-bold">yanıt bekleniyor</span>}
@@ -140,14 +150,14 @@ const PartnerDrawer = ({ id, meta, onClose, onChanged, showAlert, confirm }) => 
           <div className="p-6 space-y-5">
             <div className="flex items-start justify-between gap-3">
               <div className="min-w-0">
-                <div className="flex items-center gap-2"><Badge kind={p.kind} />{p.status === 'PASSIVE' && <span className="text-[10px] font-black uppercase text-gray-400">Pasif</span>}</div>
+                <div className="flex items-center gap-2"><Badge kind={p.kind} />{p.currency !== 'TRY' && <span className="px-2 py-0.5 rounded-md text-[10px] font-black bg-indigo-50 text-indigo-700">{p.currency} cari</span>}{p.status === 'PASSIVE' && <span className="text-[10px] font-black uppercase text-gray-400">Pasif</span>}</div>
                 <h2 className="text-xl font-black text-gray-900 mt-1 break-words">{p.name}</h2>
                 {p.externalCode && <p className="text-xs font-mono text-gray-400">Cari {p.externalCode}</p>}
               </div>
               <div className="text-right shrink-0">
-                <p className={`text-2xl font-black tabular-nums ${bal.className}`}>{formatTRY(Math.abs(p.currentBalance))}</p>
+                <p className={`text-2xl font-black tabular-nums ${bal.className}`}>{formatMoney(Math.abs(p.currentBalance), p.currency)}</p>
                 <p className={`text-[11px] font-bold ${bal.className}`}>{bal.label}</p>
-                {p.kind === 'CUSTOMER' && p.riskLimit > 0 && <p className="text-[10px] text-gray-400">Limit {formatTRY(p.riskLimit)}</p>}
+                {p.kind === 'CUSTOMER' && p.riskLimit > 0 && <p className="text-[10px] text-gray-400">Limit {formatMoney(p.riskLimit, p.currency)}</p>}
                 {p.paymentTermDays > 0 && <p className="text-[10px] text-gray-400">Vade {p.paymentTermDays} gün</p>}
               </div>
               <button onClick={onClose} className="p-2 -mr-2 rounded-lg text-gray-400 hover:bg-gray-100"><X className="h-5 w-5" /></button>
@@ -317,7 +327,7 @@ const PartnerManagement = () => {
                 <span className="text-xs text-gray-500 truncate">{p.phone || contact?.phone || p.email || '—'}</span>
                 <span className="text-xs text-gray-500 truncate">{p.owner?.name || '—'}</span>
                 <span className="lg:text-right">
-                  <span className={`block text-sm font-black tabular-nums ${bal.className}`}>{p.currentBalance ? formatTRY(Math.abs(p.currentBalance)) : '—'}</span>
+                  <span className={`block text-sm font-black tabular-nums ${bal.className}`}>{p.currentBalance ? formatMoney(Math.abs(p.currentBalance), p.currency) : '—'}</span>
                   {p.currentBalance !== 0 && <span className={`block text-[10px] font-bold ${bal.className}`}>{bal.label}</span>}
                 </span>
               </button>

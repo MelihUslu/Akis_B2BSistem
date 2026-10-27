@@ -6,6 +6,7 @@ import * as paytr from '../services/paytrService.js';
 import { tenantPosCreds, posMode } from '../services/tenantPosService.js';
 import { emitEvent } from '../services/webhookService.js';
 import { availableCredit, round2 } from '../services/pricingService.js';
+import { postEntry, currentRate } from '../services/accountPosting.js';
 import { notifyAdmins, notifyCompany, safeNotify } from '../services/notificationService.js';
 
 export const getPayments = async (req, res) => {
@@ -67,14 +68,14 @@ export const payWithPos = async (req, res) => {
     const companyId = req.user.companyId;
     const reference = `POS-${Date.now()}-${crypto.randomBytes(3).toString('hex').toUpperCase()}`;
 
+    // Kartla ödeme TL'dir; dövizli cariye güncel kurla çevrilerek alacak yazılır
+    const account = await prisma.company.findUnique({ where: { id: companyId } });
+    const rate = await currentRate(account.currency);
     const payment = await prisma.$transaction(async (tx) => {
       const p = await tx.payment.create({
-        data: { companyId, amount: value, method: 'POS', cardLast4: digits.slice(-4), reference, status: 'COMPLETED' }
+        data: { companyId, amount: value, method: 'POS', cardLast4: digits.slice(-4), reference, status: 'COMPLETED', currency: 'TRY', rate, accountAmount: account.currency === 'TRY' ? value : round2(value / rate) }
       });
-      await tx.financialTransaction.create({
-        data: { companyId, type: 'CREDIT', amount: value, source: 'PAYMENT', paymentId: p.id, description: `Sanal POS tahsilatı (**** ${digits.slice(-4)}) · ${reference}` }
-      });
-      await tx.company.update({ where: { id: companyId }, data: { currentBalance: { increment: value } } });
+      await postEntry(tx, { company: account, type: 'CREDIT', amountTRY: value, rate, source: 'PAYMENT', paymentId: p.id, description: `Sanal POS tahsilatı (**** ${digits.slice(-4)}) · ${reference}` });
       return p;
     });
 
@@ -121,11 +122,14 @@ const completeDealerPayment = async (tenant, payment, { reference, cardLast4, de
   });
   if (claimed.count !== 1) return false;
 
-  await prisma.$transaction([
-    prisma.financialTransaction.create({ data: { companyId: payment.companyId, type: 'CREDIT', amount: payment.amount, source: 'PAYMENT', paymentId: payment.id, description } }),
-    prisma.company.update({ where: { id: payment.companyId }, data: { currentBalance: { increment: payment.amount } } })
-  ]);
+  // Kartla ödeme TL'dir; dövizli cariye güncel kurla çevrilerek alacak yazılır
   const company = await prisma.company.findUnique({ where: { id: payment.companyId } });
+  const rate = await currentRate(company.currency).catch(() => null);
+  await prisma.$transaction(async (tx) => {
+    // Kur alınamazsa (nadir) ödeme yine işlenir: postEntry son kuru tekrar dener, olmazsa hata loglanır
+    const entry = await postEntry(tx, { company, type: 'CREDIT', amountTRY: payment.amount, rate: rate || undefined, source: 'PAYMENT', paymentId: payment.id, description });
+    await tx.payment.update({ where: { id: payment.id }, data: { currency: 'TRY', rate: entry?.rate ?? 1, accountAmount: entry?.amount ?? payment.amount } });
+  });
   safeNotify(notifyAdmins({ type: 'PAYMENT', title: 'Kartla tahsilat', message: `${company.name} ₺${payment.amount.toLocaleString('tr-TR')} ödedi.`, link: '/admin/finance' }));
   safeNotify(notifyCompany(company.id, { type: 'PAYMENT', title: 'Ödemeniz alındı', message: `₺${payment.amount.toLocaleString('tr-TR')} carinize işlendi.`, link: '/bayi/finance' }));
   emitEvent(tenant.id, 'payment.received', { companyId: company.id, externalCode: company.externalCode, amount: payment.amount, method: payment.provider, reference });

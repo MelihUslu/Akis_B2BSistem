@@ -1,4 +1,5 @@
 import { adjustStock } from '../services/stockService.js';
+import { postEntry, orderRate } from '../services/accountPosting.js';
 import prisma from '../utils/prisma.js';
 import { round2 } from '../services/pricingService.js';
 import { notifyAdmins, notifyCompany, notifyRestocked, safeNotify } from '../services/notificationService.js';
@@ -104,7 +105,7 @@ export const updateReturn = async (req, res) => {
       return res.status(400).json({ message: 'Geçersiz durum.' });
     }
 
-    const existing = await prisma.returnRequest.findUnique({ where: { id }, include: { orderItem: true, product: true } });
+    const existing = await prisma.returnRequest.findUnique({ where: { id }, include: { orderItem: true, product: true, order: { select: { fxRates: true } }, company: true } });
     if (!existing) return res.status(404).json({ message: 'Talep bulunamadı.' });
     if (existing.status === 'REJECTED' || existing.status === 'COMPLETED') {
       return res.status(400).json({ message: 'Sonuçlanmış talepler değiştirilemez.' });
@@ -117,18 +118,17 @@ export const updateReturn = async (req, res) => {
 
     const updated = await prisma.$transaction(async (tx) => {
       if (firstApproval && existing.type === 'RETURN') {
-        const amount = round2(existing.orderItem.price * existing.quantity * (1 + existing.orderItem.vatRate / 100));
-        await tx.financialTransaction.create({
-          data: {
-            companyId: existing.companyId,
-            orderId: existing.orderId,
-            source: 'RETURN',
-            type: 'CREDIT',
-            amount,
-            description: `İade #RMA-${id} · ${existing.product.name} × ${existing.quantity}`
-          }
+        // İade tutarı TL; dövizli cariye siparişin kuruyla çevrilir
+        const amountTRY = round2(existing.orderItem.price * existing.quantity * (1 + existing.orderItem.vatRate / 100));
+        await postEntry(tx, {
+          company: existing.company,
+          type: 'CREDIT',
+          amountTRY,
+          rate: await orderRate(existing.order, existing.company.currency),
+          orderId: existing.orderId,
+          source: 'RETURN',
+          description: `İade #RMA-${id} · ${existing.product.name} × ${existing.quantity}`
         });
-        await tx.company.update({ where: { id: existing.companyId }, data: { currentBalance: { increment: amount } } });
       }
       if (firstApproval && (restock === true || restock === 'true')) {
         await adjustStock(tx, existing.productId, existing.quantity, existing.orderItem?.stockWarehouseId);

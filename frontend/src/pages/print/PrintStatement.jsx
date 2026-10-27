@@ -2,7 +2,7 @@ import { useEffect, useState } from 'react';
 import { useParams } from 'react-router-dom';
 import api, { errorMessage } from '../../services/api';
 import PrintLayout from './PrintLayout';
-import { formatTRY, formatDate } from '../../utils/format';
+import { formatMoney, formatDate } from '../../utils/format';
 
 // Cari hesap ekstresi + mutabakat imza alanı. Bayi kendi ekstresini, admin herhangi bir bayininkini yazdırır.
 const PrintStatement = () => {
@@ -21,9 +21,11 @@ const PrintStatement = () => {
   const rows = [...data.transactions].reverse();
   const totals = rows.reduce((t, r) => ({ debt: t.debt + (r.type === 'DEBT' ? r.amount : 0), credit: t.credit + (r.type === 'CREDIT' ? r.amount : 0) }), { debt: 0, credit: 0 });
   const balance = data.company.currentBalance;
+  const cur = data.company.currency || 'TRY';
+  const formatTRY = (v) => formatMoney(v, cur); // ekstre carinin para biriminde
 
   return (
-    <PrintLayout ready title="Cari Hesap Ekstresi" subtitle={<>{data.company.name}<br />Tarih: {formatDate(new Date())}</>}>
+    <PrintLayout ready title="Cari Hesap Ekstresi" subtitle={<>{data.company.name}<br />Tarih: {formatDate(new Date())}{cur !== 'TRY' && <><br />Para birimi: {cur}</>}</>}>
       <table className="w-full border-collapse">
         <thead>
           <tr className="border-y border-gray-900 text-[10px] uppercase">

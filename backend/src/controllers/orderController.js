@@ -10,6 +10,8 @@ import { orderEvent, markShipped, markDelivered } from '../services/orderShippin
 import { resolveShippingAddress } from './addressController.js';
 import xlsx from 'xlsx';
 import { currentTenantId } from '../utils/prisma.js';
+import { postEntry, orderRate } from '../services/accountPosting.js';
+import { getExchangeRates } from '../services/exchangeRateService.js';
 
 // Webhook için siparişin özet hali
 
@@ -160,7 +162,8 @@ export const quoteOrder = async (req, res) => {
 
     const { couponRecord, ...quote } = await quoteCart(prisma, company, req.body.items, { couponCode: req.body.couponCode });
     const credit = await availableCredit(prisma, company);
-    res.json({ ...quote, credit: { ...credit, riskLimit: company.riskLimit, balance: company.currentBalance } });
+    // Sepet TL olduğu için kullanılabilir limit TL karşılığıyla verilir; dövizli caride hesap tutarları ayrıca
+    res.json({ ...quote, credit: { ...credit, available: credit.availableTRY, availableAccount: credit.available, riskLimit: company.riskLimit, balance: company.currentBalance } });
   } catch (error) {
     console.error('Quote error:', error);
     res.status(500).json({ message: 'Sepet hesaplanamadı.' });
@@ -173,8 +176,10 @@ export class OrderError extends Error {}
  * Siparişi kalemleriyle birlikte oluşturur; kupon varsa kullanım sayısını eşzamanlılığa dayanıklı şekilde artırır.
  * lines: [{ productId, quantity, unitPrice, vatRate, variantLabel }] · totals: computeTotals çıktısı
  */
-export const createOrderRecord = ({ company, userId, paymentMethod, lines, totals, coupon, shippingAddress }) =>
-  prisma.$transaction(async (tx) => {
+export const createOrderRecord = async ({ company, userId, paymentMethod, lines, totals, coupon, shippingAddress, fxRates }) => {
+  // Dövizli cariye borç yazılırken kullanılacak kurlar (fiyatlamada kullanılanlar; verilmezse güncel)
+  const rates = fxRates || (await getExchangeRates()).rates || {};
+  return prisma.$transaction(async (tx) => {
     if (coupon) {
       const claimed = await tx.coupon.updateMany({
         where: { id: coupon.id, isActive: true, ...(coupon.maxUses !== null && { usedCount: { lt: coupon.maxUses } }) },
@@ -192,6 +197,7 @@ export const createOrderRecord = ({ company, userId, paymentMethod, lines, total
         vatAmount: totals.vatAmount,
         totalAmount: totals.total,
         paymentMethod,
+        fxRates: rates,
         shippingAddress: shippingAddress || undefined,
         status: 'PENDING',
         ...(coupon && { couponCode: coupon.code, couponType: coupon.type, couponValue: coupon.value })
@@ -215,6 +221,7 @@ export const createOrderRecord = ({ company, userId, paymentMethod, lines, total
     emitEvent(currentTenantId(), 'order.created', orderEvent(order));
     return order;
   });
+};
 
 export const createOrder = async (req, res) => {
   try {
@@ -232,7 +239,8 @@ export const createOrder = async (req, res) => {
     }
 
     if (paymentMethod === 'CURRENT_ACCOUNT') {
-      const { available } = await availableCredit(prisma, company);
+      const { availableTRY: available } = await availableCredit(prisma, company);
+      if (available === null) return res.status(400).json({ message: 'Cari hesabınızın döviz kuru şu an alınamıyor; lütfen biraz sonra tekrar deneyin veya Havale/EFT seçin.' });
       if (quote.total > available) {
         return res.status(400).json({
           message: `Risk limitiniz bu sipariş için yetersiz. Kullanılabilir limit: ₺${Math.max(0, available).toLocaleString('tr-TR')}. Ödeme yaparak limitinizi açabilir veya Havale/EFT seçebilirsiniz.`
@@ -250,7 +258,8 @@ export const createOrder = async (req, res) => {
       lines: quote.lines,
       totals: quote,
       coupon: quote.couponRecord,
-      shippingAddress: ship.address
+      shippingAddress: ship.address,
+      fxRates: quote.rates
     });
 
     safeNotify(notifyAdmins({
@@ -345,24 +354,20 @@ export const partialApproveOrder = async (req, res) => {
       const anyCancelled = order.items.some(it => (statusById.get(it.id) || it.status) === 'CANCELLED');
       const newStatus = approved.length === 0 ? 'CANCELLED' : anyCancelled ? 'PARTIAL_APPROVED' : 'APPROVED';
 
-      // 4. Cari entegrasyon: daha önce borç yazılan tutarla fark kadar işlem yapılır
+      // 4. Cari entegrasyon: daha önce borç yazılan tutarla (TL) fark kadar işlem yapılır.
+      // Dövizli cariye siparişin oluştuğu andaki kurla çevrilerek yazılır.
       const diff = round2(totalAmount - order.debitedAmount);
       if (diff !== 0) {
-        await tx.financialTransaction.create({
-          data: {
-            companyId: order.companyId,
-            orderId,
-            source: 'ORDER',
-            type: diff > 0 ? 'DEBT' : 'CREDIT',
-            amount: Math.abs(diff),
-            description: diff > 0
-              ? `#AK-${orderId} sipariş onayı`
-              : `#AK-${orderId} sipariş kalem iptali / düzeltme`
-          }
-        });
-        await tx.company.update({
-          where: { id: order.companyId },
-          data: { currentBalance: { decrement: diff } }
+        await postEntry(tx, {
+          company: order.company,
+          type: diff > 0 ? 'DEBT' : 'CREDIT',
+          amountTRY: Math.abs(diff),
+          rate: await orderRate(order, order.company.currency),
+          orderId,
+          source: 'ORDER',
+          description: diff > 0
+            ? `#AK-${orderId} sipariş onayı`
+            : `#AK-${orderId} sipariş kalem iptali / düzeltme`
         });
       }
 

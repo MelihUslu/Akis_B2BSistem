@@ -83,8 +83,11 @@ model Company {
   tags             String[] @default([]) // Serbest etiketler: "İstanbul", "Toptan", "Takipte"…
   ownerId          Int? // Cariden sorumlu personel
   owner            User?    @relation("PartnerOwner", fields: [ownerId], references: [id])
-  riskLimit        Float    @default(0) // Risk Limiti (Açık hesap limiti)
-  currentBalance   Float    @default(0) // Güncel Bakiye (Alacaklıysa artı, borçluysa eksi)
+  // Cari para birimi: TRY, USD, EUR. Bakiye, risk limiti ve hareket tutarları bu para birimindedir.
+  // Hareket oluştuktan sonra değiştirilemez.
+  currency         String   @default("TRY")
+  riskLimit        Float    @default(0) // Risk Limiti (Açık hesap limiti, cari para biriminde)
+  currentBalance   Float    @default(0) // Güncel Bakiye (cari para biriminde; alacaklıysa artı, borçluysa eksi)
   dealerGroup      String   @default("STANDART") // Bayi Grubu: STANDART, GOLD, VIP
   netDiscount      Float    @default(0) // Net İskonto (%)
   minOrderAmount   Float    @default(0) // Sepet Alt Limiti
@@ -303,6 +306,7 @@ model Order {
   trackingNumber String? // Kargo Takip No
   cargoCompany   String? // YURTICI, ARAS, MNG, PTT, UPS, SURAT, DHL, DIGER
   exportedAt     DateTime? // ERP'ye aktarıldığı an (Entegrasyon API)
+  fxRates        Json? // Sipariş anındaki kurlar { USD, EUR } — dövizli cariye bu kurla işlenir
   // Kupon (parçalı onayda indirim yeniden hesaplanabilsin diye kuralı saklanır)
   couponCode     String?
   couponType     String? // PERCENT, AMOUNT
@@ -439,6 +443,9 @@ model Payment {
   amount        Float
   method        String                 @default("POS") // POS (sanal POS), WIRE_TRANSFER, CASH, CARD (fiziki POS), CHECK (çek), NOTE (senet), MANUAL
   direction     String                 @default("IN") // IN: cariden tahsilat, OUT: cariye (tedarikçiye) ödeme
+  currency      String                 @default("TRY") // Ödenen paranın birimi (amount bu birimde)
+  rate          Float                  @default(1) // Carinin dövizi için kullanılan kur (1 birim = rate TL)
+  accountAmount Float? // Cariye işlenen tutar (cari para biriminde)
   receiptNo     Int? // Firma içinde sıralı makbuz numarası (elle girilen tahsilat / ödemelerde)
   bankName      String? // Havale bankası / çekin bankası
   dueDate       DateTime? // Çek / senet vadesi
@@ -464,7 +471,10 @@ model FinancialTransaction {
   companyId     Int
   company       Company               @relation(fields: [companyId], references: [id])
   type          String // DEBT (Borçlandırma), CREDIT (Alacaklandırma)
-  amount        Float
+  amount        Float // Cari para biriminde
+  currency      String                @default("TRY") // Carinin para birimi (hareket anında)
+  rate          Float                 @default(1) // 1 birim cari dövizi = rate TL (TL caride 1)
+  amountTRY     Float? // Hareketin TL karşılığı (kur farkı hesabı için)
   description   String?
   orderId       Int?
   order         Order?                @relation(fields: [orderId], references: [id])

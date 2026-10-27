@@ -2,7 +2,7 @@ import { useEffect, useState } from 'react';
 import { FileSpreadsheet, Undo2, Printer, Bell, Check, Trash2, Upload, FileDown, Paperclip, RotateCcw } from 'lucide-react';
 import api, { errorMessage } from '../../services/api';
 import { downloadFile } from '../../utils/download';
-import { formatTRY, formatDate } from '../../utils/format';
+import { formatTRY, formatDate, formatMoney } from '../../utils/format';
 import { TX_SOURCES } from '../../utils/partner';
 
 const kb = (n) => (n > 1024 * 1024 ? `${(n / 1024 / 1024).toFixed(1)} MB` : `${Math.max(1, Math.round(n / 1024))} KB`);
@@ -26,9 +26,11 @@ export const LedgerTab = ({ partner, version, onChanged, showAlert }) => {
   }, [partner.id, query, page, version]);
 
   const set = (k) => (e) => setFilter({ ...filter, [k]: e.target.value });
+  const cur = partner.currency || 'TRY';
+  const money = (v) => formatMoney(v, cur);
 
   const reverse = async (t) => {
-    const reason = window.prompt(`Ters kayıt nedeni (${formatTRY(t.amount)} · ${t.description || ''}):`);
+    const reason = window.prompt(`Ters kayıt nedeni (${money(t.amount)} · ${t.description || ''}):`);
     if (!reason) return;
     try {
       const res = await api.post(`/partners/${partner.id}/transactions/${t.id}/reverse`, { reason });
@@ -61,8 +63,8 @@ export const LedgerTab = ({ partner, version, onChanged, showAlert }) => {
 
       {!data ? <p className="text-xs text-gray-400 py-6 text-center">Yükleniyor...</p> : (<>
         <div className="flex flex-wrap gap-4 text-xs font-bold text-gray-500 bg-gray-50 rounded-xl px-3 py-2">
-          <span>Borç: <b className="text-red-600">{formatTRY(data.totals.debt)}</b></span>
-          <span>Alacak: <b className="text-emerald-600">{formatTRY(data.totals.credit)}</b></span>
+          <span>Borç: <b className="text-red-600">{money(data.totals.debt)}</b></span>
+          <span>Alacak: <b className="text-emerald-600">{money(data.totals.credit)}</b></span>
           <span>{data.pagination.total} hareket</span>
         </div>
         {data.rows.length === 0 ? <p className="text-xs text-gray-400 py-6 text-center">Bu filtrede hareket yok.</p> : (
@@ -81,8 +83,9 @@ export const LedgerTab = ({ partner, version, onChanged, showAlert }) => {
                     </p>
                   </div>
                   <div className="text-right shrink-0">
-                    <p className={`text-sm font-black tabular-nums ${t.type === 'DEBT' ? 'text-red-600' : 'text-emerald-600'}`}>{formatTRY(t.amount)} <span className="text-[9px] uppercase">{t.type === 'DEBT' ? 'B' : 'A'}</span></p>
-                    <p className="text-[10px] text-gray-400 tabular-nums">Bakiye {formatTRY(t.balanceAfter)}</p>
+                    <p className={`text-sm font-black tabular-nums ${t.type === 'DEBT' ? 'text-red-600' : 'text-emerald-600'}`}>{money(t.amount)} <span className="text-[9px] uppercase">{t.type === 'DEBT' ? 'B' : 'A'}</span></p>
+                    {t.currency !== 'TRY' && <p className="text-[10px] text-gray-400 tabular-nums">kur {t.rate} · {formatTRY(t.amountTRY)}</p>}
+                    <p className="text-[10px] text-gray-400 tabular-nums">Bakiye {money(t.balanceAfter)}</p>
                   </div>
                   <div className="flex flex-col gap-1 shrink-0 w-7">
                     {t.payment && <a href={`/print/receipt/${t.payment.id}`} target="_blank" rel="noreferrer" title={`Makbuz ${t.payment.receiptNo ?? ''}`} className="p-1 rounded-lg text-gray-400 hover:text-indigo-600 hover:bg-indigo-50"><Printer className="h-4 w-4" /></a>}
@@ -100,7 +103,7 @@ export const LedgerTab = ({ partner, version, onChanged, showAlert }) => {
             <button disabled={page >= data.pagination.pages} onClick={() => setPage(page + 1)} className="px-3 h-8 rounded-lg text-xs font-black bg-gray-100 disabled:opacity-40">Sonraki</button>
           </div>
         )}
-        {!query.from && <p className="text-[10px] text-gray-400">Açılış bakiyesi (hareket öncesi): {formatTRY(data.openingBalance)}</p>}
+        {!query.from && <p className="text-[10px] text-gray-400">Açılış bakiyesi (hareket öncesi): {money(data.openingBalance)}</p>}
       </>)}
     </div>
   );

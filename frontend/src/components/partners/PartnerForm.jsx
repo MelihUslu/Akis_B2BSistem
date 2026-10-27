@@ -24,6 +24,7 @@ const PartnerForm = ({ partner, initialKind = 'CUSTOMER', quick = false, meta, o
     address: partner?.address || '',
     paymentTermDays: partner?.paymentTermDays ?? 0,
     riskLimit: partner?.riskLimit ?? 0,
+    currency: partner?.currency || 'TRY',
     notes: partner?.notes || '',
     status: partner?.status || 'ACTIVE',
     tags: (partner?.tags || []).join(', '),
@@ -81,7 +82,11 @@ const PartnerForm = ({ partner, initialKind = 'CUSTOMER', quick = false, meta, o
               {!quick && <>
                 <Field label="Cari kodu" hint="Muhasebe / ERP programındaki kod"><input className="premium-input font-mono" value={form.externalCode} onChange={set('externalCode')} /></Field>
                 <Field label="Vade (gün)"><input type="number" min="0" className="premium-input" value={form.paymentTermDays} onChange={set('paymentTermDays')} /></Field>
-                {form.kind === 'CUSTOMER' && <Field label="Risk limiti (₺)" hint="0 = sınır yok / takip edilmiyor"><input type="number" min="0" step="0.01" className="premium-input" value={form.riskLimit} onChange={set('riskLimit')} /></Field>}
+                <Field label="Cari para birimi" hint={partner ? 'Hareketi olan carinin para birimi değiştirilemez.' : 'Bakiye ve ekstre bu para biriminde tutulur.'}>
+                  <Segmented size="sm" value={form.currency} onChange={(currency) => setForm({ ...form, currency })}
+                    options={[{ value: 'TRY', label: '₺ TL' }, { value: 'USD', label: '$ USD' }, { value: 'EUR', label: '€ EUR' }]} />
+                </Field>
+                {form.kind === 'CUSTOMER' && <Field label={`Risk limiti (${{ TRY: '₺', USD: '$', EUR: '€' }[form.currency]})`} hint="0 = sınır yok / takip edilmiyor"><input type="number" min="0" step="0.01" className="premium-input" value={form.riskLimit} onChange={set('riskLimit')} /></Field>}
                 {partner && <Field label="Durum"><select className="premium-input" value={form.status} onChange={set('status')}><option value="ACTIVE">Aktif</option><option value="PASSIVE">Pasif</option></select></Field>}
               </>}
               <Field label="Adres" className="md:col-span-2"><input className="premium-input" value={form.address} onChange={set('address')} /></Field>

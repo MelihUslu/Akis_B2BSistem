@@ -4,7 +4,7 @@ import { CheckCircle2, AlertTriangle } from 'lucide-react';
 import api, { errorMessage } from '../services/api';
 import PrintLayout from './print/PrintLayout';
 import LanguageSwitcher from '../components/LanguageSwitcher';
-import { formatTRY, formatDate } from '../utils/format';
+import { formatMoney, formatDate } from '../utils/format';
 import { t } from '../i18n';
 
 const balanceLabel = (b) => (b < 0 ? t('Borçlu') : b > 0 ? t('Alacaklı') : '');
@@ -42,6 +42,7 @@ const StatementShare = () => {
   if (error) return <div className="min-h-screen flex items-center justify-center p-6 text-center text-gray-500">{error}</div>;
   if (!data) return <div className="min-h-screen flex items-center justify-center text-gray-400">{t('Yükleniyor...')}</div>;
   const c = data.company;
+  const formatTRY = (v) => formatMoney(v, c.currency || 'TRY'); // ekstre carinin para biriminde
 
   return (
     <PrintLayout ready seller={data.seller} title={t('Cari Hesap Ekstresi')} printLabel={t('PDF olarak kaydet / yazdır')} toolbar={<LanguageSwitcher />}

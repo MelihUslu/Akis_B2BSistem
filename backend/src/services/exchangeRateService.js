@@ -29,6 +29,11 @@ const fetchFromTcmb = async () => {
  * Ayarlarda manuel kur girilmişse ve TCMB yanıt vermiyorsa o kullanılır.
  */
 export const getExchangeRates = async () => {
+  // Testler için sabit kur: FX_FIXED="USD:40,EUR:45" (canlıda tanımlanmaz)
+  if (process.env.FX_FIXED && process.env.NODE_ENV !== 'production') {
+    const rates = Object.fromEntries(process.env.FX_FIXED.split(',').map((p) => p.split(':')).map(([k, v]) => [k.trim(), parseFloat(v)]));
+    return { rates, date: null, source: 'FIXED', fetchedAt: Date.now() };
+  }
   if (cache && Date.now() - cache.fetchedAt < CACHE_MS) return cache;
 
   try {

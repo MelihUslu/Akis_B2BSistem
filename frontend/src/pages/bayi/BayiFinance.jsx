@@ -44,7 +44,7 @@ const CardPayModal = ({ suggested, provider, onClose }) => {
     </div>
   );
 };
-import { formatTRY, formatDate } from '../../utils/format';
+import { formatTRY, formatMoney, formatDate } from '../../utils/format';
 import { t } from '../../i18n';
 
 const formatCard = (v) => v.replace(/\D/g, '').slice(0, 16).replace(/(\d{4})(?=\d)/g, '$1 ');
@@ -162,7 +162,7 @@ const BayiFinance = () => {
     const ok = await confirm({
       type: 'info',
       title: t('Mutabakat Onayı'),
-      message: t('Cari hesabınızın {date} itibarıyla {amount} bakiye ile doğru olduğunu onaylıyor musunuz?', { date: formatDate(new Date()), amount: formatTRY(statement.company.currentBalance) }),
+      message: t('Cari hesabınızın {date} itibarıyla {amount} bakiye ile doğru olduğunu onaylıyor musunuz?', { date: formatDate(new Date()), amount: formatMoney(statement.company.currentBalance, statement.company.currency) }),
       confirmText: t('Mutabıkım'),
     });
     if (!ok) return;
@@ -183,18 +183,22 @@ const BayiFinance = () => {
   const riskLimit = company.riskLimit;
   const debt = Math.max(0, -balance);
   const usage = riskLimit > 0 ? Math.min(100, (debt / riskLimit) * 100) : 0;
+  // Cari para birimi (TL / USD / EUR); kartla ödemeler TL alınır, dövizli cariye günün kuruyla çevrilir
+  const cur = company.currency || 'TRY';
+  const money = (v) => formatMoney(v, cur);
+  const debtTRY = Math.round(debt * (credit.rate || 1) * 100) / 100;
 
   return (
     <div className="space-y-6 md:space-y-8">
       {alertElement}
-      {isPosOpen && ['IYZICO', 'PAYTR'].includes(posMode) && <CardPayModal provider={posMode} suggested={Math.max(0, -(statement.company.currentBalance))} onClose={() => setIsPosOpen(false)} />}
+      {isPosOpen && ['IYZICO', 'PAYTR'].includes(posMode) && <CardPayModal provider={posMode} suggested={debtTRY} onClose={() => setIsPosOpen(false)} />}
       {isPosOpen && posMode === 'DEMO' && (
         <PosModal
-          suggested={debt}
+          suggested={debtTRY}
           onClose={() => setIsPosOpen(false)}
           onPaid={(data) => {
             setIsPosOpen(false);
-            showAlert({ type: 'success', title: t('Ödeme Alındı'), message: `${data.message} ${t('Kullanılabilir limitiniz: {amount}', { amount: formatTRY(Math.max(0, data.credit.available)) })}` });
+            showAlert({ type: 'success', title: t('Ödeme Alındı'), message: `${data.message} ${t('Kullanılabilir limitiniz: {amount}', { amount: money(Math.max(0, data.credit.available)) })}` });
             fetchStatement();
           }}
         />
@@ -226,11 +230,12 @@ const BayiFinance = () => {
           <div className="relative z-10">
             <p className="text-sm font-medium text-gray-400 mb-1">{t('Güncel Bakiyeniz')}</p>
             <h2 className={`text-3xl font-black ${balance >= 0 ? 'text-green-600' : 'text-red-600'}`}>
-              {formatTRY(Math.abs(balance))}
+              {money(Math.abs(balance))}
             </h2>
             <p className="text-xs text-gray-400 mt-2 font-bold uppercase tracking-wider">
-              {balance >= 0 ? 'ALACAKLI DURUMDASINIZ' : t('TOPLAM BORÇ TUTARI')}
+              {balance >= 0 ? 'ALACAKLI DURUMDASINIZ' : t('TOPLAM BORÇ TUTARI')}{cur !== 'TRY' && ` · ${cur}`}
             </p>
+            {cur !== 'TRY' && <p className="text-[11px] text-gray-400 mt-2">{t('Cari hesabınız {cur} olarak tutulur. Kartla ödemeler TL alınır ve günün kuruyla {cur} olarak işlenir.', { cur })}</p>}
           </div>
           <div className="absolute top-0 right-0 p-8 opacity-10">
             <Wallet className="h-24 w-24 text-blue-600" />
@@ -239,7 +244,7 @@ const BayiFinance = () => {
 
         <div className="bg-white p-5 md:p-8 rounded-3xl border border-gray-100 shadow-sm">
           <p className="text-sm font-medium text-gray-400 mb-1">{t('Risk Limitiniz')}</p>
-          <h2 className="text-3xl font-black text-gray-900">{formatTRY(riskLimit)}</h2>
+          <h2 className="text-3xl font-black text-gray-900">{money(riskLimit)}</h2>
           <div className="mt-4 w-full bg-gray-100 h-2 rounded-full overflow-hidden">
             <div
               className={`h-full rounded-full transition-all duration-1000 ${usage >= 85 ? 'bg-red-500' : usage >= 70 ? 'bg-amber-500' : 'bg-blue-600'}`}
@@ -247,9 +252,9 @@ const BayiFinance = () => {
             ></div>
           </div>
           <p className="text-[10px] text-gray-400 mt-2 font-bold uppercase">
-            {t('LİMİT KULLANIMI: %{pct} · KULLANILABİLİR: {amount}', { pct: usage.toFixed(1), amount: formatTRY(Math.max(0, credit.available)) })}
+            {t('LİMİT KULLANIMI: %{pct} · KULLANILABİLİR: {amount}', { pct: usage.toFixed(1), amount: money(Math.max(0, credit.available)) })}
           </p>
-          {credit.reserved > 0 && <p className="text-[10px] text-amber-600 mt-1 font-bold uppercase">{t('Onay bekleyen siparişler:')} {formatTRY(credit.reserved)}</p>}
+          {credit.reserved > 0 && <p className="text-[10px] text-amber-600 mt-1 font-bold uppercase">{t('Onay bekleyen siparişler:')} {money(credit.reserved)}</p>}
         </div>
 
         <div className="bg-white p-5 md:p-8 rounded-3xl border border-gray-100 shadow-sm flex flex-col justify-between">
@@ -258,7 +263,7 @@ const BayiFinance = () => {
             {lastReconciliation ? (
               <p className="text-sm font-bold text-gray-700">
                 {t('Son onay:')} {formatDate(lastReconciliation.createdAt)}<br />
-                <span className="text-gray-400 text-xs">{formatTRY(lastReconciliation.balance)} bakiye · {lastReconciliation.user?.name}</span>
+                <span className="text-gray-400 text-xs">{money(lastReconciliation.balance)} bakiye · {lastReconciliation.user?.name}</span>
               </p>
             ) : (
               <p className="text-sm font-bold text-gray-500">{t('Henüz mutabakat onayı vermediniz.')}</p>
@@ -308,14 +313,14 @@ const BayiFinance = () => {
                       {tx.description || (tx.type === 'DEBT' ? t('Borç') : t('Alacak'))}
                     </span>
                   </td>
-                  <td className="px-6 py-4 text-right font-bold text-red-600">{tx.type === 'DEBT' ? formatTRY(tx.amount) : ''}</td>
-                  <td className="px-6 py-4 text-right font-bold text-emerald-600">{tx.type === 'CREDIT' ? formatTRY(tx.amount) : ''}</td>
-                  <td className={`px-6 py-4 text-right font-black ${tx.balanceAfter >= 0 ? 'text-gray-900' : 'text-red-600'}`}>{formatTRY(tx.balanceAfter)}</td>
+                  <td className="px-6 py-4 text-right font-bold text-red-600">{tx.type === 'DEBT' ? money(tx.amount) : ''}</td>
+                  <td className="px-6 py-4 text-right font-bold text-emerald-600">{tx.type === 'CREDIT' ? money(tx.amount) : ''}</td>
+                  <td className={`px-6 py-4 text-right font-black ${tx.balanceAfter >= 0 ? 'text-gray-900' : 'text-red-600'}`}>{money(tx.balanceAfter)}</td>
                 </tr>
               ))}
               <tr className="bg-gray-50/60">
                 <td className="px-6 py-4 text-gray-400 font-bold" colSpan={4}>{t('Açılış Bakiyesi')}</td>
-                <td className="px-6 py-4 text-right font-black text-gray-700">{formatTRY(statement.openingBalance)}</td>
+                <td className="px-6 py-4 text-right font-black text-gray-700">{money(statement.openingBalance)}</td>
               </tr>
             </tbody>
           </table>
