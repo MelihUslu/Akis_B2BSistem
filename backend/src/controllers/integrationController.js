@@ -213,7 +213,7 @@ export const apiUpsertProducts = async (req, res) => {
 const companyOut = (c) => ({
   id: c.id, externalCode: c.externalCode, name: c.name, taxNumber: c.taxNumber, taxOffice: c.taxOffice,
   authorizedPerson: c.authorizedPerson, phone: c.phone, address: c.address, status: c.status,
-  dealerGroup: c.dealerGroup, riskLimit: c.riskLimit, balance: c.currentBalance, netDiscount: c.netDiscount
+  dealerGroup: c.dealerGroup, riskLimit: c.riskLimit, balance: c.currentBalance, netDiscount: c.netDiscount, kind: c.kind
 });
 
 export const apiListCompanies = async (req, res) => {
@@ -251,7 +251,8 @@ export const apiUpsertCompanies = async (req, res) => {
         ...(item.riskLimit !== undefined && { riskLimit: parseFloat(item.riskLimit) }),
         ...(item.netDiscount !== undefined && { netDiscount: parseFloat(item.netDiscount) }),
         ...(['STANDART', 'GOLD', 'VIP'].includes(item.dealerGroup) && { dealerGroup: item.dealerGroup }),
-        ...(item.paymentTermDays !== undefined && { paymentTermDays: parseInt(item.paymentTermDays) })
+        ...(item.paymentTermDays !== undefined && { paymentTermDays: parseInt(item.paymentTermDays) }),
+        ...(['DEALER', 'CUSTOMER', 'SUPPLIER'].includes(item.kind) && { kind: item.kind })
       };
       const existing = await findCompany(item);
       if (existing) {
@@ -259,7 +260,7 @@ export const apiUpsertCompanies = async (req, res) => {
         result.updated++;
       } else {
         if (!data.name) throw new Error('yeni cari için name zorunlu');
-        await assertWithinLimit(req.tenant, 'dealers');
+        if ((data.kind || 'DEALER') === 'DEALER') await assertWithinLimit(req.tenant, 'dealers');
         if (!dryRun(req)) await prisma.company.create({ data: { ...data, status: 'ACTIVE' } });
         result.created++;
       }
@@ -285,7 +286,7 @@ export const apiSyncBalances = async (req, res) => {
     if (dryRun(req)) { result.updated++; continue; }
     await prisma.$transaction([
       prisma.financialTransaction.create({
-        data: { companyId: company.id, type: diff > 0 ? 'CREDIT' : 'DEBT', amount: Math.abs(diff), description: item.description || 'ERP bakiye düzeltmesi' }
+        data: { companyId: company.id, source: 'ERP', type: diff > 0 ? 'CREDIT' : 'DEBT', amount: Math.abs(diff), description: item.description || 'ERP bakiye düzeltmesi' }
       }),
       prisma.company.update({ where: { id: company.id }, data: { currentBalance: balance } })
     ]);

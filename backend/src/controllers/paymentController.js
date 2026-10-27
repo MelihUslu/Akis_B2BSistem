@@ -72,7 +72,7 @@ export const payWithPos = async (req, res) => {
         data: { companyId, amount: value, method: 'POS', cardLast4: digits.slice(-4), reference, status: 'COMPLETED' }
       });
       await tx.financialTransaction.create({
-        data: { companyId, type: 'CREDIT', amount: value, description: `Sanal POS tahsilatı (**** ${digits.slice(-4)}) · ${reference}` }
+        data: { companyId, type: 'CREDIT', amount: value, source: 'PAYMENT', paymentId: p.id, description: `Sanal POS tahsilatı (**** ${digits.slice(-4)}) · ${reference}` }
       });
       await tx.company.update({ where: { id: companyId }, data: { currentBalance: { increment: value } } });
       return p;
@@ -122,7 +122,7 @@ const completeDealerPayment = async (tenant, payment, { reference, cardLast4, de
   if (claimed.count !== 1) return false;
 
   await prisma.$transaction([
-    prisma.financialTransaction.create({ data: { companyId: payment.companyId, type: 'CREDIT', amount: payment.amount, description } }),
+    prisma.financialTransaction.create({ data: { companyId: payment.companyId, type: 'CREDIT', amount: payment.amount, source: 'PAYMENT', paymentId: payment.id, description } }),
     prisma.company.update({ where: { id: payment.companyId }, data: { currentBalance: { increment: payment.amount } } })
   ]);
   const company = await prisma.company.findUnique({ where: { id: payment.companyId } });

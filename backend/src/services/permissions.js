@@ -1,7 +1,10 @@
 // Firma (kiracı) içi yönetici yetkileri. Firma sahibi (isOwner) tüm yetkilere sahiptir.
 export const PERMISSIONS = {
   CATALOG: 'Ürünler, kategoriler, özel fiyatlar, kampanyalar',
-  ORDERS: 'Siparişler, teklifler, iadeler',
+  ORDERS: 'Siparişler, iadeler, tekliften sipariş oluşturma',
+  QUOTES: 'Teklif hazırlama, gönderme ve paylaşma',
+  QUOTE_PRICING: 'Teklifte iskonto ve elle fiyat (onay sınırına kadar)',
+  QUOTE_APPROVAL: 'Sınırı aşan teklifleri onaylama',
   DEALERS: 'Bayiler, bayi kullanıcıları, başvurular',
   FINANCE: 'Cari hesaplar, tahsilatlar, prim',
   SETTINGS: 'Ayarlar, ekip, entegrasyon, sanal POS, abonelik'

@@ -49,7 +49,8 @@ export const exportTenantWorkbook = (tenantId) => runAsPlatform(async () => {
  * Firmanın tüm verisini kalıcı olarak siler (geri alınamaz). İşlem kayıtları korunur.
  */
 // ─── Yüklenen dosyalar ───────────────────────────────────────────────────────
-const UPLOAD_DIRS = ['images', 'support'];
+// private/partners: cari belgeleri (dosya adı t{kiracı}- ile başlar)
+const UPLOAD_DIRS = ['images', 'support', 'private/partners'];
 const SAFE_NAME = /^[A-Za-z0-9._-]+$/;
 
 // "…/uploads/images/abc.png" → { dir: 'images', name: 'abc.png' }
@@ -122,6 +123,7 @@ const purgeTenantRecords = (tenantId) => runAsPlatform(() => prisma.$transaction
   await tx.stockAlert.deleteMany(w);
   await tx.favorite.deleteMany(w);
   await tx.orderTemplate.deleteMany(w);
+  await tx.quoteRevision.deleteMany(w);
   await tx.quoteRequestItem.deleteMany(w);
   await tx.quoteRequest.deleteMany(w);
   await tx.returnRequest.deleteMany(w);
@@ -131,11 +133,16 @@ const purgeTenantRecords = (tenantId) => runAsPlatform(() => prisma.$transaction
   await tx.payment.deleteMany(w);
   await tx.invoice.deleteMany(w);
   await tx.deliveryAddress.deleteMany(w);
+  await tx.companyContact.deleteMany(w);
+  await tx.partnerNote.deleteMany(w);
+  await tx.partnerDocument.deleteMany(w);
+  await tx.statementRequest.deleteMany(w);
   await tx.warehouseStock.deleteMany(w);
   await tx.orderItem.deleteMany(w);
   await tx.order.deleteMany(w);
   await tx.warehouse.deleteMany(w);
   await tx.specialPrice.deleteMany(w);
+  await tx.productCompatibility.deleteMany(w);
   await tx.coupon.deleteMany(w);
   await tx.productVariantValue.deleteMany(w);
   await tx.productOptionValue.deleteMany(w);

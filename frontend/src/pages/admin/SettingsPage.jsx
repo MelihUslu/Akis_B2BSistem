@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react';
-import { Settings, Percent, Coins, Users, Bell, Save, UserPlus, RefreshCw, Building2, ImagePlus } from 'lucide-react';
+import { Settings, Percent, Coins, Users, Bell, Save, UserPlus, RefreshCw, Building2, ImagePlus, FileSignature } from 'lucide-react';
 import api, { errorMessage } from '../../services/api';
 import useAlert from '../../hooks/useAlert';
 import { useTenant } from '../../context/TenantContext';
@@ -99,6 +99,12 @@ const FIELDS = [
   { section: 'Döviz', icon: Coins, items: [
     { key: 'usd_try', label: 'Manuel USD/TRY', hint: 'Sadece TCMB\'ye ulaşılamazsa kullanılır' },
     { key: 'eur_try', label: 'Manuel EUR/TRY' },
+  ] },
+  { section: 'Teklifler', icon: FileSignature, items: [
+    { key: 'quote_discount_limit', label: 'Onaysız teklif iskontosu sınırı (%)', hint: 'Bunu aşan ya da maliyetin altındaki teklifler "Teklif onayı" yetkilisine düşer' },
+    { key: 'quote_valid_days', label: 'Varsayılan geçerlilik (gün)' },
+    { key: 'quote_payment_terms', label: 'Varsayılan ödeme koşulları', hint: 'Yeni teklife önerilir, teklifte değiştirilebilir', text: true },
+    { key: 'quote_delivery_terms', label: 'Varsayılan teslimat koşulları', text: true },
   ] },
   { section: 'Prim & Bildirim', icon: Bell, items: [
     { key: 'plasiyer_rate', label: 'Plasiyer prim oranı (%)', hint: 'Onaylanan siparişin KDV hariç tutarı üzerinden' },
@@ -213,7 +219,7 @@ const SettingsPage = () => {
             {items.map((f) => (
               <div key={f.key}>
                 <label className="premium-label">{f.label}</label>
-                <input type="number" step="0.01" min="0" className="premium-input" value={draft[f.key] ?? ''} onChange={(e) => setDraft({ ...draft, [f.key]: e.target.value })} />
+                <input type={f.text ? 'text' : 'number'} step="0.01" min="0" className="premium-input" value={draft[f.key] ?? ''} onChange={(e) => setDraft({ ...draft, [f.key]: e.target.value })} />
                 {f.hint && <p className="text-[10px] font-semibold text-gray-400 mt-1 ml-1">{f.hint}</p>}
               </div>
             ))}

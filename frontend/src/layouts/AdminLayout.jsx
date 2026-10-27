@@ -23,6 +23,8 @@ const ReturnManagement = lazy(() => import('../pages/admin/ReturnManagement'));
 const SettingsPage = lazy(() => import('../pages/admin/SettingsPage'));
 const AdminSubscriptionPage = lazy(() => import('../pages/admin/AdminSubscriptionPage'));
 const QuoteManagement = lazy(() => import('../pages/admin/QuoteManagement'));
+const QuoteEditor = lazy(() => import('../pages/admin/QuoteEditor'));
+const PartnerManagement = lazy(() => import('../pages/admin/PartnerManagement'));
 const CouponManagement = lazy(() => import('../pages/admin/CouponManagement'));
 const SupportPage = lazy(() => import('../pages/admin/SupportPage'));
 const AccountPage = lazy(() => import('../pages/admin/AccountPage'));
@@ -43,7 +45,7 @@ const Guard = ({ perm, children }) => {
 
 // Destek talebine "hangi ekrandan geldi" bilgisi eklenebilsin diye son ziyaret edilen sayfa saklanır
 const PAGE_NAMES = {
-  '/admin': 'Ana Sayfa', '/admin/products': 'Ürün Yönetimi', '/admin/categories': 'Kategoriler', '/admin/dealers': 'Bayi Yönetimi',
+  '/admin': 'Ana Sayfa', '/admin/products': 'Ürün Yönetimi', '/admin/categories': 'Kategoriler', '/admin/dealers': 'Bayi Yönetimi', '/admin/partners': 'Cari Hesaplar',
   '/admin/orders': 'Siparişler', '/admin/quotes': 'Teklifler', '/admin/returns': 'İade / RMA', '/admin/coupons': 'Kampanyalar',
   '/admin/finance': 'Finans & Prim', '/admin/reports': 'Raporlar', '/admin/subscription': 'Abonelik', '/admin/settings': 'Ayarlar', '/admin/account': 'Hesabım'
 };
@@ -117,12 +119,15 @@ const AdminLayout = () => {
               <Route path="products" element={<Guard perm="CATALOG"><ProductManagement /></Guard>} />
               <Route path="categories" element={<Guard perm="CATALOG"><CategoryManagement /></Guard>} />
               <Route path="dealers" element={<Guard perm="DEALERS"><DealerManagement /></Guard>} />
+              <Route path="partners" element={<Guard perm={['FINANCE', 'DEALERS']}><PartnerManagement /></Guard>} />
               <Route path="orders" element={<Guard perm="ORDERS"><OrderApproval /></Guard>} />
               <Route path="returns" element={<Guard perm="ORDERS"><ReturnManagement /></Guard>} />
               <Route path="finance" element={<Guard perm="FINANCE"><FinanceManagement /></Guard>} />
               <Route path="settings" element={<Guard perm="SETTINGS"><SettingsPage /></Guard>} />
               <Route path="subscription" element={<Guard perm="SETTINGS"><AdminSubscriptionPage /></Guard>} />
-              <Route path="quotes" element={<Guard perm="ORDERS"><QuoteManagement /></Guard>} />
+              <Route path="quotes" element={<Guard perm="QUOTES"><QuoteManagement /></Guard>} />
+              <Route path="quotes/new" element={<Guard perm="QUOTES"><QuoteEditor /></Guard>} />
+              <Route path="quotes/:id" element={<Guard perm="QUOTES"><QuoteEditor /></Guard>} />
               <Route path="coupons" element={<Guard perm="CATALOG"><CouponManagement /></Guard>} />
               <Route path="reports" element={<Guard perm={['ORDERS', 'FINANCE']}><ReportsPage /></Guard>} />
               <Route path="support" element={<SupportPage />} />

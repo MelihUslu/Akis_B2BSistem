@@ -17,7 +17,7 @@ export const globalSearch = async (req, res) => {
     }),
     prisma.company.findMany({
       where: { OR: [{ name: ci }, { taxNumber: ci }, { externalCode: ci }, { authorizedPerson: ci }] },
-      select: { id: true, name: true, taxNumber: true, status: true },
+      select: { id: true, name: true, taxNumber: true, status: true, kind: true },
       take: 5
     }),
     prisma.order.findMany({

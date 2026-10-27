@@ -138,3 +138,38 @@ export const sendNotificationMail = ({ to, name, tenant, notification }) => {
     )
   });
 };
+
+// Müşteriye teklif bağlantısı (teklifi görüntüleme, kabul / ret / revizyon talebi)
+export const sendQuoteMail = ({ to, tenant, code, title, total, validUntil, url, message }) =>
+  sendMail({
+    to,
+    fromName: tenant?.name,
+    subject: `${tenant?.name || PLATFORM_NAME()} · Teklif ${code}${title ? ` – ${title}` : ''}`,
+    html: layout(
+      `Teklif ${code}`,
+      `<p>Merhaba,</p>
+       <p>${tenant?.name || ''} tarafından hazırlanan teklifi aşağıdaki bağlantıdan inceleyebilir, kabul edebilir veya revizyon isteyebilirsiniz.</p>
+       ${message ? `<p style="white-space:pre-line">${String(message).replace(/[<>&]/g, (c) => ({ '<': '&lt;', '>': '&gt;', '&': '&amp;' })[c])}</p>` : ''}
+       <p><b>Tutar (KDV dahil):</b> ${total}${validUntil ? `<br><b>Geçerlilik:</b> ${validUntil}` : ''}</p>
+       ${button(url, 'Teklifi Görüntüle')}`,
+      tenant?.name
+    )
+  });
+
+// Cari ekstre bağlantısı (görüntüleme ve mutabakat yanıtı)
+export const sendStatementMail = ({ to, tenant, companyName, balanceText, url, message }) =>
+  sendMail({
+    to,
+    fromName: tenant?.name,
+    subject: `${tenant?.name || PLATFORM_NAME()} · Cari hesap ekstreniz`,
+    html: layout(
+      'Cari hesap ekstreniz',
+      `<p>Sayın ${String(companyName).replace(/[<>&]/g, '')},</p>
+       <p>${tenant?.name || ''} nezdindeki cari hesap ekstrenizi aşağıdaki bağlantıdan inceleyebilir, mutabakat onayı verebilir veya itirazınızı iletebilirsiniz.</p>
+       ${message ? `<p style="white-space:pre-line">${String(message).replace(/[<>&]/g, (c) => ({ '<': '&lt;', '>': '&gt;', '&': '&amp;' })[c])}</p>` : ''}
+       <p><b>Güncel bakiye:</b> ${balanceText}</p>
+       ${button(url, 'Ekstreyi Görüntüle')}
+       <p style="font-size:12px;color:#94a3b8">Bağlantı 30 gün geçerlidir.</p>`,
+      tenant?.name
+    )
+  });

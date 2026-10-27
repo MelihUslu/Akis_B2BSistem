@@ -22,7 +22,9 @@ export const createTransaction = async (req, res) => {
           companyId: parseInt(companyId),
           type, // DEBT (Borç), CREDIT (Alacak)
           amount: value,
-          description
+          description,
+          source: 'MANUAL',
+          createdByName: req.user.name
         }
       });
 
@@ -157,7 +159,7 @@ export const reconcile = async (req, res) => {
 export const getReconciliations = async (req, res) => {
   try {
     const list = await prisma.reconciliation.findMany({
-      include: { company: { select: { name: true } }, user: { select: { name: true } } },
+      include: { company: { select: { id: true, name: true } }, user: { select: { name: true } } }, // bağlantıyla verilen mutabakatta user boş, responderName dolu
       orderBy: { createdAt: 'desc' },
       take: 50
     });
@@ -172,7 +174,7 @@ export const getPlasiyerPoints = async (req, res) => {
     const points = await prisma.plasiyerPoint.findMany({
       include: {
         user: { select: { name: true, email: true } },
-        order: { select: { totalAmount: true, subtotal: true, company: { select: { name: true } } } }
+        order: { select: { totalAmount: true, subtotal: true, company: { select: { id: true, name: true } } } }
       },
       orderBy: { createdAt: 'desc' }
     });
@@ -208,5 +210,50 @@ export const exportStatement = async (req, res) => {
     res.send(xlsx.write(wb, { type: 'buffer', bookType: 'xlsx' }));
   } catch (error) {
     res.status(500).json({ message: 'Ekstre Excel\'i oluşturulamadı.' });
+  }
+};
+
+/**
+ * Finans özeti: alacak / borç toplamları, vadesi geçen ve yaklaşan ödemeler, en borçlu cariler, son tahsilatlar.
+ * Bakiye ve hareketler carinin kendisinde (Cari Hesaplar); bu uç yalnızca takip için özet verir.
+ * Vade, onaylanan siparişin vade tarihinden gelir ve yalnızca borçlu (bakiyesi eksi) cariler için gösterilir.
+ */
+export const getFinanceSummary = async (req, res) => {
+  try {
+    const now = new Date();
+    const horizon = new Date(now.getTime() + 7 * 24 * 60 * 60 * 1000);
+    const debtorWhere = { kind: { in: ['DEALER', 'CUSTOMER'] }, currentBalance: { lt: 0 } };
+    const companySelect = { id: true, name: true, kind: true };
+    const [receivable, payable, debtors, dueOrders, payments] = await Promise.all([
+      prisma.company.aggregate({ where: debtorWhere, _sum: { currentBalance: true }, _count: { _all: true } }),
+      prisma.company.aggregate({ where: { kind: 'SUPPLIER', currentBalance: { gt: 0 } }, _sum: { currentBalance: true }, _count: { _all: true } }),
+      prisma.company.findMany({ where: debtorWhere, select: { ...companySelect, currentBalance: true, riskLimit: true, phone: true }, orderBy: { currentBalance: 'asc' }, take: 8 }),
+      prisma.order.findMany({
+        where: { dueDate: { not: null, lte: horizon }, status: { in: ['APPROVED', 'PARTIAL_APPROVED', 'SHIPPED', 'COMPLETED'] }, company: debtorWhere },
+        select: { id: true, dueDate: true, totalAmount: true, company: { select: companySelect } },
+        orderBy: { dueDate: 'asc' },
+        take: 50
+      }),
+      prisma.payment.findMany({
+        where: { status: 'COMPLETED', direction: 'IN' },
+        select: { id: true, amount: true, method: true, paymentDate: true, receiptNo: true, company: { select: companySelect } },
+        orderBy: { paymentDate: 'desc' },
+        take: 8
+      })
+    ]);
+    const overdue = dueOrders.filter((o) => o.dueDate < now);
+    const upcoming = dueOrders.filter((o) => o.dueDate >= now);
+    const sum = (list) => round2(list.reduce((s, o) => s + o.totalAmount, 0));
+    res.json({
+      receivable: { amount: round2(-(receivable._sum.currentBalance || 0)), count: receivable._count._all },
+      payable: { amount: round2(payable._sum.currentBalance || 0), count: payable._count._all },
+      overdue: { amount: sum(overdue), count: overdue.length, orders: overdue },
+      upcoming: { amount: sum(upcoming), count: upcoming.length, orders: upcoming },
+      debtors,
+      payments
+    });
+  } catch (error) {
+    console.error('getFinanceSummary error:', error);
+    res.status(500).json({ message: 'Finans özeti getirilemedi.' });
   }
 };

@@ -1,6 +1,7 @@
 import express from 'express';
 import {
   getProducts, createProduct, updateProduct, deleteProduct, linkAlternative, bulkUpdate, getFilters,
+  getCompatibleProducts, replaceCompatibleProducts,
   reorderProducts, resolveSkus, subscribeStockAlert, unsubscribeStockAlert,
   getSpecialPrices, replaceSpecialPrices, getFrequentProducts
 } from '../controllers/productController.js';
@@ -29,6 +30,8 @@ router.delete('/:id', requirePermission('CATALOG'), deleteProduct);
 router.get('/:id/special-prices', requirePermission('CATALOG'), getSpecialPrices);
 router.put('/:id/special-prices', requirePermission('CATALOG'), replaceSpecialPrices);
 router.post('/link-alternative', requirePermission('CATALOG'), linkAlternative);
+router.get('/:id/compatible', requirePermission('CATALOG'), getCompatibleProducts);
+router.put('/:id/compatible', requirePermission('CATALOG'), replaceCompatibleProducts);
 // Ürün görseli ve firma logosu için ortak
 router.post('/upload-image', requireAnyPermission('CATALOG', 'SETTINGS'), imageUpload.single('file'), uploadImage);
 router.post('/bulk-update/:type', requirePermission('CATALOG'), excelUpload.single('file'), bulkUpdate);

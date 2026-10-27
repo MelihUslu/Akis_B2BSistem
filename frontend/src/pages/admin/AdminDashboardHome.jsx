@@ -435,7 +435,7 @@ const AdminDashboardHome = () => {
                       <span className="text-[10px] font-black text-gray-500">{d.nextDue ? formatDate(d.nextDue) : '-'}</span>
                     </div>
                   </div>
-                  <Link to="/admin/finance" className="block text-center w-full mt-6 py-3 bg-white border border-gray-100 text-[9px] font-black text-gray-400 uppercase tracking-widest rounded-xl group-hover:bg-indigo-600 group-hover:text-white group-hover:border-indigo-600 transition-all">
+                  <Link to={`/admin/partners?id=${d.id}`} className="block text-center w-full mt-6 py-3 bg-white border border-gray-100 text-[9px] font-black text-gray-400 uppercase tracking-widest rounded-xl group-hover:bg-indigo-600 group-hover:text-white group-hover:border-indigo-600 transition-all">
                     Ekstreyi Gör
                   </Link>
                 </div>

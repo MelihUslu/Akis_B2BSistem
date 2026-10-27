@@ -18,7 +18,7 @@ const SpecialPriceEditor = ({ productId, currency, showAlert }) => {
   const [companies, setCompanies] = useState([]);
 
   useEffect(() => {
-    Promise.all([api.get(`/products/${productId}/special-prices`), api.get('/companies')]).then(([p, c]) => {
+    Promise.all([api.get(`/products/${productId}/special-prices`), api.get('/companies', { params: { kind: 'DEALER,CUSTOMER' } })]).then(([p, c]) => {
       setCompanies(c.data);
       setRows(p.data.map(r => ({
         scope: r.companyId ? 'COMPANY' : r.dealerGroup ? 'GROUP' : 'ALL',

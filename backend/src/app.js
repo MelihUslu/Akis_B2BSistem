@@ -31,6 +31,9 @@ import platformRoutes from './routes/platformRoutes.js';
 import listRoutes from './routes/listRoutes.js';
 import couponRoutes from './routes/couponRoutes.js';
 import quoteRoutes from './routes/quoteRoutes.js';
+import quoteLinkRoutes from './routes/quoteLinkRoutes.js';
+import partnerRoutes from './routes/partnerRoutes.js';
+import statementLinkRoutes from './routes/statementLinkRoutes.js';
 import teamRoutes from './routes/teamRoutes.js';
 import { integrationAdminRoutes, integrationApiRoutes } from './routes/integrationRoutes.js';
 import { globalSearch } from './controllers/searchController.js';
@@ -61,6 +64,8 @@ app.use(cors({
 app.use(express.json({ limit: '1mb' }));
 app.use(langMiddleware);
 // Yüklenen dosyalar: görseller tarayıcıda gösterilir, diğer destek ekleri (PDF, Excel…) indirilir
+// Gizli dosyalar (cari belgeleri) doğrudan sunulmaz; yetkili uç üzerinden indirilir
+app.use('/uploads/private', (req, res) => res.status(404).end());
 app.use('/uploads', express.static('uploads', {
   dotfiles: 'deny',
   index: false,
@@ -96,6 +101,9 @@ tenantApi.use('/dashboard', dashboardRoutes);
 tenantApi.use('/lists', listRoutes);
 tenantApi.use('/coupons', couponRoutes);
 tenantApi.use('/quotes', quoteRoutes);
+tenantApi.use('/quote-links', quoteLinkRoutes);
+tenantApi.use('/partners', partnerRoutes);
+tenantApi.use('/statement-links', statementLinkRoutes);
 tenantApi.use('/team', teamRoutes);
 tenantApi.use('/integrations', integrationAdminRoutes);
 tenantApi.use('/account', accountRoutes);

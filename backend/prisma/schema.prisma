@@ -51,6 +51,9 @@ model User {
   reconciliations   Reconciliation[]
   returnRequests    ReturnRequest[]
   quoteRequests     QuoteRequest[]
+  preparedQuotes    QuoteRequest[]     @relation("QuotePreparer")
+  ownedPartners     Company[]          @relation("PartnerOwner")
+  partnerNotes      PartnerNote[]
   favorites         Favorite[]
   orderTemplates    OrderTemplate[]
   supportTickets    SupportTicket[]
@@ -58,10 +61,13 @@ model User {
   @@index([tenantId])
 }
 
+// Cari hesap. kind: DEALER (portala giren bayi), CUSTOMER (portal dışı müşteri, ara sıra alışveriş), SUPPLIER (tedarikçi).
+// Bayi ekranları yalnızca DEALER kayıtlarını gösterir; diğer türler "Cari Hesaplar" ekranından yönetilir.
 model Company {
   id               Int      @id @default(autoincrement())
   tenantId         Int
   tenant           Tenant   @relation(fields: [tenantId], references: [id])
+  kind             String   @default("DEALER")
   name             String
   taxNumber        String?
   taxOffice        String?
@@ -72,6 +78,11 @@ model Company {
   externalCode     String? // ERP cari kodu
   source           String   @default("ADMIN") // ADMIN (admin ekledi), APPLICATION (bayi başvurusu)
   applicationNote  String? // Başvuru formundaki mesaj
+  email            String? // Carinin genel e-postası (bayide giriş e-postası kullanıcıdadır)
+  notes            String? // İç not (cariye gösterilmez)
+  tags             String[] @default([]) // Serbest etiketler: "İstanbul", "Toptan", "Takipte"…
+  ownerId          Int? // Cariden sorumlu personel
+  owner            User?    @relation("PartnerOwner", fields: [ownerId], references: [id])
   riskLimit        Float    @default(0) // Risk Limiti (Açık hesap limiti)
   currentBalance   Float    @default(0) // Güncel Bakiye (Alacaklıysa artı, borçluysa eksi)
   dealerGroup      String   @default("STANDART") // Bayi Grubu: STANDART, GOLD, VIP
@@ -94,10 +105,96 @@ model Company {
   coupons         Coupon[]
   quoteRequests   QuoteRequest[]
   orderTemplates  OrderTemplate[]
+  contacts        CompanyContact[]
+  partnerNotes    PartnerNote[]
+  documents       PartnerDocument[]
+  statementLinks  StatementRequest[]
 
   @@unique([tenantId, taxNumber])
   @@unique([tenantId, externalCode])
   @@index([tenantId])
+  @@index([tenantId, kind])
+}
+
+// Cari görüşme notları ve hatırlatmalar ("Aradım, cuma ödeyecek" — hatırlatma tarihinde yazan kişiye bildirim gider)
+model PartnerNote {
+  id         Int       @id @default(autoincrement())
+  tenantId   Int
+  tenant     Tenant    @relation(fields: [tenantId], references: [id])
+  companyId  Int
+  company    Company   @relation(fields: [companyId], references: [id], onDelete: Cascade)
+  userId     Int?
+  user       User?     @relation(fields: [userId], references: [id])
+  body       String
+  remindAt   DateTime?
+  notifiedAt DateTime?
+  doneAt     DateTime?
+  createdAt  DateTime  @default(now())
+
+  @@index([tenantId])
+  @@index([companyId])
+  @@index([tenantId, remindAt])
+}
+
+// Cari belgeleri (vergi levhası, sözleşme, imza sirküleri…). Dosya herkese açık klasörde değil, yetkiyle indirilir.
+model PartnerDocument {
+  id         Int      @id @default(autoincrement())
+  tenantId   Int
+  tenant     Tenant   @relation(fields: [tenantId], references: [id])
+  companyId  Int
+  company    Company  @relation(fields: [companyId], references: [id], onDelete: Cascade)
+  name       String
+  storedName String
+  mimeType   String
+  size       Int
+  uploadedBy String?
+  createdAt  DateTime @default(now())
+
+  @@index([tenantId])
+  @@index([companyId])
+}
+
+// Ekstre paylaşım bağlantısı ve mutabakat isteği (portal kullanmayan cariler için de)
+model StatementRequest {
+  id            Int       @id @default(autoincrement())
+  tenantId      Int
+  tenant        Tenant    @relation(fields: [tenantId], references: [id])
+  companyId     Int
+  company       Company   @relation(fields: [companyId], references: [id], onDelete: Cascade)
+  tokenHash     String    @unique
+  balance       Float // Gönderildiği andaki bakiye (mutabakat bu bakiye için)
+  periodEnd     DateTime
+  sentTo        String?
+  emailed       Boolean   @default(false)
+  createdByName String?
+  expiresAt     DateTime
+  response      String? // AGREED, DISPUTED
+  responseNote  String?
+  responderName String?
+  respondedAt   DateTime?
+  createdAt     DateTime  @default(now())
+
+  @@index([tenantId])
+  @@index([companyId])
+}
+
+// Carinin yetkili kişileri (satın alma, muhasebe, depo…)
+model CompanyContact {
+  id        Int      @id @default(autoincrement())
+  tenantId  Int
+  tenant    Tenant   @relation(fields: [tenantId], references: [id])
+  companyId Int
+  company   Company  @relation(fields: [companyId], references: [id], onDelete: Cascade)
+  name      String
+  title     String? // Görevi
+  phone     String?
+  email     String?
+  isPrimary Boolean  @default(false)
+  sortOrder Int      @default(0)
+  createdAt DateTime @default(now())
+
+  @@index([tenantId])
+  @@index([companyId])
 }
 
 model Category {
@@ -134,10 +231,13 @@ model Product {
   vatRate   Float  @default(20) // KDV Oranı (1, 10, 20)
 
   // Stok ve Operasyonel
-  stock        Int    @default(0)
-  unit         String @default("Adet") // Adet, Kutu, Koli, Metre, Kg
-  moq          Int    @default(1) // Minimum Sipariş Miktarı
-  stepQuantity Int    @default(1) // Artış Katsayısı
+  stock        Int     @default(0)
+  unit         String  @default("Adet") // Adet, Kutu, Koli, Metre, Kg
+  moq          Int     @default(1) // Minimum Sipariş Miktarı
+  stepQuantity Int     @default(1) // Artış Katsayısı
+  // Paket dönüşümü (tanımlıysa): 1 packUnit = packSize × unit (örn. 1 Koli = 50 Adet). Teklifte birim çevirisi yalnızca buna göre yapılır.
+  packUnit     String?
+  packSize     Int?
 
   // Medya
   images   String? // JSON stringified image array
@@ -175,6 +275,9 @@ model Product {
   specialPrices   SpecialPrice[]
   favorites       Favorite[]
   quoteItems      QuoteRequestItem[]
+  // Birlikte kullanılabilen ürünler (örn. bardak ↔ kapak). İlişki iki yönlüdür; tek satır yeterlidir.
+  compatibleWith  ProductCompatibility[] @relation("CompatFrom")
+  compatibleOf    ProductCompatibility[] @relation("CompatTo")
 
   @@unique([tenantId, sku])
   @@index([tenantId])
@@ -326,40 +429,58 @@ model OrderItem {
 }
 
 model Payment {
-  id          Int      @id @default(autoincrement())
-  tenantId    Int
-  tenant      Tenant   @relation(fields: [tenantId], references: [id])
-  orderId     Int?
-  order       Order?   @relation(fields: [orderId], references: [id])
-  companyId   Int?
-  company     Company? @relation(fields: [companyId], references: [id])
-  amount      Float
-  method      String   @default("POS") // POS, WIRE_TRANSFER, MANUAL
-  cardLast4   String? // Sadece son 4 hane saklanır
-  reference   String? // Provizyon / referans no
-  paymentDate DateTime @default(now())
-  status      String   @default("COMPLETED")
-  provider    String? // IYZICO
-  token       String?  @unique // Ödeme formu token'ı (dönüşte doğrulama)
-  userId      Int?
+  id            Int                    @id @default(autoincrement())
+  tenantId      Int
+  tenant        Tenant                 @relation(fields: [tenantId], references: [id])
+  orderId       Int?
+  order         Order?                 @relation(fields: [orderId], references: [id])
+  companyId     Int?
+  company       Company?               @relation(fields: [companyId], references: [id])
+  amount        Float
+  method        String                 @default("POS") // POS (sanal POS), WIRE_TRANSFER, CASH, CARD (fiziki POS), CHECK (çek), NOTE (senet), MANUAL
+  direction     String                 @default("IN") // IN: cariden tahsilat, OUT: cariye (tedarikçiye) ödeme
+  receiptNo     Int? // Firma içinde sıralı makbuz numarası (elle girilen tahsilat / ödemelerde)
+  bankName      String? // Havale bankası / çekin bankası
+  dueDate       DateTime? // Çek / senet vadesi
+  note          String?
+  createdByName String?
+  cardLast4     String? // Sadece son 4 hane saklanır
+  reference     String? // Provizyon / referans no
+  paymentDate   DateTime               @default(now())
+  status        String                 @default("COMPLETED")
+  provider      String? // IYZICO
+  token         String?                @unique // Ödeme formu token'ı (dönüşte doğrulama)
+  userId        Int?
+  transactions  FinancialTransaction[]
 
+  @@unique([tenantId, receiptNo])
   @@index([tenantId])
 }
 
 model FinancialTransaction {
-  id          Int      @id @default(autoincrement())
-  tenantId    Int
-  tenant      Tenant   @relation(fields: [tenantId], references: [id])
-  companyId   Int
-  company     Company  @relation(fields: [companyId], references: [id])
-  type        String // DEBT (Borçlandırma), CREDIT (Alacaklandırma)
-  amount      Float
-  description String?
-  orderId     Int?
-  order       Order?   @relation(fields: [orderId], references: [id])
-  date        DateTime @default(now())
+  id            Int                   @id @default(autoincrement())
+  tenantId      Int
+  tenant        Tenant                @relation(fields: [tenantId], references: [id])
+  companyId     Int
+  company       Company               @relation(fields: [companyId], references: [id])
+  type          String // DEBT (Borçlandırma), CREDIT (Alacaklandırma)
+  amount        Float
+  description   String?
+  orderId       Int?
+  order         Order?                @relation(fields: [orderId], references: [id])
+  date          DateTime              @default(now())
+  // Hareketin kaynağı: ORDER (sipariş onayı/düzeltme), RETURN (iade), PAYMENT (tahsilat/ödeme), ERP, OPENING (açılış), MANUAL, REVERSAL (ters kayıt)
+  source        String                @default("MANUAL")
+  paymentId     Int?
+  payment       Payment?              @relation(fields: [paymentId], references: [id])
+  // Ters kayıt: yanlış girilen hareket silinmez, karşı kayıtla düzeltilir
+  reversalOfId  Int?                  @unique
+  reversalOf    FinancialTransaction? @relation("Reversal", fields: [reversalOfId], references: [id])
+  reversedBy    FinancialTransaction? @relation("Reversal")
+  createdByName String?
 
   @@index([tenantId])
+  @@index([companyId, date])
 }
 
 model PlasiyerPoint {
@@ -388,16 +509,17 @@ model Setting {
 
 // Bayinin cari ekstresini onaylaması ("Mutabıkım")
 model Reconciliation {
-  id        Int      @id @default(autoincrement())
-  tenantId  Int
-  tenant    Tenant   @relation(fields: [tenantId], references: [id])
-  companyId Int
-  company   Company  @relation(fields: [companyId], references: [id])
-  userId    Int
-  user      User     @relation(fields: [userId], references: [id])
-  balance   Float // Onaylandığı andaki bakiye
-  periodEnd DateTime // Ekstrenin kapsadığı son tarih
-  createdAt DateTime @default(now())
+  id            Int      @id @default(autoincrement())
+  tenantId      Int
+  tenant        Tenant   @relation(fields: [tenantId], references: [id])
+  companyId     Int
+  company       Company  @relation(fields: [companyId], references: [id])
+  userId        Int? // Portal kullanıcısı; bağlantıyla verilen mutabakatta boş
+  user          User?    @relation(fields: [userId], references: [id])
+  responderName String? // Bağlantıyla yanıt verenin adı
+  balance       Float // Onaylandığı andaki bakiye
+  periodEnd     DateTime // Ekstrenin kapsadığı son tarih
+  createdAt     DateTime @default(now())
 
   @@index([tenantId])
 }
@@ -562,35 +684,41 @@ model Tenant {
   createdAt              DateTime          @default(now())
   updatedAt              DateTime          @updatedAt
 
-  users                User[]
-  companies            Company[]
-  categories           Category[]
-  products             Product[]
-  orders               Order[]
-  orderItems           OrderItem[]
-  payments             Payment[]
-  transactions         FinancialTransaction[]
-  plasiyerPoints       PlasiyerPoint[]
-  settings             Setting[]
-  reconciliations      Reconciliation[]
-  returnRequests       ReturnRequest[]
-  notifications        Notification[]
-  pushSubscriptions    PushSubscription[]
-  stockAlerts          StockAlert[]
-  subscriptionPayments SubscriptionPayment[]
-  productOptions       ProductOption[]
-  productOptionValues  ProductOptionValue[]
-  productVariantValues ProductVariantValue[]
-  specialPrices        SpecialPrice[]
-  coupons              Coupon[]
-  quoteRequests        QuoteRequest[]
-  quoteRequestItems    QuoteRequestItem[]
-  favorites            Favorite[]
-  orderTemplates       OrderTemplate[]
-  apiKeys              ApiKey[]
-  webhooks             Webhook[]
-  supportTickets       SupportTicket[]
-  supportMessages      SupportMessage[]
+  users                  User[]
+  companies              Company[]
+  categories             Category[]
+  products               Product[]
+  orders                 Order[]
+  orderItems             OrderItem[]
+  payments               Payment[]
+  transactions           FinancialTransaction[]
+  plasiyerPoints         PlasiyerPoint[]
+  settings               Setting[]
+  reconciliations        Reconciliation[]
+  returnRequests         ReturnRequest[]
+  notifications          Notification[]
+  pushSubscriptions      PushSubscription[]
+  stockAlerts            StockAlert[]
+  subscriptionPayments   SubscriptionPayment[]
+  productOptions         ProductOption[]
+  productOptionValues    ProductOptionValue[]
+  productVariantValues   ProductVariantValue[]
+  specialPrices          SpecialPrice[]
+  coupons                Coupon[]
+  quoteRequests          QuoteRequest[]
+  quoteRequestItems      QuoteRequestItem[]
+  quoteRevisions         QuoteRevision[]
+  productCompatibilities ProductCompatibility[]
+  companyContacts        CompanyContact[]
+  favorites              Favorite[]
+  orderTemplates         OrderTemplate[]
+  apiKeys                ApiKey[]
+  webhooks               Webhook[]
+  supportTickets         SupportTicket[]
+  supportMessages        SupportMessage[]
+  PartnerNote            PartnerNote[]
+  PartnerDocument        PartnerDocument[]
+  StatementRequest       StatementRequest[]
 }
 
 // Kiracının platforma yaptığı abonelik ödemeleri (iyzico veya manuel)
@@ -705,27 +833,84 @@ model Coupon {
   @@unique([tenantId, code])
 }
 
-// Teklif talebi (RFQ): bayi ister → admin fiyat verir → bayi onaylarsa siparişe dönüşür
-model QuoteRequest {
-  id         Int       @id @default(autoincrement())
-  tenantId   Int
-  tenant     Tenant    @relation(fields: [tenantId], references: [id])
-  companyId  Int
-  company    Company   @relation(fields: [companyId], references: [id])
-  userId     Int
-  user       User      @relation(fields: [userId], references: [id])
-  status     String    @default("PENDING") // PENDING, QUOTED, ACCEPTED, REJECTED, CANCELLED
-  note       String?
-  adminNote  String?
-  validUntil DateTime?
-  orderId    Int?      @unique
-  order      Order?    @relation(fields: [orderId], references: [id])
-  createdAt  DateTime  @default(now())
-  updatedAt  DateTime  @updatedAt
+// Uyumlu ürün çifti (ürün veya varyant düzeyinde). Teklif hazırlarken "uyumlu kapak" gibi taleplerde kullanılır.
+model ProductCompatibility {
+  id           Int      @id @default(autoincrement())
+  tenantId     Int
+  tenant       Tenant   @relation(fields: [tenantId], references: [id])
+  productId    Int
+  product      Product  @relation("CompatFrom", fields: [productId], references: [id], onDelete: Cascade)
+  compatibleId Int
+  compatible   Product  @relation("CompatTo", fields: [compatibleId], references: [id], onDelete: Cascade)
+  createdAt    DateTime @default(now())
 
-  items QuoteRequestItem[]
-
+  @@unique([productId, compatibleId])
   @@index([tenantId])
+  @@index([compatibleId])
+}
+
+// Teklif. İki kaynaktan doğar: bayinin portaldan istediği teklif (DEALER) veya personelin hazırladığı teklif (STAFF).
+// Durum: PENDING (bayi talebi, fiyat bekliyor) · DRAFT · PENDING_APPROVAL · QUOTED (gönderildi) · ACCEPTED · REJECTED · EXPIRED · CANCELLED
+// Gönderilen her sürüm QuoteRevision'da değişmez kopya olarak saklanır; müşteri yalnızca o kopyayı görür ve kabul eder.
+model QuoteRequest {
+  id              Int       @id @default(autoincrement())
+  tenantId        Int
+  tenant          Tenant    @relation(fields: [tenantId], references: [id])
+  number          Int // Firma içinde benzersiz teklif numarası (TK-{number})
+  title           String?
+  source          String    @default("DEALER") // DEALER, STAFF
+  companyId       Int
+  company         Company   @relation(fields: [companyId], references: [id])
+  userId          Int // Talebi açan bayi kullanıcısı ya da teklifi oluşturan personel
+  user            User      @relation(fields: [userId], references: [id])
+  preparedById    Int? // Teklifi hazırlayan / fiyatlandıran personel
+  preparedBy      User?     @relation("QuotePreparer", fields: [preparedById], references: [id])
+  status          String    @default("PENDING")
+  note            String? // Bayinin talep notu
+  adminNote       String? // Müşteriye görünen açıklama
+  internalNote    String? // Yalnızca personel görür
+  paymentTerms    String?
+  deliveryTerms   String?
+  currency        String    @default("TRY")
+  validUntil      DateTime?
+  // Çalışma kopyasının toplamları (liste ve filtre için; gönderilen sürümün tutarı QuoteRevision'dadır)
+  subtotal        Float?
+  vatAmount       Float?
+  totalAmount     Float?
+  revision        Int       @default(1) // Üzerinde çalışılan sürüm
+  sentRevision    Int? // Müşteriye gönderilen son sürüm (kabul yalnızca bu sürüm için ve QUOTED durumunda yapılabilir)
+  sentAt          DateTime?
+  // Yönetici onayı (iskonto sınırı aşıldığında / maliyet altı fiyatta)
+  approvalReasons Json?
+  approvedById    Int?
+  approvedByName  String?
+  approvedAt      DateTime?
+  approvalNote    String?
+  // Yapay zekâ ile hazırlandıysa: talep metni ve iç değerlendirme (müşteriye gösterilmez)
+  aiRequest       String?
+  aiMeta          Json?
+  // Paylaşım bağlantısı: anahtarın özeti (doğrulama) ve şifreli hali (bağlantıyı tekrar kopyalayabilmek için)
+  shareTokenHash  String?   @unique
+  shareTokenEnc   String?
+  emailedAt       DateTime? // Yalnızca e-posta gerçekten gönderildiyse dolar
+  // Müşterinin son yanıtı (kabul / ret / revizyon talebi)
+  responseType    String? // ACCEPTED, REJECTED, REVISION_REQUESTED
+  responseNote    String?
+  responseBy      String?
+  responseVia     String? // PORTAL, LINK
+  respondedAt     DateTime?
+  convertedAt     DateTime? // Siparişe dönüştürme kilidi (çift sipariş engeli)
+  orderId         Int?      @unique
+  order           Order?    @relation(fields: [orderId], references: [id])
+  createdAt       DateTime  @default(now())
+  updatedAt       DateTime  @updatedAt
+
+  items     QuoteRequestItem[]
+  revisions QuoteRevision[]
+
+  @@unique([tenantId, number])
+  @@index([tenantId])
+  @@index([tenantId, status])
 }
 
 model QuoteRequestItem {
@@ -734,12 +919,41 @@ model QuoteRequestItem {
   tenant         Tenant       @relation(fields: [tenantId], references: [id])
   quoteRequestId Int
   quoteRequest   QuoteRequest @relation(fields: [quoteRequestId], references: [id], onDelete: Cascade)
-  productId      Int
-  product        Product      @relation(fields: [productId], references: [id])
-  quantity       Int
+  productId      Int? // Eşleşmeyen kalemde boş (gönderilmeden önce çözülmeli ya da silinmeli)
+  product        Product?     @relation(fields: [productId], references: [id])
+  quantity       Int // Ürünün satış biriminde
   variantLabel   String?
-  quotedPrice    Float? // Admin'in verdiği birim fiyat (TL, KDV hariç)
+  sortOrder      Int          @default(0)
+  quotedPrice    Float? // Net birim fiyat (TL, KDV hariç, teklif iskontosu sonrası)
+  basePrice      Float? // Müşteriye sistemde geçerli birim fiyat (bayi iskontoları / özel fiyat dahil)
+  discountRate   Float        @default(0) // Teklif iskontosu (%)
+  manualPrice    Boolean      @default(false) // Birim fiyat elle girildi
+  vatRate        Float?
+  // Talepten eşleştirme bilgisi (yalnızca personel görür)
+  requestText    String? // Müşterinin yazdığı ihtiyaç satırı
+  matchStatus    String       @default("MANUAL") // MANUAL, MATCHED, REVIEW (kullanıcı teyidi gerekir), UNMATCHED
+  matchReason    String?
+  warnings       Json? // ["..."]
+  alternatives   Json? // [productId, ...]
 
+  @@index([tenantId])
+}
+
+// Müşteriye gönderilen teklif sürümünün değişmez kopyası (ürün adları, fiyatlar, KDV, koşullar, toplamlar)
+model QuoteRevision {
+  id             Int          @id @default(autoincrement())
+  tenantId       Int
+  tenant         Tenant       @relation(fields: [tenantId], references: [id])
+  quoteRequestId Int
+  quoteRequest   QuoteRequest @relation(fields: [quoteRequestId], references: [id], onDelete: Cascade)
+  revision       Int
+  snapshot       Json
+  totalAmount    Float
+  sentById       Int?
+  sentByName     String?
+  createdAt      DateTime     @default(now())
+
+  @@unique([quoteRequestId, revision])
   @@index([tenantId])
 }
 

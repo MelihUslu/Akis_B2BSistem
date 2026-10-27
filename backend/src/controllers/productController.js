@@ -158,7 +158,7 @@ export const createProduct = async (req, res) => {
   try {
     const {
       name, sku, barcode, brand, price, costPrice, currency, vatRate,
-      stock, unit, moq, stepQuantity, shortDesc, longDesc, categoryId,
+      stock, unit, moq, stepQuantity, packUnit, packSize, shortDesc, longDesc, categoryId,
       images, pdfUrl, videoUrl, variants, hidePrice, alternativeToId
     } = req.body;
 
@@ -175,6 +175,8 @@ export const createProduct = async (req, res) => {
         unit,
         moq: parseInt(moq) || 1,
         stepQuantity: parseInt(stepQuantity) || 1,
+        packUnit: UPDATABLE.packUnit(packUnit),
+        packSize: UPDATABLE.packSize(packSize),
         shortDesc,
         longDesc,
         images: JSON.stringify(images || []),
@@ -212,6 +214,9 @@ const UPDATABLE = {
   currency: (v) => (v === 'TL' ? 'TRY' : v), vatRate: parseFloat,
   stock: (v) => parseInt(v) || 0, unit: String,
   moq: (v) => parseInt(v) || 1, stepQuantity: (v) => parseInt(v) || 1,
+  // Paket dönüşümü ikisi birlikte anlamlı: "1 Koli = 50 Adet"
+  packUnit: (v) => String(v ?? '').trim().slice(0, 30) || null,
+  packSize: (v) => (parseInt(v) > 1 ? parseInt(v) : null),
   images: (v) => (typeof v === 'string' ? v : JSON.stringify(v || [])),
   pdfUrl: (v) => v || null, videoUrl: (v) => v || null,
   categoryId: (v) => (v ? parseInt(v) : null),
@@ -541,5 +546,42 @@ export const getFrequentProducts = async (req, res) => {
   } catch (error) {
     console.error('getFrequentProducts error:', error);
     res.status(500).json({ message: 'Sık alınan ürünler getirilemedi.' });
+  }
+};
+
+// Uyumlu ürünler (örn. bardak ↔ kapak). İlişki iki yönlüdür; teklif hazırlarken uyumluluk yalnızca buradan doğrulanır.
+export const getCompatibleProducts = async (req, res) => {
+  const id = parseInt(req.params.id);
+  const rows = await prisma.productCompatibility.findMany({
+    where: { OR: [{ productId: id }, { compatibleId: id }] },
+    include: {
+      product: { select: { id: true, name: true, sku: true, parent: { select: { name: true } } } },
+      compatible: { select: { id: true, name: true, sku: true, parent: { select: { name: true } } } }
+    }
+  });
+  res.json(rows.map((r) => {
+    const other = r.productId === id ? r.compatible : r.product;
+    return { id: other.id, sku: other.sku, name: other.parent?.name ? `${other.parent.name} · ${other.name}` : other.name };
+  }));
+};
+
+export const replaceCompatibleProducts = async (req, res) => {
+  try {
+    const id = parseInt(req.params.id);
+    const product = await prisma.product.findUnique({ where: { id } });
+    if (!product) return res.status(404).json({ message: 'Ürün bulunamadı.' });
+    const skus = [...new Set((req.body.skus || []).map((s) => String(s).trim()).filter(Boolean))].slice(0, 200);
+    const others = skus.length ? await prisma.product.findMany({ where: { sku: { in: skus } }, select: { id: true, sku: true } }) : [];
+    const notFound = skus.filter((s) => !others.some((o) => o.sku === s));
+    if (notFound.length) return res.status(400).json({ message: `Bulunamayan SKU: ${notFound.join(', ')}` });
+    const ids = others.map((o) => o.id).filter((x) => x !== id);
+    await prisma.$transaction(async (tx) => {
+      await tx.productCompatibility.deleteMany({ where: { OR: [{ productId: id }, { compatibleId: id }] } });
+      if (ids.length) await tx.productCompatibility.createMany({ data: ids.map((compatibleId) => ({ productId: id, compatibleId })), skipDuplicates: true });
+    });
+    res.json({ message: ids.length ? `${ids.length} uyumlu ürün kaydedildi.` : 'Uyumlu ürünler temizlendi.' });
+  } catch (error) {
+    console.error('replaceCompatibleProducts error:', error);
+    res.status(400).json({ message: 'Uyumlu ürünler kaydedilemedi.' });
   }
 };

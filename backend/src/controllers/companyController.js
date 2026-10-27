@@ -15,8 +15,11 @@ const parseOptionalInt = (v) => (v !== undefined && v !== '' && v !== null ? par
 export const getCompanies = async (req, res) => {
   try {
     const { search, status } = req.query;
+    // Varsayılan: yalnızca bayiler (Bayi Yönetimi, kampanya, finans). ?kind=DEALER,CUSTOMER gibi birden çok tür istenebilir.
+    const kinds = String(req.query.kind || 'DEALER').split(',').filter((k) => ['DEALER', 'CUSTOMER', 'SUPPLIER'].includes(k));
 
     const where = {
+      kind: { in: kinds.length ? kinds : ['DEALER'] },
       ...(search && {
         OR: [
           { name: { contains: search, mode: 'insensitive' } },
@@ -43,7 +46,7 @@ export const getCompanies = async (req, res) => {
       const [data, total, pendingCount, groups] = await Promise.all([
         prisma.company.findMany({ where, include, orderBy: [{ status: 'desc' }, { createdAt: 'desc' }], take, skip: (page - 1) * take }),
         prisma.company.count({ where }),
-        prisma.company.count({ where: { status: 'PENDING' } }),
+        prisma.company.count({ where: { status: 'PENDING', kind: 'DEALER' } }),
         prisma.company.groupBy({ by: ['status'], where: searchWhere, _count: { _all: true } })
       ]);
       const statusCounts = Object.fromEntries(groups.map(g => [g.status, g._count._all]));
@@ -150,7 +153,7 @@ export const updateCompany = async (req, res) => {
     }
 
     const before = await prisma.company.findUnique({ where: { id: parseInt(id) }, include: { users: { where: { role: 'BAYI' } } } });
-    if (!before) return res.status(404).json({ message: 'Bayi bulunamadı.' });
+    if (!before || before.kind !== 'DEALER') return res.status(404).json({ message: 'Bayi bulunamadı.' });
     const approving = before.status === 'PENDING' && status === 'ACTIVE';
     if (approving) await assertWithinLimit(req.tenant, 'dealers');
 

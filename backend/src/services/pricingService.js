@@ -24,7 +24,7 @@ export const variantLabelOf = (product) => {
 export const VARIANT_VALUES_INCLUDE = { variantValues: { include: { optionValue: { include: { option: true } } } } };
 
 /**
- * Varyantlar operasyonel ayarları (MOQ, koli katsayısı, birim, KDV, döviz, fiyat gizleme) ana üründen alır.
+ * Varyantlar operasyonel ayarları (MOQ, koli katsayısı, birim, paket dönüşümü, KDV, döviz, fiyat gizleme) ana üründen alır.
  * Görsel yoksa ana ürünün görselleri kullanılır.
  */
 export const effectiveProduct = (product, parent) => {
@@ -35,6 +35,8 @@ export const effectiveProduct = (product, parent) => {
     moq: parent.moq,
     stepQuantity: parent.stepQuantity,
     unit: parent.unit,
+    packUnit: parent.packUnit,
+    packSize: parent.packSize,
     vatRate: parent.vatRate,
     currency: parent.currency,
     hidePrice: parent.hidePrice || product.hidePrice,

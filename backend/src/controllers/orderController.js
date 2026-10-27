@@ -352,6 +352,7 @@ export const partialApproveOrder = async (req, res) => {
           data: {
             companyId: order.companyId,
             orderId,
+            source: 'ORDER',
             type: diff > 0 ? 'DEBT' : 'CREDIT',
             amount: Math.abs(diff),
             description: diff > 0

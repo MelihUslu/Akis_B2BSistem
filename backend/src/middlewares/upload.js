@@ -7,6 +7,9 @@ import { currentTenantId } from '../utils/prisma.js';
 
 fs.mkdirSync('uploads/images', { recursive: true });
 fs.mkdirSync('uploads/support', { recursive: true });
+// Cari belgeleri: /uploads/private altı herkese açık sunulmaz (app.js), yalnızca yetkiyle indirilir
+export const PARTNER_DOC_DIR = 'uploads/private/partners';
+fs.mkdirSync(PARTNER_DOC_DIR, { recursive: true });
 
 // SVG kabul edilmez: içine script gömülebilir ve /uploads üzerinden açıldığında XSS'e yol açar
 const IMAGE_TYPES = ['image/jpeg', 'image/png', 'image/webp', 'image/gif'];
@@ -82,3 +85,17 @@ export const uploadSupportFile = (req, res) => {
     size: req.file.size
   });
 };
+
+// ─── Cari belgeleri (vergi levhası, sözleşme…) ───────────────────────────────
+export const PARTNER_DOC_TYPES = SUPPORT_TYPES;
+export const partnerDocUpload = multer({
+  storage: multer.diskStorage({
+    destination: (req, file, cb) => cb(null, `${PARTNER_DOC_DIR}/`),
+    filename: (req, file, cb) => cb(null, `t${currentTenantId() ?? 'p'}-${crypto.randomBytes(16).toString('hex')}${path.extname(file.originalname).toLowerCase()}`)
+  }),
+  limits: { fileSize: 15 * 1024 * 1024, files: 1 }, // 15 MB
+  fileFilter: (req, file, cb) => {
+    if (SUPPORT_TYPES[path.extname(file.originalname).toLowerCase()]) return cb(null, true);
+    cb(Object.assign(new Error('Bu dosya türü eklenemez. PDF, görsel, Excel, Word, CSV veya TXT yükleyin.'), { status: 400 }));
+  }
+});

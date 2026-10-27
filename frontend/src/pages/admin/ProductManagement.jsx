@@ -4,6 +4,7 @@ import useAlert from '../../hooks/useAlert';
 import VariantEditor from '../../components/admin/VariantEditor';
 import { Section, Field, IconInput, TextArea, Segmented, Toggle, StepNav } from '../../components/form/FormKit';
 import SpecialPriceEditor from '../../components/admin/SpecialPriceEditor';
+import CompatibleProductsEditor from '../../components/admin/CompatibleProductsEditor';
 import { fromProduct, toPayload, validate as validateVariants } from '../../components/admin/variantForm';
 import { 
   DndContext, 
@@ -22,7 +23,7 @@ import {
 } from '@dnd-kit/sortable';
 import { CSS } from '@dnd-kit/utilities';
 import {
-  Package, Plus, Search, ChevronRight, FileUp, Edit3, Trash2, Eye, EyeOff, Save, X, ImageIcon, DollarSign, Hash, Layers, Tag, Info, ListTree, BoxSelect, Lock, GripVertical, FileText, ChevronLeft, Type, Barcode, AlignLeft, ShoppingBasket, Shuffle, Banknote, Wallet, Warehouse, Boxes, Star, UploadCloud, Paperclip, PlayCircle, Percent
+  Package, Plus, Search, ChevronRight, FileUp, Edit3, Trash2, Eye, EyeOff, Save, X, ImageIcon, DollarSign, Hash, Layers, Tag, Info, ListTree, BoxSelect, Lock, GripVertical, FileText, ChevronLeft, Type, Barcode, AlignLeft, ShoppingBasket, Shuffle, Banknote, Wallet, Warehouse, Boxes, Star, UploadCloud, Paperclip, PlayCircle, Percent, Link2, PackageOpen
 } from 'lucide-react';
 
 const BULK_TYPES = [
@@ -359,6 +360,7 @@ const ProductManagement = () => {
     barcode: p.barcode || '', brand: p.brand || '', shortDesc: p.shortDesc || '',
     pdfUrl: p.pdfUrl || '', videoUrl: p.videoUrl || '',
     alternativeToId: p.alternativeToId || '',
+    packUnit: p.packUnit || '', packSize: p.packSize || '',
     ...fromProduct(p)
   });
 
@@ -649,7 +651,7 @@ const ProductManagement = () => {
           { id: 'general', title: 'Temel Bilgiler', desc: 'Ad, kategori, SKU', icon: Info, error: triedSave && (missing.name || missing.sku || missing.categoryId), done: !missing.name && !missing.sku && !missing.categoryId },
           { id: 'price', title: 'Fiyat & Stok', desc: 'Fiyat, KDV, stok', icon: DollarSign, error: triedSave && missing.price, done: !missing.price },
           { id: 'variants', title: 'Varyantlar', desc: formData.variants?.length ? `${formData.variants.length} varyant` : 'Renk, gramaj, beden…', icon: Layers, done: formData.variants?.length > 0 },
-          ...(selectedProduct ? [{ id: 'special', title: 'Özel Fiyatlar', desc: 'Bayi / grup fiyatları', icon: Tag }] : []),
+          ...(selectedProduct ? [{ id: 'special', title: 'Özel Fiyatlar', desc: 'Bayi / grup fiyatları', icon: Tag }, { id: 'compatible', title: 'Uyumlu Ürünler', desc: 'Birlikte kullanılanlar', icon: Link2 }] : []),
           { id: 'description', title: 'Açıklama', desc: 'Detaylı ürün metni', icon: FileText, done: Boolean(formData.longDesc) },
           { id: 'media', title: 'Görseller', desc: formData.images?.length ? `${formData.images.length} görsel` : 'Fotoğraf, PDF, video', icon: ImageIcon, done: formData.images?.length > 0 }
         ];
@@ -719,6 +721,14 @@ const ProductManagement = () => {
                       </Field>
                       <Field label="Artış Miktarı" hint="Ör. 6 ise 6, 12, 18… şeklinde artar.">
                         <IconInput type="number" min="1" icon={Plus} suffix={formData.unit} value={formData.stepQuantity} onChange={set('stepQuantity')} />
+                      </Field>
+                    </div>
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                      <Field label="Paket / Koli Birimi" hint="Örn. Koli. Teklifte “20 koli” gibi talepler buna göre çevrilir.">
+                        <IconInput icon={PackageOpen} value={formData.packUnit || ''} onChange={set('packUnit')} placeholder="Koli" maxLength={30} />
+                      </Field>
+                      <Field label="Paket İçi Miktar" hint={formData.packUnit && Number(formData.packSize) > 1 ? `1 ${formData.packUnit} = ${formData.packSize} ${formData.unit}` : 'Tanımlı değilse birim dönüşümü yapılmaz.'}>
+                        <IconInput type="number" min="2" icon={Boxes} suffix={formData.unit} value={formData.packSize || ''} onChange={set('packSize')} />
                       </Field>
                     </div>
                     <Field label="Muadil Ürün" hint="Bu ürün stokta yokken bayiye seçilen ürün önerilir.">
@@ -796,6 +806,10 @@ const ProductManagement = () => {
                     currency={formData.currency}
                     onChange={(options, variants) => setFormData(prev => ({ ...prev, options, variants }))}
                   />
+                )}
+
+                {activeTab === 'compatible' && selectedProduct && (
+                  <CompatibleProductsEditor productId={selectedProduct.id} products={products} showAlert={showAlert} />
                 )}
 
                 {activeTab === 'special' && selectedProduct && (

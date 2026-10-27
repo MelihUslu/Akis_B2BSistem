@@ -5,7 +5,7 @@ import { useTenant } from '../context/TenantContext';
 import TenantBrand from './TenantBrand';
 import { can } from '../utils/permissions';
 import { 
-  LayoutDashboard, Package, ShoppingCart, CreditCard, BarChart3, Settings, LogOut, Box, UserCheck, ChevronLeft, ChevronRight, RotateCcw, Crown, FileSignature, TicketPercent, LifeBuoy, X
+  LayoutDashboard, Package, ShoppingCart, CreditCard, BarChart3, Settings, LogOut, Box, UserCheck, ChevronLeft, ChevronRight, RotateCcw, Crown, FileSignature, TicketPercent, LifeBuoy, X, BookUser
 } from 'lucide-react';
 
 const PLAN_BOX = {
@@ -36,8 +36,9 @@ const Sidebar = ({ mobile = false, onNavigate }) => {
     { name: 'Kategoriler', path: '/admin/categories', icon: Box, perm: 'CATALOG' },
     { name: 'Ürün Yönetimi', path: '/admin/products', icon: Package, perm: 'CATALOG' },
     { name: 'Bayi Yönetimi', path: '/admin/dealers', icon: UserCheck, perm: 'DEALERS' },
+    { name: 'Cari Hesaplar', path: '/admin/partners', icon: BookUser, perm: ['FINANCE', 'DEALERS'] },
     { name: 'Siparişler', path: '/admin/orders', icon: ShoppingCart, perm: 'ORDERS' },
-    { name: 'Teklifler', path: '/admin/quotes', icon: FileSignature, perm: 'ORDERS' },
+    { name: 'Teklifler', path: '/admin/quotes', icon: FileSignature, perm: 'QUOTES' },
     { name: 'İade / RMA', path: '/admin/returns', icon: RotateCcw, perm: 'ORDERS' },
     { name: 'Kampanyalar', path: '/admin/coupons', icon: TicketPercent, perm: 'CATALOG' },
     { name: 'Finans & Prim', path: '/admin/finance', icon: CreditCard, perm: 'FINANCE' },

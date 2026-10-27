@@ -9,6 +9,8 @@ export const WEBHOOK_EVENTS = {
   'company.created': 'Yeni bayi veya bayilik başvurusu',
   'payment.received': 'Bayiden tahsilat (sanal POS)',
   'quote.created': 'Yeni teklif talebi',
+  'quote.sent': 'Teklif müşteriye gönderildi',
+  'quote.accepted': 'Müşteri teklifi kabul etti',
   'return.created': 'Yeni iade / değişim talebi',
   'invoice.issued': 'Sipariş faturası kesildi'
 };

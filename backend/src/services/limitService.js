@@ -10,7 +10,7 @@ export class LimitError extends Error {
 
 const LIMITS = {
   // Onay bekleyen başvurular limite sayılmaz
-  dealers: { field: 'maxDealers', label: 'bayi', count: () => prisma.company.count({ where: { status: { not: 'PENDING' } } }) },
+  dealers: { field: 'maxDealers', label: 'bayi', count: () => prisma.company.count({ where: { kind: 'DEALER', status: { not: 'PENDING' } } }) },
   products: { field: 'maxProducts', label: 'ürün', count: () => prisma.product.count({ where: { isMaster: true } }) },
   admins: { field: 'maxAdmins', label: 'yönetici', count: () => prisma.user.count({ where: { role: 'ADMIN' } }) }
 };

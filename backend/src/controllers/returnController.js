@@ -122,6 +122,7 @@ export const updateReturn = async (req, res) => {
           data: {
             companyId: existing.companyId,
             orderId: existing.orderId,
+            source: 'RETURN',
             type: 'CREDIT',
             amount,
             description: `İade #RMA-${id} · ${existing.product.name} × ${existing.quantity}`

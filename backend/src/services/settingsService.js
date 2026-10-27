@@ -10,6 +10,10 @@ export const SETTING_DEFAULTS = {
   group_discount_VIP: '0',
   plasiyer_rate: '5',           // Plasiyer primi (% - KDV hariç tutar üzerinden)
   due_reminder_days: '3',       // Vadeye kaç gün kala hatırlatma gönderilir
+  quote_discount_limit: '10',   // Teklifte onaysız verilebilecek en yüksek ek iskonto (%)
+  quote_valid_days: '15',       // Yeni teklifin varsayılan geçerlilik süresi (gün)
+  quote_payment_terms: '',      // Yeni teklife önerilen ödeme / teslimat koşulları
+  quote_delivery_terms: '',
   usd_try: '',                  // TCMB'ye ulaşılamazsa kullanılacak manuel kurlar
   eur_try: ''
 };

@@ -19,8 +19,8 @@ export const getDashboard = async (req, res) => {
     ] = await Promise.all([
       prisma.order.aggregate({ where: { status: { in: REVENUE_STATUSES }, approvedAt: { gte: monthStart } }, _sum: { totalAmount: true } }),
       prisma.order.aggregate({ where: { status: { in: REVENUE_STATUSES }, approvedAt: { gte: prevMonthStart, lt: monthStart } }, _sum: { totalAmount: true } }),
-      prisma.company.count({ where: { status: 'ACTIVE' } }),
-      prisma.company.count({ where: { status: 'PENDING' } }),
+      prisma.company.count({ where: { status: 'ACTIVE', kind: 'DEALER' } }),
+      prisma.company.count({ where: { status: 'PENDING', kind: 'DEALER' } }),
       prisma.order.count({ where: { status: 'PENDING' } }),
       prisma.plasiyerPoint.aggregate({ _sum: { points: true } }),
       prisma.order.findMany({ where: { createdAt: { gte: seriesStart }, status: { not: 'CANCELLED' } }, select: { createdAt: true, totalAmount: true } }),
@@ -36,7 +36,7 @@ export const getDashboard = async (req, res) => {
       }),
       prisma.product.findMany({ where: { isActive: true, stock: { lte: 5 } }, select: { id: true, name: true, sku: true, stock: true }, orderBy: { stock: 'asc' }, take: 6 }),
       prisma.company.findMany({
-        where: { currentBalance: { lt: 0 } },
+        where: { currentBalance: { lt: 0 }, kind: { in: ['DEALER', 'CUSTOMER'] } },
         select: {
           id: true, name: true, currentBalance: true, phone: true,
           orders: { where: { dueDate: { not: null } }, orderBy: { dueDate: 'asc' }, take: 1, select: { dueDate: true } }

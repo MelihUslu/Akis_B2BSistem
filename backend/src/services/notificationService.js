@@ -118,6 +118,27 @@ export const runDueDateReminders = async () => {
   }
 };
 
+/**
+ * Cari görüşme notlarındaki hatırlatmalar: zamanı gelen, tamamlanmamış not için notu yazana bir kez bildirim.
+ */
+export const runPartnerReminders = async () => {
+  const notes = await prisma.partnerNote.findMany({
+    where: { remindAt: { lte: new Date() }, notifiedAt: null, doneAt: null, userId: { not: null } },
+    include: { company: { select: { id: true, name: true } } },
+    take: 500
+  });
+  for (const note of notes) {
+    const claimed = await prisma.partnerNote.updateMany({ where: { id: note.id, notifiedAt: null }, data: { notifiedAt: new Date() } });
+    if (!claimed.count) continue;
+    await create(note.userId, {
+      type: 'REMINDER',
+      title: `Hatırlatma: ${note.company.name}`,
+      message: note.body.length > 160 ? `${note.body.slice(0, 160)}…` : note.body,
+      link: `/admin/partners?id=${note.company.id}`
+    });
+  }
+};
+
 // Deneme süresi bitmek üzere olan kiracıların yöneticilerine 3 gün ve 1 gün kala hatırlatma
 const runTrialReminders = async (tenant) => {
   if (tenant.status !== 'TRIAL' || !tenant.trialEndsAt) return;
@@ -144,6 +165,7 @@ export const runScheduledJobs = async () => {
     if (!tenantAccess(tenant).active) continue;
     await runWithTenant(tenant.id, async () => {
       await runDueDateReminders();
+      await runPartnerReminders();
       await runTrialReminders(tenant);
     }).catch(err => console.error(`[Zamanlanmış İş] ${tenant.slug}:`, err.message));
   }

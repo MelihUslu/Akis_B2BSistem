@@ -58,12 +58,12 @@ const GlobalSearch = ({ dark = false }) => {
           )}
           {results.companies.length > 0 && (
             <div className="py-2 border-t border-gray-50">
-              <p className="px-4 py-1 text-[9px] font-black text-gray-400 uppercase tracking-widest">Bayiler</p>
+              <p className="px-4 py-1 text-[9px] font-black text-gray-400 uppercase tracking-widest">Bayiler ve Cariler</p>
               {results.companies.map(c => (
-                <button key={`c${c.id}`} onClick={() => go(`/admin/dealers?search=${encodeURIComponent(c.name)}`)} className="w-full text-left px-4 py-2 hover:bg-gray-50 flex items-center gap-3">
+                <button key={`c${c.id}`} onClick={() => go(c.kind === 'DEALER' ? `/admin/dealers?search=${encodeURIComponent(c.name)}` : `/admin/partners?id=${c.id}`)} className="w-full text-left px-4 py-2 hover:bg-gray-50 flex items-center gap-3">
                   <UserCheck className="h-4 w-4 text-emerald-400" />
                   <span className="text-xs font-bold text-gray-800 truncate">{c.name}</span>
-                  <span className="ml-auto text-[10px] text-gray-400">{c.status === 'PENDING' ? 'Başvuru' : c.taxNumber}</span>
+                  <span className="ml-auto text-[10px] text-gray-400">{c.kind === 'CUSTOMER' ? 'Müşteri' : c.kind === 'SUPPLIER' ? 'Tedarikçi' : c.status === 'PENDING' ? 'Başvuru' : c.taxNumber}</span>
                 </button>
               ))}
             </div>

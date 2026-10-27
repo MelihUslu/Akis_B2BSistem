@@ -93,7 +93,8 @@ export const addDealerUser = async (req, res) => {
   if (!ensureDealerManager(req, res)) return;
   const companyId = companyIdFor(req);
   const company = await prisma.company.findUnique({ where: { id: companyId } });
-  if (!company) return res.status(404).json({ message: 'Bayi bulunamadı.' });
+  // Portal kullanıcısı yalnızca bayiye açılır (müşteri / tedarikçi carisi portala giremez)
+  if (!company || company.kind !== 'DEALER') return res.status(404).json({ message: 'Bayi bulunamadı.' });
 
   const email = String(req.body.email || '').toLowerCase().trim();
   const name = String(req.body.name || '').trim();
