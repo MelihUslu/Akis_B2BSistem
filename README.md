@@ -180,6 +180,10 @@ Firma, Ayarlar → Entegrasyon'dan API anahtarı üretir. `/api/v1` uçları ile
 | `AUTO_PURGE_CLOSED` | | Kapatılan hesapların 30 gün sonra otomatik silinmesi |
 | `PARASUT_*`, `SUBSCRIPTION_VAT_RATE` | | Platformun abonelik faturaları (Paraşüt) |
 | `TZ` | | Tarih filtreleri ve raporların saat dilimi (varsayılan `Europe/Istanbul`) |
+| `VAPID_PUBLIC_KEY`, `VAPID_PRIVATE_KEY`, `VAPID_SUBJECT` | | Telefon / masaüstü bildirimi (`npx web-push generate-vapid-keys`) |
+| `AI_PROVIDER`, `AI_API_KEY`, `AI_MODEL`, `AI_EFFORT`, `AI_TIMEOUT_MS`, `AI_DAILY_LIMIT` | | Yapay zekâ ile teklif. Anahtar yoksa manuel teklif çalışır; `mock` yalnızca geliştirme içindir |
+| `BACKUP_DIR` | | Sistem Durumu'nun son yedeği okuduğu klasör (Compose'da `/backups`) |
+| `FX_FIXED` | yalnızca test | Sabit döviz kuru (`USD:40,EUR:45`); canlıda tanımlanırsa sunucu açılmaz |
 
 ### frontend/.env
 
@@ -192,50 +196,22 @@ Firma, Ayarlar → Entegrasyon'dan API anahtarı üretir. `/api/v1` uçları ile
 
 ## Canlıya alma
 
-1. **DNS:** `akisb2b.com`, `*.akisb2b.com` (wildcard) ve `api.akisb2b.com` kayıtlarını sunucuya yönlendirin. Özel alan adı satıyorsanız `custom.akisb2b.com` da sunucuyu göstersin; müşteriler kendi alan adlarına buraya CNAME verir.
-2. **Ortam:** `ROOT_DOMAIN=akisb2b.com`, `FRONTEND_PROTOCOL=https`, `FRONTEND_PORT=` (boş), `API_PUBLIC_URL=https://api.akisb2b.com`, `NODE_ENV=production`, güçlü `JWT_SECRET` ve `ENCRYPTION_KEY`.
-3. **Frontend:** `npm run build` çıktısını (`frontend/dist`) statik olarak sunun; tüm yollar `index.html`'e düşmeli (SPA).
-4. **SSL ve ters vekil:** Caddy, hem `*.akisb2b.com` hem de müşterilerin özel alan adları için sertifikayı ilk istekte otomatik alabilir. `ask` adresi yalnızca sistemde kayıtlı firma alt alan adlarına ve doğrulanmış özel alan adlarına izin verir; böylece rastgele alan adlarına sertifika alınmaz.
+Adım adım rehber: **[docs/canliya-cikis.md](docs/canliya-cikis.md)** (sunucu, DNS, ayarlar, başlatma, izleme, yedekleme / geri yükleme, güncelleme, gerçek hesaplarla denenecekler).
 
-```caddy
-{
-	on_demand_tls {
-		ask http://localhost:5001/api/public/domain-check
-	}
-}
+Özet:
 
-api.akisb2b.com {
-	reverse_proxy localhost:5001
-}
-
-https:// {
-	tls {
-		on_demand
-	}
-	root * /srv/akis/frontend/dist
-	try_files {path} /index.html
-	file_server
-	header {
-		Strict-Transport-Security "max-age=31536000; includeSubDomains"
-		X-Content-Type-Options "nosniff"
-		X-Frame-Options "DENY"
-		Referrer-Policy "strict-origin-when-cross-origin"
-		Permissions-Policy "camera=(), microphone=(), geolocation=()"
-		# PayTR ödeme formu iframe ile açıldığı için frame-src'de izinlidir
-		Content-Security-Policy "default-src 'self'; img-src 'self' data: https:; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src 'self' https://fonts.gstatic.com; connect-src 'self' https://api.akisb2b.com; frame-src https://www.paytr.com https://*.iyzipay.com; frame-ancestors 'none'"
-	}
-}
+```bash
+cp deploy/production.env.example .env                                 # alan adı, veritabanı şifresi, ACME e-postası
+cp deploy/backend.production.env.example backend/.env.production      # JWT_SECRET, ENCRYPTION_KEY, SMTP, AI…
+docker compose -f docker-compose.prod.yml run --rm backend npm run check:config
+docker compose -f docker-compose.prod.yml up -d --build
 ```
 
-5. **iyzico:** Canlı anahtarları girip platform panelinde Paketler → paket düzenleme ekranındaki "iyzico" (senkronize et) butonuyla her paketi eşleyin. Bildirim adresi: `https://api.akisb2b.com/api/public/iyzico/webhook`.
-6. **Yedekleme:** Compose'daki `backup` servisi açılışta ve her gün 03:00'te veritabanını (`pg_dump -Fc`) ve yüklenen dosyaları `./backups` klasörüne alır; `BACKUP_KEEP_DAYS` (varsayılan 14) günden eskileri siler. Bu klasörü ayrıca sunucu dışına (S3, başka sunucu) kopyalayın.
-
-   ```bash
-   docker compose exec backup /scripts/backup.sh                                   # elle yedek
-   docker compose exec backup /scripts/restore.sh /backups/db-…dump deneme_db       # önce ayrı veritabanına geri yükleyip kontrol edin
-   docker compose exec backup /scripts/restore.sh /backups/db-…dump                 # asıl veritabanına (mevcut veri silinir)
-   tar -xzf backups/uploads-….tar.gz -C backend/uploads                            # dosyalar
-   ```
+- `web` servisi (Caddy) arayüzü sunar ve HTTPS sertifikalarını ilk istekte otomatik alır. `ask` adresi (`/api/public/domain-check`) yalnızca kayıtlı firma alt alan adlarına ve doğrulanmış özel alan adlarına izin verir. Güvenlik başlıkları `deploy/Caddyfile` içindedir.
+- Backend canlıda (`NODE_ENV=production`) eksik veya güvensiz ayarla **açılmaz**: kısa `JWT_SECRET`, eksik `ENCRYPTION_KEY`, `localhost` alan adı, `http` bağlantı, örnek yapay zekâ. Kontrol için `npm run check:config`; aynı liste platform panelindeki **Sistem Durumu** sayfasında da görünür.
+- Dış izleme için `GET /health/ready` (veritabanına ulaşılamazsa 503).
+- `backup` servisi her gün 03:00'te veritabanını ve yüklenen dosyaları `./backups`'a alır ve yedeği doğrular. Sunucu dışı kopya için rehberdeki rclone örneğine bakın.
+- iyzico: canlı anahtarları girip platform panelinde Paketler → paket düzenleme → "iyzico" (senkronize et). Bildirim adresi: `https://api.akisb2b.com/api/public/iyzico/webhook`.
 
 ## Geliştirme notları
 

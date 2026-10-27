@@ -1,0 +1,19 @@
+# Arayüzün canlı imajı: frontend derlenir, Caddy ile sunulur (HTTPS + ters vekil)
+FROM node:20 AS build
+WORKDIR /app
+COPY frontend/package*.json ./
+RUN npm ci --no-audit --no-fund
+COPY frontend/ ./
+# Derleme anında gömülen ayarlar (docker-compose.prod.yml → build.args)
+ARG VITE_API_URL
+ARG VITE_ROOT_DOMAIN
+ARG VITE_PLATFORM_NAME="Akis B2B"
+ARG VITE_SUPPORT_PHONE=""
+ARG VITE_SUPPORT_EMAIL=""
+ENV VITE_API_URL=$VITE_API_URL VITE_ROOT_DOMAIN=$VITE_ROOT_DOMAIN VITE_PLATFORM_NAME=$VITE_PLATFORM_NAME \
+    VITE_SUPPORT_PHONE=$VITE_SUPPORT_PHONE VITE_SUPPORT_EMAIL=$VITE_SUPPORT_EMAIL VITE_DEFAULT_TENANT=""
+RUN test -n "$VITE_API_URL" && test -n "$VITE_ROOT_DOMAIN" && npm run build
+
+FROM caddy:2.8-alpine
+COPY --from=build /app/dist /srv
+COPY deploy/Caddyfile /etc/caddy/Caddyfile

@@ -29,12 +29,14 @@ services:
     volumes:
       - ./backend:/app
       - /app/node_modules # Prevent host node_modules from overwriting container's
+      - ./backups:/backups:ro # Sistem durumu sayfası son yedeği buradan okur
     ports:
       - "5001:5001"
     environment:
       - DATABASE_URL=postgresql://${POSTGRES_USER:-akis}:${POSTGRES_PASSWORD:-akis_dev_password}@db:5432/${POSTGRES_DB:-akis_b2b}
       - PORT=5001
       - REDIS_URL=redis://redis:6379
+      - BACKUP_DIR=/backups
     depends_on:
       db:
         condition: service_healthy

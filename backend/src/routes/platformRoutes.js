@@ -1,4 +1,5 @@
 import express from 'express';
+import { systemStatus } from '../services/systemStatus.js';
 import {
   platformLogin, getDashboard, listTenants, getTenant, createTenant, updateTenant, addManualPayment,
   resetTenantAdminPassword, listPlans, createPlan, updatePlan, syncPlanToIyzico, listPayments,
@@ -50,6 +51,7 @@ router.post('/tenants/:id/reopen', reopenTenant);
 router.post('/tenants/:id/purge', purgeTenantData);
 router.get('/audit-logs', platformAuditLogs);
 router.get('/errors', listErrors);
+router.get('/system', async (req, res) => res.json(await systemStatus()));
 router.post('/errors/:id/resolve', resolveError);
 router.get('/announcements', listAnnouncements);
 router.post('/announcements', createAnnouncement);

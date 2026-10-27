@@ -7,6 +7,7 @@ import { isAllowedOrigin } from './config.js';
 import accountRoutes from './routes/accountRoutes.js';
 import { openApiSpec } from './docs/openapi.js';
 import { recordRequestError } from './services/errorTracker.js';
+import { systemHealth } from './services/systemStatus.js';
 import reportRoutes from './routes/reportRoutes.js';
 import invoicingRoutes from './routes/invoicingRoutes.js';
 import addressRoutes from './routes/addressRoutes.js';
@@ -119,6 +120,11 @@ app.use('/api', tenantApi);
 // Health check endpoint
 app.get('/health', (req, res) => {
   res.status(200).json({ status: 'ok', message: 'Akis B2B Backend is running' });
+});
+// Dış izleme (UptimeRobot vb.) için: veritabanına ulaşılamıyorsa 503 döner
+app.get('/health/ready', async (req, res) => {
+  const status = await systemHealth();
+  res.status(status.ok ? 200 : 503).json(status);
 });
 
 // Multer ve diğer beklenmeyen hatalar için Türkçe JSON yanıtı

@@ -1,0 +1,43 @@
+# Canlı ortam ters vekili ve HTTPS (docker-compose.prod.yml → web servisi)
+# - api.ROOT_DOMAIN       → backend (API, yüklenen dosyalar, ödeme geri dönüşleri)
+# - diğer tüm alan adları → arayüz (kök, platform, firma alt alan adları, doğrulanmış özel alan adları)
+# Sertifikalar ilk istekte otomatik alınır; "ask" yalnızca sistemde kayıtlı alan adlarına izin verir.
+{
+	email {$ACME_EMAIL}
+	on_demand_tls {
+		ask http://backend:5001/api/public/domain-check
+	}
+}
+
+api.{$ROOT_DOMAIN} {
+	encode zstd gzip
+	reverse_proxy backend:5001
+}
+
+https:// {
+	tls {
+		on_demand
+	}
+	encode zstd gzip
+	root * /srv
+
+	# Service worker ve index.html önbelleğe alınmaz (yeni sürüm hemen gelsin); derlenmiş dosyalar uzun süre önbellekte
+	@nocache path /sw.js /index.html /manifest.webmanifest
+	header @nocache Cache-Control "no-cache"
+	@assets path /assets/*
+	header @assets Cache-Control "public, max-age=31536000, immutable"
+
+	try_files {path} /index.html
+	file_server
+
+	header {
+		Strict-Transport-Security "max-age=31536000; includeSubDomains"
+		X-Content-Type-Options "nosniff"
+		X-Frame-Options "DENY"
+		Referrer-Policy "strict-origin-when-cross-origin"
+		Permissions-Policy "camera=(), microphone=(), geolocation=()"
+		# PayTR ödeme formu iframe ile açıldığı için frame-src'de izinlidir
+		Content-Security-Policy "default-src 'self'; img-src 'self' data: blob: https:; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src 'self' https://fonts.gstatic.com; connect-src 'self' https://api.{$ROOT_DOMAIN}; frame-src https://www.paytr.com https://*.iyzipay.com; manifest-src 'self' blob:; worker-src 'self'; frame-ancestors 'none'"
+		-Server
+	}
+}

@@ -7,7 +7,8 @@
     "dev": "nodemon src/server.js",
     "start": "node src/server.js",
     "test": "JWT_SECRET=test-secret node --test test/unit/*.test.js",
-    "test:integration": "JWT_SECRET=test-secret node --test --test-concurrency=1 test/integration/*.test.js"
+    "test:integration": "JWT_SECRET=test-secret node --test --test-concurrency=1 test/integration/*.test.js",
+    "check:config": "node scripts/check-config.js"
   },
   "keywords": [],
   "author": "",

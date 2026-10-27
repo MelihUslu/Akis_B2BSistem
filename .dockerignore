@@ -1,0 +1,8 @@
+# Web imajı (deploy/Dockerfile.web) yalnızca frontend ve deploy klasörlerini kullanır
+*
+!frontend/
+!deploy/Caddyfile
+frontend/node_modules
+frontend/dist
+frontend/.env
+frontend/.env.*

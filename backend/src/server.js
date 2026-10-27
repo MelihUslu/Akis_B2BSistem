@@ -1,5 +1,8 @@
 import { PORT } from './config.js';
 import { installErrorTracking } from './services/errorTracker.js';
+import { enforceConfig } from './services/configCheck.js';
+
+enforceConfig(); // canlıda eksik / güvensiz ayarla açılmaz
 
 installErrorTracking();
 import app from './app.js';

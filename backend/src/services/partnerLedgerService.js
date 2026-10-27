@@ -193,21 +193,33 @@ export const agingFor = (company, debts, now = new Date()) => {
   return { ...out, total, oldestOverdueDays: oldest, overdue };
 };
 
-const debtWhere = { type: 'DEBT', source: { not: 'REVERSAL' }, reversedBy: { is: null } };
-
 export const agingReport = async ({ kinds = ['DEALER', 'CUSTOMER'], companyId } = {}) => {
   const companies = await prisma.company.findMany({
     where: { kind: { in: kinds }, currentBalance: { lt: 0 }, ...(companyId && { id: companyId }) },
-    select: {
-      id: true, name: true, kind: true, externalCode: true, phone: true, currentBalance: true, paymentTermDays: true, currency: true,
-      transactions: { where: debtWhere, orderBy: [{ date: 'desc' }, { id: 'desc' }], select: { amount: true, date: true, order: { select: { dueDate: true } } } }
-    },
+    select: { id: true, name: true, kind: true, externalCode: true, phone: true, currentBalance: true, paymentTermDays: true, currency: true },
     orderBy: { currentBalance: 'asc' }
   });
+  // Borç hareketleri tek sorguda (cari başına alt sorgu yerine); ters kaydedilenler ayrıca çıkarılır
+  const ids = companies.map((c) => c.id);
+  const [debts, reversed] = ids.length ? await Promise.all([
+    prisma.financialTransaction.findMany({
+      where: { companyId: { in: ids }, type: 'DEBT', source: { not: 'REVERSAL' } },
+      orderBy: [{ date: 'desc' }, { id: 'desc' }],
+      select: { id: true, companyId: true, amount: true, date: true, order: { select: { dueDate: true } } }
+    }),
+    prisma.financialTransaction.findMany({ where: { companyId: { in: ids }, reversalOfId: { not: null } }, select: { reversalOfId: true } })
+  ]) : [[], []];
+  const reversedIds = new Set(reversed.map((r) => r.reversalOfId));
+  const byCompany = new Map();
+  for (const d of debts) {
+    if (reversedIds.has(d.id)) continue;
+    if (!byCompany.has(d.companyId)) byCompany.set(d.companyId, []);
+    byCompany.get(d.companyId).push(d);
+  }
   const now = new Date();
   const fx = (await getExchangeRates()).rates || {};
-  const rows = companies.map(({ transactions, ...c }) => {
-    const a = agingFor(c, transactions, now);
+  const rows = companies.map((c) => {
+    const a = agingFor(c, byCompany.get(c.id) || [], now);
     const rate = c.currency === 'TRY' ? 1 : fx[c.currency];
     return { ...c, ...a, totalTRY: rate ? round2(a.total * rate) : null, overdueTRY: rate ? round2(a.overdue * rate) : null };
   }).sort((x, y) => (y.oldestOverdueDays ?? -1) - (x.oldestOverdueDays ?? -1) || (y.overdueTRY ?? 0) - (x.overdueTRY ?? 0) || (y.totalTRY ?? 0) - (x.totalTRY ?? 0));

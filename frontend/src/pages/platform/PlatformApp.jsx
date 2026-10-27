@@ -1,7 +1,7 @@
 import { Suspense, lazy, useState } from 'react';
 import { Routes, Route, Navigate, NavLink, useNavigate, useLocation, Link } from 'react-router-dom';
 import ErrorBoundary from '../../components/ErrorBoundary';
-import { LayoutDashboard, Building2, Layers, Receipt, LogOut, Lock, Mail, Megaphone, LifeBuoy, ScrollText, ShieldCheck, Menu, X, Bug, BookOpen } from 'lucide-react';
+import { LayoutDashboard, Building2, Layers, Receipt, LogOut, Lock, Mail, Megaphone, LifeBuoy, ScrollText, ShieldCheck, Menu, X, Bug, BookOpen, Activity } from 'lucide-react';
 import { platformApi, errorMessage } from '../../services/api';
 import TwoFactorStep from '../../components/TwoFactorStep';
 import ThemeToggle from '../../components/ThemeToggle';
@@ -18,6 +18,7 @@ const PlatformSupport = lazy(() => import('./PlatformSupport'));
 const PlatformAudit = lazy(() => import('./PlatformAudit'));
 const PlatformSecurity = lazy(() => import('./PlatformSecurity'));
 const PlatformErrors = lazy(() => import('./PlatformErrors'));
+const PlatformSystem = lazy(() => import('./PlatformSystem'));
 const PlatformHelp = lazy(() => import('./PlatformHelp'));
 
 const readUser = () => {
@@ -102,6 +103,7 @@ const MENU = [
   { name: 'Duyurular', path: '/announcements', icon: Megaphone },
   { name: 'İşlem Kaydı', path: '/audit', icon: ScrollText },
   { name: 'Hatalar', path: '/errors', icon: Bug },
+  { name: 'Sistem Durumu', path: '/system', icon: Activity },
   { name: 'Güvenlik', path: '/security', icon: ShieldCheck },
 ];
 
@@ -162,6 +164,7 @@ const PlatformLayout = ({ user, onLogout }) => {
         <Route path="audit" element={<PlatformAudit />} />
         <Route path="security" element={<PlatformSecurity />} />
         <Route path="errors" element={<PlatformErrors />} />
+        <Route path="system" element={<PlatformSystem />} />
         <Route path="*" element={<Navigate to="/" replace />} />
       </Routes>
       </Suspense>

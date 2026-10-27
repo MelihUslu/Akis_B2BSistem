@@ -16,6 +16,8 @@ dist/
 backend/uploads/images/*
 !backend/uploads/images/.gitkeep
 backend/uploads/support/*
+# Cari belgeleri (vergi levhası, sözleşme…) — kişisel / ticari veri
+backend/uploads/private/
 
 # Sistem / editör
 .DS_Store

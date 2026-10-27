@@ -1,7 +1,11 @@
 node_modules
+# Ortam dosyaları imaja girmez (canlıda env_file ile verilir)
 .env
+.env.*
 *.db
 *.db-journal
 uploads/images/*
 !uploads/images/.gitkeep
 uploads/support/*
+uploads/private
+test
