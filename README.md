@@ -134,6 +134,11 @@ Fatura kesilince bayiye bildirim ve `invoice.issued` webhook'u gider; bayi sipar
 
 > Paraşüt akışı, testlerde Paraşüt API'sini taklit eden bir sunucuyla doğrulanmıştır. Canlıya almadan önce gerçek bir Paraşüt hesabıyla (tercihen test şirketi) bir e-arşiv ve bir e-fatura kesilerek denenmelidir.
 
+### Destek, yardım merkezi ve memnuniyet
+- Firma yöneticisi **Destek** sayfasından platforma talep açar (konu türü, öncelik, ek dosya, otomatik teknik bilgi, hedef yanıt süresi).
+- **Yardım merkezi:** aynı sayfada aranabilir yazılar; yeni talep yazılırken konuya uygun yazılar önerilir ("işe yaradı mı?" oyu toplanır). Yazılar platform panelindeki **Yardım Merkezi** sayfasından yönetilir; başlangıç yazıları migration ile gelir.
+- **Memnuniyet puanı:** kapanan talebe firma 1–5 yıldız ve yorum verir. Platform destek sayfasında ortalama puan ve memnun oranı (4–5 puan) görünür; 2 ve altı puanlarda platforma e-posta gider.
+
 ### Mobil uygulama (PWA) ve anlık bildirimler
 Portal telefona uygulama olarak kurulur (Android/masaüstü Chrome: menüdeki **Uygulamayı Yükle**; iPhone: Safari → Paylaş → Ana Ekrana Ekle). Mağaza uygulaması gerekmez.
 - Kurulan uygulama firmanın adıyla görünür (manifest firma bilgisiyle tarayıcıda üretilir). Telefonda alt sekme çubuğu: katalog, hızlı sipariş, sepet, siparişler, menü.

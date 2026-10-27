@@ -7,6 +7,7 @@ import { invalidateTenantCache } from '../middlewares/tenantMiddleware.js';
 import { exportTenantWorkbook } from '../services/tenantDataService.js';
 import { sendPlatformAlert } from '../services/mailService.js';
 import * as iyzico from '../services/iyzicoService.js';
+import { searchArticles, getArticle, articleFeedback } from '../services/helpService.js';
 
 const DAY = 24 * 60 * 60 * 1000;
 export const CUSTOM_DOMAIN_TARGET = () => process.env.CUSTOM_DOMAIN_TARGET || `custom.${ROOT_DOMAIN}`;
@@ -206,4 +207,34 @@ export const closeAccount = async (req, res) => {
   invalidateTenantCache(tenant.slug);
   sendPlatformAlert({ subject: 'Hesap kapatma talebi', text: `${tenant.name} (${tenant.slug}) hesabını kapattı. Veriler ${new Date(now.getTime() + 30 * DAY).toLocaleDateString('tr-TR')} sonrası silinebilir.` }).catch(() => {});
   res.json({ message: 'Hesabınız kapatıldı. 30 gün içinde platform yöneticisine başvurarak geri açtırabilirsiniz; sonrasında verileriniz kalıcı olarak silinir.' });
+};
+
+// ─── Yardım merkezi ve memnuniyet puanı ─────────────────────────────────────
+
+export const helpList = async (req, res) => {
+  res.json(await searchArticles({ q: String(req.query.q || '').slice(0, 300), category: String(req.query.category || ''), limit: Math.min(Number(req.query.limit) || 30, 50) }));
+};
+
+export const helpGet = async (req, res) => {
+  const article = await getArticle(parseInt(req.params.id));
+  if (!article) return res.status(404).json({ message: 'Yazı bulunamadı.' });
+  res.json(article);
+};
+
+export const helpFeedback = async (req, res) => {
+  await articleFeedback(parseInt(req.params.id), Boolean(req.body.helpful));
+  res.json({ message: 'Geri bildiriminiz için teşekkürler.' });
+};
+
+// Kapanan talebe 1-5 puan ve isteğe bağlı yorum (değiştirilebilir)
+export const rateTicket = async (req, res) => {
+  const rating = parseInt(req.body.rating);
+  if (!(rating >= 1 && rating <= 5)) return res.status(400).json({ message: '1 ile 5 arasında bir puan seçin.' });
+  const ticket = await prisma.supportTicket.findUnique({ where: { id: parseInt(req.params.id) } });
+  if (!ticket) return res.status(404).json({ message: 'Talep bulunamadı.' });
+  if (ticket.status !== 'CLOSED') return res.status(400).json({ message: 'Yalnızca kapanan talepler değerlendirilebilir.' });
+  const comment = String(req.body.comment || '').trim().slice(0, 1000) || null;
+  await prisma.supportTicket.update({ where: { id: ticket.id }, data: { rating, ratingComment: comment, ratedAt: new Date() } });
+  if (rating <= 2) sendPlatformAlert({ subject: `Düşük memnuniyet puanı: #${ticket.id} (${rating}/5)`, text: `${req.tenant.name} · ${ticket.subject}${comment ? `\n\n${comment}` : ''}` }).catch(() => {});
+  res.json({ message: 'Değerlendirmeniz için teşekkürler.' });
 };

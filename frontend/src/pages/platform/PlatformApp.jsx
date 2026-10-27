@@ -1,7 +1,7 @@
 import React, { Suspense, lazy, useState } from 'react';
 import { Routes, Route, Navigate, NavLink, useNavigate, useLocation, Link } from 'react-router-dom';
 import ErrorBoundary from '../../components/ErrorBoundary';
-import { LayoutDashboard, Building2, Layers, Receipt, LogOut, Lock, Mail, Megaphone, LifeBuoy, ScrollText, ShieldCheck, Menu, X, Bug } from 'lucide-react';
+import { LayoutDashboard, Building2, Layers, Receipt, LogOut, Lock, Mail, Megaphone, LifeBuoy, ScrollText, ShieldCheck, Menu, X, Bug, BookOpen } from 'lucide-react';
 import { platformApi, errorMessage } from '../../services/api';
 import TwoFactorStep from '../../components/TwoFactorStep';
 import ThemeToggle from '../../components/ThemeToggle';
@@ -18,6 +18,7 @@ const PlatformSupport = lazy(() => import('./PlatformSupport'));
 const PlatformAudit = lazy(() => import('./PlatformAudit'));
 const PlatformSecurity = lazy(() => import('./PlatformSecurity'));
 const PlatformErrors = lazy(() => import('./PlatformErrors'));
+const PlatformHelp = lazy(() => import('./PlatformHelp'));
 
 const readUser = () => {
   try { return JSON.parse(localStorage.getItem('akis_platform_user')); } catch { return null; }
@@ -97,6 +98,7 @@ const MENU = [
   { name: 'Paketler', path: '/plans', icon: Layers },
   { name: 'Ödemeler', path: '/payments', icon: Receipt },
   { name: 'Destek', path: '/support', icon: LifeBuoy },
+  { name: 'Yardım Merkezi', path: '/help', icon: BookOpen },
   { name: 'Duyurular', path: '/announcements', icon: Megaphone },
   { name: 'İşlem Kaydı', path: '/audit', icon: ScrollText },
   { name: 'Hatalar', path: '/errors', icon: Bug },
@@ -155,6 +157,7 @@ const PlatformLayout = ({ user, onLogout }) => {
         <Route path="plans" element={<PlatformPlans />} />
         <Route path="payments" element={<PlatformPayments />} />
         <Route path="support" element={<PlatformSupport />} />
+        <Route path="help" element={<PlatformHelp />} />
         <Route path="announcements" element={<PlatformAnnouncements />} />
         <Route path="audit" element={<PlatformAudit />} />
         <Route path="security" element={<PlatformSecurity />} />

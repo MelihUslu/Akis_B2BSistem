@@ -9,6 +9,9 @@ import { TICKET_CATEGORIES } from '../../components/shared/supportMeta';
 import { PendingAttachments, AttachButton } from '../../components/shared/Attachments';
 import useAttachments from '../../hooks/useAttachments';
 import { Field, IconInput, TextArea, Segmented } from '../../components/form/FormKit';
+import HelpCenter from '../../components/support/HelpCenter';
+import HelpArticleModal from '../../components/support/HelpArticleModal';
+import SuggestedArticles from '../../components/support/SuggestedArticles';
 
 const EMPTY = { category: '', subject: '', body: '', priority: 'NORMAL' };
 const UPLOAD = '/account/support/upload';
@@ -40,6 +43,7 @@ const SupportPage = () => {
   const { alertElement, showAlert, confirm } = useAlert();
   const [sla, setSla] = useState({ HIGH: 2, NORMAL: 24 });
   const [context, setContext] = useState(null);
+  const [articleId, setArticleId] = useState(null);
   const onUploadError = (message) => showAlert({ type: 'error', title: 'Dosya eklenemedi', message });
   const att = useAttachments(api, UPLOAD, onUploadError);
 
@@ -53,6 +57,25 @@ const SupportPage = () => {
   }, []);
 
   const open = (id) => api.get(`/account/support/${id}`).then((r) => { setSelected(r.data); setForm(null); });
+
+  // Bildirimden gelindiyse (?ticket=12) ilgili talep açılır
+  useEffect(() => {
+    const fromLink = parseInt(new URLSearchParams(window.location.search).get('ticket'));
+    if (fromLink) open(fromLink).catch(() => {});
+  }, []);
+
+  const rate = async (rating, comment) => {
+    try {
+      const res = await api.post(`/account/support/${selected.id}/rate`, { rating, comment });
+      await open(selected.id);
+      load();
+      showAlert({ type: 'success', title: 'Teşekkürler', message: res.data.message });
+      return true;
+    } catch (err) {
+      showAlert({ type: 'error', title: 'Hata', message: errorMessage(err, 'Değerlendirme kaydedilemedi.') });
+      return false;
+    }
+  };
 
   const startNew = () => { setForm(EMPTY); setTried(false); setSelected(null); setContext(collectContext()); att.reset(); };
 
@@ -103,6 +126,10 @@ const SupportPage = () => {
   return (
     <div className="space-y-6">
       {alertElement}
+      {articleId && (
+        <HelpArticleModal id={articleId} client={api} onClose={() => setArticleId(null)}
+          onNeedHelp={() => { setArticleId(null); if (!form) startNew(); }} />
+      )}
       <div className="flex justify-between items-center flex-wrap gap-4">
         <div className="flex items-center gap-4">
           <div className="bg-gradient-to-br from-indigo-500 to-indigo-700 p-3.5 rounded-2xl shadow-lg shadow-indigo-500/25 shrink-0"><LifeBuoy className="h-6 w-6 text-white" /></div>
@@ -182,6 +209,7 @@ const SupportPage = () => {
                     options={[{ value: 'NORMAL', label: 'Normal' }, { value: 'HIGH', label: 'Acil', icon: Flame, activeClass: 'bg-red-500 border-red-500 text-white shadow-md shadow-red-500/25' }]} />
                 </Field>
               </div>
+              <SuggestedArticles client={api} text={`${form.subject} ${form.body.slice(0, 200)}`} onOpen={setArticleId} />
               <Field label="Açıklama" required error={err(form.body.trim().length < 10) && 'En az 10 karakterlik bir açıklama yazın.'}
                 hint="Ne yapmaya çalıştınız, ne oldu, ne bekliyordunuz? Varsa sipariş no, ürün kodu veya hata mesajını ekleyin.">
                 <TextArea className="h-44" invalid={err(form.body.trim().length < 10)} maxLength={5000} value={form.body} onChange={set('body')} onPaste={att.onPaste}
@@ -215,26 +243,17 @@ const SupportPage = () => {
             </div>
           </form>
         ) : selected ? (
-          <TicketThread ticket={selected} side="TENANT" onReply={reply} onClose={close} client={api} uploadPath={UPLOAD} onError={onUploadError} now={now} />
+          <TicketThread ticket={selected} side="TENANT" onReply={reply} onClose={close} onRate={rate} client={api} uploadPath={UPLOAD} onError={onUploadError} now={now} />
         ) : (
-          <div className="card-premium p-10 text-center">
-            <div className="h-16 w-16 mx-auto rounded-2xl bg-indigo-50 text-indigo-500 flex items-center justify-center mb-4"><LifeBuoy className="h-8 w-8" /></div>
-            <p className="text-lg font-black text-gray-900">Size nasıl yardımcı olabiliriz?</p>
-            <p className="text-sm text-gray-500 mt-1 mb-6">Soldan bir talep seçin ya da yeni bir talep açın.</p>
-            <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 text-left max-w-2xl mx-auto">
-              {[
-                { icon: BookOpen, title: 'Ayrıntı verin', text: 'Hangi ekranda, ne yaparken olduğunu yazın.' },
-                { icon: Timer, title: 'Hedef süre', text: `Acil talepleri ${hoursText(sla.HIGH)}, diğerlerini ${hoursText(sla.NORMAL)} içinde yanıtlarız.` },
-                { icon: MessageSquareReply, title: 'Bildirim alın', text: 'Yanıt gelince zil simgesinde görürsünüz.' },
-              ].map((tip) => (
-                <div key={tip.title} className="rounded-xl ring-1 ring-gray-100 p-4">
-                  <tip.icon className="h-5 w-5 text-indigo-500 mb-2" />
-                  <p className="text-sm font-bold text-gray-900">{tip.title}</p>
-                  <p className="text-xs text-gray-500 mt-0.5">{tip.text}</p>
-                </div>
-              ))}
+          <div className="space-y-4">
+            <HelpCenter client={api} onOpen={setArticleId} />
+            <div className="card-premium p-5 flex flex-col sm:flex-row sm:items-center gap-4">
+              <div className="flex-1 grid grid-cols-1 sm:grid-cols-2 gap-3">
+                <p className="flex items-start gap-2.5 text-xs text-gray-500"><Timer className="h-4 w-4 text-indigo-500 shrink-0" /><span><b className="text-gray-800">Hedef süre:</b> acil talepleri {hoursText(sla.HIGH)}, diğerlerini {hoursText(sla.NORMAL)} içinde yanıtlarız.</span></p>
+                <p className="flex items-start gap-2.5 text-xs text-gray-500"><BookOpen className="h-4 w-4 text-indigo-500 shrink-0" /><span><b className="text-gray-800">Ayrıntı verin:</b> hangi ekranda, ne yaparken olduğunu yazın; ekran görüntüsü ekleyin.</span></p>
+              </div>
+              <button onClick={startNew} className="btn-gradient h-11 px-5 py-0 shrink-0"><Plus className="h-4 w-4 mr-1.5" /> Yeni talep aç</button>
             </div>
-            <button onClick={startNew} className="btn-gradient h-11 px-5 py-0 mt-6 inline-flex"><Plus className="h-4 w-4 mr-1.5" /> Yeni talep aç</button>
           </div>
         )}
       </div>

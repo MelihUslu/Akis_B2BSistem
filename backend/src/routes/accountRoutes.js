@@ -2,7 +2,7 @@ import express from 'express';
 import { supportUpload, uploadSupportFile } from '../middlewares/upload.js';
 import { rateLimit } from '../middlewares/rateLimit.js';
 import {
-  listAuditLogs, activeAnnouncements, supportMeta, listTickets, getTicket, createTicket, replyTicket, closeTicket,
+  listAuditLogs, activeAnnouncements, supportMeta, listTickets, getTicket, createTicket, replyTicket, closeTicket, rateTicket, helpList, helpGet, helpFeedback,
   getDomain, setDomain, verifyDomain, removeDomain, exportData, closeAccount
 } from '../controllers/accountController.js';
 import { verifyToken, checkRole, requirePermission, blockImpersonation } from '../middlewares/authMiddleware.js';
@@ -21,6 +21,10 @@ router.post('/support', createTicket);
 router.get('/support/:id', getTicket);
 router.post('/support/:id/messages', replyTicket);
 router.post('/support/:id/close', closeTicket);
+router.post('/support/:id/rate', rateTicket);
+router.get('/help', helpList);
+router.get('/help/:id', helpGet);
+router.post('/help/:id/feedback', rateLimit({ windowMs: 60 * 60 * 1000, max: 60, message: 'Çok fazla istek. Biraz sonra tekrar deneyin.' }), helpFeedback);
 
 router.get('/domain', requirePermission('SETTINGS'), getDomain);
 router.put('/domain', requirePermission('SETTINGS'), setDomain);

@@ -21,8 +21,9 @@ const InstallAppButton = () => {
       </button>
 
       {iosOpen && (
-        <div className="modal-backdrop" onClick={() => setIosOpen(false)}>
-          <div className="modal-panel max-w-sm" onClick={(e) => e.stopPropagation()}>
+        <div className="fixed inset-0 z-[60] flex items-center justify-center p-4">
+          <div className="modal-backdrop" onClick={() => setIosOpen(false)} />
+          <div className="modal-panel w-full max-w-sm">
             <div className="modal-header">
               <h3 className="modal-title">{t('iPhone / iPad\'e yükleme')}</h3>
               <button className="modal-close" onClick={() => setIosOpen(false)}><X className="h-5 w-5" /></button>

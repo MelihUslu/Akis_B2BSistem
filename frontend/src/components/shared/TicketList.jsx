@@ -1,5 +1,5 @@
 import React from 'react';
-import { Flame, Inbox, Timer, Paperclip } from 'lucide-react';
+import { Flame, Inbox, Timer, Paperclip, Star } from 'lucide-react';
 import { TICKET_CATEGORIES, TICKET_STATUS, timeAgo, slaState } from './supportMeta';
 
 /**
@@ -46,6 +46,8 @@ const TicketList = ({ tickets, selectedId, onSelect, side, showTenant = false, n
                 <span className="font-mono text-[10px] text-gray-400">#{t.id}</span>
                 <span className={`px-1.5 py-0.5 rounded-md text-[10px] font-bold ${st.className}`}>{st.label}</span>
                 {sla && <span className={`inline-flex items-center gap-1 px-1.5 py-0.5 rounded-md text-[10px] font-bold ${sla.className}`}><Timer className="h-3 w-3" /> {sla.label}</span>}
+                {t.rating && <span className="inline-flex items-center gap-0.5 px-1.5 py-0.5 rounded-md text-[10px] font-bold bg-amber-50 text-amber-700" title="Memnuniyet puanı"><Star className="h-3 w-3 fill-amber-400 text-amber-400" />{t.rating}</span>}
+                {side === 'TENANT' && t.status === 'CLOSED' && !t.rating && <span className="px-1.5 py-0.5 rounded-md text-[10px] font-bold bg-amber-100 text-amber-700">Puan verin</span>}
                 {needsMe && !sla && <span className="px-1.5 py-0.5 rounded-md text-[10px] font-bold bg-blue-600 text-white">{side === 'TENANT' ? 'Yeni yanıt' : 'Sırada'}</span>}
                 <span className="text-[10px] text-gray-400 ml-auto">{t._count?.messages || 0} mesaj</span>
               </span>

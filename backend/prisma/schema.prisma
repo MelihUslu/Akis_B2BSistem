@@ -882,12 +882,34 @@ model SupportTicket {
   dueAt           DateTime? // Hedef yanıt zamanı (SLA); platform yanıtlayınca boşalır
   firstResponseAt DateTime? // İlk platform yanıtı (ölçüm için)
   status          String    @default("OPEN") // OPEN (platform yanıtı bekliyor), ANSWERED, CLOSED
+  rating          Int? // Kapanınca firmanın verdiği memnuniyet puanı (1-5)
+  ratingComment   String?
+  ratedAt         DateTime?
   createdAt       DateTime  @default(now())
   updatedAt       DateTime  @updatedAt
 
   messages SupportMessage[]
 
   @@index([tenantId])
+}
+
+// Yardım merkezi yazısı (platform yönetir, tüm firmalar görür). Destek talebi açmadan önce önerilir.
+model HelpArticle {
+  id          Int      @id @default(autoincrement())
+  category    String   @default("USAGE") // TECHNICAL, BILLING, FEATURE, USAGE, OTHER (destek kategorileriyle aynı)
+  title       String
+  summary     String   @default("")
+  body        String
+  keywords    String   @default("") // Aramada eşleşsin diye ek kelimeler (virgülle)
+  isPublished Boolean  @default(true)
+  sortOrder   Int      @default(0)
+  views       Int      @default(0)
+  helpfulYes  Int      @default(0)
+  helpfulNo   Int      @default(0)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  @@index([isPublished, category])
 }
 
 model SupportMessage {

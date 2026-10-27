@@ -4,7 +4,8 @@ import {
   resetTenantAdminPassword, listPlans, createPlan, updatePlan, syncPlanToIyzico, listPayments,
   platformVerifyTwoFactor, platformForgotPassword, platformResetPassword, retrySubscriptionInvoice, subscriptionInvoicePdfUrl, listErrors, resolveError, platformTwoFactorStatus, platformTwoFactorSetup, platformTwoFactorEnable, platformTwoFactorDisable,
   impersonateTenant, exportTenantData, reopenTenant, purgeTenantData, platformAuditLogs,
-  listAnnouncements, createAnnouncement, deleteAnnouncement, listSupportTickets, getSupportTicket, replySupportTicket
+  listAnnouncements, createAnnouncement, deleteAnnouncement, listSupportTickets, getSupportTicket, replySupportTicket,
+  listHelpArticles, createHelpArticle, updateHelpArticle, deleteHelpArticle
 } from '../controllers/platformController.js';
 import { auditTrail } from '../services/auditService.js';
 import { supportUpload, uploadSupportFile } from '../middlewares/upload.js';
@@ -57,5 +58,9 @@ router.post('/support/upload', supportUpload.single('file'), uploadSupportFile);
 router.get('/support', listSupportTickets);
 router.get('/support/:id', getSupportTicket);
 router.post('/support/:id/messages', replySupportTicket);
+router.get('/help', listHelpArticles);
+router.post('/help', createHelpArticle);
+router.put('/help/:id', updateHelpArticle);
+router.delete('/help/:id', deleteHelpArticle);
 
 export default router;

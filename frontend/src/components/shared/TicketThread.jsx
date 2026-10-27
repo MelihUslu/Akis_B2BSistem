@@ -3,6 +3,7 @@ import { Send, LifeBuoy, Flame, Lock, RotateCcw, Zap, CalendarDays, User, Timer,
 import { TICKET_CATEGORIES, TICKET_STATUS, initials, slaState } from './supportMeta';
 import { PendingAttachments, AttachButton, MessageAttachments } from './Attachments';
 import useAttachments from '../../hooks/useAttachments';
+import TicketRating, { Stars } from '../support/TicketRating';
 
 const dayLabel = (date) => {
   const d = new Date(date);
@@ -59,8 +60,9 @@ const ContextPanel = ({ context }) => {
  * kendi mesajları sağda gösterilir. onReply(body, close) -> Promise<boolean>
  * quickReplies: platform tarafında tek tıkla eklenen hazır yanıtlar
  * client / uploadPath: ek yükleme için axios örneği ve uç; showContext: talebin teknik bilgilerini göster (platform)
+ * onRate(rating, comment): firma tarafında kapanan talebe memnuniyet puanı verir
  */
-const TicketThread = ({ ticket, side, onReply, onClose, subtitle, quickReplies = [], client, uploadPath, showContext = false, now, onError }) => {
+const TicketThread = ({ ticket, side, onReply, onClose, subtitle, quickReplies = [], client, uploadPath, showContext = false, now, onError, onRate }) => {
   const [body, setBody] = useState('');
   const [sending, setSending] = useState(false);
   const att = useAttachments(client, uploadPath, onError);
@@ -107,6 +109,12 @@ const TicketThread = ({ ticket, side, onReply, onClose, subtitle, quickReplies =
               <span className="inline-flex items-center gap-1"><User className="h-3 w-3" /> {subtitle || ticket.user?.name}</span>
               <span className="inline-flex items-center gap-1"><CalendarDays className="h-3 w-3" /> {new Date(ticket.createdAt).toLocaleString('tr-TR', { day: '2-digit', month: 'short', hour: '2-digit', minute: '2-digit' })}</span>
             </p>
+            {side === 'PLATFORM' && ticket.rating && (
+              <p className="mt-2 inline-flex flex-wrap items-center gap-2 rounded-lg bg-amber-50 px-2.5 py-1.5 text-xs">
+                <span className="font-bold text-gray-600">Memnuniyet:</span><Stars value={ticket.rating} />
+                {ticket.ratingComment && <span className="text-gray-600">“{ticket.ratingComment}”</span>}
+              </p>
+            )}
             {showContext && <ContextPanel context={ticket.context} />}
           </div>
           {onClose && !closed && (
@@ -155,6 +163,7 @@ const TicketThread = ({ ticket, side, onReply, onClose, subtitle, quickReplies =
 
       {/* Yanıt alanı */}
       <div className="border-t border-gray-100 p-4 space-y-3 bg-white">
+        {closed && onRate && <TicketRating key={ticket.id} ticket={ticket} onRate={onRate} />}
         {closed && (
           <p className="flex items-center gap-2 text-xs font-semibold text-gray-500 bg-gray-50 rounded-xl px-3 py-2">
             <RotateCcw className="h-3.5 w-3.5" /> Bu talep kapatıldı. {side === 'TENANT' ? 'Yazarsanız talep yeniden açılır.' : 'Yanıt yazarsanız firma bilgilendirilir.'}

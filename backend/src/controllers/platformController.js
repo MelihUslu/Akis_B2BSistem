@@ -1,5 +1,6 @@
 import bcrypt from 'bcrypt';
 import crypto from 'crypto';
+import { articleData } from '../services/helpService.js';
 import jwt from 'jsonwebtoken';
 import prisma from '../utils/prisma.js';
 import { JWT_SECRET, tenantUrl, tenantPortalUrl } from '../config.js';
@@ -509,7 +510,7 @@ export const replySupportTicket = async (req, res) => {
     })
   ]);
   await runWithTenantSafe(ticket.tenantId, () => notifyUser(ticket.userId, {
-    type: 'SYSTEM', title: `Destek talebiniz yanıtlandı (#${ticket.id})`, message: body.slice(0, 160), link: '/admin/support'
+    type: 'SYSTEM', title: req.body.close ? `Destek talebiniz çözüldü (#${ticket.id}) — bizi değerlendirin` : `Destek talebiniz yanıtlandı (#${ticket.id})`, message: body.slice(0, 160), link: `/admin/support?ticket=${ticket.id}`
   }));
   res.json({ message: 'Yanıt gönderildi.' });
 };
@@ -579,4 +580,34 @@ export const listErrors = async (req, res) => {
 export const resolveError = async (req, res) => {
   await prisma.errorLog.updateMany({ where: { id: parseInt(req.params.id) }, data: { resolvedAt: req.body.reopen ? null : new Date() } });
   res.json({ message: req.body.reopen ? 'Hata yeniden açıldı.' : 'Çözüldü olarak işaretlendi. Tekrar oluşursa yeniden açılır.' });
+};
+
+// ─── Yardım merkezi yazıları ─────────────────────────────────────────────────
+
+export const listHelpArticles = async (req, res) => {
+  res.json(await prisma.helpArticle.findMany({ orderBy: [{ sortOrder: 'asc' }, { id: 'asc' }] }));
+};
+
+export const createHelpArticle = async (req, res) => {
+  try {
+    const article = await prisma.helpArticle.create({ data: articleData(req.body) });
+    res.status(201).json({ message: 'Yazı eklendi.', article });
+  } catch (error) {
+    res.status(error.status || 500).json({ message: error.status ? error.message : 'Yazı kaydedilemedi.' });
+  }
+};
+
+export const updateHelpArticle = async (req, res) => {
+  try {
+    const article = await prisma.helpArticle.update({ where: { id: parseInt(req.params.id) }, data: articleData(req.body) });
+    res.json({ message: 'Yazı güncellendi.', article });
+  } catch (error) {
+    if (error.code === 'P2025') return res.status(404).json({ message: 'Yazı bulunamadı.' });
+    res.status(error.status || 500).json({ message: error.status ? error.message : 'Yazı kaydedilemedi.' });
+  }
+};
+
+export const deleteHelpArticle = async (req, res) => {
+  await prisma.helpArticle.deleteMany({ where: { id: parseInt(req.params.id) } });
+  res.json({ message: 'Yazı silindi.' });
 };
