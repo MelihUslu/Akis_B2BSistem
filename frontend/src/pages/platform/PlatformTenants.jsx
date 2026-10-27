@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react';
+import { useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { Plus, Search, X, ExternalLink, Building2 } from 'lucide-react';
 import { platformApi, errorMessage } from '../../services/api';
@@ -97,7 +97,7 @@ const PlatformTenants = () => {
       .then((res) => setTenants(res.data)).catch(() => {});
 
   useEffect(() => { platformApi.get('/plans').then((res) => setPlans(res.data.plans)).catch(() => {}); }, []);
-  useEffect(() => { const t = setTimeout(load, 250); return () => clearTimeout(t); }, [search, status]);
+  useEffect(() => { const t = setTimeout(load, 250); return () => clearTimeout(t); }, [search, status]); // eslint-disable-line react-hooks/exhaustive-deps
 
   return (
     <div className="space-y-8">

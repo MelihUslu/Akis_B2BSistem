@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import { useState, useEffect } from 'react';
 import api, { errorMessage } from '../../services/api';
 import { CreditCard, Wallet, ArrowUpRight, ArrowDownLeft, Info, CheckCircle2, X, CalendarClock, Lock } from 'lucide-react';
 import useAlert from '../../hooks/useAlert';
@@ -135,16 +135,11 @@ const BayiFinance = () => {
   const [params, setParams] = useSearchParams();
   const { alertElement, showAlert, confirm } = useAlert();
 
-  const fetchStatement = async () => {
-    try {
-      const response = await api.get('/finance/my-statement');
-      setStatement(response.data);
-    } catch (error) {
-      console.error('Finansal bilgiler yüklenemedi');
-    } finally {
-      setIsLoading(false);
-    }
-  };
+  const fetchStatement = () =>
+    api.get('/finance/my-statement')
+      .then((response) => setStatement(response.data))
+      .catch(() => console.error('Finansal bilgiler yüklenemedi'))
+      .finally(() => setIsLoading(false));
 
   useEffect(() => {
     fetchStatement();
@@ -161,7 +156,7 @@ const BayiFinance = () => {
       if (result === 'pending') setTimeout(fetchStatement, 4000);
       setParams({}, { replace: true });
     }
-  }, []);
+  }, []); // eslint-disable-line react-hooks/exhaustive-deps
 
   const handleReconcile = async () => {
     const ok = await confirm({

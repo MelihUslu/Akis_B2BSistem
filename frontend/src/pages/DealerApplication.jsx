@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import { useState } from 'react';
 import { Link } from 'react-router-dom';
 import { Building2, CheckCircle2, ArrowLeft } from 'lucide-react';
 import api, { errorMessage } from '../services/api';

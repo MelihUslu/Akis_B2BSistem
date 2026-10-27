@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import { useState } from 'react';
 import { ScrollText } from 'lucide-react';
 import { platformApi } from '../../services/api';
 import AuditLogTable from '../../components/shared/AuditLogTable';

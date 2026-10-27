@@ -1,4 +1,4 @@
-import React, { useEffect, useRef, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Search, Package, UserCheck, ShoppingCart } from 'lucide-react';
 import api from '../services/api';
@@ -9,13 +9,14 @@ import { formatTRY, ORDER_STATUS } from '../utils/format';
  */
 const GlobalSearch = ({ dark = false }) => {
   const [q, setQ] = useState('');
-  const [results, setResults] = useState(null);
+  const [lastResults, setResults] = useState(null);
+  const results = q.trim().length >= 2 ? lastResults : null; // kısa aramada sonuç gösterilmez
   const [open, setOpen] = useState(false);
   const ref = useRef(null);
   const navigate = useNavigate();
 
   useEffect(() => {
-    if (q.trim().length < 2) { setResults(null); return; }
+    if (q.trim().length < 2) return undefined;
     const t = setTimeout(() => api.get('/search', { params: { q } }).then((r) => { setResults(r.data); setOpen(true); }).catch(() => {}), 250);
     return () => clearTimeout(t);
   }, [q]);

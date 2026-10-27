@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react';
+import { useEffect, useState } from 'react';
 import { Link, useParams } from 'react-router-dom';
 import { ArrowLeft, ExternalLink, Save, Wallet, KeyRound, Ban, PlayCircle, UserCog, Download, Trash2, RotateCcw, Globe } from 'lucide-react';
 import { platformApi, errorMessage } from '../../services/api';
@@ -18,8 +18,7 @@ const PlatformTenantDetail = () => {
   const [payment, setPayment] = useState({ planCode: '', billingCycle: 'MONTHLY', amount: '', reference: '', note: '' });
   const { alertElement, showAlert, confirm } = useAlert();
 
-  const load = async () => {
-    const [t, p] = await Promise.all([platformApi.get(`/tenants/${id}`), platformApi.get('/plans')]);
+  const load = () => Promise.all([platformApi.get(`/tenants/${id}`), platformApi.get('/plans')]).then(([t, p]) => {
     setTenant(t.data);
     setPlans(p.data.plans);
     setForm({
@@ -28,9 +27,9 @@ const PlatformTenantDetail = () => {
       trialEndsAt: toInputDate(t.data.trialEndsAt), currentPeriodEnd: toInputDate(t.data.currentPeriodEnd), notes: t.data.notes || ''
     });
     setPayment((pm) => ({ ...pm, planCode: t.data.plan.code, billingCycle: t.data.billingCycle }));
-  };
+  });
 
-  useEffect(() => { load().catch(() => {}); }, [id]);
+  useEffect(() => { load().catch(() => {}); }, [id]); // eslint-disable-line react-hooks/exhaustive-deps
 
   if (!tenant || !form) return <div className="text-center text-gray-400 py-20">Yükleniyor...</div>;
 

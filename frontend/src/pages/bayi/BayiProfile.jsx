@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react';
+import { useEffect, useState } from 'react';
 import { User, Building2, KeyRound, Phone, Mail, MapPin, Award } from 'lucide-react';
 import api, { errorMessage } from '../../services/api';
 import AddressBook from '../../components/shared/AddressBook';

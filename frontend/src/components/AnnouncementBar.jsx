@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react';
+import { useEffect, useState } from 'react';
 import { Megaphone, AlertTriangle, Wrench, X } from 'lucide-react';
 import api from '../services/api';
 

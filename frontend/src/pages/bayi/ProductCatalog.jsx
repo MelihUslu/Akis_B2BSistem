@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import { useState, useEffect } from 'react';
 import api from '../../services/api';
 import { 
   ShoppingCart, Search, Package,
@@ -28,7 +28,8 @@ const ProductCatalog = () => {
   const [products, setProducts] = useState([]);
   const [categories, setCategories] = useState([]);
   const [filters, setFilters] = useState({ brands: [] });
-  const [isLoading, setIsLoading] = useState(true);
+  const [loadedKey, setLoadedKey] = useState(null); // son yüklenen sorgu
+  const [refreshing, setRefreshing] = useState(false); // arama / filtre düğmesiyle yeniden yükleme
   const [userProfile, setUserProfile] = useState(null);
   
   const [search, setSearch] = useState('');
@@ -48,43 +49,44 @@ const ProductCatalog = () => {
 
   const { addToCart, setIsCartOpen } = useCart();
 
-  const fetchData = async () => {
-    setIsLoading(true);
-    try {
-      const query = new URLSearchParams({
-        page,
-        search,
-        categoryId: selectedCategory,
-        brand: selectedBrand,
-        minPrice: priceRange.min,
-        maxPrice: priceRange.max,
-        ...(favoritesOnly && { favorites: 'true' }),
-      });
-      const selectedOptions = Object.fromEntries(Object.entries(optionFilters).filter(([, v]) => v).map(([k, v]) => [k, [v]]));
-      if (Object.keys(selectedOptions).length) query.set('options', JSON.stringify(selectedOptions));
+  // Sayfa / filtre değişince yeniden yüklenir; yüklenen sorgu güncel sorgudan farklıysa "yükleniyor"
+  const queryKey = JSON.stringify([page, selectedBrand, selectedCategory, favoritesOnly, optionFilters]);
+  const isLoading = refreshing || loadedKey !== queryKey;
 
-      const [pRes, cRes, fRes, uRes] = await Promise.all([
-        api.get(`/products?${query.toString()}`),
-        api.get('/categories'),
-        api.get('/products/filters'),
-        api.get('/auth/me')
-      ]);
+  const fetchData = (key = queryKey) => {
+    const query = new URLSearchParams({
+      page,
+      search,
+      categoryId: selectedCategory,
+      brand: selectedBrand,
+      minPrice: priceRange.min,
+      maxPrice: priceRange.max,
+      ...(favoritesOnly && { favorites: 'true' }),
+    });
+    const selectedOptions = Object.fromEntries(Object.entries(optionFilters).filter(([, v]) => v).map(([k, v]) => [k, [v]]));
+    if (Object.keys(selectedOptions).length) query.set('options', JSON.stringify(selectedOptions));
 
+    return Promise.all([
+      api.get(`/products?${query.toString()}`),
+      api.get('/categories'),
+      api.get('/products/filters'),
+      api.get('/auth/me')
+    ]).then(([pRes, cRes, fRes, uRes]) => {
       setProducts(pRes.data.data);
       setRules(pRes.data.rules);
       setCategories(cRes.data);
       setFilters(fRes.data);
       setUserProfile(uRes.data);
-    } catch (error) {
-      console.error('Veri yükleme hatası');
-    } finally {
-      setIsLoading(false);
-    }
+    }).catch(() => console.error('Veri yükleme hatası'))
+      .finally(() => { setLoadedKey(key); setRefreshing(false); });
   };
 
+  // Arama / fiyat filtresi düğmeleri: aynı sorgu anahtarıyla yeniden yükler
+  const refresh = () => { setRefreshing(true); fetchData(); };
+
   useEffect(() => {
-    fetchData();
-  }, [page, selectedBrand, selectedCategory, favoritesOnly, optionFilters]);
+    fetchData(queryKey);
+  }, [queryKey]); // eslint-disable-line react-hooks/exhaustive-deps
 
   // variant: seçilen varyant (varyantsız üründe null) · qty: verilmezse karttaki miktar
   const handleAddToCart = (product, variant = null, qty = null) => {
@@ -107,7 +109,7 @@ const ProductCatalog = () => {
       const update = (p) => (p.id === product.id ? { ...p, isFavorite: res.data.isFavorite } : p);
       setProducts(prev => (favoritesOnly && !res.data.isFavorite ? prev.filter(p => p.id !== product.id) : prev.map(update)));
       setSelectedProduct(prev => (prev ? update(prev) : prev));
-    } catch (error) {
+    } catch {
       showAlert({ type: 'error', title: t('Hata'), message: t('Favori güncellenemedi.') });
     }
   };
@@ -175,7 +177,7 @@ const ProductCatalog = () => {
           )}
         </div>
         
-        <form onSubmit={(e) => { e.preventDefault(); fetchData(); }} className="relative w-full xl:w-[32rem] group">
+        <form onSubmit={(e) => { e.preventDefault(); refresh(); }} className="relative w-full xl:w-[32rem] group">
           <Search className="absolute left-6 top-1/2 -translate-y-1/2 h-5 w-5 text-gray-300 group-focus-within:text-indigo-600 transition-all" />
           <input 
             type="text" 
@@ -284,7 +286,7 @@ const ProductCatalog = () => {
             </button>
 
             <button 
-              onClick={() => { setPage(1); fetchData(); }}
+              onClick={() => { setPage(1); refresh(); }}
               className="bg-gray-900 text-white px-8 py-3.5 rounded-2xl text-[11px] font-black uppercase tracking-widest hover:bg-gray-800 transition-colors shadow-lg shadow-gray-900/20"
             >
               {t('Uygula')}

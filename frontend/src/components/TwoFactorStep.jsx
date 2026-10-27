@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import { useState } from 'react';
 import { ShieldCheck, ChevronRight, AlertCircle } from 'lucide-react';
 import { t } from '../i18n';
 

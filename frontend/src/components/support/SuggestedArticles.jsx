@@ -14,7 +14,7 @@ const SuggestedArticles = ({ client, text, onOpen }) => {
       client.get('/account/help', { params: { q: query.slice(0, 300), limit: 3 } }).then((r) => setList(r.data)).catch(() => {});
     }, 400);
     return () => clearTimeout(timer);
-  }, [query]);
+  }, [query]); // eslint-disable-line react-hooks/exhaustive-deps
 
   if (!list.length || query.length < 4) return null;
   return (

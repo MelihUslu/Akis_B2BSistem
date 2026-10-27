@@ -1,4 +1,4 @@
-import React, { Suspense, lazy, useEffect, useState } from 'react';
+import { Suspense, lazy, useEffect, useState } from 'react';
 import { Routes, Route, Link, useLocation } from 'react-router-dom';
 import { ShieldOff, Award, ChevronDown, Menu } from 'lucide-react';
 import Sidebar from '../components/Sidebar';

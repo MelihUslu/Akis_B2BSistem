@@ -17,7 +17,7 @@ const HelpCenter = ({ client, onOpen }) => {
         .then((r) => setArticles(r.data)).catch(() => setArticles([]));
     }, q ? 250 : 0);
     return () => clearTimeout(timer);
-  }, [q, category]);
+  }, [q, category]); // eslint-disable-line react-hooks/exhaustive-deps
 
   return (
     <div className="card-premium overflow-hidden">

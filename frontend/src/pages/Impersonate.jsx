@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react';
+import { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 
@@ -15,20 +15,24 @@ const decodeUser = (value) => {
 const Impersonate = () => {
   const { startSession } = useAuth();
   const navigate = useNavigate();
-  const [error, setError] = useState('');
-
-  useEffect(() => {
-    const params = new URLSearchParams(window.location.hash.slice(1));
-    window.history.replaceState(null, '', window.location.pathname);
+  // Bağlantı ilk çizimde bir kez çözümlenir; geçersizse null
+  const [session] = useState(() => {
     try {
+      const params = new URLSearchParams(window.location.hash.slice(1));
       const token = params.get('token');
       const user = decodeUser(params.get('user'));
-      if (!token || !user?.impersonatedBy) throw new Error();
-      startSession({ token, user });
-      navigate('/admin', { replace: true });
+      return token && user?.impersonatedBy ? { token, user } : null;
     } catch {
-      setError('Destek bağlantısı geçersiz veya süresi dolmuş.');
+      return null;
     }
+  });
+  const error = session ? '' : 'Destek bağlantısı geçersiz veya süresi dolmuş.';
+
+  useEffect(() => {
+    window.history.replaceState(null, '', window.location.pathname);
+    if (!session) return;
+    startSession(session);
+    navigate('/admin', { replace: true });
   }, []); // eslint-disable-line react-hooks/exhaustive-deps
 
   return <div className="min-h-screen flex items-center justify-center text-sm font-bold text-gray-500">{error || 'Destek oturumu açılıyor...'}</div>;

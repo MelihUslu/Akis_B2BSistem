@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import { useState, useEffect } from 'react';
 import { useAuth } from '../context/AuthContext';
 import { useTenant } from '../context/TenantContext';
 import { useNavigate, Link } from 'react-router-dom';
@@ -25,7 +25,9 @@ const Login = () => {
   const navigate = useNavigate();
 
   useEffect(() => {
-    setIsVisible(true);
+    // Bir sonraki karede görünür yap: ilk çizim gizli olur, giriş animasyonu oynar
+    const frame = requestAnimationFrame(() => setIsVisible(true));
+    return () => cancelAnimationFrame(frame);
   }, []);
 
   const goHome = () => {
@@ -47,7 +49,7 @@ const Login = () => {
       } else {
         setError(result.message);
       }
-    } catch (err) {
+    } catch {
       setError(t('Sistem bağlantısı kurulamadı.'));
     } finally {
       setIsLoading(false);

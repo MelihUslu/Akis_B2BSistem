@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react';
+import { useEffect, useState } from 'react';
 import { CreditCard, ShieldCheck, Trash2, Copy, Check } from 'lucide-react';
 import api, { errorMessage } from '../../services/api';
 

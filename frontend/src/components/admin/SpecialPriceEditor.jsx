@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react';
+import { useEffect, useState } from 'react';
 import { Plus, Trash2, Save, Tag } from 'lucide-react';
 import api, { errorMessage } from '../../services/api';
 

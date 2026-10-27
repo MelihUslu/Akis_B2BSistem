@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react';
+import { useEffect, useState } from 'react';
 import { KeyRound, Webhook, Copy, Trash2, Plus, Send, BookOpen } from 'lucide-react';
 import WebhookDeliveries from './WebhookDeliveries';
 import api, { errorMessage } from '../../services/api';

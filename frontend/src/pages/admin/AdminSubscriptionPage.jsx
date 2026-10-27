@@ -1,4 +1,4 @@
-import React, { useEffect, useRef, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { useSearchParams } from 'react-router-dom';
 import { Crown, Check, CreditCard, AlertTriangle, X, Loader2, CalendarClock } from 'lucide-react';
 import api, { errorMessage } from '../../services/api';
@@ -133,7 +133,7 @@ const AdminSubscriptionPage = () => {
       : { type: 'error', title: 'Ödeme Tamamlanamadı', message: params.get('message') || 'Lütfen tekrar deneyin.' });
     setParams({}, { replace: true });
     refreshTenant?.();
-  }, []);
+  }, []); // eslint-disable-line react-hooks/exhaustive-deps
 
   if (!data) return <div className="p-10 text-center text-gray-400">Yükleniyor...</div>;
 

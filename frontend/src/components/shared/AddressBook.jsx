@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react';
+import { useEffect, useState } from 'react';
 import { MapPin, Plus, Star, Pencil, Trash2, X, User, Phone, Building, Save, Check } from 'lucide-react';
 import api, { errorMessage } from '../../services/api';
 import { Field, IconInput, TextArea } from '../form/FormKit';

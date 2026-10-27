@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import { useState } from 'react';
 import { Zap, ClipboardPaste, Plus, Trash2, ShoppingCart, AlertTriangle, Search } from 'lucide-react';
 import api, { errorMessage } from '../../services/api';
 import { useCart } from '../../context/CartContext';

@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react';
+import { useEffect, useState } from 'react';
 import { Bug, Monitor, Server, CheckCircle2, RotateCcw, ChevronDown } from 'lucide-react';
 import { platformApi, errorMessage } from '../../services/api';
 import useAlert from '../../hooks/useAlert';

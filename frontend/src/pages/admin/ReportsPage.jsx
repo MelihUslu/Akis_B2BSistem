@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react';
+import { useEffect, useState } from 'react';
 import { BarChart3, FileSpreadsheet, TrendingUp, ShoppingCart, Users, Package, Percent, Layers, PackageX, CalendarRange, Info } from 'lucide-react';
 import { ResponsiveContainer, AreaChart, Area, XAxis, YAxis, Tooltip, CartesianGrid } from 'recharts';
 import api, { errorMessage } from '../../services/api';
@@ -51,15 +51,15 @@ const ReportsPage = () => {
   const [range, setRange] = useState(() => PRESETS[1].range());
   const [tab, setTab] = useState('products');
   const [report, setReport] = useState(null);
-  const [loading, setLoading] = useState(true);
+  const [loadedRange, setLoadedRange] = useState(null);
+  const loading = loadedRange !== range; // seçili aralığın raporu henüz gelmedi
   const { alertElement, showAlert } = useAlert();
 
   useEffect(() => {
-    setLoading(true);
     api.get('/reports/sales', { params: { from: range[0], to: range[1] } })
       .then((r) => setReport(r.data))
       .catch((err) => showAlert({ type: 'error', title: 'Rapor alınamadı', message: errorMessage(err, 'Rapor oluşturulamadı.') }))
-      .finally(() => setLoading(false));
+      .finally(() => setLoadedRange(range));
   }, [range]); // eslint-disable-line react-hooks/exhaustive-deps
 
   const choosePreset = (id) => { setPreset(id); setRange(PRESETS.find((p) => p.id === id).range()); };

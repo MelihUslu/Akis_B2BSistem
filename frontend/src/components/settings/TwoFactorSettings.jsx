@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react';
+import { useEffect, useState } from 'react';
 import { ShieldCheck, ShieldOff, Copy, Download } from 'lucide-react';
 import { errorMessage } from '../../services/api';
 

@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import { useState } from 'react';
 import { X, FileSignature, Trash2 } from 'lucide-react';
 import api, { errorMessage } from '../../services/api';
 import { t } from '../../i18n';

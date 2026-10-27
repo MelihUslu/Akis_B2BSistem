@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import { useState } from 'react';
 import { Plus, Trash2, X, Wand2, Layers, AlertCircle } from 'lucide-react';
 import { newKey, generateCombinations } from './variantForm';
 

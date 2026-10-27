@@ -16,7 +16,7 @@ const HelpArticleModal = ({ id, client, onClose, onNeedHelp }) => {
 
   useEffect(() => {
     client.get(`/account/help/${id}`).then((r) => setArticle(r.data)).catch(() => onClose());
-  }, [id]);
+  }, [id]); // eslint-disable-line react-hooks/exhaustive-deps
 
   const send = (helpful) => {
     if (vote) return;

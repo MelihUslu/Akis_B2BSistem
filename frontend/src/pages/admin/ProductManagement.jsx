@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import { useState, useEffect } from 'react';
 import api, { errorMessage } from '../../services/api';
 import useAlert from '../../hooks/useAlert';
 import VariantEditor from '../../components/admin/VariantEditor';
@@ -22,7 +22,7 @@ import {
 } from '@dnd-kit/sortable';
 import { CSS } from '@dnd-kit/utilities';
 import {
-  Package, Plus, Search, Filter, MoreVertical, ChevronRight, LayoutGrid, List, FileDown, FileUp, Edit3, Trash2, Eye, EyeOff, Save, X, ImageIcon, DollarSign, Hash, Layers, Tag, Info, ListTree, BoxSelect, Settings, Lock, Unlock, EyeClosed, GripVertical, FileText, ChevronLeft, Type, Barcode, AlignLeft, ShoppingBasket, Shuffle, Banknote, Wallet, Warehouse, Boxes, Star, UploadCloud, Paperclip, PlayCircle, Percent
+  Package, Plus, Search, ChevronRight, FileUp, Edit3, Trash2, Eye, EyeOff, Save, X, ImageIcon, DollarSign, Hash, Layers, Tag, Info, ListTree, BoxSelect, Lock, GripVertical, FileText, ChevronLeft, Type, Barcode, AlignLeft, ShoppingBasket, Shuffle, Banknote, Wallet, Warehouse, Boxes, Star, UploadCloud, Paperclip, PlayCircle, Percent
 } from 'lucide-react';
 
 const BULK_TYPES = [
@@ -230,31 +230,23 @@ const ProductManagement = () => {
     options: [], variants: [], hidePrice: false
   });
 
-  const fetchInitialData = async () => {
-    try {
-      setIsLoading(true);
-      const [prodRes, catRes, setRes, whRes] = await Promise.allSettled([
-        api.get('/products', { params: { search, isAdmin: true, limit: 200 } }),
-        api.get('/categories?isAdmin=true&isFlat=true'),
-        api.get('/settings'),
-        api.get('/warehouses')
-      ]);
+  // Kayıttan sonra da çağrılır; liste yerinde güncellenir (tablo "yükleniyor"a dönüp yanıp sönmez)
+  const fetchInitialData = () =>
+    Promise.allSettled([
+      api.get('/products', { params: { search, isAdmin: true, limit: 200 } }),
+      api.get('/categories?isAdmin=true&isFlat=true'),
+      api.get('/settings'),
+      api.get('/warehouses')
+    ]).then(([prodRes, catRes, setRes, whRes]) => {
       if (whRes.status === 'fulfilled') setWarehouses(whRes.value.data);
-
       if (prodRes.status === 'fulfilled') setProducts(prodRes.value.data.data);
       if (catRes.status === 'fulfilled') setCategories(catRes.value.data);
       if (setRes.status === 'fulfilled') setSettings(setRes.value.data);
-
-    } catch (error) {
-      console.error('Yükleme hatası:', error);
-    } finally {
-      setIsLoading(false);
-    }
-  };
+    }).finally(() => setIsLoading(false));
 
   useEffect(() => {
     fetchInitialData();
-  }, [search]);
+  }, [search]); // eslint-disable-line react-hooks/exhaustive-deps
 
   const handleDragEnd = async (event) => {
     const { active, over } = event;
@@ -283,7 +275,7 @@ const ProductManagement = () => {
     try {
       await api.post('/settings', { key, value });
       setSettings(prev => ({ ...prev, [key]: String(value) }));
-    } catch (error) {
+    } catch {
       showAlert({ type: 'error', title: 'Hata', message: 'Ayar güncellenemedi.' });
     }
   };

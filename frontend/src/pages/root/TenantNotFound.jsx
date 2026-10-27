@@ -1,4 +1,3 @@
-import React from 'react';
 import { SearchX } from 'lucide-react';
 import { rootUrl } from '../../utils/tenant';
 import { t } from '../../i18n';

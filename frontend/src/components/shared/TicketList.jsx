@@ -1,4 +1,3 @@
-import React from 'react';
 import { Flame, Inbox, Timer, Paperclip, Star } from 'lucide-react';
 import { TICKET_CATEGORIES, TICKET_STATUS, timeAgo, slaState } from './supportMeta';
 

@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react';
+import { useEffect, useState } from 'react';
 import { FileText, Download, RefreshCw, Loader2, AlertTriangle, PenLine, X } from 'lucide-react';
 import api, { errorMessage } from '../../services/api';
 import { t } from '../../i18n';

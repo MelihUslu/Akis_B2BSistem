@@ -18,4 +18,14 @@ export default defineConfig([
       parserOptions: { ecmaFeatures: { jsx: true } },
     },
   },
+  // Context / sözlük dosyaları Provider'ın yanında hook ve yardımcı da dışa aktarır (bilinçli kalıp);
+  // bu dosyalarda hızlı yenileme yerine sayfa yenilenir, sorun değil
+  {
+    files: ['src/context/**/*.jsx', 'src/i18n/**/*.jsx', 'src/pages/platform/shared.jsx'],
+    rules: { 'react-refresh/only-export-components': 'off' },
+  },
+  {
+    files: ['public/sw.js'],
+    languageOptions: { globals: globals.serviceworker },
+  },
 ])

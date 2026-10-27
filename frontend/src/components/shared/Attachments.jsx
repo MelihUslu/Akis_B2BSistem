@@ -1,4 +1,3 @@
-import React from 'react';
 import { Paperclip, X, FileText, FileSpreadsheet, Loader2, Download } from 'lucide-react';
 import { formatSize } from './supportMeta';
 

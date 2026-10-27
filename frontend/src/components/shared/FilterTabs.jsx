@@ -1,4 +1,3 @@
-import React from 'react';
 
 // Tailwind sınıfları derleme anında taranır; her renk tonu sabit yazılır
 const TONES = {

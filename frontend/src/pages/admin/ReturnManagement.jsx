@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react';
+import { useEffect, useState } from 'react';
 import {
   RotateCcw, Package, Check, X as XIcon, CheckCheck, Clock, CheckCircle2, Ban, PackageCheck, Layers
 } from 'lucide-react';
@@ -18,17 +18,18 @@ const FILTERS = [
 const ReturnManagement = () => {
   const [returns, setReturns] = useState([]);
   const [filter, setFilter] = useState('PENDING');
-  const [isLoading, setIsLoading] = useState(true);
+  const [loadedFilter, setLoadedFilter] = useState(null);
+  const isLoading = loadedFilter !== filter; // seçili filtrenin listesi henüz gelmedi
   const [decision, setDecision] = useState(null); // { request, status, adminNote, restock }
   const [preview, setPreview] = useState(null);
   const { alertElement, showAlert } = useAlert();
 
   const load = () => {
-    setIsLoading(true);
-    api.get('/returns', { params: filter ? { status: filter } : {} })
+    const current = filter;
+    api.get('/returns', { params: current ? { status: current } : {} })
       .then((res) => setReturns(res.data))
       .catch(() => console.error('İade talepleri yüklenemedi'))
-      .finally(() => setIsLoading(false));
+      .finally(() => setLoadedFilter(current));
   };
 
   useEffect(load, [filter]);

@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react';
+import { useEffect, useState } from 'react';
 import { RefreshCw, RotateCw, ChevronDown } from 'lucide-react';
 import api, { errorMessage } from '../../services/api';
 import { formatDate } from '../../utils/format';

@@ -1,4 +1,3 @@
-import React from 'react';
 
 export const TENANT_STATUS = {
   TRIAL: { label: 'Deneme', className: 'bg-indigo-100 text-indigo-700' },

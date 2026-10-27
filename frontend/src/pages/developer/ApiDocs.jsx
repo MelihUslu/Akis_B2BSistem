@@ -1,4 +1,4 @@
-import React, { useEffect, useMemo, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { Code2, KeyRound, Copy, Check, Webhook, Download, ChevronRight, ShieldCheck } from 'lucide-react';
 import { useTenant } from '../../context/TenantContext';
 

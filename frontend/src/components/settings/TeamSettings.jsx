@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react';
+import { useEffect, useState } from 'react';
 import { UserPlus, KeyRound, Crown, X } from 'lucide-react';
 import api, { errorMessage } from '../../services/api';
 import { useAuth } from '../../context/AuthContext';

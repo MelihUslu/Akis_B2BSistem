@@ -1,11 +1,11 @@
-import React, { useState } from 'react';
+import { useState } from 'react';
 import { NavLink, useLocation, useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import { useTenant } from '../context/TenantContext';
 import TenantBrand from './TenantBrand';
 import { can } from '../utils/permissions';
 import { 
-  LayoutDashboard, Package, Users, ShoppingCart, CreditCard, BarChart3, Settings, LogOut, Box, UserCheck, ChevronLeft, ChevronRight, RotateCcw, Crown, FileSignature, TicketPercent, LifeBuoy, X
+  LayoutDashboard, Package, ShoppingCart, CreditCard, BarChart3, Settings, LogOut, Box, UserCheck, ChevronLeft, ChevronRight, RotateCcw, Crown, FileSignature, TicketPercent, LifeBuoy, X
 } from 'lucide-react';
 
 const PLAN_BOX = {

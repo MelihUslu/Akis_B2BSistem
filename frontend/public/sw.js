@@ -52,7 +52,7 @@ self.addEventListener('fetch', (event) => {
 });
 
 self.addEventListener('push', (event) => {
-  let data = {};
+  let data;
   try { data = event.data ? event.data.json() : {}; } catch { data = { title: event.data?.text() }; }
   event.waitUntil(self.registration.showNotification(data.title || 'Bildirim', {
     body: data.body || '',

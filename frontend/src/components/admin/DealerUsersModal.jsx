@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react';
+import { useEffect, useState } from 'react';
 import { X, UserPlus, KeyRound, Crown } from 'lucide-react';
 import api, { errorMessage } from '../../services/api';
 import { formatDate } from '../../utils/format';
@@ -13,7 +13,7 @@ const DealerUsersModal = ({ title, base, isAdmin, onClose, showAlert, confirm, i
   const [form, setForm] = useState(null);
 
   const load = () => api.get(base).then((r) => setUsers(r.data)).catch(() => setUsers([]));
-  useEffect(() => { load(); }, [base]);
+  useEffect(() => { load(); }, [base]); // eslint-disable-line react-hooks/exhaustive-deps
 
   const add = async (e) => {
     e.preventDefault();

@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react';
+import { useEffect, useState } from 'react';
 import { BellRing, Mail } from 'lucide-react';
 import api, { errorMessage } from '../../services/api';
 import { Toggle } from '../form/FormKit';

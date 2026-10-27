@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react';
+import { useEffect, useState } from 'react';
 import { Heart, Repeat, BookMarked, ShoppingCart, Trash2, Pencil, Package, Layers } from 'lucide-react';
 import api, { errorMessage } from '../../services/api';
 import { useCart } from '../../context/CartContext';
@@ -59,7 +59,7 @@ const BayiLists = () => {
     if (tab === 'favorites' && !favorites) loadFavorites();
     if (tab === 'frequent' && !frequent) api.get('/products/frequent').then((r) => setFrequent(r.data)).catch(() => setFrequent([]));
     if (tab === 'templates' && !templates) loadTemplates();
-  }, [tab]);
+  }, [tab]); // eslint-disable-line react-hooks/exhaustive-deps
 
   const addOne = (product, variant = null, qty = null) => {
     const item = variant || product;

@@ -1,4 +1,3 @@
-import React from 'react';
 
 // Sayfa kodu (lazy chunk) yüklenirken gösterilir
 const PageLoader = () => (

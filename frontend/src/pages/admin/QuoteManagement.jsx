@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react';
+import { useEffect, useState } from 'react';
 import {
   FileSignature, ChevronDown, Send, XCircle, Clock, CheckCircle2, Layers
 } from 'lucide-react';
@@ -24,7 +24,7 @@ const QuoteManagement = () => {
   const { alertElement, showAlert, confirm } = useAlert();
 
   const load = () => api.get('/quotes', { params: filter ? { status: filter } : {} }).then((res) => setQuotes(res.data)).catch(() => {});
-  useEffect(() => { load(); }, [filter]);
+  useEffect(() => { load(); }, [filter]); // eslint-disable-line react-hooks/exhaustive-deps
 
   const open = (q) => {
     if (openId === q.id) return setOpenId(null);

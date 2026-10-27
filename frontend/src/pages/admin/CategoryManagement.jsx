@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import { useState, useEffect } from 'react';
 import api, { errorMessage } from '../../services/api';
 import useAlert from '../../hooks/useAlert';
 import { Section, Field, IconInput, Segmented } from '../../components/form/FormKit';
@@ -19,7 +19,7 @@ import {
 } from '@dnd-kit/sortable';
 import { CSS } from '@dnd-kit/utilities';
 import {
-  Layers, Plus, Trash2, Edit2, ChevronRight, ChevronDown, Eye, EyeOff, Image as ImageIcon, Type, Hash, Save, X, ArrowRight, GripVertical, FolderTree, UploadCloud, Search, Package, ChevronsDownUp, ChevronsUpDown
+  Layers, Plus, Trash2, Edit2, ChevronRight, Eye, EyeOff, Image as ImageIcon, Type, Hash, Save, X, GripVertical, FolderTree, UploadCloud, Search, Package, ChevronsDownUp, ChevronsUpDown
 } from 'lucide-react';
 
 const SortableCategoryItem = ({ category, level, zebra, dragDisabled, onEdit, onDelete, onExpand, isExpanded, children }) => {
@@ -125,20 +125,14 @@ const CategoryManagement = () => {
     imageUrl: ''
   });
 
-  const fetchCategories = async () => {
-    try {
-      const [treeRes, flatRes] = await Promise.all([
-        api.get('/categories?isAdmin=true'),
-        api.get('/categories?isAdmin=true&isFlat=true')
-      ]);
-      setCategories(treeRes.data);
-      setFlatCategories(flatRes.data);
-    } catch (error) {
-      console.error('Kategoriler yüklenemedi');
-    } finally {
-      setIsLoading(false);
-    }
-  };
+  const fetchCategories = () =>
+    Promise.all([api.get('/categories?isAdmin=true'), api.get('/categories?isAdmin=true&isFlat=true')])
+      .then(([treeRes, flatRes]) => {
+        setCategories(treeRes.data);
+        setFlatCategories(flatRes.data);
+      })
+      .catch(() => console.error('Kategoriler yüklenemedi'))
+      .finally(() => setIsLoading(false));
 
   useEffect(() => {
     fetchCategories();

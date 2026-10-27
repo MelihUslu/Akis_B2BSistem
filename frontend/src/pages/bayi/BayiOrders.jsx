@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
 import api from '../../services/api';
 import { History, Package, Truck, RotateCw, ChevronRight, FileSpreadsheet } from 'lucide-react';
@@ -21,7 +21,7 @@ const BayiOrders = () => {
       try {
         const response = await api.get('/orders');
         setOrders(response.data);
-      } catch (error) {
+      } catch {
         console.error('Siparişler yüklenemedi');
       } finally {
         setIsLoading(false);

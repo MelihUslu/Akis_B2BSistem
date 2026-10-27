@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react';
+import { useEffect, useState } from 'react';
 import { useCart } from '../../context/CartContext';
 import { Truck, CreditCard, Landmark, ArrowRight, ShieldCheck, AlertTriangle, Tag, TicketPercent, X } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
@@ -13,7 +13,8 @@ const CheckoutPage = () => {
   const [paymentMethod, setPaymentMethod] = useState('CURRENT_ACCOUNT');
   const [addressId, setAddressId] = useState(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
-  const [quote, setQuote] = useState(null);
+  const [lastQuote, setQuote] = useState(null);
+  const quote = cart.length ? lastQuote : null; // boş sepette özet gösterilmez
   const [quoteError, setQuoteError] = useState(null);
   const [couponInput, setCouponInput] = useState('');
   const [couponCode, setCouponCode] = useState('');
@@ -25,7 +26,7 @@ const CheckoutPage = () => {
 
   // Tutarlar sunucuda hesaplanır: bayi iskontosu, miktar indirimi, döviz kuru ve ürün bazlı KDV
   useEffect(() => {
-    if (cart.length === 0) { setQuote(null); return; }
+    if (cart.length === 0) return;
     api.post('/orders/quote', { items: payloadItems, couponCode: couponCode || undefined })
       .then((res) => {
         // Geçersiz kupon: hatayı kupon alanında göster ve kuponsuz hesapla
@@ -38,7 +39,7 @@ const CheckoutPage = () => {
         setQuoteError(null);
       })
       .catch((error) => setQuoteError(errorMessage(error, t('Sipariş özeti hesaplanamadı.'))));
-  }, [cart, couponCode]);
+  }, [cart, couponCode]); // eslint-disable-line react-hooks/exhaustive-deps
 
   const creditShort = paymentMethod === 'CURRENT_ACCOUNT' && quote && quote.total > quote.credit.available;
   const blocked = !quote || quote.errors.length > 0 || creditShort;

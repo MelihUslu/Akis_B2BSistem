@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import { useState, useEffect } from 'react';
 import api, { errorMessage } from '../../services/api';
 import useAlert from '../../hooks/useAlert';
 import DealerUsersModal from '../../components/admin/DealerUsersModal';
@@ -7,7 +7,7 @@ import AddressBook from '../../components/shared/AddressBook';
 import { Section, Field, IconInput, TextArea, Segmented } from '../../components/form/FormKit';
 import { useSearchParams, Link } from 'react-router-dom';
 import {
-  Users, Plus, Search, MoreVertical, Shield, Mail, Phone, MapPin, Hash, DollarSign, Percent, Lock, Edit3, CheckCircle2, XCircle, Clock, FileText, UserCheck, ShieldCheck, X, Trash2, Eye, Building2, CreditCard, Activity, Landmark, Database, KeyRound, Ban, Wallet, Award, Crown, ShoppingCart, CalendarClock, Briefcase, Save
+  Users, Plus, Search, Mail, Phone, MapPin, Hash, Percent, Lock, Edit3, CheckCircle2, Clock, FileText, UserCheck, ShieldCheck, X, Eye, Building2, Landmark, Database, KeyRound, Ban, Wallet, Award, Crown, ShoppingCart, CalendarClock, Briefcase, Save
 } from 'lucide-react';
 
 const DealerManagement = () => {
@@ -19,7 +19,6 @@ const DealerManagement = () => {
   const [statusFilter, setStatusFilter] = useState(urlParams.get('status') || '');
   const [page, setPage] = useState(1);
   const [pagination, setPagination] = useState({ total: 0, pages: 1 });
-  const [pendingCount, setPendingCount] = useState(0);
   const [statusCounts, setStatusCounts] = useState({});
   const [usersOf, setUsersOf] = useState(null);
   const [isDrawerOpen, setIsDrawerOpen] = useState(false);
@@ -46,9 +45,8 @@ const DealerManagement = () => {
       const res = await api.get('/companies', { params: { search: search || undefined, status: statusFilter || undefined, page, limit: 20 } });
       setDealers(res.data.data);
       setPagination(res.data.pagination);
-      setPendingCount(res.data.pendingCount);
       setStatusCounts(res.data.statusCounts || {});
-    } catch (error) {
+    } catch {
       console.error('Bayiler yüklenemedi');
     } finally {
       setIsLoading(false);
@@ -58,7 +56,7 @@ const DealerManagement = () => {
   useEffect(() => {
     const t = setTimeout(fetchDealers, 250);
     return () => clearTimeout(t);
-  }, [search, statusFilter, page]);
+  }, [search, statusFilter, page]); // eslint-disable-line react-hooks/exhaustive-deps
 
   // Başvuru kararı: onay → aktif (bayiye e-posta gider), red → pasif
   const decideApplication = async (dealer, approve) => {

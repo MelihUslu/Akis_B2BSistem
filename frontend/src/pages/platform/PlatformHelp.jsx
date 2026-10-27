@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react';
+import { useEffect, useState } from 'react';
 import { BookOpen, Plus, Pencil, Trash2, X, Search, Eye, ThumbsUp, Type, Tags, Save } from 'lucide-react';
 import { platformApi, errorMessage } from '../../services/api';
 import useAlert from '../../hooks/useAlert';

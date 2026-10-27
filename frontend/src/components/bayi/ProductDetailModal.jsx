@@ -1,4 +1,4 @@
-import React, { useMemo, useState } from 'react';
+import { useMemo, useState } from 'react';
 import {
   ShoppingCart, Package, FileText, PlayCircle, Minus, Plus, X, BellRing, BellOff, Heart, FileSignature, Check, Layers
 } from 'lucide-react';
@@ -45,7 +45,7 @@ const ProductDetailModal = ({ product, rules, onClose, onAddToCart, onRequestQuo
     if (legacyVariants) return variants.find(v => v.id === legacyId) || null;
     if (options.some(o => !selections[o.id])) return null;
     return variants.find(v => options.every(o => v.optionValueIds?.includes(selections[o.id]))) || null;
-  }, [hasVariants, legacyVariants, legacyId, selections, product]);
+  }, [hasVariants, legacyVariants, legacyId, selections, product]); // eslint-disable-line react-hooks/exhaustive-deps
 
   // Bu seçenek, diğer seçimlerle birlikte var olan bir varyanta karşılık geliyor mu?
   const valueState = (optionId, valueId) => {

@@ -1,4 +1,3 @@
-import React from 'react';
 import { UserCog } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
 

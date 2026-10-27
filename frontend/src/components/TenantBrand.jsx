@@ -1,4 +1,3 @@
-import React from 'react';
 import { useTenant } from '../context/TenantContext';
 
 // Firma logosu varsa logo, yoksa firma adı

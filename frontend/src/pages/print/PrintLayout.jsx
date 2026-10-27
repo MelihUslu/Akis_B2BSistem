@@ -1,4 +1,4 @@
-import React, { useEffect } from 'react';
+import { useEffect } from 'react';
 import { Printer, ArrowLeft } from 'lucide-react';
 import { useTenant } from '../../context/TenantContext';
 

@@ -1,4 +1,4 @@
-import React, { useEffect, useRef, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Bell, CheckCheck, Package, Wallet, RotateCcw, ShoppingCart, Info } from 'lucide-react';
 import api from '../services/api';
@@ -31,9 +31,7 @@ const NotificationBell = ({ dark = false }) => {
   const panelRef = useRef(null);
   const navigate = useNavigate();
 
-  const fetchNotifications = async () => {
-    try {
-      const res = await api.get('/notifications');
+  const fetchNotifications = () => api.get('/notifications').then((res) => {
       const list = res.data.items;
 
       // İlk yüklemede gelenler "görülmüş" sayılır; sonrakilerde yeni okunmamışlar için tarayıcı bildirimi
@@ -46,10 +44,9 @@ const NotificationBell = ({ dark = false }) => {
 
       setItems(list);
       setUnread(res.data.unreadCount);
-    } catch {
+    }).catch(() => {
       // Sessizce yoksay: bir sonraki turda tekrar denenir
-    }
-  };
+    });
 
   useEffect(() => {
     syncPush(); // izin daha önce verildiyse bu cihazın push aboneliğini tazeler

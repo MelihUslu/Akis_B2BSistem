@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react';
+import { useEffect, useState } from 'react';
 import { Link, useParams } from 'react-router-dom';
 import { ArrowLeft, Truck, RotateCcw, RotateCw, Package, Camera, X, Loader2, Printer, ExternalLink, MapPin } from 'lucide-react';
 import { trackingUrl, carrierName } from '../../utils/cargo';
@@ -135,7 +135,7 @@ const BayiOrderDetail = () => {
       .then((res) => setOrder(res.data))
       .catch((err) => setError(errorMessage(err, t('Sipariş bulunamadı.'))));
 
-  useEffect(() => { load(); }, [id]);
+  useEffect(() => { load(); }, [id]); // eslint-disable-line react-hooks/exhaustive-deps
 
   if (error) return <div className="p-8 text-center text-gray-400 font-bold">{error}</div>;
   if (!order) return <div className="p-8 text-center text-gray-400">{t('Yükleniyor...')}</div>;

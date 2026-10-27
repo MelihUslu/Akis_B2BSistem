@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import { useState, useEffect } from 'react';
 import api, { errorMessage } from '../../services/api';
 import { CreditCard, Plus, ArrowUpRight, ArrowDownLeft, Award, Search, CheckCircle2, X, Building2, Banknote, Save, ReceiptText, ArrowRight } from 'lucide-react';
 import { Field, IconInput, TextArea } from '../../components/form/FormKit';
@@ -11,7 +11,6 @@ import { formatTRY, formatDate } from '../../utils/format';
 const FinanceManagement = () => {
   const [dealers, setDealers] = useState([]);
   const [plasiyerPoints, setPlasiyerPoints] = useState([]);
-  const [isLoading, setIsLoading] = useState(true);
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [reconciliations, setReconciliations] = useState([]);
   const [search, setSearch] = useState('');
@@ -26,22 +25,14 @@ const FinanceManagement = () => {
     description: ''
   });
 
-  const fetchData = async () => {
-    try {
-      const [dealersRes, pointsRes, recRes] = await Promise.all([
-        api.get('/companies'),
-        api.get('/finance/plasiyer-points'),
-        api.get('/finance/reconciliations')
-      ]);
-      setDealers(dealersRes.data);
-      setPlasiyerPoints(pointsRes.data);
-      setReconciliations(recRes.data);
-    } catch (error) {
-      console.error('Veriler yüklenemedi');
-    } finally {
-      setIsLoading(false);
-    }
-  };
+  const fetchData = () =>
+    Promise.all([api.get('/companies'), api.get('/finance/plasiyer-points'), api.get('/finance/reconciliations')])
+      .then(([dealersRes, pointsRes, recRes]) => {
+        setDealers(dealersRes.data);
+        setPlasiyerPoints(pointsRes.data);
+        setReconciliations(recRes.data);
+      })
+      .catch(() => console.error('Veriler yüklenemedi'));
 
   useEffect(() => {
     fetchData();

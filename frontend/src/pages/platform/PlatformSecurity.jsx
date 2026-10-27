@@ -1,4 +1,3 @@
-import React from 'react';
 import { ShieldCheck } from 'lucide-react';
 import { platformApi } from '../../services/api';
 import useAlert from '../../hooks/useAlert';

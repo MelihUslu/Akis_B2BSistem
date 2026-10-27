@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react';
+import { useEffect, useState } from 'react';
 import { Settings, Percent, Coins, Users, Bell, Save, UserPlus, RefreshCw, Building2, ImagePlus } from 'lucide-react';
 import api, { errorMessage } from '../../services/api';
 import useAlert from '../../hooks/useAlert';
@@ -115,12 +115,12 @@ const SettingsPage = () => {
   const { alertElement, showAlert, confirm } = useAlert();
   const [tab, setTab] = useState(() => new URLSearchParams(window.location.search).get('tab') || 'general');
 
-  const load = async () => {
-    const [s, p] = await Promise.all([api.get('/settings'), api.get('/auth/users', { params: { role: 'PLASIYER' } })]);
-    setSettings(s.data);
-    setDraft(s.data);
-    setPlasiyers(p.data);
-  };
+  const load = () =>
+    Promise.all([api.get('/settings'), api.get('/auth/users', { params: { role: 'PLASIYER' } })]).then(([s, p]) => {
+      setSettings(s.data);
+      setDraft(s.data);
+      setPlasiyers(p.data);
+    });
 
   const loadRates = () => api.get('/settings/exchange-rates').then((res) => setRates(res.data)).catch(() => setRates(null));
 

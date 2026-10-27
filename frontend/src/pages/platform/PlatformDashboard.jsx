@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react';
+import { useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { Building2, Wallet, TrendingUp, Clock, AlertTriangle, LayoutDashboard } from 'lucide-react';
 import { platformApi } from '../../services/api';

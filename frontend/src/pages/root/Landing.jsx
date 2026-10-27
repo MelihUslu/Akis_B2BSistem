@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react';
+import { useEffect, useState } from 'react';
 import { Check, ArrowRight, Store, Users, Package, ShieldCheck, Zap, LogIn, MailCheck, Loader2 } from 'lucide-react';
 import { publicApi, errorMessage } from '../../services/api';
 import { tenantUrl, ROOT_DOMAIN_LABEL } from '../../utils/tenant';
@@ -18,7 +18,8 @@ const Landing = () => {
   const [plans, setPlans] = useState([]);
   const [cycle, setCycle] = useState('MONTHLY');
   const [form, setForm] = useState({ companyName: '', slug: '', name: '', email: '', phone: '', password: '', planCode: '' });
-  const [slugState, setSlugState] = useState(null); // { available, message, slug }
+  const [lastSlugState, setSlugState] = useState(null); // { available, message, slug }
+  const slugState = form.slug || form.companyName ? lastSlugState : null;
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState(null);
   const [done, setDone] = useState(null);
@@ -34,7 +35,7 @@ const Landing = () => {
   // Firma adından adres önerisi + uygunluk kontrolü (yazmayı bitirince)
   useEffect(() => {
     const value = form.slug || form.companyName;
-    if (!value) { setSlugState(null); return; }
+    if (!value) return undefined;
     const timer = setTimeout(() => {
       publicApi.get('/slug-available', { params: { slug: value } }).then((res) => setSlugState(res.data)).catch(() => {});
     }, 400);
