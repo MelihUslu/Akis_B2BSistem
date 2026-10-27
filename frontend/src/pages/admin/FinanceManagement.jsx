@@ -1,10 +1,10 @@
 import { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
-import { CreditCard, Award, CheckCircle2, AlertTriangle, CalendarClock, ArrowDownLeft, ArrowUpRight, BookUser, Banknote, ChevronRight, Hourglass, FileSpreadsheet } from 'lucide-react';
+import { CreditCard, Award, CheckCircle2, AlertTriangle, CalendarClock, ArrowDownLeft, ArrowUpRight, BookUser, Banknote, ChevronRight, Hourglass, FileSpreadsheet, HelpCircle } from 'lucide-react';
 import { downloadFile } from '../../utils/download';
 import api from '../../services/api';
 import { formatTRY, formatDate, formatMoney } from '../../utils/format';
-import { PARTNER_KINDS, AGING_LABELS } from '../../utils/partner';
+import { PARTNER_KINDS, AGING_LABELS, AGING_TONE, agingSentence } from '../../utils/partner';
 
 const cariLink = (id) => `/admin/partners?id=${id}`;
 const METHOD = { POS: 'Sanal POS', WIRE_TRANSFER: 'Havale / EFT', MANUAL: 'Manuel', CASH: 'Nakit', CARD: 'Kredi kartı', CHECK: 'Çek', NOTE: 'Senet' };
@@ -47,6 +47,7 @@ const FinanceManagement = () => {
   const [plasiyerPoints, setPlasiyerPoints] = useState([]);
   const [reconciliations, setReconciliations] = useState([]);
   const [aging, setAging] = useState(null);
+  const [agingHelp, setAgingHelp] = useState(false);
 
   useEffect(() => {
     Promise.all([api.get('/finance/summary'), api.get('/finance/plasiyer-points'), api.get('/finance/reconciliations'), api.get('/finance/aging')])
@@ -114,41 +115,76 @@ const FinanceManagement = () => {
 
         {aging && (
           <div className="bg-white rounded-2xl border border-gray-100 shadow-sm overflow-hidden">
-            <div className="p-5 border-b border-gray-50 flex flex-wrap items-center justify-between gap-3">
-              <div className="flex items-center gap-2"><Hourglass className="h-5 w-5 text-red-500" /><h3 className="font-bold text-gray-900">Borç yaşlandırma</h3></div>
-              <button onClick={() => downloadFile('/finance/aging', { format: 'xlsx' }, 'borc-yaslandirma.xlsx')} className="flex items-center px-3 h-9 rounded-xl text-xs font-black text-emerald-700 bg-emerald-50"><FileSpreadsheet className="h-4 w-4 mr-1" /> Excel</button>
+            <div className="p-5 border-b border-gray-50 flex flex-wrap items-start justify-between gap-3">
+              <div className="flex items-start gap-2">
+                <Hourglass className="h-5 w-5 text-red-500 mt-0.5" />
+                <div>
+                  <h3 className="font-bold text-gray-900">Gecikmiş alacaklar</h3>
+                  <p className="text-xs text-gray-500 mt-0.5">Borç ne kadar süredir ödenmiyor? En riskli cari en üstte.</p>
+                </div>
+              </div>
+              <div className="flex gap-2">
+                <button onClick={() => setAgingHelp(!agingHelp)} className="flex items-center px-3 h-9 rounded-xl text-xs font-black text-gray-600 bg-gray-100"><HelpCircle className="h-4 w-4 mr-1" /> Bu tablo ne gösteriyor?</button>
+                <button onClick={() => downloadFile('/finance/aging', { format: 'xlsx' }, 'gecikmis-alacaklar.xlsx')} className="flex items-center px-3 h-9 rounded-xl text-xs font-black text-emerald-700 bg-emerald-50"><FileSpreadsheet className="h-4 w-4 mr-1" /> Excel</button>
+              </div>
             </div>
+
+            {agingHelp && (
+              <div className="px-5 py-4 bg-gray-50 border-b border-gray-100 text-xs text-gray-600 space-y-2">
+                <p>Her carinin borcu, vadesinin üzerinden kaç gün geçtiğine göre bölünür. Örnek: Ahmet Bayi'nin borcu 10.000 ₺ olsun.</p>
+                <ul className="space-y-1">
+                  <li><span className={`px-1.5 py-0.5 rounded font-bold ${AGING_TONE.notDue}`}>3.000 ₺ vadesi gelmemiş</span> — henüz ödeme günü gelmedi, sorun yok.</li>
+                  <li><span className={`px-1.5 py-0.5 rounded font-bold ${AGING_TONE.d30}`}>4.000 ₺ 1–30 gün gecikmiş</span> — hatırlatma zamanı.</li>
+                  <li><span className={`px-1.5 py-0.5 rounded font-bold ${AGING_TONE.d90}`}>3.000 ₺ 61–90 gün gecikmiş</span> — acil takip gerekir.</li>
+                </ul>
+                <p>Sağa doğru renk kızardıkça tahsilat riski artar. Vade, siparişin vade tarihidir (yoksa hareket tarihi + carinin vade günü). Ödemelerin en eski borcu kapattığı kabul edilir. “Tarihi bilinmeyen” sütunu, sisteme açılış / devir olarak girilmiş ve tarihi olmayan bakiyedir.</p>
+              </div>
+            )}
+
             {aging.rows.length === 0 ? <p className="text-center py-8 text-gray-400 text-sm">Borçlu cari yok.</p> : (
               <div className="overflow-x-auto">
-                <table className="w-full text-xs min-w-[48rem]">
+                <table className="w-full text-xs min-w-[56rem]">
                   <thead className="bg-gray-50 text-[10px] font-black text-gray-500 uppercase">
-                    <tr><th className="px-4 py-2 text-left">Cari</th>{AGING_LABELS.map(([k, l]) => <th key={k} className="px-3 py-2 text-right">{l}</th>)}<th className="px-4 py-2 text-right">Toplam</th></tr>
+                    <tr>
+                      <th className="px-4 py-2 text-left">Cari</th>
+                      {AGING_LABELS.map(([k, l]) => <th key={k} className="px-3 py-2 text-right leading-tight">{l}</th>)}
+                      <th className="px-4 py-2 text-right">Toplam borç</th>
+                    </tr>
                   </thead>
                   <tbody className="divide-y divide-gray-50">
-                    {aging.rows.slice(0, 50).map((r) => (
-                      <tr key={r.id} className="hover:bg-gray-50">
-                        <td className="px-4 py-2"><Link to={cariLink(r.id)} className="font-bold text-gray-800 hover:text-indigo-600">{r.name}</Link></td>
-                        {AGING_LABELS.map(([k]) => <td key={k} className={`px-3 py-2 text-right tabular-nums ${r[k] > 0 && ['d60', 'd90', 'd90plus'].includes(k) ? 'text-red-600 font-black' : 'text-gray-700'}`}>{r[k] > 0 ? formatMoney(r[k], r.currency) : '—'}</td>)}
-                        <td className="px-4 py-2 text-right font-black tabular-nums">{formatMoney(r.total, r.currency)}</td>
-                      </tr>
-                    ))}
+                    {aging.rows.slice(0, 50).map((r) => {
+                      const sentence = agingSentence(r);
+                      return (
+                        <tr key={r.id} className="hover:bg-gray-50 align-top">
+                          <td className="px-4 py-2.5">
+                            <Link to={cariLink(r.id)} className="font-bold text-gray-800 hover:text-indigo-600">{r.name}</Link>
+                            {sentence && <p className={`text-[11px] font-bold ${sentence.tone}`}>{sentence.text}</p>}
+                          </td>
+                          {AGING_LABELS.map(([k]) => (
+                            <td key={k} className="px-1.5 py-2 text-right">
+                              {r[k] > 0 ? <span className={`inline-block px-2 py-1 rounded-lg font-black tabular-nums ${AGING_TONE[k]}`}>{formatMoney(r[k], r.currency)}</span> : <span className="text-gray-300">—</span>}
+                            </td>
+                          ))}
+                          <td className="px-4 py-2.5 text-right font-black tabular-nums">{formatMoney(r.total, r.currency)}</td>
+                        </tr>
+                      );
+                    })}
                     {Object.keys(aging.totalsByCurrency || {}).length > 1 && Object.entries(aging.totalsByCurrency).map(([cur, t]) => (
                       <tr key={cur} className="bg-gray-50/60 font-bold">
                         <td className="px-4 py-2">Toplam ({cur === 'TRY' ? 'TL' : cur})</td>
-                        {AGING_LABELS.map(([k]) => <td key={k} className="px-3 py-2 text-right tabular-nums">{formatMoney(t[k], cur)}</td>)}
+                        {AGING_LABELS.map(([k]) => <td key={k} className="px-3 py-2 text-right tabular-nums">{t[k] > 0 ? formatMoney(t[k], cur) : '—'}</td>)}
                         <td className="px-4 py-2 text-right tabular-nums">{formatMoney(t.total, cur)}</td>
                       </tr>
                     ))}
                     <tr className="bg-gray-50 font-black">
                       <td className="px-4 py-2">{Object.keys(aging.totalsByCurrency || {}).length > 1 ? 'Genel toplam (güncel kurla TL)' : 'Toplam'}</td>
-                      {AGING_LABELS.map(([k]) => <td key={k} className="px-3 py-2 text-right tabular-nums">{formatTRY(aging.totals[k])}</td>)}
+                      {AGING_LABELS.map(([k]) => <td key={k} className="px-3 py-2 text-right tabular-nums">{aging.totals[k] > 0 ? formatTRY(aging.totals[k]) : '—'}</td>)}
                       <td className="px-4 py-2 text-right tabular-nums">{formatTRY(aging.totals.total)}</td>
                     </tr>
                   </tbody>
                 </table>
               </div>
             )}
-            <p className="px-5 py-3 text-[11px] text-gray-400 border-t border-gray-50">Tahsilatların en eski borçları kapattığı varsayılır. Vade: sipariş vadesi, yoksa hareket tarihi + carinin vade günü. Hareketle eşleşmeyen tutar (ör. açılış bakiyesi) ayrı sütundadır.</p>
           </div>
         )}
 

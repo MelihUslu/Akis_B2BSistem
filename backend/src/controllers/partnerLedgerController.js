@@ -97,7 +97,8 @@ export const getAging = async (req, res) => {
     if (req.query.format === 'xlsx') {
       const data = report.rows.map((r) => ({
         'Cari': r.name, 'Cari Kodu': r.externalCode || '', 'Tür': r.kind === 'DEALER' ? 'Bayi' : 'Müşteri', 'Telefon': r.phone || '', 'Para Birimi': r.currency === 'TRY' ? 'TL' : r.currency,
-        ...Object.fromEntries(AGING_BUCKETS.map((b) => [b.label, r[b.key]])), 'Toplam Borç': r.total
+        ...Object.fromEntries(AGING_BUCKETS.map((b) => [b.label, r[b.key]])), 'Toplam Borç': r.total,
+        'En Eski Gecikme (gün)': r.oldestOverdueDays ?? ''
       }));
       for (const [cur, t] of Object.entries(report.totalsByCurrency)) {
         data.push({ 'Cari': `TOPLAM (${cur === 'TRY' ? 'TL' : cur})`, 'Para Birimi': cur === 'TRY' ? 'TL' : cur, ...Object.fromEntries(AGING_BUCKETS.map((b) => [b.label, t[b.key]])), 'Toplam Borç': t.total });

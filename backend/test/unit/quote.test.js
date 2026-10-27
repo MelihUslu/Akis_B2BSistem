@@ -110,3 +110,27 @@ test('aiStatus: anahtar yoksa kapalı, örnek sağlayıcı canlıda kullanılama
     process.env = env;
   }
 });
+
+test('yaşlandırma: borç en yeni hareketlerden dağıtılır, en eski gecikme günü hesaplanır', async () => {
+  const { agingFor } = await import('../../src/services/partnerLedgerService.js');
+  const now = new Date('2026-06-30T12:00:00Z');
+  const day = (n) => new Date(now.getTime() - n * 86400000);
+  // 10.000 borç: 3.000 vadesi gelmemiş (5 gün önce, 30 gün vade), 4.000 20 gün gecikmiş, 3.000 75 gün gecikmiş
+  const debts = [
+    { amount: 3000, date: day(5) },
+    { amount: 4000, date: day(50) },
+    { amount: 3000, date: day(105) },
+    { amount: 9999, date: day(400) } // ödenmiş eski borç (bakiyeye girmez)
+  ];
+  const r = agingFor({ currentBalance: -10000, paymentTermDays: 30 }, debts, now);
+  assert.equal(r.notDue, 3000);
+  assert.equal(r.d30, 4000);
+  assert.equal(r.d90, 3000);
+  assert.equal(r.unmatched, 0);
+  assert.equal(r.oldestOverdueDays, 75);
+  assert.equal(r.overdue, 7000);
+  // Hareketle karşılanamayan bakiye tarihi bilinmeyen sütununa düşer
+  const open = agingFor({ currentBalance: -500, paymentTermDays: 0 }, [], now);
+  assert.equal(open.unmatched, 500);
+  assert.equal(open.oldestOverdueDays, null);
+});

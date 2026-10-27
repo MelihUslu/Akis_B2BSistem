@@ -47,6 +47,18 @@ export const TX_SOURCES = {
   REVERSAL: { label: 'Ters kayıt', className: 'bg-red-50 text-red-600' }
 };
 
+// Borç yaşlandırma: borcun ne kadar süredir ödenmediği. Sağa doğru risk artar (renk sarı → kırmızı).
 export const AGING_LABELS = [
-  ['notDue', 'Vadesi gelmemiş'], ['d30', '1–30 gün'], ['d60', '31–60 gün'], ['d90', '61–90 gün'], ['d90plus', '90+ gün'], ['unmatched', 'Açılış / eşleşmeyen']
+  ['notDue', 'Vadesi gelmemiş'], ['d30', '1–30 gün gecikmiş'], ['d60', '31–60 gün gecikmiş'], ['d90', '61–90 gün gecikmiş'], ['d90plus', '90+ gün gecikmiş'], ['unmatched', 'Tarihi bilinmeyen']
 ];
+export const AGING_TONE = {
+  notDue: 'bg-emerald-50 text-emerald-700', d30: 'bg-amber-50 text-amber-700', d60: 'bg-orange-50 text-orange-700',
+  d90: 'bg-red-50 text-red-600', d90plus: 'bg-red-100 text-red-700', unmatched: 'bg-gray-100 text-gray-600'
+};
+// "En eski borç 75 gün gecikmiş" gibi tek cümlelik durum
+export const agingSentence = (row) => {
+  if (!row || !(row.total > 0)) return null;
+  if (row.oldestOverdueDays) return { text: `En eski borç ${row.oldestOverdueDays} gün gecikmiş`, tone: row.oldestOverdueDays > 60 ? 'text-red-600' : row.oldestOverdueDays > 30 ? 'text-orange-600' : 'text-amber-600' };
+  if (row.notDue > 0) return { text: 'Gecikmiş borç yok, vadesi gelmemiş', tone: 'text-emerald-600' };
+  return { text: 'Borcun tarihi bilinmiyor (açılış / devir bakiyesi)', tone: 'text-gray-500' };
+};

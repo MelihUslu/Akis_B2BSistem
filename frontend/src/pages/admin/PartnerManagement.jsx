@@ -15,7 +15,7 @@ import { useAuth } from '../../context/AuthContext';
 import { can } from '../../utils/permissions';
 import { downloadFile } from '../../utils/download';
 import { formatTRY, formatDate, formatMoney } from '../../utils/format';
-import { PARTNER_KINDS, balanceText, PAYMENT_METHODS, AGING_LABELS } from '../../utils/partner';
+import { PARTNER_KINDS, balanceText, PAYMENT_METHODS, AGING_LABELS, AGING_TONE, agingSentence } from '../../utils/partner';
 
 const Badge = ({ kind }) => {
   const k = PARTNER_KINDS[kind] || PARTNER_KINDS.DEALER;
@@ -58,19 +58,23 @@ const SummaryTab = ({ p }) => {
         </div>
       )}
 
-      {s.aging && (
-        <div>
-          <p className="text-sm font-black text-gray-900 mb-2">Borç yaşlandırma</p>
-          <div className="grid grid-cols-3 sm:grid-cols-6 gap-1.5">
-            {AGING_LABELS.map(([k, label]) => (
-              <div key={k} className={`rounded-lg p-2 text-center ${s.aging[k] > 0 ? (['d60', 'd90', 'd90plus'].includes(k) ? 'bg-red-50' : k === 'd30' ? 'bg-amber-50' : 'bg-gray-50') : 'bg-gray-50/50'}`}>
-                <p className="text-[9px] font-bold text-gray-500 leading-tight">{label}</p>
-                <p className={`text-xs font-black tabular-nums ${s.aging[k] > 0 && ['d60', 'd90', 'd90plus'].includes(k) ? 'text-red-600' : 'text-gray-800'}`}>{s.aging[k] > 0 ? formatMoney(s.aging[k], p.currency) : '—'}</p>
-              </div>
-            ))}
+      {s.aging && (() => {
+        const sentence = agingSentence(s.aging);
+        return (
+          <div>
+            <p className="text-sm font-black text-gray-900">Borç ne kadar süredir ödenmiyor?</p>
+            {sentence && <p className={`text-xs font-bold mb-2 ${sentence.tone}`}>{sentence.text}</p>}
+            <div className="grid grid-cols-2 sm:grid-cols-3 gap-1.5">
+              {AGING_LABELS.filter(([k]) => s.aging[k] > 0).map(([k, label]) => (
+                <div key={k} className={`rounded-lg p-2 ${AGING_TONE[k]}`}>
+                  <p className="text-[10px] font-bold leading-tight">{label}</p>
+                  <p className="text-sm font-black tabular-nums">{formatMoney(s.aging[k], p.currency)}</p>
+                </div>
+              ))}
+            </div>
           </div>
-        </div>
-      )}
+        );
+      })()}
 
       <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 text-sm">
         {[

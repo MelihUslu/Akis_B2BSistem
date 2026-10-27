@@ -160,11 +160,11 @@ export const listTransactions = async (company, { from, to, type, source, q } = 
 
 export const AGING_BUCKETS = [
   { key: 'notDue', label: 'Vadesi gelmemiş' },
-  { key: 'd30', label: '1–30 gün' },
-  { key: 'd60', label: '31–60 gün' },
-  { key: 'd90', label: '61–90 gün' },
-  { key: 'd90plus', label: '90+ gün' },
-  { key: 'unmatched', label: 'Açılış / eşleşmeyen' }
+  { key: 'd30', label: '1–30 gün gecikmiş' },
+  { key: 'd60', label: '31–60 gün gecikmiş' },
+  { key: 'd90', label: '61–90 gün gecikmiş' },
+  { key: 'd90plus', label: '90 günden fazla gecikmiş' },
+  { key: 'unmatched', label: 'Tarihi bilinmeyen (açılış / devir)' }
 ];
 
 /**
@@ -175,8 +175,9 @@ export const AGING_BUCKETS = [
 export const agingFor = (company, debts, now = new Date()) => {
   const out = Object.fromEntries(AGING_BUCKETS.map((b) => [b.key, 0]));
   let remaining = round2(-company.currentBalance);
-  if (remaining <= 0) return { ...out, total: 0 };
+  if (remaining <= 0) return { ...out, total: 0, oldestOverdueDays: null, overdue: 0 };
   const total = remaining;
+  let oldest = null; // ödenmemiş en eski borcun gecikme günü
   for (const t of debts) { // en yeni → en eski
     if (remaining <= 0) break;
     const part = Math.min(remaining, t.amount);
@@ -185,9 +186,11 @@ export const agingFor = (company, debts, now = new Date()) => {
     const late = Math.floor((now - due) / 86400000);
     const key = late <= 0 ? 'notDue' : late <= 30 ? 'd30' : late <= 60 ? 'd60' : late <= 90 ? 'd90' : 'd90plus';
     out[key] = round2(out[key] + part);
+    if (late > 0 && (oldest === null || late > oldest)) oldest = late;
   }
   out.unmatched = round2(out.unmatched + remaining);
-  return { ...out, total };
+  const overdue = round2(out.d30 + out.d60 + out.d90 + out.d90plus);
+  return { ...out, total, oldestOverdueDays: oldest, overdue };
 };
 
 const debtWhere = { type: 'DEBT', source: { not: 'REVERSAL' }, reversedBy: { is: null } };
@@ -206,8 +209,8 @@ export const agingReport = async ({ kinds = ['DEALER', 'CUSTOMER'], companyId } 
   const rows = companies.map(({ transactions, ...c }) => {
     const a = agingFor(c, transactions, now);
     const rate = c.currency === 'TRY' ? 1 : fx[c.currency];
-    return { ...c, ...a, totalTRY: rate ? round2(a.total * rate) : null };
-  }).sort((x, y) => (y.totalTRY ?? 0) - (x.totalTRY ?? 0));
+    return { ...c, ...a, totalTRY: rate ? round2(a.total * rate) : null, overdueTRY: rate ? round2(a.overdue * rate) : null };
+  }).sort((x, y) => (y.oldestOverdueDays ?? -1) - (x.oldestOverdueDays ?? -1) || (y.overdueTRY ?? 0) - (x.overdueTRY ?? 0) || (y.totalTRY ?? 0) - (x.totalTRY ?? 0));
   // Farklı para birimleri toplanmaz: her para birimi için ayrı toplam, ayrıca güncel kurla TL karşılığı
   const keys = [...AGING_BUCKETS.map((b) => b.key), 'total'];
   const totalsByCurrency = {};
