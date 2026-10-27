@@ -44,7 +44,7 @@ const BayiLayout = () => {
       )}
       
       {/* Main Content Area - The "Sheet" */}
-      <div className="flex-1 min-w-0 flex flex-col min-h-screen bg-white lg:rounded-l-[2.5rem] shadow-[0_-10px_60px_-15px_rgba(0,0,0,0.3)] overflow-hidden relative">
+      <div className="flex-1 min-w-0 flex flex-col min-h-screen bg-white lg:rounded-l-[2.5rem] shadow-[0_-10px_60px_-15px_rgba(0,0,0,0.3)] overflow-clip relative">
         <header className="px-4 md:px-8 lg:px-12 py-4 lg:py-5 flex justify-between items-center bg-white/80 backdrop-blur-md sticky top-0 z-40 gap-3"
           style={{ paddingTop: 'max(1rem, env(safe-area-inset-top))' }}>
           <div className="flex-1 flex items-center gap-3 min-w-0">
@@ -84,7 +84,7 @@ const BayiLayout = () => {
           </div>
         </header>
 
-        <main className="flex-1 overflow-y-auto custom-scrollbar px-3 md:px-8 lg:px-12 py-4 md:py-8 pb-[calc(5rem+env(safe-area-inset-bottom))] lg:pb-8 bg-white">
+        <main className="flex-1 min-w-0 px-3 md:px-8 lg:px-12 py-4 md:py-8 pb-[calc(5rem+env(safe-area-inset-bottom))] lg:pb-8 bg-white">
           <ErrorBoundary key={pathname}>
           <Suspense fallback={<PageLoader />}>
           <Routes>

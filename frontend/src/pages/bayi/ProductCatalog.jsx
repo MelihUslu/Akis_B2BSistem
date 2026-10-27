@@ -1,471 +1,332 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useMemo, useRef } from 'react';
 import api from '../../services/api';
-import { 
-  ShoppingCart, ShoppingBag, Search, Package,
-  CheckCircle2, AlertCircle, XCircle, 
-  Eye, Minus, Plus,
-  Filter, SlidersHorizontal, BellRing, BellOff, Tag, Heart, Layers
-} from 'lucide-react';
+import { ShoppingBag, Search, Package, Tag, X, Loader2, CheckCircle2, ShoppingCart, LayoutGrid, List } from 'lucide-react';
 import ProductDetailModal from '../../components/bayi/ProductDetailModal';
 import QuoteRequestModal from '../../components/bayi/QuoteRequestModal';
-import { useCart } from '../../context/CartContext';
-import useAlert from '../../hooks/useAlert';
-import { formatTRY, firstImage, normalizeQty } from '../../utils/format';
-import { t } from '../../i18n';
+import FilterBar from '../../components/bayi/catalog/FilterBar';
+import OrderTable from '../../components/bayi/catalog/OrderTable';
+import ProductGrid from '../../components/bayi/catalog/ProductGrid';
+import { CategoryBanner } from '../../components/bayi/catalog/CategoryParts';
 import PageHeader from '../../components/shared/PageHeader';
+import EmptyState from '../../components/shared/EmptyState';
+import { useCart } from '../../context/CartContext';
+import { useAuth } from '../../context/AuthContext';
+import useAlert from '../../hooks/useAlert';
+import { formatTRY, normalizeQty } from '../../utils/format';
+import { cartQtyFor, canSelect, EMPTY_CATALOG_FILTERS } from '../../utils/catalog';
+import { t } from '../../i18n';
 
-// Varyantlı ürün kartı özeti: en düşük fiyat, stok durumu, seçenek sayısı
-const variantSummary = (p) => {
-  if (!p.requiresVariant || !p.variants?.length) return null;
-  const priced = p.variants.filter(v => !v.priceHidden);
-  return {
-    minPrice: priced.length ? Math.min(...priced.map(v => v.netPrice)) : null,
-    inStock: p.variants.some(v => v.inStock),
-    count: p.variants.length
-  };
+const PAGE_SIZE = 24;
+// Görünüm tercihi (kart / liste) kullanıcı başına bu tarayıcıda saklanır; diğeri seçilene kadar varsayılan kalır
+const viewKey = (userId) => `akis_catalog_view_${userId || 'anon'}`;
+const readView = (userId) => { try { return localStorage.getItem(viewKey(userId)) === 'table' ? 'table' : 'grid'; } catch { return 'grid'; } };
+
+const buildQuery = (f, search, page) => {
+  const q = new URLSearchParams({ page, limit: PAGE_SIZE, sort: f.sort });
+  if (search) q.set('search', search);
+  if (f.category) q.set('categoryId', f.category);
+  if (f.brand) q.set('brand', f.brand);
+  if (f.min) q.set('minPrice', f.min);
+  if (f.max) q.set('maxPrice', f.max);
+  if (f.favorites) q.set('favorites', 'true');
+  if (f.inStock) q.set('inStock', 'true');
+  const options = Object.fromEntries(Object.entries(f.options).filter(([, v]) => v).map(([k, v]) => [k, [v]]));
+  if (Object.keys(options).length) q.set('options', JSON.stringify(options));
+  return q.toString();
 };
 
+/**
+ * Bayi kataloğu: sipariş tablosu. Filtreler üstte tek satırda; satırda miktar girilip eklenir (Enter da ekler),
+ * işaretlenen satırlar alttaki çubuktan topluca sepete eklenir. Varyantlar satırın altında açılır.
+ */
 const ProductCatalog = () => {
-  const [products, setProducts] = useState([]);
   const [categories, setCategories] = useState([]);
-  const [filters, setFilters] = useState({ brands: [] });
-  const [loadedKey, setLoadedKey] = useState(null); // son yüklenen sorgu
-  const [refreshing, setRefreshing] = useState(false); // arama / filtre düğmesiyle yeniden yükleme
-  const [userProfile, setUserProfile] = useState(null);
-  
+  const [facets, setFacets] = useState({ brands: [], options: [] });
+  const [company, setCompany] = useState(null);
+
+  const [searchInput, setSearchInput] = useState('');
   const [search, setSearch] = useState('');
-  const [selectedBrand, setSelectedBrand] = useState('');
-  const [selectedCategory, setSelectedCategory] = useState('');
-  const [priceRange, setPriceRange] = useState({ min: '', max: '' });
-  const [page, setPage] = useState(1);
+  const [f, setF] = useState(EMPTY_CATALOG_FILTERS);
+  const { user } = useAuth();
+  const [view, setView] = useState(() => readView(user?.id)); // grid (kartlar, varsayılan) | table
 
-  const [selectedProduct, setSelectedProduct] = useState(null);
-  const [isDetailOpen, setIsDetailOpen] = useState(false);
-  const [buyQuantities, setBuyQuantities] = useState({});
-  const [rules, setRules] = useState(null);
-  const [favoritesOnly, setFavoritesOnly] = useState(false);
-  const [optionFilters, setOptionFilters] = useState({}); // { Gramaj: '1 kg' }
+  // Yüklenen sonuç, hangi sorgu için yüklendiğiyle birlikte tutulur (anahtar farklıysa "yükleniyor")
+  const [result, setResult] = useState({ key: null, items: [], page: 1, pages: 1, total: 0, rules: null });
+  const [loadingMore, setLoadingMore] = useState(false);
+
+  const [qtys, setQtys] = useState({});
+  const [selected, setSelected] = useState({}); // id → { item, parent }
+  const [detail, setDetail] = useState(null);
   const [quoteItems, setQuoteItems] = useState(null);
+  const [notice, setNotice] = useState(null);
+  const noticeTimer = useRef(null);
   const { alertElement, showAlert } = useAlert();
+  const { cart, cartTotal, addToCart, setIsCartOpen } = useCart();
 
-  const { addToCart, setIsCartOpen } = useCart();
-
-  // Sayfa / filtre değişince yeniden yüklenir; yüklenen sorgu güncel sorgudan farklıysa "yükleniyor"
-  const queryKey = JSON.stringify([page, selectedBrand, selectedCategory, favoritesOnly, optionFilters]);
-  const isLoading = refreshing || loadedKey !== queryKey;
-
-  const fetchData = (key = queryKey) => {
-    const query = new URLSearchParams({
-      page,
-      search,
-      categoryId: selectedCategory,
-      brand: selectedBrand,
-      minPrice: priceRange.min,
-      maxPrice: priceRange.max,
-      ...(favoritesOnly && { favorites: 'true' }),
-    });
-    const selectedOptions = Object.fromEntries(Object.entries(optionFilters).filter(([, v]) => v).map(([k, v]) => [k, [v]]));
-    if (Object.keys(selectedOptions).length) query.set('options', JSON.stringify(selectedOptions));
-
-    return Promise.all([
-      api.get(`/products?${query.toString()}`),
-      api.get('/categories'),
-      api.get('/products/filters'),
-      api.get('/auth/me')
-    ]).then(([pRes, cRes, fRes, uRes]) => {
-      setProducts(pRes.data.data);
-      setRules(pRes.data.rules);
-      setCategories(cRes.data);
-      setFilters(fRes.data);
-      setUserProfile(uRes.data);
-    }).catch(() => console.error('Veri yükleme hatası'))
-      .finally(() => { setLoadedKey(key); setRefreshing(false); });
-  };
-
-  // Arama / fiyat filtresi düğmeleri: aynı sorgu anahtarıyla yeniden yükler
-  const refresh = () => { setRefreshing(true); fetchData(); };
+  const queryKey = JSON.stringify([f, search]);
+  const isLoading = result.key !== queryKey;
+  const rules = result.rules;
 
   useEffect(() => {
-    fetchData(queryKey);
+    Promise.all([
+      api.get('/categories').then((r) => setCategories(r.data)),
+      api.get('/products/filters').then((r) => setFacets(r.data)),
+      api.get('/auth/me').then((r) => setCompany(r.data.company))
+    ]).catch(() => {});
+  }, []);
+
+  // Arama yazmayı bırakınca uygulanır
+  useEffect(() => {
+    const timer = setTimeout(() => setSearch(searchInput.trim()), 300);
+    return () => clearTimeout(timer);
+  }, [searchInput]);
+
+  useEffect(() => {
+    let alive = true;
+    api.get(`/products?${buildQuery(f, search, 1)}`)
+      .then((r) => { if (alive) setResult({ key: queryKey, items: r.data.data, page: 1, pages: r.data.pagination.pages, total: r.data.pagination.total, rules: r.data.rules }); })
+      .catch(() => { if (alive) setResult((prev) => ({ ...prev, key: queryKey, items: [], total: 0, pages: 1 })); });
+    return () => { alive = false; };
   }, [queryKey]); // eslint-disable-line react-hooks/exhaustive-deps
 
-  // variant: seçilen varyant (varyantsız üründe null) · qty: verilmezse karttaki miktar
-  const handleAddToCart = (product, variant = null, qty = null) => {
-    const item = variant || product;
+  const loadMore = () => {
+    setLoadingMore(true);
+    api.get(`/products?${buildQuery(f, search, result.page + 1)}`)
+      .then((r) => setResult((prev) => ({ ...prev, items: [...prev.items, ...r.data.data], page: prev.page + 1, pages: r.data.pagination.pages })))
+      .catch(() => showAlert({ type: 'error', title: t('Hata'), message: t('Ürünler yüklenemedi.') }))
+      .finally(() => setLoadingMore(false));
+  };
+
+  // Varyant → ana ürün (sepette "Ana ürün · seçenek" adıyla görünsün)
+  const parentOf = useMemo(() => new Map(result.items.flatMap((p) => (p.variants || []).map((v) => [v.id, p]))), [result.items]);
+
+  const flash = (message) => {
+    setNotice(message);
+    clearTimeout(noticeTimer.current);
+    noticeTimer.current = setTimeout(() => setNotice(null), 3500);
+  };
+
+  const qtyOf = (item) => qtys[item.id] ?? (item.moq || 1);
+  const select = (item, on = true) => setSelected((prev) => {
+    const next = { ...prev };
+    if (on) next[item.id] = { item, parent: parentOf.get(item.id) || null };
+    else delete next[item.id];
+    return next;
+  });
+  // Miktar değişen satır kendiliğinden işaretlenir (toplu eklemeye hazır)
+  const setQty = (item, val, normalize) => {
+    setQtys((prev) => ({ ...prev, [item.id]: normalize ? normalizeQty(val, item) : val }));
+    if (canSelect(item)) select(item, true);
+  };
+  const step = (item, dir) => setQty(item, Math.max(item.moq || 1, normalizeQty(qtyOf(item), item) + dir * (item.stepQuantity || 1)), true);
+
+  const putInCart = (item, quantity, parent = parentOf.get(item.id)) => {
+    addToCart({ ...item, price: item.netPrice, parentName: parent ? parent.name : undefined, variantLabel: item.variantLabel }, quantity);
+  };
+
+  const addOne = (item) => {
+    const parent = parentOf.get(item.id);
+    const quantity = normalizeQty(qtyOf(item), item);
     if (item.priceHidden) {
-      setQuoteItems([{ productId: item.id, name: product.name, sku: item.sku, variantLabel: variant?.variantLabel, quantity: normalizeQty(qty ?? buyQuantities[product.id], item), unit: item.unit }]);
+      setQuoteItems([{ productId: item.id, name: parent?.name || item.name, sku: item.sku, variantLabel: item.variantLabel, quantity, unit: item.unit }]);
       return;
     }
-    const quantity = qty ?? normalizeQty(buyQuantities[product.id], item);
-    addToCart({ ...item, price: item.netPrice, parentName: variant ? product.name : undefined, variantLabel: variant?.variantLabel }, quantity);
-    setIsDetailOpen(false);
-    setIsCartOpen(true);
+    putInCart(item, quantity, parent);
+    select(item, false);
+    flash(`${t('Sepete eklendi')}: ${quantity} ${item.unit} · ${parent ? `${parent.name} (${item.variantLabel})` : item.name}`);
+  };
+
+  const selectedList = Object.values(selected);
+  const selectedTotal = selectedList.reduce((s, { item }) => s + item.netPrice * normalizeQty(qtyOf(item), item), 0);
+  const addSelected = () => {
+    selectedList.forEach(({ item, parent }) => putInCart(item, normalizeQty(qtyOf(item), item), parent));
+    flash(t('{n} ürün sepete eklendi', { n: selectedList.length }));
+    setSelected({});
+  };
+
+  const selectable = result.items.filter((p) => !p.requiresVariant && canSelect(p));
+  const allSelected = selectable.length > 0 && selectable.every((p) => selected[p.id]);
+  const toggleAll = () => {
+    if (allSelected) setSelected({});
+    else setSelected((prev) => ({ ...prev, ...Object.fromEntries(selectable.map((p) => [p.id, { item: p, parent: null }])) }));
+  };
+
+  // Ürün detay penceresinden ekleme (variant seçilmiş olabilir)
+  const addFromDetail = (product, variant = null, qty = null) => {
+    const item = variant || product;
+    const quantity = qty ?? normalizeQty(qtyOf(item), item);
+    if (item.priceHidden) {
+      setQuoteItems([{ productId: item.id, name: product.name, sku: item.sku, variantLabel: variant?.variantLabel, quantity, unit: item.unit }]);
+      return;
+    }
+    putInCart(item, quantity, variant ? product : null);
+    setDetail(null);
+    flash(`${t('Sepete eklendi')}: ${quantity} ${item.unit} · ${product.name}${variant ? ` (${variant.variantLabel})` : ''}`);
+  };
+
+  const updateItem = (id, patch) => {
+    const apply = (p) => (p.id === id ? { ...p, ...patch } : { ...p, variants: p.variants?.map((v) => (v.id === id ? { ...v, ...patch } : v)) });
+    setResult((prev) => ({ ...prev, items: prev.items.map(apply) }));
+    setDetail((prev) => (prev?.id === id ? { ...prev, ...patch } : prev));
   };
 
   const toggleFavorite = async (product) => {
     try {
-      const res = product.isFavorite
-        ? await api.delete(`/lists/favorites/${product.id}`)
-        : await api.post(`/lists/favorites/${product.id}`);
-      const update = (p) => (p.id === product.id ? { ...p, isFavorite: res.data.isFavorite } : p);
-      setProducts(prev => (favoritesOnly && !res.data.isFavorite ? prev.filter(p => p.id !== product.id) : prev.map(update)));
-      setSelectedProduct(prev => (prev ? update(prev) : prev));
+      const res = product.isFavorite ? await api.delete(`/lists/favorites/${product.id}`) : await api.post(`/lists/favorites/${product.id}`);
+      if (f.favorites && !res.data.isFavorite) setResult((prev) => ({ ...prev, items: prev.items.filter((p) => p.id !== product.id), total: prev.total - 1 }));
+      else updateItem(product.id, { isFavorite: res.data.isFavorite });
     } catch {
       showAlert({ type: 'error', title: t('Hata'), message: t('Favori güncellenemedi.') });
     }
   };
 
-  // Yazarken serbest bırak, +/- ve sepete eklerken MOQ / artış katsayısına göre düzelt
-  const updateBuyQty = (productId, val, product, normalize = true) => {
-    const qty = normalize ? normalizeQty(val, product) : val;
-    setBuyQuantities(prev => ({ ...prev, [productId]: qty }));
-  };
-
-  const stepDown = (product) => {
-    const current = normalizeQty(buyQuantities[product.id], product);
-    updateBuyQty(product.id, Math.max(product.moq || 1, current - (product.stepQuantity || 1)), product);
-  };
-  const stepUp = (product) => {
-    const current = normalizeQty(buyQuantities[product.id], product);
-    updateBuyQty(product.id, current + (product.stepQuantity || 1), product);
-  };
-
-  const toggleStockAlert = async (product, isOn = product.hasStockAlert) => {
+  const toggleStockAlert = async (item, isOn = item.hasStockAlert) => {
     try {
-      const res = isOn
-        ? await api.delete(`/products/${product.id}/stock-alert`)
-        : await api.post(`/products/${product.id}/stock-alert`);
-      const update = (p) => (p.id === product.id ? { ...p, hasStockAlert: !isOn } : p);
-      setProducts(prev => prev.map(update));
-      showAlert({ type: 'success', title: isOn ? t('Bildirim Kaldırıldı') : t('Haber Vereceğiz'), message: res.data.message });
+      const res = isOn ? await api.delete(`/products/${item.id}/stock-alert`) : await api.post(`/products/${item.id}/stock-alert`);
+      updateItem(item.id, { hasStockAlert: !isOn });
+      flash(res.data.message);
     } catch (error) {
       showAlert({ type: 'error', title: t('İşlem Başarısız'), message: error.response?.data?.message || t('Stok bildirimi ayarlanamadı.') });
     }
   };
 
-  const openDetail = (product) => {
-    setSelectedProduct(product);
-    setIsDetailOpen(true);
+  const row = {
+    qtyOf, setQty, step,
+    isSelected: (item) => Boolean(selected[item.id]),
+    toggle: (item) => select(item, !selected[item.id]),
+    add: addOne,
+    open: setDetail,
+    favorite: toggleFavorite,
+    stockAlert: (item) => toggleStockAlert(item),
+    inCart: (item) => cartQtyFor(item, cart)
   };
 
-  const qtyValue = (product) => buyQuantities[product.id] ?? (product.moq || 1);
+  // Etkin filtreler: tek tıkla kaldırılabilen etiketler
+  const chips = [];
+  if (search) chips.push({ key: 'search', label: `"${search}"`, clear: () => setSearchInput('') });
+  if (f.brand) chips.push({ key: 'brand', label: f.brand, clear: () => setF({ ...f, brand: '' }) });
+  if (f.min || f.max) chips.push({ key: 'price', label: `${f.min || 0} – ${f.max || '∞'} ₺`, clear: () => setF({ ...f, min: '', max: '' }) });
+  if (f.inStock) chips.push({ key: 'stock', label: t('Stoktakiler'), clear: () => setF({ ...f, inStock: false }) });
+  if (f.favorites) chips.push({ key: 'fav', label: t('Favorilerim'), clear: () => setF({ ...f, favorites: false }) });
+  Object.entries(f.options).filter(([, v]) => v).forEach(([k, v]) => chips.push({ key: `o-${k}`, label: `${k}: ${v}`, clear: () => setF({ ...f, options: { ...f.options, [k]: '' } }) }));
+  const hasFilters = chips.length > 0 || Boolean(f.category);
+  const clearAll = () => { setF({ ...EMPTY_CATALOG_FILTERS, sort: f.sort }); setSearchInput(''); };
 
-  const getStockBadge = (stock) => {
-    if (stock === '100+') return <span className="bg-emerald-100 text-emerald-700 px-3 py-1.5 rounded-xl text-[10px] font-black flex items-center shadow-sm"><CheckCircle2 className="h-3 w-3 mr-1.5" /> {t('100+ STOK')}</span>;
-    if (stock === 'Son 5 Ürün') return <span className="bg-orange-100 text-orange-700 px-3 py-1.5 rounded-xl text-[10px] font-black flex items-center shadow-sm"><AlertCircle className="h-3 w-3 mr-1.5" /> {t('KRİTİK STOK')}</span>;
-    if (stock === 'Tükendi') return <span className="bg-red-100 text-red-700 px-3 py-1.5 rounded-xl text-[10px] font-black flex items-center shadow-sm"><XCircle className="h-3 w-3 mr-1.5" /> {t('TÜKENDİ')}</span>;
-    return <span className="bg-indigo-100 text-indigo-700 px-3 py-1.5 rounded-xl text-[10px] font-black flex items-center shadow-sm">{stock} ADET</span>;
-  };
+  const showBar = selectedList.length > 0 || cart.length > 0 || notice;
+  const changeView = (v) => { setView(v); try { localStorage.setItem(viewKey(user?.id), v); } catch { /* gizli sekme */ } };
 
   return (
-    <div className="animate-in fade-in duration-700">
+    <div className="space-y-5">
       {alertElement}
-      
-      {/* Header Area */}
-      <div className="flex flex-col xl:flex-row justify-between items-start xl:items-center mb-8 gap-6">
-        <PageHeader icon={ShoppingBag} title={t('Katalog')}
-          subtitle={<>{userProfile?.company?.name} · {t('Özel İskonto (%{n})', { n: userProfile?.company?.netDiscount || 0 })}</>}>
+
+      <PageHeader icon={ShoppingBag} title={t('Katalog')}
+        subtitle={company && <>{company.name} · {t('Özel İskonto (%{n})', { n: company.netDiscount || 0 })}</>}
+        actions={<>
           {rules?.qtyRate > 0 && (
-            <p className="mt-2 inline-flex items-center text-[11px] font-black text-emerald-700 bg-emerald-50 px-3 py-1.5 rounded-xl">
-              <Tag className="h-3.5 w-3.5 mr-1.5" /> {rules.qtyThreshold} ve üzeri alımlarda sepette ekstra %{rules.qtyRate} indirim
-            </p>
+            <span className="inline-flex items-center h-10 px-3 rounded-xl text-xs font-black text-emerald-700 dark:text-emerald-400 bg-emerald-50">
+              <Tag className="h-3.5 w-3.5 mr-1.5" /> {t('{n} ve üzeri alımlarda sepette ekstra %{rate} indirim', { n: rules.qtyThreshold, rate: rules.qtyRate })}
+            </span>
           )}
-        </PageHeader>
-        
-        <form onSubmit={(e) => { e.preventDefault(); refresh(); }} className="relative w-full xl:w-[32rem] group">
-          <Search className="absolute left-6 top-1/2 -translate-y-1/2 h-5 w-5 text-gray-300 group-focus-within:text-indigo-600 transition-all" />
-          <input 
-            type="text" 
-            placeholder={t('Ürün adı, SKU veya barkod...')} 
-            className="w-full pl-16 pr-6 py-4 bg-white border border-gray-100 rounded-2xl text-sm font-bold focus:ring-4 focus:ring-indigo-100 shadow-sm transition-all outline-none placeholder:text-gray-300"
-            value={search}
-            onChange={e => setSearch(e.target.value)}
-          />
-        </form>
-      </div>
-
-      {/* Categories Row */}
-      <div className="mb-8">
-         <div className="flex space-x-4 overflow-x-auto custom-scrollbar pb-4">
-            <button 
-              onClick={() => setSelectedCategory('')}
-              className={`flex items-center space-x-4 px-6 py-4 rounded-2xl border transition-all min-w-max ${
-                !selectedCategory 
-                  ? 'bg-indigo-600 text-white border-indigo-600 shadow-md shadow-indigo-500/20' 
-                  : 'bg-white text-gray-700 border-gray-100 hover:border-indigo-200 hover:shadow-md'
-              }`}
-            >
-               <div className={`w-12 h-12 rounded-xl flex items-center justify-center ${!selectedCategory ? 'bg-white/20' : 'bg-indigo-50 text-indigo-500'}`}>
-                  <Package className="h-6 w-6" />
-               </div>
-               <div className="text-left">
-                 <span className="font-black text-sm block">{t('Tüm Ürünler')}</span>
-                 <span className={`text-[10px] font-bold uppercase tracking-widest ${!selectedCategory ? 'text-indigo-200' : 'text-gray-400'}`}>{t('Tüm Kataloğu Gör')}</span>
-               </div>
-            </button>
-
-            {categories.map(cat => (
-              <button 
-                key={cat.id}
-                onClick={() => setSelectedCategory(cat.id)}
-                className={`flex items-center space-x-4 px-6 py-4 rounded-2xl border transition-all min-w-max ${
-                  selectedCategory === cat.id 
-                    ? 'bg-indigo-600 text-white border-indigo-600 shadow-md shadow-indigo-500/20' 
-                    : 'bg-white text-gray-700 border-gray-100 hover:border-indigo-200 hover:shadow-md'
-                }`}
-              >
-                 <div className={`w-12 h-12 rounded-xl flex items-center justify-center overflow-hidden flex-shrink-0 ${selectedCategory === cat.id ? 'bg-white/20' : 'bg-gray-50 text-gray-400'}`}>
-                    {cat.image ? (
-                      <img src={cat.image} alt={cat.name} className="w-full h-full object-cover" />
-                    ) : (
-                      <Package className="h-6 w-6 opacity-50" />
-                    )}
-                 </div>
-                 <div className="text-left">
-                   <span className="font-black text-sm block">{cat.name}</span>
-                   <span className={`text-[10px] font-bold uppercase tracking-widest ${selectedCategory === cat.id ? 'text-indigo-200' : 'text-gray-400'}`}>{t('Kategori')}</span>
-                 </div>
+          <div role="group" aria-label={t('Görünüm')} className="flex bg-gray-100 rounded-xl p-1">
+            {[['grid', LayoutGrid, t('Kart')], ['table', List, t('Liste')]].map(([v, Icon, label]) => (
+              <button key={v} onClick={() => changeView(v)} aria-pressed={view === v}
+                className={`h-8 px-3 rounded-lg flex items-center gap-1.5 text-xs font-black transition-colors ${view === v ? 'bg-white text-indigo-600 shadow-sm' : 'text-gray-500 hover:text-gray-800'}`}>
+                <Icon className="h-4 w-4" /> {label}
               </button>
             ))}
-         </div>
-      </div>
-
-      {/* Advanced Filters Bar (Sticky) */}
-      <div className="bg-white border border-gray-100 rounded-[2rem] p-4 mb-10 shadow-sm flex flex-col lg:flex-row justify-between items-start lg:items-center md:sticky top-0 z-30 gap-4">
-         <div className="flex items-center space-x-3 text-sm font-bold text-gray-500 pl-4">
-            <Filter className="h-5 w-5 text-indigo-500" />
-            <span className="uppercase tracking-widest text-[11px] font-black">{t('Gelişmiş Filtreler')}</span>
-         </div>
-
-         <div className="flex flex-wrap items-center gap-3 w-full md:w-auto md:justify-end">
-            <div className="flex items-center bg-gray-50 px-5 py-3 rounded-2xl border border-gray-100">
-               <SlidersHorizontal className="h-4 w-4 text-gray-400 mr-3" />
-               <select 
-                 className="bg-transparent border-none text-xs font-bold text-gray-700 outline-none w-40 cursor-pointer"
-                 value={selectedBrand}
-                 onChange={(e) => setSelectedBrand(e.target.value)}
-               >
-                 <option value="">{t('Tüm Markalar')}</option>
-                 {filters.brands.map(b => <option key={b} value={b}>{b}</option>)}
-               </select>
-            </div>
-
-            <div className="flex items-center space-x-3 bg-gray-50 px-5 py-3 rounded-2xl border border-gray-100">
-               <input 
-                 type="number" placeholder={t('Min ₺')} 
-                 className="w-20 bg-transparent text-xs font-bold outline-none text-center"
-                 value={priceRange.min} onChange={e => setPriceRange({...priceRange, min: e.target.value})}
-               />
-               <div className="w-px h-4 bg-gray-300" />
-               <input 
-                 type="number" placeholder={t('Max ₺')} 
-                 className="w-20 bg-transparent text-xs font-bold outline-none text-center"
-                 value={priceRange.max} onChange={e => setPriceRange({...priceRange, max: e.target.value})}
-               />
-            </div>
-
-            {filters.options?.map(o => (
-              <div key={o.name} className={`flex items-center px-4 py-3 rounded-2xl border ${optionFilters[o.name] ? 'bg-indigo-50 border-indigo-200' : 'bg-gray-50 border-gray-100'}`}>
-                <Layers className="h-4 w-4 text-gray-400 mr-2" />
-                <select className="bg-transparent border-none text-xs font-bold text-gray-700 outline-none max-w-[9rem] cursor-pointer"
-                  value={optionFilters[o.name] || ''} onChange={(e) => { setPage(1); setOptionFilters({ ...optionFilters, [o.name]: e.target.value }); }}>
-                  <option value="">{o.name}: Tümü</option>
-                  {o.values.map(v => <option key={v} value={v}>{v}</option>)}
-                </select>
-              </div>
-            ))}
-
-            <button onClick={() => { setPage(1); setFavoritesOnly(!favoritesOnly); }}
-              className={`flex items-center px-4 py-3 rounded-2xl border text-xs font-black ${favoritesOnly ? 'bg-pink-50 border-pink-200 text-pink-600' : 'bg-gray-50 border-gray-100 text-gray-500'}`}>
-              <Heart className={`h-4 w-4 mr-2 ${favoritesOnly ? 'fill-current' : ''}`} /> {t('Favorilerim')}
-            </button>
-
-            <button 
-              onClick={() => { setPage(1); refresh(); }}
-              className="bg-gray-900 text-white px-8 py-3.5 rounded-2xl text-[11px] font-black uppercase tracking-widest hover:bg-gray-800 transition-colors shadow-lg shadow-gray-900/20"
-            >
-              {t('Uygula')}
-            </button>
-         </div>
-      </div>
-
-      {/* Main Grid */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 gap-4 md:gap-8">
-        {isLoading ? (
-          [1, 2, 3, 4, 5, 6].map(i => (
-            <div key={i} className="bg-white rounded-[2.5rem] p-8 border border-gray-100 shadow-sm animate-pulse h-[28rem]"></div>
-          ))
-        ) : products.length === 0 ? (
-          <div className="col-span-full py-32 text-center bg-white rounded-[3rem] border border-dashed border-gray-200">
-            <Package className="h-24 w-24 text-gray-100 mx-auto mb-6" />
-            <p className="text-gray-400 font-black text-xl uppercase tracking-widest">{t('Ürün bulunamadı.')}</p>
           </div>
-        ) : products.map((product) => { const summary = variantSummary(product); return (
-          <div key={product.id} className="bg-white rounded-[2.5rem] border border-gray-100 shadow-sm hover:shadow-[0_20px_60px_-15px_rgba(79,70,229,0.15)] hover:border-indigo-100 hover:-translate-y-2 transition-all duration-500 group relative flex flex-col p-3 overflow-hidden">
-            {/* Top Badges & Actions */}
-            <div className="absolute top-6 right-6 z-30 flex flex-col items-end gap-2">
-              {summary ? getStockBadge(summary.inStock ? '100+' : t('Tükendi')) : getStockBadge(product.stock)}
-              <button onClick={(e) => { e.stopPropagation(); toggleFavorite(product); }} title={t('Favori')}
-                className={`bg-white/90 backdrop-blur-md p-3 rounded-xl shadow-lg border border-gray-100 transition-all hover:scale-110 ${product.isFavorite ? 'text-pink-500' : 'text-gray-400 hover:text-pink-500'}`}>
-                <Heart className={`h-5 w-5 ${product.isFavorite ? 'fill-current' : ''}`} />
-              </button>
-              <button 
-                onClick={(e) => { e.preventDefault(); e.stopPropagation(); openDetail(product); }}
-                className="bg-white/90 backdrop-blur-md p-3 rounded-xl shadow-lg text-gray-400 hover:text-indigo-600 transition-all border border-gray-100 hover:scale-110 relative z-30"
-              >
-                 <Eye className="h-5 w-5" />
-              </button>
-            </div>
+        </>} />
 
-            {/* Image Box */}
-            <div className="aspect-[4/3] bg-gradient-to-br from-gray-50 to-gray-100 rounded-[2rem] flex items-center justify-center p-8 group-hover:from-indigo-50/50 group-hover:to-purple-50/50 transition-colors duration-500 mb-6 overflow-hidden relative">
-              <div className="absolute inset-0 bg-white/20 mix-blend-overlay"></div>
-              {firstImage(product.images) ? (
-                 <>
-                   {/* Görsel yüklenemezse (silinmiş dosya) kırık resim yerine ürün ikonu gösterilir */}
-                   <img src={firstImage(product.images)} alt={product.name} onError={(e) => e.currentTarget.classList.add('broken', 'hidden')} className="peer w-full h-full object-contain relative z-10 group-hover:scale-110 transition-transform duration-700 drop-shadow-xl" />
-                   <Package className="hidden peer-[.broken]:block h-20 w-20 text-gray-300 relative z-10" />
-                 </>
-              ) : (
-                 <Package className="h-20 w-20 text-gray-300 relative z-10 group-hover:scale-110 transition-transform duration-500" />
-              )}
-            </div>
-            
-            {/* Content Area */}
-            <div className="flex-1 flex flex-col px-4 pb-4">
-              <div className="mb-4">
-                <div className="flex items-center space-x-2 mb-3">
-                  <span className="text-[10px] font-black text-indigo-600 uppercase bg-indigo-50 px-2.5 py-1 rounded-md tracking-widest">{product.brand || '—'}</span>
-                  {summary ? (
-                    <span className="text-[10px] font-bold text-indigo-500 uppercase bg-indigo-50/60 px-2.5 py-1 rounded-md tracking-widest">{summary.count} seçenek · {product.options?.map(o => o.name).join(', ') || t('Varyant')}</span>
-                  ) : (
-                    <span className="text-[10px] font-bold text-gray-500 uppercase bg-gray-50 px-2.5 py-1 rounded-md tracking-widest">{t('SKU:')} {product.sku}</span>
-                  )}
-                </div>
-                <h3 className="font-bold text-gray-900 group-hover:text-indigo-600 transition-colors text-lg leading-snug line-clamp-2 h-[3.5rem]">{product.name}</h3>
-              </div>
-
-              <div className="flex items-end justify-between mb-8">
-                {summary ? (
-                  <div>
-                    <p className="text-[10px] font-bold text-gray-400 uppercase tracking-widest mb-1">{t('Net Fiyat')} <span className="normal-case">{t('(KDV hariç)')}</span></p>
-                    <p className="text-3xl font-black text-gray-900 tracking-tighter">
-                      {summary.minPrice !== null ? <>{formatTRY(summary.minPrice)}<span className="text-sm text-gray-400 font-bold">{t("'den")}</span></> : <span className="text-sm text-gray-500">{t('Teklif isteyin')}</span>}
-                    </p>
-                  </div>
-                ) : product.priceHidden ? (
-                  <div>
-                    <p className="text-[10px] font-bold text-gray-400 uppercase tracking-widest mb-1">{t('Fiyat')}</p>
-                    <p className="text-sm font-black text-gray-500">{product.rateMissing ? t('Kur bilgisi bekleniyor') : t('Teklif için iletişime geçin')}</p>
-                  </div>
-                ) : (
-                  <>
-                    <div>
-                      <p className="text-[10px] font-bold text-gray-400 uppercase tracking-widest mb-1">{t('Net Fiyat')} <span className="normal-case">{t('(KDV hariç)')}</span></p>
-                      <div className="flex items-baseline gap-2">
-                         <p className="text-3xl font-black text-gray-900 tracking-tighter">
-                           {formatTRY(product.netPrice)}
-                         </p>
-                      </div>
-                    </div>
-                    <div className="text-right">
-                      <p className="text-[9px] font-bold text-gray-400 uppercase tracking-widest mb-1">{t('Liste')}</p>
-                      {product.listPriceTRY !== product.netPrice && (
-                        <p className="text-sm font-bold text-gray-400 line-through">{formatTRY(product.listPriceTRY)}</p>
-                      )}
-                      {product.currency && !['TRY', 'TL'].includes(product.currency) && (
-                        <p className="text-[9px] font-bold text-indigo-400 mt-0.5">{product.price.toLocaleString('tr-TR')} {product.currency} · TCMB kuru</p>
-                      )}
-                    </div>
-                  </>
-                )}
-              </div>
-
-              {/* Action Bar */}
-              <div className="mt-auto">
-                 {summary ? (
-                   <button onClick={() => openDetail(product)} className="w-full bg-gradient-to-r from-indigo-600 to-purple-600 hover:from-indigo-500 hover:to-purple-500 rounded-2xl py-4 flex items-center justify-center shadow-md hover:-translate-y-0.5 transition-all">
-                     <Layers className="h-4 w-4 mr-2 text-white" />
-                     <span className="text-[11px] font-black text-white uppercase tracking-widest">{t('Seçenekleri Gör')}</span>
-                   </button>
-                 ) : (
-                 <div className="flex items-center gap-3">
-                    <div className="flex items-center bg-gray-50 rounded-2xl p-1.5 border border-gray-100 w-2/5 shadow-inner">
-                      <button 
-                        onClick={(e) => { e.preventDefault(); e.stopPropagation(); stepDown(product); }} 
-                        className="p-2 text-gray-400 hover:text-indigo-600 hover:bg-white hover:shadow-sm rounded-xl transition-all"
-                      ><Minus className="h-4 w-4" /></button>
-                      <input 
-                        type="number" 
-                        onClick={(e) => { e.stopPropagation(); }}
-                        className="w-full bg-transparent text-center text-sm font-black outline-none text-gray-900" 
-                        value={qtyValue(product)} 
-                        onChange={(e) => updateBuyQty(product.id, e.target.value, product, false)} 
-                        onBlur={(e) => updateBuyQty(product.id, e.target.value, product)} 
-                      />
-                      <button 
-                        onClick={(e) => { e.preventDefault(); e.stopPropagation(); stepUp(product); }} 
-                        className="p-2 text-gray-400 hover:text-indigo-600 hover:bg-white hover:shadow-sm rounded-xl transition-all"
-                      ><Plus className="h-4 w-4" /></button>
-                    </div>
-                    
-                    {!product.inStock ? (
-                      <button
-                        onClick={(e) => { e.preventDefault(); e.stopPropagation(); toggleStockAlert(product); }}
-                        className={`w-3/5 rounded-2xl py-4 px-2 flex items-center justify-center transition-all duration-300 border ${product.hasStockAlert ? 'bg-emerald-50 border-emerald-100 text-emerald-700' : 'bg-white border-gray-200 text-gray-700 hover:border-indigo-300 hover:text-indigo-600'}`}
-                      >
-                        {product.hasStockAlert ? <BellOff className="h-4 w-4 mr-2" /> : <BellRing className="h-4 w-4 mr-2" />}
-                        <span className="text-[11px] font-black uppercase tracking-widest">{product.hasStockAlert ? t('Takipte') : t('Gelince Haber Ver')}</span>
-                      </button>
-                    ) : (
-                    <button 
-                      onClick={(e) => {
-                        e.preventDefault();
-                        e.stopPropagation();
-                        handleAddToCart(product);
-                      }}
-                      className="w-3/5 bg-gradient-to-r from-indigo-600 to-purple-600 hover:from-indigo-500 hover:to-purple-500 rounded-2xl py-4 px-2 flex items-center justify-center transition-all duration-300 shadow-md hover:shadow-indigo-500/30 hover:-translate-y-0.5 group/btn relative"
-                    >
-                       <ShoppingCart className="h-4 w-4 mr-2 text-white group-hover/btn:-rotate-12 transition-transform duration-300 relative z-10" />
-                       <span className="text-[11px] font-black text-white uppercase tracking-widest relative z-10">{product.priceHidden ? t('Teklif İste') : t('Sepete Ekle')}</span>
-                    </button>
-                    )}
-                 </div>
-                 )}
-                 {/* Minimum Order Hint */}
-                 {(product.moq > 1 || product.stepQuantity > 1) && (
-                    <p className="text-center text-[9px] font-bold text-gray-400 mt-3 flex items-center justify-center">
-                       <AlertCircle className="h-3 w-3 mr-1" />
-                       {t('Min')} {product.moq || 1} {product.unit}{product.stepQuantity > 1 ? ` · ${t('{n} ve katları', { n: product.stepQuantity })}` : ''}
-                    </p>
-                 )}
-              </div>
-            </div>
-          </div>
-        ); })}
+      {/* Arama + filtreler: kaydırırken üstte kalır */}
+      <div className="md:sticky md:top-[4.5rem] z-20 -mx-3 md:-mx-8 lg:-mx-12 px-3 md:px-8 lg:px-12 py-3 bg-white/90 backdrop-blur border-b border-gray-100 space-y-2.5">
+        <div className="relative">
+          <Search className="absolute left-4 top-1/2 -translate-y-1/2 h-5 w-5 text-gray-400" />
+          <input type="search" value={searchInput} onChange={(e) => setSearchInput(e.target.value)} placeholder={t('Ürün adı, SKU, barkod veya marka ile ara')}
+            className="w-full h-12 pl-12 pr-10 rounded-xl bg-white border border-gray-200 text-[15px] font-medium outline-none focus:border-indigo-400 focus:ring-4 focus:ring-indigo-100 placeholder:text-gray-400" />
+          {searchInput && <button onClick={() => setSearchInput('')} className="absolute right-3 top-1/2 -translate-y-1/2 p-1 text-gray-400 hover:text-gray-700" aria-label={t('Temizle')}><X className="h-4 w-4" /></button>}
+        </div>
+        <FilterBar value={f} onChange={setF} categories={categories} facets={facets} />
       </div>
 
-      {/* Detail Modal */}
-      {isDetailOpen && selectedProduct && (
-        <ProductDetailModal
-          key={selectedProduct.id}
-          product={selectedProduct}
-          rules={rules}
-          onClose={() => setIsDetailOpen(false)}
-          onAddToCart={handleAddToCart}
-          onRequestQuote={(items) => setQuoteItems(items)}
-          onToggleFavorite={toggleFavorite}
-          onToggleStockAlert={toggleStockAlert}
-          onOpenProduct={openDetail}
-        />
+      {f.category && <CategoryBanner categories={categories} value={f.category} onPick={(id) => setF({ ...f, category: id })} />}
+
+      <div className="flex flex-wrap items-center gap-2 min-h-[2rem]">
+        <p className="text-sm font-bold text-gray-900 mr-1">{isLoading ? t('Aranıyor…') : t('{n} ürün', { n: result.total.toLocaleString('tr-TR') })}</p>
+        {chips.map((c) => (
+          <button key={c.key} onClick={c.clear} className="flex items-center h-7 pl-2.5 pr-1.5 rounded-lg bg-gray-100 text-gray-700 text-xs font-bold hover:bg-gray-200">
+            {c.label} <X className="h-3.5 w-3.5 ml-1 text-gray-500" />
+          </button>
+        ))}
+        {chips.length > 0 && <button onClick={clearAll} className="text-xs font-bold text-indigo-600 hover:underline px-1">{t('Tümünü temizle')}</button>}
+        <div className="ml-auto flex items-center gap-3">
+          <p className="hidden xl:block text-xs text-gray-400">{t("İpucu: miktarı yazıp Enter'a basınca ürün sepete eklenir.")}</p>
+          {view === 'grid' && selectable.length > 0 && (
+            <label className="flex items-center gap-2 text-xs font-bold text-gray-600 cursor-pointer">
+              <input type="checkbox" checked={allSelected} onChange={toggleAll} className="h-4 w-4 rounded accent-indigo-600" /> {t('Tümünü seç')}
+            </label>
+          )}
+        </div>
+      </div>
+
+      {isLoading ? (view === 'grid' ? (
+        <div className="grid grid-cols-2 md:grid-cols-3 xl:grid-cols-4 gap-3 md:gap-4">
+          {Array.from({ length: 8 }, (_, i) => <div key={i} className="h-[22rem] rounded-2xl border border-gray-200 bg-gray-50/60 animate-pulse" />)}
+        </div>
+      ) : (
+        <div className="bg-white rounded-2xl border border-gray-200 divide-y divide-gray-100 overflow-hidden">
+          <div className="h-11 list-head" />
+          {Array.from({ length: 6 }, (_, i) => <div key={i} className="h-[4.5rem] animate-pulse bg-gray-50/50" />)}
+        </div>
+      )) : result.items.length === 0 ? (
+        <EmptyState icon={Package} action={hasFilters && <button onClick={clearAll} className="btn-secondary">{t('Filtreleri temizle')}</button>}>
+          {hasFilters ? t('Bu filtrelere uyan ürün bulunamadı.') : t('Katalogda henüz ürün yok.')}
+        </EmptyState>
+      ) : view === 'grid' ? (
+        <ProductGrid items={result.items} row={row} />
+      ) : (
+        <OrderTable items={result.items} row={row} allSelected={allSelected} onToggleAll={toggleAll} />
       )}
 
+      {!isLoading && result.page < result.pages && (
+        <div className="flex flex-col items-center gap-2">
+          <p className="text-xs text-gray-400">{t('{shown} / {total} ürün gösteriliyor', { shown: result.items.length, total: result.total })}</p>
+          <button onClick={loadMore} disabled={loadingMore} className="flex items-center h-10 px-6 rounded-xl bg-white border border-gray-200 text-sm font-bold text-gray-700 hover:border-indigo-300 hover:text-indigo-600 disabled:opacity-60">
+            {loadingMore && <Loader2 className="h-4 w-4 mr-2 animate-spin" />} {t('Daha fazla göster')}
+          </button>
+        </div>
+      )}
+
+      {/* Alt çubuk: seçilenler, son işlem, sepet özeti */}
+      {/* Seçim / bildirim yoksa yalnızca sağda küçük sepet düğmesi */}
+      {showBar && (
+        <div className="sticky bottom-[calc(4.5rem+env(safe-area-inset-bottom))] lg:bottom-4 z-20 flex justify-end pointer-events-none">
+          <div className={`pointer-events-auto bg-[#0f172a] dark:bg-[#1e293b] ring-1 ring-white/10 text-white rounded-2xl shadow-2xl flex flex-wrap items-center gap-x-4 gap-y-2 ${selectedList.length > 0 || notice ? 'w-full px-4 py-3' : 'p-1.5'}`}>
+            {selectedList.length > 0 ? (
+              <div className="flex items-center gap-3 flex-wrap">
+                <p className="text-sm"><b>{t('{n} ürün seçili', { n: selectedList.length })}</b> <span className="text-white/60">· {formatTRY(selectedTotal)}</span></p>
+                <button onClick={addSelected} className="h-9 px-4 rounded-lg bg-indigo-500 hover:bg-indigo-400 text-white text-xs font-black flex items-center gap-1.5"><ShoppingCart className="h-4 w-4" /> {t('Seçilenleri sepete ekle')}</button>
+                <button onClick={() => setSelected({})} className="text-xs font-bold text-white/60 hover:text-white">{t('Vazgeç')}</button>
+              </div>
+            ) : notice ? (
+              <p className="flex items-center text-sm min-w-0"><CheckCircle2 className="h-4 w-4 mr-2 text-emerald-400 shrink-0" /><span className="truncate">{notice}</span></p>
+            ) : null}
+            {cart.length > 0 && (
+              <button onClick={() => setIsCartOpen(true)} className="ml-auto flex items-center gap-2 h-9 pl-3 pr-4 rounded-lg bg-white/10 hover:bg-white/20 text-sm">
+                <ShoppingCart className="h-4 w-4" /> <span className="font-bold">{t('{n} kalem', { n: cart.length })}</span> <span className="text-white/70">· {formatTRY(cartTotal)}</span>
+                <span className="text-xs font-black text-indigo-300 ml-1">{t('Sepete git')}</span>
+              </button>
+            )}
+          </div>
+        </div>
+      )}
+
+      {detail && (
+        <ProductDetailModal key={detail.id} product={detail} rules={rules} onClose={() => setDetail(null)}
+          onAddToCart={addFromDetail} onRequestQuote={setQuoteItems} onToggleFavorite={toggleFavorite} onToggleStockAlert={toggleStockAlert} onOpenProduct={setDetail} />
+      )}
       {quoteItems && (
-        <QuoteRequestModal
-          items={quoteItems}
-          onClose={() => setQuoteItems(null)}
-          onDone={(message) => { setQuoteItems(null); setIsDetailOpen(false); showAlert({ type: 'success', title: t('Teklif Talebi Gönderildi'), message }); }}
-        />
+        <QuoteRequestModal items={quoteItems} onClose={() => setQuoteItems(null)}
+          onDone={(message) => { setQuoteItems(null); setDetail(null); showAlert({ type: 'success', title: t('Teklif Talebi Gönderildi'), message }); }} />
       )}
     </div>
   );

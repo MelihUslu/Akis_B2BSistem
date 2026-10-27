@@ -36,8 +36,8 @@ export const getCategories = async (req, res) => {
       where: isAdmin ? {} : { isActive: true },
       // Ürün sayısı yalnızca ana ürünleri sayar (varyantlar ayrı ürün kaydıdır)
       include: {
-        _count: { select: { products: { where: { parentId: null } } } },
-        children: { where: isAdmin ? {} : { isActive: true }, orderBy: { sortOrder: 'asc' }, include: { _count: { select: { products: { where: { parentId: null } } } } } }
+        _count: { select: { products: { where: { parentId: null, ...(isAdmin ? {} : { isActive: true }) } } } },
+        children: { where: isAdmin ? {} : { isActive: true }, orderBy: { sortOrder: 'asc' }, include: { _count: { select: { products: { where: { parentId: null, ...(isAdmin ? {} : { isActive: true }) } } } } } }
       },
       orderBy: { sortOrder: 'asc' }
     });

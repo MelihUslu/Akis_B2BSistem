@@ -32,6 +32,25 @@ const presentForDealer = async (req, products, extraFor = () => ({})) => {
   };
 };
 
+// Katalog sıralaması. Fiyat sıralaması liste fiyatına göredir (dövizli ürünler kendi para biriminde karşılaştırılır).
+const SORTS = {
+  default: [{ sortOrder: 'asc' }, { createdAt: 'desc' }],
+  newest: [{ createdAt: 'desc' }],
+  price_asc: [{ price: 'asc' }, { id: 'asc' }],
+  price_desc: [{ price: 'desc' }, { id: 'asc' }]
+};
+
+const categoryWithDescendants = async (rootId) => {
+  const all = await prisma.category.findMany({ select: { id: true, parentId: true } });
+  const ids = new Set([rootId]);
+  let added = true;
+  while (added) {
+    added = false;
+    for (const c of all) if (c.parentId && ids.has(c.parentId) && !ids.has(c.id)) { ids.add(c.id); added = true; }
+  }
+  return [...ids];
+};
+
 // ?options={"Gramaj":["1 kg"],"Ambalaj":["Kutu"]} → aynı varyantta tüm seçimleri sağlayan ana ürünler
 const optionFilter = (raw) => {
   let selections;
@@ -51,7 +70,8 @@ export const getProducts = async (req, res) => {
       categoryId,
       brand,
       minPrice,
-      maxPrice
+      maxPrice,
+      sort
     } = req.query;
 
     // Yönetici görünümü sadece ADMIN rolüne açıktır (query parametresiyle açılamaz)
@@ -63,19 +83,26 @@ export const getProducts = async (req, res) => {
       ? (await prisma.favorite.findMany({ where: { userId: req.user.id }, select: { productId: true } })).map(f => f.productId)
       : null;
 
+    // Üst kategori seçilince alt kategorilerin ürünleri de gelir
+    const categoryIds = categoryId ? await categoryWithDescendants(parseInt(categoryId)) : null;
+
     const where = {
       isMaster: true,
       ...(favoriteIds && { id: { in: favoriteIds } }),
       ...(isAdmin ? {} : { isActive: true }),
-      ...(search && {
-        OR: [
-          { name: { contains: search, mode: 'insensitive' } },
-          { sku: { contains: search, mode: 'insensitive' } },
-          { barcode: { contains: search, mode: 'insensitive' } },
-          { brand: { contains: search, mode: 'insensitive' } }
-        ]
-      }),
-      ...(categoryId && { categoryId: parseInt(categoryId) }),
+      AND: [
+        ...(search ? [{
+          OR: [
+            { name: { contains: search, mode: 'insensitive' } },
+            { sku: { contains: search, mode: 'insensitive' } },
+            { barcode: { contains: search, mode: 'insensitive' } },
+            { brand: { contains: search, mode: 'insensitive' } }
+          ]
+        }] : []),
+        // Yalnızca stoktakiler: varyantsız üründe kendi stoğu, varyantlıda en az bir aktif varyantın stoğu
+        ...(isTrue(req.query.inStock) ? [{ OR: [{ stock: { gt: 0 } }, { variants: { some: { isActive: true, stock: { gt: 0 } } } }] }] : [])
+      ],
+      ...(categoryIds && { categoryId: { in: categoryIds } }),
       ...(brand && { brand }),
       ...optionFilter(req.query.options),
       ...((minPrice || maxPrice) && {
@@ -86,24 +113,29 @@ export const getProducts = async (req, res) => {
       })
     };
 
-    const [products, total] = await Promise.all([
+    // Ada göre sıralama Türkçe alfabeyle yapılır (veritabanı sıralaması Ç, Ş, İ… harflerini sona atar):
+    // eşleşen ürünlerin yalnızca adları çekilir, sıralanır, sayfanın kimlikleri seçilir
+    let pageIds = null;
+    if (sort === 'name') {
+      const all = await prisma.product.findMany({ where, select: { id: true, name: true } });
+      pageIds = all.sort((a, b) => a.name.localeCompare(b.name, 'tr', { sensitivity: 'base' }) || a.id - b.id).slice(skip, skip + take).map((p) => p.id);
+    }
+
+    const [found, total] = await Promise.all([
       prisma.product.findMany({
-        where,
-        skip,
-        take,
+        where: pageIds ? { id: { in: pageIds } } : where,
+        ...(pageIds ? {} : { skip, take }),
         include: {
           category: true,
           ...OPTIONS_INCLUDE,
           variants: { where: isAdmin ? {} : { isActive: true }, include: VARIANT_VALUES_INCLUDE, orderBy: { id: 'asc' } },
           alternatives: isAdmin ? true : { where: { isActive: true } },
         },
-        orderBy: [
-          { sortOrder: 'asc' },
-          { createdAt: 'desc' }
-        ]
+        orderBy: SORTS[sort] || SORTS.default
       }),
       prisma.product.count({ where })
     ]);
+    const products = pageIds ? pageIds.map((id) => found.find((p) => p.id === id)).filter(Boolean) : found;
 
     let data = products;
     let rules;
