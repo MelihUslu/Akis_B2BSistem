@@ -5,15 +5,15 @@ import { useTenant } from '../context/TenantContext';
 import TenantBrand from './TenantBrand';
 import { can } from '../utils/permissions';
 import { 
-  LayoutDashboard, Package, ShoppingCart, CreditCard, BarChart3, Settings, LogOut, Box, UserCheck, ChevronLeft, ChevronRight, RotateCcw, Crown, FileSignature, TicketPercent, LifeBuoy, X, BookUser
+  LayoutDashboard, Package, ShoppingCart, CreditCard, BarChart3, Settings, LogOut, Box, UserCheck, ChevronLeft, ChevronRight, RotateCcw, Crown, FileSignature, TicketPercent, X, BookUser
 } from 'lucide-react';
 
+// Menü altındaki abonelik kutusu yalnızca dikkat gereken durumlarda görünür (abonelik normalse gösterilmez)
 const PLAN_BOX = {
   TRIAL: { title: 'DENEME SÜRÜMÜ', text: 'Deneme süreniz bitmeden bir paket seçin.', cta: 'Paketleri Gör' },
   TRIAL_EXPIRED: { title: 'DENEME BİTTİ', text: 'Bayileriniz portala giremiyor.', cta: 'Paket Seç' },
   EXPIRED: { title: 'SÜRE DOLDU', text: 'Bayileriniz portala giremiyor.', cta: 'Ödeme Yap' },
   PAST_DUE: { title: 'ÖDEME BEKLENİYOR', text: 'Son ödemeniz alınamadı.', cta: 'Abonelik' },
-  ACTIVE: { title: 'ABONELİK', text: 'Paketinizi ve limitlerinizi görüntüleyin.', cta: 'Abonelik' },
 };
 
 // mobile: telefonda çekmece olarak açılır (daraltma yok); onNavigate menüyü kapatır
@@ -24,7 +24,7 @@ const Sidebar = ({ mobile = false, onNavigate }) => {
   const navigate = useNavigate();
   const { logout, user } = useAuth();
   const { tenant } = useTenant();
-  const planBox = PLAN_BOX[tenant?.access?.reason] || PLAN_BOX.ACTIVE;
+  const planBox = PLAN_BOX[tenant?.access?.reason] || null;
 
   const handleLogout = () => {
     logout();
@@ -44,13 +44,12 @@ const Sidebar = ({ mobile = false, onNavigate }) => {
     { name: 'Finans & Prim', path: '/admin/finance', icon: CreditCard, perm: 'FINANCE' },
     { name: 'Raporlar', path: '/admin/reports', icon: BarChart3, perm: ['ORDERS', 'FINANCE'] },
     { name: 'Abonelik', path: '/admin/subscription', icon: Crown, perm: 'SETTINGS' },
-    { name: 'Destek', path: '/admin/support', icon: LifeBuoy },
   ].filter(item => !item.perm || [].concat(item.perm).some((p) => can(user, p)));
 
   return (
     <aside className={`
       ${isCollapsed ? 'w-24' : 'w-72'} 
-      ${mobile ? 'flex h-full overflow-y-auto' : 'hidden lg:flex h-screen sticky top-0'} flex-col py-8 transition-all duration-700 ease-in-out relative z-50
+      ${mobile ? 'flex h-full overflow-y-auto' : 'hidden lg:flex h-screen sticky top-0'} flex-col py-6 transition-all duration-700 ease-in-out relative z-50
       bg-[#0f172a]
     `}>
       {/* Collapse Toggle Button */}
@@ -66,14 +65,14 @@ const Sidebar = ({ mobile = false, onNavigate }) => {
       )}
 
       {/* Logo Section */}
-      <div className={`px-8 mb-10 transition-all ${isCollapsed ? 'px-6' : 'px-8'}`}>
+      <div className={`px-8 mb-6 transition-all ${isCollapsed ? 'px-6' : 'px-8'}`}>
         <div className="flex items-center group cursor-pointer">
           <TenantBrand compact={isCollapsed} textClass="text-white" onDark />
         </div>
       </div>
 
       {/* Main Menu */}
-      <nav className="flex-1 px-4 space-y-2">
+      <nav className="flex-1 min-h-0 overflow-y-auto custom-scrollbar px-4 space-y-1.5">
         {menuItems.map((item) => (
           <NavLink
             key={item.path}
@@ -83,7 +82,7 @@ const Sidebar = ({ mobile = false, onNavigate }) => {
             title={isCollapsed ? item.name : ''}
             className={({ isActive }) => `
               flex items-center rounded-2xl transition-all duration-300 group
-              ${isCollapsed ? 'justify-center p-4' : 'px-5 py-4'}
+              ${isCollapsed ? 'justify-center p-3.5' : 'px-5 py-3.5'}
               ${isActive 
                 ? 'bg-indigo-600/10 text-indigo-600 border-l-2 border-indigo-500' 
                 : 'text-gray-400 hover:text-white hover:bg-white/5'}
@@ -95,8 +94,8 @@ const Sidebar = ({ mobile = false, onNavigate }) => {
         ))}
       </nav>
 
-      {/* Bottom Menu - PRO PLAN Box (Only visible when expanded) */}
-      {!isCollapsed && can(user, 'SETTINGS') && (
+      {/* Abonelik uyarısı (deneme / süre doldu / ödeme bekleniyor; menü açıkken) */}
+      {planBox && !isCollapsed && can(user, 'SETTINGS') && (
         <div className="px-6 mb-6 animate-in fade-in duration-500">
           <div className={`rounded-2xl p-5 border transition-all duration-700 bg-gradient-to-br from-indigo-600/20 to-purple-600/20 border-indigo-500/20`}>
             <p className="text-[10px] font-black text-indigo-500 uppercase tracking-widest mb-1">{planBox.title}</p>
@@ -106,8 +105,8 @@ const Sidebar = ({ mobile = false, onNavigate }) => {
         </div>
       )}
 
-      {/* Settings & Logout */}
-      <div className="px-4 space-y-2">
+      {/* Ayarlar ve Çıkış masaüstünde sağ üstteki kullanıcı menüsünde; telefonda açılan menüde burada da durur */}
+      {mobile && <div className="px-4 space-y-2">
         {can(user, 'SETTINGS') && <NavLink
           to="/admin/settings"
           onClick={onNavigate}
@@ -125,7 +124,7 @@ const Sidebar = ({ mobile = false, onNavigate }) => {
           <LogOut className={`transition-all duration-700 ${isCollapsed ? 'h-7 w-7' : 'h-5 w-5 mr-4'} text-red-500/60 group-hover:text-red-500`} />
           {!isCollapsed && <span className="whitespace-nowrap">Çıkış Yap</span>}
         </button>
-      </div>
+      </div>}
     </aside>
   );
 };

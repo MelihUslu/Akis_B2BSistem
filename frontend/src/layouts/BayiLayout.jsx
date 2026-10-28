@@ -1,7 +1,9 @@
 import { Suspense, lazy, useState } from 'react';
-import { Routes, Route, useLocation, Link } from 'react-router-dom';
+import { Routes, Route, useLocation, useNavigate } from 'react-router-dom';
 import ErrorBoundary from '../components/ErrorBoundary';
-import { ShoppingCart, Menu, ChevronDown } from 'lucide-react';
+import { ShoppingCart, Menu, UserRound, History, CreditCard, LogOut } from 'lucide-react';
+import { UserMenu } from '../components/shared/HeaderMenu';
+import SupportMenu from '../components/bayi/SupportMenu';
 import { useCart } from '../context/CartContext';
 import { useAuth } from '../context/AuthContext';
 import BayiSidebar from '../components/BayiSidebar';
@@ -25,11 +27,10 @@ const QuickOrder = lazy(() => import('../pages/bayi/QuickOrder'));
 const BayiQuotes = lazy(() => import('../pages/bayi/BayiQuotes'));
 const BayiLists = lazy(() => import('../pages/bayi/BayiLists'));
 
-const initials = (name = '') => name.split(' ').filter(Boolean).slice(0, 2).map((w) => w[0]).join('').toLocaleUpperCase('tr-TR');
-
 const BayiLayout = () => {
   const { cartCount, isCartOpen, setIsCartOpen } = useCart();
-  const { user } = useAuth();
+  const { user, logout } = useAuth();
+  const navigate = useNavigate();
   const [menuOpen, setMenuOpen] = useState(false);
   const { pathname } = useLocation();
 
@@ -52,9 +53,10 @@ const BayiLayout = () => {
              <div className="truncate lg:hidden"><TenantBrand textClass="text-gray-900" /></div>
           </div>
           
-          <div className="flex items-center space-x-3 md:space-x-6">
+          <div className="flex items-center gap-2 md:gap-4">
             <LanguageSwitcher className="hidden sm:flex" />
             <ThemeToggle className="hidden sm:block" />
+            <SupportMenu />
             <NotificationBell />
 
             <button 
@@ -69,18 +71,13 @@ const BayiLayout = () => {
               )}
             </button>
 
-            <div className="h-8 w-px bg-gray-100 hidden sm:block" />
-
-            <Link to="/bayi/profile" title={t('Profilim')} className="hidden sm:flex items-center space-x-3 pl-4 border-l border-gray-50 group">
-              <div className="text-right hidden sm:block">
-                <p className="text-xs font-black text-gray-900 leading-none">{user?.name || t('Değerli Bayimiz')}</p>
-                <p className="text-[8px] font-black text-indigo-500 uppercase tracking-widest mt-1">{t('Bayi Hesabı')}</p>
-              </div>
-              <div className="w-8 h-8 bg-indigo-100 rounded-xl flex items-center justify-center text-indigo-600 font-black text-[10px] shadow-sm">
-                {initials(user?.name)}
-              </div>
-              <ChevronDown className="hidden md:block h-3 w-3 text-gray-300 group-hover:text-indigo-500" />
-            </Link>
+            <UserMenu name={user?.name || t('Değerli Bayimiz')} role={t('Bayi Hesabı')} email={user?.email} items={[
+              { label: t('Profilim'), icon: UserRound, to: '/bayi/profile' },
+              { label: t('Siparişlerim'), icon: History, to: '/bayi/orders' },
+              { label: t('Finansal Durum'), icon: CreditCard, to: '/bayi/finance' },
+              { divider: true },
+              { label: t('Çıkış Yap'), icon: LogOut, danger: true, onClick: () => { logout(); navigate('/login'); } }
+            ]} />
           </div>
         </header>
 

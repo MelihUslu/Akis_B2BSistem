@@ -629,4 +629,10 @@ export default {
   'Eşleşen kategori yok.': 'No matching category.',
   'Tümü': 'All',
   'Kategori seçimini kaldır': 'Clear category',
+  'Destek': 'Support',
+  'Size nasıl yardımcı olabiliriz?': 'How can we help?',
+  'Sipariş, ödeme ve ürünlerle ilgili sorularınız için bize ulaşın.': 'Contact us about orders, payments and products.',
+  'Müşteri temsilciniz': 'Your account manager',
+  'Mesaj gönderin': 'Send a message',
+  'İletişim bilgisi henüz eklenmemiş.': 'No contact details yet.',
 };

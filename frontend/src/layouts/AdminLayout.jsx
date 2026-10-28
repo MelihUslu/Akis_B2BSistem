@@ -1,6 +1,8 @@
 import { Suspense, lazy, useEffect, useState } from 'react';
-import { Routes, Route, Link, useLocation } from 'react-router-dom';
-import { ShieldOff, Award, ChevronDown, Menu } from 'lucide-react';
+import { Routes, Route, Link, useLocation, useNavigate } from 'react-router-dom';
+import { ShieldOff, Menu, LifeBuoy, UserRound, Crown, Settings, LogOut } from 'lucide-react';
+import { UserMenu } from '../components/shared/HeaderMenu';
+import { headerButtonClass } from '../utils/ui';
 import Sidebar from '../components/Sidebar';
 import NotificationBell from '../components/NotificationBell';
 import GlobalSearch from '../components/GlobalSearch';
@@ -59,10 +61,10 @@ const useRememberLastPage = () => {
   }, [location]);
 };
 
-const initials = (name = '') => name.split(' ').filter(Boolean).slice(0, 2).map(w => w[0]).join('').toLocaleUpperCase('tr-TR');
 
 const AdminLayout = () => {
-  const { user } = useAuth();
+  const { user, logout } = useAuth();
+  const navigate = useNavigate();
   const [menuOpen, setMenuOpen] = useState(false);
   const { pathname } = useLocation();
   useRememberLastPage();
@@ -90,23 +92,16 @@ const AdminLayout = () => {
           <div className="flex items-center gap-2 md:gap-6 shrink-0">
             <ThemeToggle className="hidden sm:block" />
 
-            <div className="hidden xl:flex items-center space-x-2 bg-indigo-500/10 px-3 py-1.5 rounded-full border border-indigo-500/20">
-              <Award className="h-3 w-3 text-indigo-500" />
-              <span className="text-[10px] font-black text-indigo-500 uppercase tracking-widest">Premium Panel</span>
-            </div>
+            <Link to="/admin/support" className={headerButtonClass} title="Destek"><LifeBuoy className="h-4 w-4" /><span className="hidden md:inline">Destek</span></Link>
 
             <NotificationBell />
 
-            <Link to="/admin/account" title="Hesabım" className="flex items-center space-x-3 md:pl-4 md:border-l border-gray-50 group">
-              <div className="hidden md:flex flex-col text-right mr-1">
-                <span className="text-xs font-black leading-none text-gray-900">{user?.name}</span>
-                <span className="text-[8px] font-black text-indigo-500 uppercase tracking-widest mt-1">{user?.isOwner ? 'Firma Sahibi' : 'Yönetici'}</span>
-              </div>
-              <div className="w-8 h-8 bg-indigo-100 rounded-xl flex items-center justify-center text-indigo-600 font-black text-[10px] shadow-sm">
-                {initials(user?.name)}
-              </div>
-              <ChevronDown className="hidden md:block h-3 w-3 text-gray-300 group-hover:text-indigo-500" />
-            </Link>
+            <UserMenu name={user?.name} role={user?.isOwner ? 'Firma Sahibi' : 'Yönetici'} email={user?.email} items={[
+              { label: 'Hesabım', icon: UserRound, to: '/admin/account' },
+              ...(can(user, 'SETTINGS') ? [{ label: 'Abonelik', icon: Crown, to: '/admin/subscription' }, { label: 'Ayarlar', icon: Settings, to: '/admin/settings' }] : []),
+              { divider: true },
+              { label: 'Çıkış Yap', icon: LogOut, danger: true, onClick: () => { logout(); navigate('/login'); } }
+            ]} />
           </div>
         </header>
 

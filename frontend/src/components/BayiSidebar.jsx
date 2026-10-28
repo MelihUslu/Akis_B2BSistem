@@ -50,7 +50,7 @@ const BayiSidebar = ({ mobile = false, onNavigate }) => {
         {mobile && <button onClick={onNavigate} className="p-2 text-gray-400 hover:text-white"><X className="h-5 w-5" /></button>}
       </div>
       
-      <nav className="flex-1 px-4 space-y-1 mb-6">
+      <nav className="flex-1 px-4 space-y-1.5 mb-6">
         {menuItems.map((item) => (
           <NavLink
             key={item.path}
@@ -58,7 +58,7 @@ const BayiSidebar = ({ mobile = false, onNavigate }) => {
             end={item.path === '/bayi'}
             onClick={onNavigate}
             className={({ isActive }) => `
-              flex items-center px-5 py-4 rounded-xl text-sm font-bold transition-all duration-300 group
+              flex items-center px-5 py-3.5 rounded-xl text-sm font-bold transition-all duration-300 group
               ${isActive 
                 ? 'bg-indigo-600/10 text-indigo-400 border-l-2 border-indigo-400' 
                 : 'text-gray-400 hover:text-white hover:bg-white/5'}
@@ -75,21 +75,8 @@ const BayiSidebar = ({ mobile = false, onNavigate }) => {
         {mobile && <LanguageSwitcher className="w-fit !bg-white/10" />}
       </div>
 
-      {/* Bottom Menu - Premium Upgrade Box style */}
-      <div className="px-6 mb-6">
-        <div className="bg-gradient-to-br from-indigo-600/20 to-purple-600/20 rounded-2xl p-5 border border-indigo-500/20">
-          <p className="text-[10px] font-black text-indigo-300 uppercase tracking-widest mb-1">{t('DESTEK')}</p>
-          <p className="text-[11px] text-gray-400 leading-relaxed mb-3">{t('Müşteri temsilcinizle hemen iletişime geçin.')}</p>
-          {import.meta.env.VITE_SUPPORT_PHONE && <p className="text-[11px] font-bold text-white/80">{import.meta.env.VITE_SUPPORT_PHONE}</p>}
-          {import.meta.env.VITE_SUPPORT_EMAIL && (
-            <a href={`mailto:${import.meta.env.VITE_SUPPORT_EMAIL}`} className="mt-3 block w-full py-2.5 bg-indigo-500 text-white text-[10px] font-black rounded-lg hover:bg-indigo-600 transition-colors text-center">
-              {import.meta.env.VITE_SUPPORT_EMAIL}
-            </a>
-          )}
-        </div>
-      </div>
-
-      <div className="px-4 border-t border-white/5 pt-4">
+      {/* Çıkış masaüstünde sağ üstteki kullanıcı menüsünde; telefonda açılan menüde burada da durur */}
+      {mobile && <div className="px-4 border-t border-white/5 pt-4">
         <button
           onClick={handleLogout}
           className="w-full flex items-center px-5 py-4 rounded-xl text-sm font-bold text-red-400 hover:bg-red-500/10 transition-all group"
@@ -97,7 +84,7 @@ const BayiSidebar = ({ mobile = false, onNavigate }) => {
           <LogOut className="h-5 w-5 mr-4 text-red-500/60 group-hover:text-red-400" />
           {t('Çıkış Yap')}
         </button>
-      </div>
+      </div>}
     </aside>
   );
 };
