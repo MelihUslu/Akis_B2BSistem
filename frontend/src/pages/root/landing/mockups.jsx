@@ -1,3 +1,4 @@
+import { useEffect, useState } from 'react';
 import { ShoppingCart, Search, Check, X, Package, Truck, Sparkles, CreditCard, RotateCcw, Camera, Webhook, Store } from 'lucide-react';
 
 // Tanıtım sayfasındaki ürün çizimleri (gerçek ekranların sadeleştirilmiş HTML hali; görsel dosya kullanılmaz)
@@ -202,3 +203,86 @@ export const FloatingLimit = () => (
   </div>
 );
 
+
+// Bayinin telefonundaki portal (telefona yüklenen uygulama)
+export const PhoneMockup = () => (
+  <div className="relative mx-auto w-[16.5rem] rounded-[2.6rem] bg-[#0b0d12] p-2.5 shadow-[0_40px_80px_-30px_rgba(15,23,42,0.6)]">
+    <span className="absolute top-3.5 left-1/2 -translate-x-1/2 h-5 w-20 rounded-full bg-black z-10" />
+    <div className="rounded-[2.1rem] bg-[#f7f8fb] overflow-hidden h-[33rem] flex flex-col">
+      <div className="px-4 pt-9 pb-3 bg-white flex items-center justify-between">
+        <span className="text-[13px] font-black text-slate-900">Yıldız Hırdavat</span>
+        <span className="relative"><ShoppingCart className="h-5 w-5 text-indigo-600" /><span className="absolute -top-1.5 -right-2 h-4 min-w-4 px-1 rounded-full bg-red-500 text-white text-[9px] font-black flex items-center justify-center">3</span></span>
+      </div>
+      <div className="mx-3 mt-3 rounded-2xl bg-gradient-to-br from-indigo-600 to-violet-600 p-3.5 text-white">
+        <p className="text-[10px] opacity-80">Kullanılabilir limit</p>
+        <p className="text-xl font-black">₺57.650</p>
+        <span className="mt-2 block h-1.5 rounded-full bg-white/25"><span className="block h-full w-[42%] rounded-full bg-white" /></span>
+      </div>
+      <div className="mx-3 mt-3 rounded-2xl bg-white p-3 border border-slate-100 flex items-center gap-2.5">
+        <span className="h-8 w-8 rounded-xl bg-emerald-100 text-emerald-600 flex items-center justify-center"><Truck className="h-4 w-4" /></span>
+        <span className="min-w-0"><span className="block text-[11px] font-bold text-slate-900">#AK-1038 kargoda</span><span className="block text-[10px] text-slate-400">Yurtiçi · yarın teslim</span></span>
+      </div>
+      <p className="px-4 mt-4 text-[11px] font-black text-slate-500">Sık aldıklarınız</p>
+      <div className="px-3 mt-2 grid grid-cols-2 gap-2">
+        {PRODUCTS.slice(0, 2).map((p) => (
+          <div key={p.sku} className="rounded-xl bg-white border border-slate-100 overflow-hidden">
+            <div className={`h-16 bg-gradient-to-br ${p.hue} flex items-center justify-center text-2xl`}>{p.icon}</div>
+            <div className="p-2"><p className="text-[10px] font-bold text-slate-800 truncate">{p.name}</p><p className="text-[11px] font-black text-slate-900">{tl(p.price * 0.88)}</p></div>
+          </div>
+        ))}
+      </div>
+      <div className="mt-auto grid grid-cols-4 bg-white border-t border-slate-100 py-2.5 text-[9px] font-bold text-slate-400">
+        {['Katalog', 'Sepet', 'Siparişler', 'Cari'].map((x, i) => <span key={x} className={`text-center ${i === 0 ? 'text-indigo-600' : ''}`}>{x}</span>)}
+      </div>
+    </div>
+  </div>
+);
+
+// Yöneticinin panosu
+export const DashboardMockup = () => (
+  <div className="rounded-[1.6rem] bg-white border border-slate-200/70 shadow-[0_30px_70px_-35px_rgba(15,23,42,0.45)] p-5 space-y-4">
+    <div className="flex items-center justify-between"><p className="font-semibold text-slate-950">Bu ayın özeti</p><span className="text-[11px] font-bold text-slate-400">Ekim</span></div>
+    <div className="grid grid-cols-3 gap-2.5">
+      {[['Ciro', '₺1,24 M', 'from-indigo-500 to-violet-600'], ['Sipariş', '128', 'from-emerald-500 to-teal-600'], ['Onay bekleyen', '6', 'from-orange-400 to-rose-500']].map(([k, v, g]) => (
+        <div key={k} className={`rounded-xl bg-gradient-to-br ${g} p-3 text-white`}><p className="text-[10px] opacity-80">{k}</p><p className="text-lg font-black">{v}</p></div>
+      ))}
+    </div>
+    <svg viewBox="0 0 400 120" preserveAspectRatio="none" className="w-full h-28" aria-hidden="true">
+      <defs><linearGradient id="dash-area" x1="0" x2="0" y1="0" y2="1"><stop offset="0%" stopColor="#6366f1" stopOpacity="0.28" /><stop offset="100%" stopColor="#6366f1" stopOpacity="0" /></linearGradient></defs>
+      {[30, 60, 90].map((y) => <line key={y} x1="0" x2="400" y1={y} y2={y} stroke="#e2e8f0" strokeDasharray="4 4" />)}
+      <path d="M0 100 C50 92 70 70 110 76 S170 44 210 52 S280 22 320 30 S370 10 400 8 L400 120 L0 120 Z" fill="url(#dash-area)" />
+      <path d="M0 100 C50 92 70 70 110 76 S170 44 210 52 S280 22 320 30 S370 10 400 8" fill="none" stroke="#6366f1" strokeWidth="3" strokeLinecap="round" />
+    </svg>
+    <div className="space-y-2">
+      <p className="text-[11px] font-black text-slate-500 uppercase tracking-wider">Limitine yaklaşan bayiler</p>
+      {[['Kaya Yapı Market', 86], ['Demir Teknik', 74]].map(([n, p]) => (
+        <div key={n} className="flex items-center gap-3 text-xs"><span className="w-32 font-semibold text-slate-700 truncate">{n}</span><span className="flex-1 h-1.5 rounded-full bg-slate-100"><span className={`block h-full rounded-full ${p > 80 ? 'bg-red-500' : 'bg-amber-500'}`} style={{ width: `${p}%` }} /></span><span className="w-9 text-right font-black text-slate-900">%{p}</span></div>
+      ))}
+    </div>
+  </div>
+);
+
+// Giriş bölümünde sırayla beliren canlı olaylar
+const LIVE_EVENTS = [
+  { icon: Package, tone: 'text-indigo-600', title: 'Yeni sipariş · 02:14', text: <>Yıldız Hırdavat <b>#AK-1042</b> · {tl(18278)}</> },
+  { icon: CreditCard, tone: 'text-emerald-600', title: 'Tahsilat alındı', text: <>Kaya Yapı Market kartla <b>{tl(12400)}</b> ödedi</> },
+  { icon: Truck, tone: 'text-sky-600', title: 'Kargoya verildi', text: <><b>#AK-1038</b> · takip no bayiye gönderildi</> },
+  { icon: Sparkles, tone: 'text-violet-600', title: 'Teklif hazır', text: <>Yapay zekâ 12 kalemi eşleştirdi · onayınızı bekliyor</> },
+];
+
+// Olaylar 3 saniyede bir değişir; hareket azaltma tercihi açıksa ilk olayda kalır
+export const LiveTicker = () => {
+  const [i, setI] = useState(0);
+  useEffect(() => {
+    if (window.matchMedia?.('(prefers-reduced-motion: reduce)').matches) return undefined;
+    const timer = setInterval(() => setI((x) => (x + 1) % LIVE_EVENTS.length), 3000);
+    return () => clearInterval(timer);
+  }, []);
+  const event = LIVE_EVENTS[i];
+  return (
+    <div key={i} className="w-72 rounded-2xl bg-white shadow-[0_20px_50px_-20px_rgba(15,23,42,0.35)] px-4 py-3 text-[13px] leading-snug text-slate-800 animate-in fade-in slide-in-from-bottom-2 duration-500">
+      <p className={`flex items-center gap-1.5 text-[11px] font-black mb-0.5 ${event.tone}`}><event.icon className="h-3.5 w-3.5" /> {event.title}</p>
+      {event.text}
+    </div>
+  );
+};

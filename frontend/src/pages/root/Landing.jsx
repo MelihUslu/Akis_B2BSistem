@@ -1,13 +1,14 @@
 import { useEffect, useState } from 'react';
 import {
-  ArrowRight, Check, LogIn, MailCheck, Loader2, Menu, X, PlayCircle, Store, ShoppingCart, Plus, Minus,
-  LayoutGrid, ClipboardCheck, Wallet, Sparkles, Webhook, RotateCcw, Globe, Coins, CreditCard, Smartphone, Truck, Languages
+  ArrowRight, Check, LogIn, MailCheck, Loader2, Menu, X, PlayCircle, Store, ShoppingCart, Plus, Minus, LayoutGrid, ClipboardCheck, Wallet, Sparkles, Webhook, RotateCcw
 } from 'lucide-react';
 import { publicApi, errorMessage } from '../../services/api';
 import { tenantUrl, ROOT_DOMAIN_LABEL } from '../../utils/tenant';
 import { formatTRY } from '../../utils/format';
 import { Chip, Highlight, Heading, PrimaryButton, Frame, Brackets, IconTile } from './landing/ui';
-import { PortalMockup, CatalogMock, ApprovalMock, CreditMock, AiQuoteMock, ErpMock, ReturnMock, StepMock, FloatingOrder, FloatingLimit } from './landing/mockups';
+import { PortalMockup, CatalogMock, ApprovalMock, CreditMock, AiQuoteMock, ErpMock, ReturnMock, StepMock, FloatingLimit, LiveTicker } from './landing/mockups';
+import { ProblemSolution, Sectors, Roles, DualView, FeatureCatalog, SavingsCalculator, Comparison, StickyCta } from './landing/sections';
+import { FAQ as FAQ_ITEMS } from './landing/data';
 
 const PLATFORM_NAME = import.meta.env.VITE_PLATFORM_NAME || 'Akis B2B';
 const SUPPORT_EMAIL = import.meta.env.VITE_SUPPORT_EMAIL;
@@ -24,15 +25,6 @@ const TABS = [
   { id: 'rma', icon: RotateCcw, label: 'İade / değişim', title: 'Fotoğraflı, takip edilebilir iade', text: 'Bayi sipariş detayından iade ister, fotoğraf ekler. Siz onaylayınca tutar cari hesaba alacak olarak yazılır, stok geri alınır.', mock: ReturnMock },
 ];
 
-const FEATURES = [
-  { icon: Globe, title: 'Kendi alan adınız', text: 'firmaniz.' + ROOT_DOMAIN_LABEL + ' ya da b2b.firmaniz.com; logonuz, renkleriniz.', chips: ['Logo', 'Alt alan adı', 'Özel alan adı'] },
-  { icon: Coins, title: 'Dövizli cari', text: 'USD ve EUR fiyatlı ürünler, dövizli cari hesap, TCMB kuru.', chips: ['TL', 'USD', 'EUR'] },
-  { icon: CreditCard, title: 'Sanal POS', text: 'Bayi borcunu kartla öder; tahsilat cariye otomatik işlenir.', chips: ['iyzico', 'PayTR'] },
-  { icon: Smartphone, title: 'Telefona uygulama', text: 'Bayileriniz portalı telefona yükler, sipariş durumunu bildirimle alır.', chips: ['iOS', 'Android', 'Bildirim'] },
-  { icon: Truck, title: 'Kargo ve e-fatura', text: 'Gönderi oluşturma, etiket, takip; e-arşiv ve e-fatura kesimi.', chips: ['Yurtiçi Kargo', 'Paraşüt'] },
-  { icon: Languages, title: 'Türkçe ve İngilizce', text: 'Bayi portalı iki dilde; yurt dışı bayileriniz de rahatça sipariş verir.', chips: ['Türkçe', 'English'] },
-];
-
 const STEPS = [
   { title: 'Hesabınızı açın', points: ['Firma adınızı ve portal adresinizi seçin.', 'Kredi kartı gerekmez; deneme hemen başlar.'] },
   { title: 'Ürünlerinizi yükleyin', points: ['Excel ile toplu yükleme ya da ERP\'den API ile.', 'Kategori, varyant, döviz ve stok bilgileriyle.'] },
@@ -40,14 +32,7 @@ const STEPS = [
   { title: 'Sipariş almaya başlayın', points: ['Bayileriniz 7/24 sipariş verir.', 'Onay, sevkiyat ve tahsilatı tek yerden yönetin.'] },
 ];
 
-const FAQ = [
-  ['Kurulum ne kadar sürer?', 'Hesabınız birkaç dakikada açılır. Ürünlerinizi Excel ile yükleyip bayilerinizi ekledikten sonra portal kullanıma hazırdır; teknik bilgi gerekmez.'],
-  ['Bayilerim portala nasıl giriş yapar?', 'Her firmanın kendi adresi vardır (firmaniz.' + ROOT_DOMAIN_LABEL + '). Bayileriniz bu adresten e-posta ve şifreyle giriş yapar; telefonlarına uygulama olarak da yükleyebilir.'],
-  ['Kendi alan adımı kullanabilir miyim?', 'Evet. Paketiniz destekliyorsa b2b.firmaniz.com gibi kendi alan adınızı bağlayabilirsiniz; sertifika otomatik alınır.'],
-  ['ERP ya da muhasebe programımla çalışır mı?', 'REST API ve webhook ile ürün, stok, fiyat, cari bakiye ve siparişleri senkronlayabilirsiniz. E-fatura için Paraşüt entegrasyonu hazırdır.'],
-  ['Deneme süresi bitince ne olur?', 'Deneme bitmeden bir paket seçerseniz kesintisiz devam edersiniz. Seçmezseniz verileriniz saklanır ama bayi girişleri paket seçilene kadar durur.'],
-  ['Verilerim güvende mi?', 'Her firmanın verisi ayrıdır, başka firma göremez. Veritabanı her gün yedeklenir; hesabınızı kapattığınızda verileriniz KVKK\'ya uygun şekilde silinir.'],
-];
+const FAQ = FAQ_ITEMS.map(([q, a]) => [q, a.replace('{domain}', ROOT_DOMAIN_LABEL)]);
 
 const Landing = () => {
   const [plans, setPlans] = useState([]);
@@ -64,6 +49,8 @@ const Landing = () => {
   const [tab, setTab] = useState(TABS[0].id);
   const [step, setStep] = useState(0);
   const [faq, setFaq] = useState(0);
+
+  useEffect(() => { document.title = `${PLATFORM_NAME} · Bayileriniz için B2B sipariş portalı`; }, []);
 
   useEffect(() => {
     publicApi.get('/plans').then((res) => {
@@ -155,7 +142,7 @@ const Landing = () => {
       {/* Giriş bölümü */}
       <section className="px-3 md:px-6 -mt-16">
         <div className="relative max-w-[90rem] mx-auto rounded-b-[2.5rem] md:rounded-[2.5rem] overflow-hidden pt-36 md:pt-44 pb-16 md:pb-24 px-5 bg-[radial-gradient(60%_60%_at_20%_80%,rgba(103,232,249,0.35),transparent_70%),radial-gradient(55%_60%_at_80%_20%,rgba(165,180,252,0.55),transparent_70%),linear-gradient(180deg,#eef2ff,#f6f7f8)] border border-white">
-          <div className="hidden lg:block absolute left-[6%] top-40"><Brackets><FloatingOrder /></Brackets></div>
+          <div className="hidden lg:block absolute left-[5%] top-40"><Brackets><LiveTicker /></Brackets></div>
           <div className="hidden lg:block absolute right-[9%] top-36"><Brackets><IconTile icon={Store} /></Brackets></div>
           <div className="hidden min-[1400px]:block absolute left-[11%] top-[21.5rem]"><Brackets><IconTile icon={ShoppingCart} from="from-sky-300" to="to-blue-500" /></Brackets></div>
           <div className="hidden min-[1400px]:block absolute right-[5%] top-[23rem]"><Brackets><FloatingLimit /></Brackets></div>
@@ -172,7 +159,7 @@ const Landing = () => {
               <PrimaryButton href="#kayit">{trialDays} gün ücretsiz deneyin <ArrowRight className="h-4 w-4" /></PrimaryButton>
               <a href="#ozellikler" className="flex items-center gap-2 h-12 px-3 text-[15px] font-semibold text-slate-800 hover:text-slate-950"><PlayCircle className="h-5 w-5" /> Nasıl çalıştığını görün</a>
             </div>
-            <p className="mt-5 text-sm text-slate-500">Kredi kartı gerekmez · Dakikalar içinde kurulum</p>
+            <p className="mt-5 flex flex-wrap justify-center gap-x-5 gap-y-1 text-sm text-slate-600">{['Kredi kartı gerekmez', 'Kurulum ücreti yok', 'Dakikalar içinde hazır'].map((x) => <span key={x} className="flex items-center gap-1.5"><Check className="h-4 w-4 text-emerald-500" />{x}</span>)}</p>
           </div>
 
           <div className="relative max-w-5xl mx-auto mt-14 md:mt-20">
@@ -182,6 +169,8 @@ const Landing = () => {
           </div>
         </div>
       </section>
+
+      <ProblemSolution />
 
       {/* Sekmeli özellikler */}
       <section id="ozellikler" className="scroll-mt-24 max-w-6xl mx-auto px-5 pt-24 md:pt-32">
@@ -210,23 +199,10 @@ const Landing = () => {
         </Frame>
       </section>
 
-      {/* Özellik kartları */}
-      <section className="max-w-6xl mx-auto px-5 pt-24 md:pt-32">
-        <div className="max-w-2xl">
-          <Chip>Her şey dahil</Chip>
-          <Heading className="mt-5">Bayi ağınızı büyütecek <span className="whitespace-nowrap">her şey</span></Heading>
-        </div>
-        <div className="mt-10 grid sm:grid-cols-2 lg:grid-cols-3 gap-5">
-          {FEATURES.map((f) => (
-            <Frame key={f.title} inner="p-6 flex flex-col">
-              <span className="h-11 w-11 rounded-xl bg-gradient-to-br from-sky-50 to-indigo-100 text-indigo-600 flex items-center justify-center"><f.icon className="h-5 w-5" /></span>
-              <h3 className="mt-5 text-xl font-semibold tracking-tight text-slate-950">{f.title}</h3>
-              <p className="mt-2 text-slate-600 leading-relaxed flex-1">{f.text}</p>
-              <div className="mt-5 flex flex-wrap gap-1.5">{f.chips.map((c) => <span key={c} className="px-2.5 py-1 rounded-lg bg-slate-50 border border-slate-200 text-xs font-semibold text-slate-700">{c}</span>)}</div>
-            </Frame>
-          ))}
-        </div>
-      </section>
+      <DualView />
+      <Roles />
+      <FeatureCatalog />
+      <Sectors />
 
       {/* Kurulum adımları */}
       <section id="adimlar" className="scroll-mt-24 px-3 md:px-6 pt-24 md:pt-32">
@@ -255,6 +231,8 @@ const Landing = () => {
         </div>
       </section>
 
+      <SavingsCalculator />
+
       {/* Rakamlar (gerçek ürün bilgileri) */}
       <section className="max-w-6xl mx-auto px-5 pt-24 md:pt-32">
         <div className="grid md:grid-cols-3 gap-5 items-start">
@@ -271,6 +249,8 @@ const Landing = () => {
           ))}
         </div>
       </section>
+
+      <Comparison />
 
       {/* Paketler */}
       {plans.length > 0 && (
@@ -457,6 +437,7 @@ const Landing = () => {
           </footer>
         </div>
       </section>
+      <StickyCta trialDays={trialDays} />
     </div>
   );
 };
