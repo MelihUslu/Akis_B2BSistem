@@ -269,7 +269,7 @@ const PartnerManagement = () => {
       <FilterTabs tabs={KIND_TABS(result?.counts || {})} value={filter.kind} onChange={(kind) => setFilter({ ...filter, kind })} />
 
       <div className="space-y-3">
-        <div className="grid grid-cols-1 md:grid-cols-[1fr_12rem_12rem_auto] gap-3">
+        <div className="grid grid-cols-1 md:grid-cols-[minmax(0,1fr)_12rem_12rem_auto] gap-3">
           <div className="relative">
             <Search className="absolute left-3.5 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-400" />
             <input className="premium-input !pl-10" placeholder="Unvan, vergi no, cari kodu, telefon, e-posta veya yetkili ara" value={filter.q} onChange={set('q')} />
@@ -310,27 +310,31 @@ const PartnerManagement = () => {
       {!result ? <div className="text-center py-12 text-gray-400">Yükleniyor...</div> : result.data.length === 0 ? (
         <div className="text-center py-12 bg-white rounded-2xl border border-dashed border-gray-200 text-gray-400">Bu filtrede cari yok.</div>
       ) : (
-        <div className="bg-white rounded-2xl border border-gray-100 shadow-sm overflow-hidden">
-          <div className="hidden lg:grid grid-cols-[minmax(14rem,1fr)_7rem_9rem_10rem_8rem_10rem] gap-4 px-5 py-3 text-[10px] font-black text-gray-400 uppercase tracking-widest border-b border-gray-50">
-            <span>Cari</span><span>Tür</span><span>Vergi no</span><span>İletişim</span><span>Sorumlu</span><span className="text-right">Bakiye</span>
+        // Sütunlar listenin kendi genişliğine göre: geniş → 6 sütun, orta → tür / vergi no ad altında, dar → kart düzeni
+        <div className="@container bg-white rounded-2xl border border-gray-100 shadow-sm overflow-hidden">
+          <div className="hidden @[44rem]:grid @[44rem]:grid-cols-[minmax(0,1fr)_10rem_8rem_9rem] @[66rem]:grid-cols-[minmax(14rem,1fr)_7rem_9rem_10rem_8rem_10rem] gap-4 px-5 py-3 text-[10px] font-black text-gray-400 uppercase tracking-widest border-b border-gray-50">
+            <span>Cari</span><span className="hidden @[66rem]:block">Tür</span><span className="hidden @[66rem]:block">Vergi no</span><span>İletişim</span><span>Sorumlu</span><span className="text-right">Bakiye</span>
           </div>
           {result.data.map((p) => {
             const bal = balanceText(p.kind, p.currentBalance);
             const contact = p.contacts[0];
             return (
-              <button key={p.id} onClick={() => open(p.id)} className={`w-full text-left grid grid-cols-2 lg:grid-cols-[minmax(14rem,1fr)_7rem_9rem_10rem_8rem_10rem] gap-x-4 gap-y-1 px-5 py-4 border-b border-gray-50 last:border-0 hover:bg-teal-50/40 items-center ${p.status === 'PASSIVE' ? 'opacity-60' : ''}`}>
-                <span className="min-w-0 col-span-2 lg:col-span-1">
-                  <span className="block font-bold text-gray-900 truncate">{p.name}</span>
+              <button key={p.id} onClick={() => open(p.id)} className={`w-full text-left grid grid-cols-2 @[44rem]:grid-cols-[minmax(0,1fr)_10rem_8rem_9rem] @[66rem]:grid-cols-[minmax(14rem,1fr)_7rem_9rem_10rem_8rem_10rem] gap-x-4 gap-y-1 px-5 py-4 border-b border-gray-50 last:border-0 hover:bg-teal-50/40 items-center ${p.status === 'PASSIVE' ? 'opacity-60' : ''}`}>
+                <span className="min-w-0 col-span-2 @[44rem]:col-span-1">
+                  <span className="flex items-center gap-2 min-w-0">
+                    <span className="font-bold text-gray-900 truncate">{p.name}</span>
+                    <span className="hidden @[44rem]:inline @[66rem]:hidden shrink-0"><Badge kind={p.kind} /></span>
+                  </span>
                   <span className="flex flex-wrap items-center gap-1 text-xs text-gray-400">
                     <span className="truncate">{[p.externalCode && `Cari ${p.externalCode}`, contact?.name || p.authorizedPerson, p.status === 'PASSIVE' && 'Pasif', p.status === 'PENDING' && 'Başvuru'].filter(Boolean).join(' · ') || '—'}</span>
                     {p.tags.slice(0, 3).map((t) => <span key={t} className="px-1.5 rounded bg-teal-50 text-teal-700 text-[10px] font-bold">{t}</span>)}
                   </span>
                 </span>
-                <span><Badge kind={p.kind} /></span>
-                <span className="text-xs text-gray-500 font-mono">{p.taxNumber || '—'}</span>
+                <span className="@[44rem]:hidden @[66rem]:block"><Badge kind={p.kind} /></span>
+                <span className="@[44rem]:hidden @[66rem]:block text-xs text-gray-500 font-mono">{p.taxNumber || '—'}</span>
                 <span className="text-xs text-gray-500 truncate">{p.phone || contact?.phone || p.email || '—'}</span>
                 <span className="text-xs text-gray-500 truncate">{p.owner?.name || '—'}</span>
-                <span className="lg:text-right">
+                <span className="@[44rem]:text-right">
                   <span className={`block text-sm font-black tabular-nums ${bal.className}`}>{p.currentBalance ? formatMoney(Math.abs(p.currentBalance), p.currency) : '—'}</span>
                   {p.currentBalance !== 0 && <span className={`block text-[10px] font-bold ${bal.className}`}>{bal.label}</span>}
                 </span>

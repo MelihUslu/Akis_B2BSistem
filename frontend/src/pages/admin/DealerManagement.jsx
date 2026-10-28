@@ -229,7 +229,7 @@ const DealerManagement = () => {
                     // Eksi bakiye = bayinin borcu; limit doluluğu borca göre hesaplanır
                     const used = Math.min(100, Math.max(0, (-(dealer.currentBalance || 0) / dealer.riskLimit) * 100));
                     return (
-                      <div className="mt-1.5 w-36" title={`Limitin %${used.toFixed(0)}'i kullanılıyor`}>
+                      <div className="mt-1.5 w-full max-w-[9rem]" title={`Limitin %${used.toFixed(0)}'i kullanılıyor`}>
                         <div className="h-1.5 rounded-full bg-gray-100 overflow-hidden">
                           <div className={`h-full rounded-full ${used >= 90 ? 'bg-red-500' : used >= 70 ? 'bg-amber-500' : 'bg-emerald-500'}`} style={{ width: `${used}%` }} />
                         </div>

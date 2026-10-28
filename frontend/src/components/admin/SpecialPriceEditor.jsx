@@ -62,7 +62,7 @@ const SpecialPriceEditor = ({ productId, currency, showAlert }) => {
       {rows.length === 0 && <p className="text-center text-xs font-bold text-gray-300 uppercase tracking-widest py-6 border-2 border-dashed border-gray-100 rounded-3xl">Özel fiyat yok — iskontolu liste fiyatı geçerli</p>}
 
       {rows.map((r, i) => (
-        <div key={i} className="grid grid-cols-1 md:grid-cols-[10rem_1fr_7rem_8rem_auto] gap-3 items-end bg-gray-50/70 p-4 rounded-2xl">
+        <div key={i} className="grid grid-cols-1 md:grid-cols-[10rem_minmax(0,1fr)_7rem_8rem_auto] gap-3 items-end bg-gray-50/70 p-4 rounded-2xl">
           <div>
             <label className="premium-label">Kapsam</label>
             <select className="premium-input !bg-white" value={r.scope} onChange={(e) => update(i, { scope: e.target.value })}>

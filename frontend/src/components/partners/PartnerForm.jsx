@@ -117,7 +117,7 @@ const PartnerForm = ({ partner, initialKind = 'CUSTOMER', quick = false, meta, o
               </div>
               {form.contacts.length === 0 && <p className="text-xs text-gray-400">Kayıtlı yetkili yok.</p>}
               {form.contacts.map((c, i) => (
-                <div key={i} className="grid grid-cols-2 md:grid-cols-[1fr_1fr_1fr_1fr_auto] gap-2 items-center rounded-xl bg-gray-50 p-2">
+                <div key={i} className="grid grid-cols-2 md:grid-cols-[minmax(0,1fr)_minmax(0,1fr)_minmax(0,1fr)_minmax(0,1fr)_auto] gap-2 items-center rounded-xl bg-gray-50 p-2">
                   <input required className="premium-input !bg-white !py-2" placeholder="Ad soyad *" value={c.name} onChange={(e) => setContact(i, { name: e.target.value })} />
                   <input className="premium-input !bg-white !py-2" placeholder="Görevi (satın alma…)" value={c.title} onChange={(e) => setContact(i, { title: e.target.value })} />
                   <input className="premium-input !bg-white !py-2" placeholder="Telefon" value={c.phone} onChange={(e) => setContact(i, { phone: e.target.value })} />

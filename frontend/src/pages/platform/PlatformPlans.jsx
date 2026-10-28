@@ -57,7 +57,7 @@ const PlanCard = ({ plan, iyzicoEnabled, onSaved, showAlert }) => {
           <div key={k}><label className="premium-label">{label}</label><input type="number" step="any" className="premium-input" value={form[k]} onChange={(e) => setForm({ ...form, [k]: e.target.value })} /></div>
         ))}
       </div>
-      <div className="flex gap-4 text-sm font-bold text-gray-600">
+      <div className="flex flex-wrap gap-x-4 gap-y-2 text-sm font-bold text-gray-600">
         <label className="flex items-center cursor-pointer"><input type="checkbox" className="mr-2" checked={form.isActive} onChange={(e) => setForm({ ...form, isActive: e.target.checked })} /> Aktif</label>
         <label className="flex items-center cursor-pointer"><input type="checkbox" className="mr-2" checked={form.isPublic} onChange={(e) => setForm({ ...form, isPublic: e.target.checked })} /> Kayıt sayfasında göster</label>
         <label className="flex items-center cursor-pointer"><input type="checkbox" className="mr-2" checked={Boolean(form.allowCustomDomain)} onChange={(e) => setForm({ ...form, allowCustomDomain: e.target.checked })} /> Özel alan adı (b2b.firmasi.com)</label>

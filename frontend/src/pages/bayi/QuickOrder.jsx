@@ -82,11 +82,11 @@ const QuickOrder = () => {
 
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
         <div className="card-premium p-6 space-y-3">
-          <div className="grid grid-cols-[1fr_8rem_2.5rem] gap-3 text-[10px] font-black text-gray-400 uppercase tracking-widest px-1">
+          <div className="grid grid-cols-[minmax(0,1fr)_8rem_2.5rem] gap-3 text-[10px] font-black text-gray-400 uppercase tracking-widest px-1">
             <span>{t('SKU / Barkod')}</span><span>{t('Miktar')}</span><span />
           </div>
           {rows.map((row) => (
-            <div key={row.key} className="grid grid-cols-[1fr_8rem_2.5rem] gap-3">
+            <div key={row.key} className="grid grid-cols-[minmax(0,1fr)_8rem_2.5rem] gap-3">
               <input className="premium-input font-mono" placeholder="AK-18-MATKAP" value={row.sku} onChange={(e) => updateRow(row.key, 'sku', e.target.value)} />
               <input className="premium-input" type="number" min="1" placeholder={t('Adet')} value={row.quantity} onChange={(e) => updateRow(row.key, 'quantity', e.target.value)} />
               <button onClick={() => setRows(rows.length > 1 ? rows.filter((r) => r.key !== row.key) : [emptyRow()])} className="text-gray-300 hover:text-red-500 flex items-center justify-center">

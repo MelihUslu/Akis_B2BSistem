@@ -283,7 +283,7 @@ const QuoteForm = ({ meta, companies, quote, onReload, onCompanyAdded, showAlert
       {priceError && <p className="text-xs font-bold text-red-600 bg-red-50 rounded-xl p-3">{priceError}</p>}
 
       {priced?.totals && (
-        <div className="grid grid-cols-1 md:grid-cols-[1fr_22rem] gap-4 items-start">
+        <div className="grid grid-cols-1 xl:grid-cols-[minmax(0,1fr)_22rem] gap-4 items-start">
           <div className="space-y-2">
             {priced.approval?.reasons?.length > 0 && (
               <div className={`rounded-xl p-4 text-xs font-semibold ${priced.approvalRequired ? 'bg-amber-50 text-amber-800' : 'bg-gray-50 text-gray-600'}`}>

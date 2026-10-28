@@ -181,7 +181,7 @@ const QuoteView = ({ quote, onReload, showAlert, confirm }) => {
         </div>
       )}
 
-      <div className="grid grid-cols-1 xl:grid-cols-[1fr_20rem] gap-6 items-start">
+      <div className="grid grid-cols-1 xl:grid-cols-[minmax(0,1fr)_20rem] gap-6 items-start">
         <div className="rounded-2xl ring-1 ring-gray-100 bg-white p-5 md:p-8 text-[12px]">
           {revisions.length > 1 && !pendingApproval && (
             <div className="flex flex-wrap gap-1.5 mb-5">

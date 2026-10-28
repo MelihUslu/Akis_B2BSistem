@@ -50,7 +50,7 @@ const QuoteManagement = () => {
 
       <FilterTabs tabs={FILTERS} value={filter.status} onChange={(status) => setFilter({ ...filter, status })} />
 
-      <div className="grid grid-cols-1 md:grid-cols-[1fr_16rem_10rem_10rem] gap-3">
+      <div className="grid grid-cols-1 md:grid-cols-[minmax(0,1fr)_16rem_10rem_10rem] gap-3">
         <div className="relative">
           <Search className="absolute left-3.5 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-400" />
           <input className="premium-input !pl-10" placeholder="Teklif no (TK-12), başlık veya müşteri ara" value={filter.q} onChange={set('q')} />
@@ -68,29 +68,31 @@ const QuoteManagement = () => {
       ) : quotes.length === 0 ? (
         <div className="text-center py-12 bg-white rounded-2xl border border-dashed border-gray-200 text-gray-400">Bu filtrede teklif yok.</div>
       ) : (
-        <div className="bg-white rounded-2xl border border-gray-100 shadow-sm overflow-hidden">
-          <div className="hidden lg:grid grid-cols-[5rem_minmax(12rem,1fr)_6.5rem_6.5rem_8.5rem_8rem_8rem] gap-4 px-5 py-3 text-[10px] font-black text-gray-400 uppercase tracking-widest border-b border-gray-50">
-            <span>Teklif</span><span>Başlık / Müşteri</span><span>Oluşturma</span><span>Geçerlilik</span><span className="text-right">Tutar</span><span>Durum</span><span>Hazırlayan</span>
+        // Sütunlar listenin kendi genişliğine göre: geniş → 7 sütun, orta → tarihler başlığın altında, dar → kart düzeni
+        <div className="@container bg-white rounded-2xl border border-gray-100 shadow-sm overflow-hidden">
+          <div className="hidden @[40rem]:grid @[40rem]:grid-cols-[5rem_minmax(0,1fr)_8.5rem_8rem] @[64rem]:grid-cols-[5rem_minmax(12rem,1fr)_6.5rem_6.5rem_8.5rem_8rem_8rem] gap-4 px-5 py-3 text-[10px] font-black text-gray-400 uppercase tracking-widest border-b border-gray-50">
+            <span>Teklif</span><span>Başlık / Müşteri</span><span className="hidden @[64rem]:block">Oluşturma</span><span className="hidden @[64rem]:block">Geçerlilik</span><span className="text-right">Tutar</span><span>Durum</span><span className="hidden @[64rem]:block">Hazırlayan</span>
           </div>
           {quotes.map((q) => {
             const status = QUOTE_STATUS[q.status] || QUOTE_STATUS.DRAFT;
             return (
               <button key={q.id} onClick={() => navigate(`/admin/quotes/${q.id}`)}
-                className="w-full text-left grid grid-cols-2 lg:grid-cols-[5rem_minmax(12rem,1fr)_6.5rem_6.5rem_8.5rem_8rem_8rem] gap-x-4 gap-y-1 px-5 py-4 border-b border-gray-50 last:border-0 hover:bg-indigo-50/40 items-center">
+                className="w-full text-left grid grid-cols-2 @[40rem]:grid-cols-[5rem_minmax(0,1fr)_8.5rem_8rem] @[64rem]:grid-cols-[5rem_minmax(12rem,1fr)_6.5rem_6.5rem_8.5rem_8rem_8rem] gap-x-4 gap-y-1 px-5 py-4 border-b border-gray-50 last:border-0 hover:bg-indigo-50/40 items-center">
                 <span className="font-black text-gray-900">{q.code}{q.revision > 1 && <span className="text-[10px] text-gray-400 font-bold"> · R{q.revision}</span>}</span>
-                <span className="min-w-0 col-span-2 lg:col-span-1 order-first lg:order-none">
+                <span className="min-w-0 col-span-2 @[40rem]:col-span-1 order-first @[40rem]:order-none">
                   <span className="block font-bold text-gray-900 truncate">{q.title || (q.source === 'DEALER' ? 'Bayi teklif talebi' : 'Başlıksız teklif')}</span>
                   <span className="block text-xs text-indigo-600 font-semibold truncate">{q.company.name}</span>
+                  <span className="hidden @[40rem]:block @[64rem]:hidden text-[11px] text-gray-400 truncate">{formatDate(q.createdAt)}{q.validUntil && ` → ${formatDate(q.validUntil)}`}{q.preparedBy && ` · ${q.preparedBy}`}</span>
                 </span>
-                <span className="text-xs text-gray-500">{formatDate(q.createdAt)}</span>
-                <span className="text-xs text-gray-500">{q.validUntil ? formatDate(q.validUntil) : '—'}</span>
-                <span className="text-sm font-black text-gray-900 lg:text-right">{q.totalAmount !== null ? formatTRY(q.totalAmount) : '—'} <span className="text-[10px] text-gray-400">{q.currency}</span></span>
+                <span className="text-xs text-gray-500 @[40rem]:hidden @[64rem]:block">{formatDate(q.createdAt)}</span>
+                <span className="text-xs text-gray-500 @[40rem]:hidden @[64rem]:block">{q.validUntil ? formatDate(q.validUntil) : '—'}</span>
+                <span className="text-sm font-black text-gray-900 @[40rem]:text-right">{q.totalAmount !== null ? formatTRY(q.totalAmount) : '—'} <span className="text-[10px] text-gray-400">{q.currency}</span></span>
                 <span className="flex flex-wrap items-center gap-1.5">
                   <span className={`px-2.5 py-1 rounded-full text-[10px] font-black uppercase ${status.className}`}>{status.label}</span>
                   {q.responseType === 'REVISION_REQUESTED' && q.status === 'QUOTED' && <span className="text-[10px] font-black text-amber-600">{RESPONSE_LABEL.REVISION_REQUESTED}</span>}
                   {q.order && <span className="text-[10px] font-black text-emerald-600">#AK-{q.order.id}</span>}
                 </span>
-                <span className="text-xs text-gray-500 truncate">
+                <span className="text-xs text-gray-500 truncate @[40rem]:hidden @[64rem]:block">
                   {q.preparedBy || (q.requestedBy ? <span className="flex items-center"><Store className="h-3 w-3 mr-1 text-orange-400" />Talep: {q.requestedBy}</span> : '—')}
                 </span>
               </button>

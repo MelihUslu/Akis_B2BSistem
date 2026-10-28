@@ -47,7 +47,7 @@ const ContextPanel = ({ context }) => {
         <ChevronDown className={`h-3.5 w-3.5 ml-auto shrink-0 transition-transform ${open ? 'rotate-180' : ''}`} />
       </button>
       {open && (
-        <dl className="grid grid-cols-[8rem_1fr] gap-x-3 gap-y-1 px-3 pb-3 text-xs">
+        <dl className="grid grid-cols-[8rem_minmax(0,1fr)] gap-x-3 gap-y-1 px-3 pb-3 text-xs">
           {rows.map(([k, v]) => (<React.Fragment key={k}><dt className="text-slate-400">{k}</dt><dd className="text-slate-700 font-semibold break-all">{v}</dd></React.Fragment>))}
         </dl>
       )}

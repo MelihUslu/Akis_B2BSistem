@@ -243,7 +243,7 @@ const AdminSubscriptionPage = () => {
             <div key={p.code} className={`card-premium p-6 flex flex-col ${p.code === plan.code ? 'ring-2 ring-indigo-500' : ''}`}>
               <h4 className="text-lg font-black text-gray-900">{p.name}</h4>
               <p className="text-xs text-gray-500 mt-1">{p.description}</p>
-              <p className="text-3xl font-black tracking-tighter mt-4">{formatTRY(cycle === 'YEARLY' ? p.priceYearly : p.priceMonthly)}<span className="text-xs text-gray-400">/{cycle === 'YEARLY' ? 'yıl' : 'ay'}</span></p>
+              <p className="flex flex-wrap items-baseline gap-x-0.5 text-2xl xl:text-3xl font-black tracking-tighter mt-4">{formatTRY(cycle === 'YEARLY' ? p.priceYearly : p.priceMonthly)}<span className="text-xs text-gray-400">/{cycle === 'YEARLY' ? 'yıl' : 'ay'}</span></p>
               <ul className="space-y-2 mt-4 text-xs font-semibold text-gray-600 flex-1">
                 {[`${limitText(p.maxDealers)} bayi`, `${limitText(p.maxProducts)} ürün`, `${limitText(p.maxAdmins)} yönetici`].map((t) => (
                   <li key={t} className="flex items-center"><Check className="h-4 w-4 mr-2 text-emerald-500" /> {t}</li>

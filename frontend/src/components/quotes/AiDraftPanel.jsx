@@ -60,7 +60,7 @@ const AiDraftPanel = ({ ai, companyId, initialText = '', initialPreferences, onD
         <>
           <textarea className="premium-input !bg-white h-28 resize-y" maxLength={4000} value={text} onChange={(e) => setText(e.target.value)}
             placeholder="Örn: 20 koli 8 oz karton bardak, uyumlu kapak ve 10 koli peçete için ekonomik bir teklif hazırla." />
-          <div className="grid grid-cols-1 md:grid-cols-[1fr_1fr_auto] gap-3 items-end">
+          <div className="grid grid-cols-1 md:grid-cols-[minmax(0,1fr)_minmax(0,1fr)_auto] gap-3 items-end">
             <div><label className="premium-label">Marka tercihi (isteğe bağlı)</label><input className="premium-input !bg-white" value={prefs.brand} onChange={(e) => setPrefs({ ...prefs, brand: e.target.value })} /></div>
             <div><label className="premium-label">Bütçe / fiyat tercihi (isteğe bağlı)</label><input className="premium-input !bg-white" placeholder="Örn: ekonomik, en fazla 50.000 ₺" value={prefs.budget} onChange={(e) => setPrefs({ ...prefs, budget: e.target.value })} /></div>
             <label className="flex items-center gap-2 h-11 text-xs font-bold text-gray-600 cursor-pointer">
@@ -86,7 +86,7 @@ const AiDraftPanel = ({ ai, companyId, initialText = '', initialPreferences, onD
         <div className="rounded-xl bg-white ring-1 ring-violet-100 p-4 space-y-3">
           <p className="flex items-center text-xs font-black text-violet-700"><MessageCircleQuestion className="h-4 w-4 mr-1.5" /> Eksik bilgiler</p>
           {questions.map((q, i) => (
-            <div key={i} className="grid grid-cols-1 md:grid-cols-[1fr_16rem] gap-2 items-center">
+            <div key={i} className="grid grid-cols-1 md:grid-cols-[minmax(0,1fr)_16rem] gap-2 items-center">
               <p className="text-sm text-gray-700">{q.question}{q.about && <span className="block text-[11px] text-gray-400">“{q.about}”</span>}</p>
               <input className="premium-input !py-2" placeholder="Yanıt" value={draftAnswers[i] || ''} onChange={(e) => setDraftAnswers({ ...draftAnswers, [i]: e.target.value })} />
             </div>

@@ -65,7 +65,7 @@ const BrandingCard = ({ showAlert }) => {
         <h3 className="font-black text-gray-900 flex items-center"><Building2 className="h-5 w-5 mr-2 text-indigo-500" /> Firma & Marka</h3>
         <span className="text-xs font-bold text-gray-400">Portal adresiniz: <span className="text-indigo-600">{window.location.origin}</span></span>
       </div>
-      <div className="grid grid-cols-1 md:grid-cols-[10rem_1fr] gap-6">
+      <div className="grid grid-cols-1 md:grid-cols-[10rem_minmax(0,1fr)] gap-6">
         <label className="h-32 rounded-2xl border-2 border-dashed border-gray-200 flex items-center justify-center cursor-pointer hover:border-indigo-300 overflow-hidden bg-gray-50">
           {form.logoUrl ? <img src={form.logoUrl} alt="Logo" className="max-h-full max-w-full object-contain p-3" /> : (
             <span className="text-center text-gray-400 text-[11px] font-bold"><ImagePlus className="h-6 w-6 mx-auto mb-1" />{uploading ? 'Yükleniyor...' : 'Logo yükle'}</span>

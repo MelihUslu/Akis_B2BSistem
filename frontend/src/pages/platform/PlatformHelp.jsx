@@ -146,7 +146,7 @@ const PlatformHelp = () => {
               <Field label="Kısa özet" hint="Listede başlığın altında görünür.">
                 <IconInput icon={BookOpen} value={form.summary} onChange={set('summary')} maxLength={300} />
               </Field>
-              <div className="grid grid-cols-1 md:grid-cols-[1fr_8rem] gap-4">
+              <div className="grid grid-cols-1 md:grid-cols-[minmax(0,1fr)_8rem] gap-4">
                 <Field label="Konu türü">
                   <div className="flex flex-wrap gap-1.5">
                     {Object.entries(TICKET_CATEGORIES).map(([id, c]) => (

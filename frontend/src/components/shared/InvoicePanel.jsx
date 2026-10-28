@@ -110,7 +110,7 @@ const InvoicePanel = ({ orderId, orderStatus, canManage = false, onError }) => {
       )}
 
       {manual && (
-        <form onSubmit={saveManual} className="grid grid-cols-1 sm:grid-cols-[1fr_9rem] gap-2">
+        <form onSubmit={saveManual} className="grid grid-cols-1 sm:grid-cols-[minmax(0,1fr)_9rem] gap-2">
           <input required autoFocus placeholder={t('Fatura numarası')} className="h-10 rounded-xl bg-gray-50 border border-gray-200 px-3 text-sm font-mono outline-none focus:border-indigo-400" value={manual.number} onChange={(e) => setManual({ ...manual, number: e.target.value })} />
           <select className="h-10 rounded-xl bg-gray-50 border border-gray-200 px-2 text-sm" value={manual.documentType} onChange={(e) => setManual({ ...manual, documentType: e.target.value })}>
             {Object.entries(TYPE).map(([k, v]) => <option key={k} value={k}>{v}</option>)}

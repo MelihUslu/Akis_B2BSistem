@@ -65,7 +65,7 @@ const WarehouseSettings = ({ showAlert, confirm }) => {
         </div>
 
         {form ? (
-          <form onSubmit={save} className="grid grid-cols-1 md:grid-cols-[1fr_8rem_12rem_auto] gap-3 items-end">
+          <form onSubmit={save} className="grid grid-cols-1 md:grid-cols-[minmax(0,1fr)_8rem_12rem_auto] gap-3 items-end">
             <Field label="Depo adı" required><IconInput icon={Warehouse} required maxLength={60} autoFocus value={form.name} onChange={(e) => setForm({ ...form, name: e.target.value })} placeholder="Merkez depo" /></Field>
             <Field label="Kod" required><IconInput icon={Hash} required maxLength={12} className="font-mono uppercase" value={form.code} onChange={(e) => setForm({ ...form, code: e.target.value })} placeholder="IST" /></Field>
             <Field label="İl">

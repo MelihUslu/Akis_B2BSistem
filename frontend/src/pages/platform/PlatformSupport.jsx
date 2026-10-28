@@ -93,7 +93,7 @@ const PlatformSupport = () => {
         ))}
       </div>
 
-      <div className="grid grid-cols-1 lg:grid-cols-[28rem_1fr] gap-6 items-start">
+      <div className="grid grid-cols-1 xl:grid-cols-[26rem_minmax(0,1fr)] gap-6 items-start">
         <div className="card-premium">
           <div className="p-3 space-y-3 border-b border-gray-100">
             <div className="relative">

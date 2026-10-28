@@ -66,7 +66,7 @@ const DealerUsersModal = ({ title, base, isAdmin, onClose, showAlert, confirm, i
         </div>
       )}
       {form ? (
-        <form onSubmit={add} className="bg-indigo-50/40 rounded-2xl p-4 grid grid-cols-1 sm:grid-cols-[1fr_1fr_auto] gap-2">
+        <form onSubmit={add} className="bg-indigo-50/40 rounded-2xl p-4 grid grid-cols-1 sm:grid-cols-[minmax(0,1fr)_minmax(0,1fr)_auto] gap-2">
           <input required className="premium-input !bg-white" placeholder={t('Ad Soyad / Şube')} value={form.name} onChange={(e) => setForm({ ...form, name: e.target.value })} />
           <input required type="email" className="premium-input !bg-white" placeholder={t('E-posta')} value={form.email} onChange={(e) => setForm({ ...form, email: e.target.value })} />
           <button type="submit" className="btn-gradient">{t('Ekle')}</button>

@@ -96,7 +96,7 @@ const TwoFactorSettings = ({ client, base, showAlert }) => {
       {!status.enabled && !setup && <button onClick={start} className="btn-gradient">2FA'yı Aç</button>}
 
       {setup && (
-        <form onSubmit={enable} className="grid grid-cols-1 md:grid-cols-[auto_1fr] gap-6 items-start">
+        <form onSubmit={enable} className="grid grid-cols-1 md:grid-cols-[auto_minmax(0,1fr)] gap-6 items-start">
           <img src={setup.qr} alt="QR kod" className="w-44 h-44 rounded-xl bg-white p-2 border border-gray-100" />
           <div className="space-y-4">
             <ol className="text-xs text-gray-600 space-y-1 list-decimal list-inside">

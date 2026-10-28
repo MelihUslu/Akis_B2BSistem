@@ -148,7 +148,7 @@ const SupportPage = () => {
         </button>
       )}
 
-      <div className="grid grid-cols-1 lg:grid-cols-[26rem_1fr] gap-6 items-start">
+      <div className="grid grid-cols-1 xl:grid-cols-[24rem_minmax(0,1fr)] gap-6 items-start">
         {/* Sol: talep listesi */}
         <div className="card-premium">
           <div className="p-3 space-y-3 border-b border-gray-100">
@@ -200,7 +200,7 @@ const SupportPage = () => {
                   })}
                 </div>
               </Field>
-              <div className="grid grid-cols-1 md:grid-cols-[1fr_auto] gap-4">
+              <div className="grid grid-cols-1 md:grid-cols-[minmax(0,1fr)_auto] gap-4">
                 <Field label="Konu" required error={err(form.subject.trim().length < 3) && 'Kısa bir başlık yazın.'}>
                   <IconInput icon={MessageSquareReply} invalid={err(form.subject.trim().length < 3)} maxLength={200} value={form.subject} onChange={set('subject')} placeholder="Örn: Excel ile ürün yüklerken hata alıyorum" />
                 </Field>
