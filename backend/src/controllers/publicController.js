@@ -75,6 +75,8 @@ export const signup = async (req, res) => {
         status: 'TRIAL',
         trialEndsAt: new Date(Date.now() + plan.trialDays * DAY),
         signupSource: 'SELF',
+          // Reklam kaynağı (utm_source, utm_campaign, gclid…); hangi reklamın kayıt getirdiği platform panelinde görünür
+          signupUtm: req.body.utm && typeof req.body.utm === 'object' ? Object.fromEntries(Object.entries(req.body.utm).filter(([k]) => /^(utm_\w+|gclid|fbclid|ref)$/.test(k)).map(([k, v]) => [k, String(v).slice(0, 200)])) : undefined,
         users: {
           create: {
             email: mail,

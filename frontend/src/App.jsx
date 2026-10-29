@@ -25,7 +25,7 @@ const StatementShare = lazy(() => import('./pages/StatementShare'));
 const AdminLayout = lazy(() => import('./layouts/AdminLayout'));
 const BayiLayout = lazy(() => import('./layouts/BayiLayout'));
 const PlatformApp = lazy(() => import('./pages/platform/PlatformApp'));
-const Landing = lazy(() => import('./pages/root/Landing'));
+const RootApp = lazy(() => import('./pages/root/RootApp'));
 const TenantNotFound = lazy(() => import('./pages/root/TenantNotFound'));
 
 const ProtectedRoute = ({ children, allowedRoles }) => {
@@ -111,7 +111,7 @@ const TenantApp = () => (
 
 function App() {
   if (APP_MODE === 'platform') return <Router><Suspense fallback={<PageLoader />}><PlatformApp /></Suspense></Router>;
-  if (APP_MODE === 'root') return <Router><Suspense fallback={<PageLoader />}><Landing /></Suspense></Router>;
+  if (APP_MODE === 'root') return <Router><Suspense fallback={<PageLoader />}><RootApp /></Suspense></Router>;
   return <TenantApp />;
 }
 

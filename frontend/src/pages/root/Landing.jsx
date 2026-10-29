@@ -1,20 +1,20 @@
 import { useEffect, useState } from 'react';
 import {
-  ArrowRight, Check, LogIn, MailCheck, Loader2, Menu, X, PlayCircle, Store, ShoppingCart, Plus, Minus, LayoutGrid, ClipboardCheck, Wallet, Sparkles, Webhook, RotateCcw
+  ArrowRight, Check, LogIn, MailCheck, Loader2, Menu, X, Store, Plus, Minus, LayoutGrid, ClipboardCheck, Wallet, Sparkles, Webhook, RotateCcw, ArrowDown
 } from 'lucide-react';
 import { publicApi, errorMessage } from '../../services/api';
 import { tenantUrl, ROOT_DOMAIN_LABEL } from '../../utils/tenant';
 import { formatTRY } from '../../utils/format';
-import { Chip, Highlight, Heading, PrimaryButton, Frame, Brackets, IconTile } from './landing/ui';
+import { Chip, Highlight, Heading, PrimaryButton, Frame, Brackets } from './landing/ui';
 import { PortalMockup, CatalogMock, ApprovalMock, CreditMock, AiQuoteMock, ErpMock, ReturnMock, StepMock, FloatingLimit, LiveTicker } from './landing/mockups';
-import { ProblemSolution, Sectors, Roles, DualView, FeatureCatalog, SavingsCalculator, Comparison, StickyCta } from './landing/sections';
+import { ProblemSolution, Sectors, DualView, FeatureCatalog, SavingsCalculator, Comparison, StickyCta, Integrations, LiveDemo, ContactSales, SiteFooter } from './landing/sections';
+import { getUtm, trackEvent } from '../../utils/site';
 import { FAQ as FAQ_ITEMS } from './landing/data';
 
 const PLATFORM_NAME = import.meta.env.VITE_PLATFORM_NAME || 'Akis B2B';
-const SUPPORT_EMAIL = import.meta.env.VITE_SUPPORT_EMAIL;
 const limitText = (n, label) => (n < 0 ? `Sınırsız ${label}` : `${n.toLocaleString('tr-TR')} ${label}`);
 
-const NAV = [['Özellikler', '#ozellikler'], ['Nasıl çalışır', '#adimlar'], ['Paketler', '#paketler'], ['SSS', '#sss']];
+const NAV = [['Özellikler', '#ozellikler'], ['Nasıl çalışır', '#adimlar'], ['Paketler', '#paketler'], ['SSS', '#sss'], ['İletişim', '#iletisim']];
 
 const TABS = [
   { id: 'catalog', icon: LayoutGrid, label: 'Bayiye özel katalog', title: 'Her bayi kendi fiyatını görür', text: 'Bayi grubu iskontoları, bayiye özel ve kademeli fiyatlar, miktar indirimi, koli katsayısı ve minimum sipariş. Dövizli ürünler günün kuruyla TL\'ye çevrilir.', mock: CatalogMock },
@@ -34,7 +34,9 @@ const STEPS = [
 
 const FAQ = FAQ_ITEMS.map(([q, a]) => [q, a.replace('{domain}', ROOT_DOMAIN_LABEL)]);
 
-const Landing = () => {
+const Landing = ({ site }) => {
+  const company = site?.company || {};
+  const brand = company.brand || PLATFORM_NAME;
   const [plans, setPlans] = useState([]);
   const [cycle, setCycle] = useState('MONTHLY');
   const [form, setForm] = useState({ companyName: '', slug: '', name: '', email: '', phone: '', password: '', planCode: '' });
@@ -50,7 +52,7 @@ const Landing = () => {
   const [step, setStep] = useState(0);
   const [faq, setFaq] = useState(0);
 
-  useEffect(() => { document.title = `${PLATFORM_NAME} · Bayileriniz için B2B sipariş portalı`; }, []);
+  useEffect(() => { document.title = `${brand} · Bayileriniz için B2B sipariş portalı`; }, [brand]);
 
   useEffect(() => {
     publicApi.get('/plans').then((res) => {
@@ -74,8 +76,9 @@ const Landing = () => {
     setSubmitting(true);
     setError(null);
     try {
-      const res = await publicApi.post('/signup', { ...form, slug: slugState?.slug || form.slug });
+      const res = await publicApi.post('/signup', { ...form, slug: slugState?.slug || form.slug, utm: getUtm() });
       setDone(res.data);
+      trackEvent('signup');
     } catch (err) {
       setError(errorMessage(err, 'Kayıt yapılamadı.'));
     } finally {
@@ -115,8 +118,8 @@ const Landing = () => {
       <header className="sticky top-3 z-40 px-3 md:px-6">
         <div className="max-w-6xl mx-auto h-16 flex items-center justify-between gap-4 px-4 md:px-6 rounded-2xl bg-white/90 backdrop-blur border border-white shadow-[0_8px_30px_-15px_rgba(15,23,42,0.25)]">
           <a href="#" className="flex items-center gap-2.5 shrink-0">
-            <span className="h-9 w-9 rounded-xl bg-gradient-to-br from-sky-400 to-indigo-600 flex items-center justify-center shadow-md"><Store className="h-5 w-5 text-white" /></span>
-            <span className="text-lg font-semibold tracking-tight">{PLATFORM_NAME}</span>
+            <span className="h-9 w-9 rounded-xl bg-[#0b1120] flex items-center justify-center shadow-md"><Store className="h-5 w-5 text-white" /></span>
+            <span className="text-lg font-semibold tracking-tight">{brand}</span>
           </a>
           <nav className="hidden md:flex items-center gap-8 text-[15px] font-medium text-slate-700">
             {NAV.map(([l, h]) => <a key={h} href={h} className="hover:text-slate-950">{l}</a>)}
@@ -134,18 +137,16 @@ const Landing = () => {
           <div className="md:hidden max-w-6xl mx-auto mt-2 rounded-2xl bg-white border border-slate-200 shadow-xl p-4 space-y-4">
             <nav className="grid gap-1">{NAV.map(([l, h]) => <a key={h} href={h} onClick={() => setMenuOpen(false)} className="px-3 py-2.5 rounded-xl text-[15px] font-medium hover:bg-slate-50">{l}</a>)}</nav>
             {loginForm()}
-            <a href="#kayit" onClick={() => setMenuOpen(false)} className="h-11 rounded-xl bg-gradient-to-r from-sky-400 to-indigo-600 text-white text-sm font-semibold flex items-center justify-center">Ücretsiz başla</a>
+            <a href="#kayit" onClick={() => setMenuOpen(false)} className="h-11 rounded-xl bg-[#0b1120] text-white text-sm font-semibold flex items-center justify-center">Ücretsiz başla</a>
           </div>
         )}
       </header>
 
       {/* Giriş bölümü */}
       <section className="px-3 md:px-6 -mt-16">
-        <div className="relative max-w-[90rem] mx-auto rounded-b-[2.5rem] md:rounded-[2.5rem] overflow-hidden pt-36 md:pt-44 pb-16 md:pb-24 px-5 bg-[radial-gradient(60%_60%_at_20%_80%,rgba(103,232,249,0.35),transparent_70%),radial-gradient(55%_60%_at_80%_20%,rgba(165,180,252,0.55),transparent_70%),linear-gradient(180deg,#eef2ff,#f6f7f8)] border border-white">
-          <div className="hidden lg:block absolute left-[5%] top-40"><Brackets><LiveTicker /></Brackets></div>
-          <div className="hidden lg:block absolute right-[9%] top-36"><Brackets><IconTile icon={Store} /></Brackets></div>
-          <div className="hidden min-[1400px]:block absolute left-[11%] top-[21.5rem]"><Brackets><IconTile icon={ShoppingCart} from="from-sky-300" to="to-blue-500" /></Brackets></div>
-          <div className="hidden min-[1400px]:block absolute right-[5%] top-[23rem]"><Brackets><FloatingLimit /></Brackets></div>
+        <div className="relative max-w-[90rem] mx-auto rounded-b-[2.5rem] md:rounded-[2.5rem] overflow-hidden pt-36 md:pt-44 pb-16 md:pb-24 px-5 bg-[radial-gradient(70%_55%_at_50%_0%,rgba(129,140,248,0.28),transparent_70%),linear-gradient(180deg,#eef0fb,#f6f7f8)] border border-white">
+          <div className="hidden xl:block absolute left-[4%] top-40"><Brackets><LiveTicker /></Brackets></div>
+          <div className="hidden xl:block absolute right-[4%] top-40"><Brackets><FloatingLimit /></Brackets></div>
 
           <div className="relative max-w-3xl mx-auto text-center">
             <Chip>Bayileriniz için B2B sipariş portalı</Chip>
@@ -157,27 +158,28 @@ const Landing = () => {
             </p>
             <div className="mt-9 flex flex-wrap items-center justify-center gap-4">
               <PrimaryButton href="#kayit">{trialDays} gün ücretsiz deneyin <ArrowRight className="h-4 w-4" /></PrimaryButton>
-              <a href="#ozellikler" className="flex items-center gap-2 h-12 px-3 text-[15px] font-semibold text-slate-800 hover:text-slate-950"><PlayCircle className="h-5 w-5" /> Nasıl çalıştığını görün</a>
+              <a href="#ozellikler" className="flex items-center gap-2 h-12 px-3 text-[15px] font-semibold text-slate-800 hover:text-slate-950">Özellikleri inceleyin <ArrowDown className="h-4 w-4" /></a>
             </div>
             <p className="mt-5 flex flex-wrap justify-center gap-x-5 gap-y-1 text-sm text-slate-600">{['Kredi kartı gerekmez', 'Kurulum ücreti yok', 'Dakikalar içinde hazır'].map((x) => <span key={x} className="flex items-center gap-1.5"><Check className="h-4 w-4 text-emerald-500" />{x}</span>)}</p>
           </div>
 
           <div className="relative max-w-5xl mx-auto mt-14 md:mt-20">
-            <div className="rounded-[2rem] p-[3px] bg-gradient-to-r from-sky-400 via-blue-500 to-indigo-600 shadow-[0_40px_100px_-40px_rgba(79,70,229,0.55)]">
+            <div className="rounded-[2rem] p-[3px] bg-[#0b1120] shadow-[0_40px_100px_-40px_rgba(15,23,42,0.6)]">
               <PortalMockup />
             </div>
           </div>
         </div>
       </section>
 
+      <Integrations />
       <ProblemSolution />
 
       {/* Sekmeli özellikler */}
       <section id="ozellikler" className="scroll-mt-24 max-w-6xl mx-auto px-5 pt-24 md:pt-32">
         <div className="text-center max-w-3xl mx-auto">
-          <Chip>Akıllı B2B</Chip>
-          <Heading className="mt-5">Telefonla, WhatsApp'la sipariş toplamaya <Highlight>son verin</Highlight></Heading>
-          <p className="mt-5 text-lg text-slate-600">Bayi ağınızın her adımı için hazır modüller; ayrı program, ayrı Excel yok.</p>
+          <Chip>Modüller</Chip>
+          <Heading className="mt-5">Siparişten tahsilata, her adım tek sistemde</Heading>
+          <p className="mt-5 text-lg text-slate-600">Ayrı program, ayrı Excel yok. Bir modül seçin, nasıl çalıştığını görün.</p>
         </div>
         <Frame className="mt-12" inner="grid lg:grid-cols-[19rem_minmax(0,1fr)] gap-2 p-2">
           <div className="flex lg:flex-col gap-1 overflow-x-auto lg:overflow-visible p-2 -mx-1 lg:mx-0">
@@ -200,7 +202,7 @@ const Landing = () => {
       </section>
 
       <DualView />
-      <Roles />
+      <LiveDemo demo={site?.demo} />
       <FeatureCatalog />
       <Sectors />
 
@@ -220,7 +222,7 @@ const Landing = () => {
                 <button key={s.title} onClick={() => setStep(i)}
                   className={`text-left rounded-2xl px-5 py-4 transition-all ${step === i ? 'bg-white border border-slate-200 shadow-[0_10px_30px_-15px_rgba(15,23,42,0.25)]' : 'hover:bg-slate-50'}`}>
                   <p className="flex items-center gap-3 text-[17px] font-semibold tracking-tight text-slate-950">
-                    <span className={`h-7 w-7 rounded-lg text-xs font-black flex items-center justify-center ${step === i ? 'bg-gradient-to-br from-sky-400 to-indigo-600 text-white' : 'bg-slate-100 text-slate-500'}`}>{i + 1}</span>
+                    <span className={`h-7 w-7 rounded-lg text-xs font-black flex items-center justify-center ${step === i ? 'bg-indigo-600 text-white' : 'bg-slate-100 text-slate-500'}`}>{i + 1}</span>
                     {s.title}
                   </p>
                   {step === i && <ul className="mt-3 ml-10 space-y-1 text-slate-600 list-disc">{s.points.map((p) => <li key={p}>{p}</li>)}</ul>}
@@ -231,26 +233,8 @@ const Landing = () => {
         </div>
       </section>
 
-      <SavingsCalculator />
-
-      {/* Rakamlar (gerçek ürün bilgileri) */}
-      <section className="max-w-6xl mx-auto px-5 pt-24 md:pt-32">
-        <div className="grid md:grid-cols-3 gap-5 items-start">
-          {[
-            [`${trialDays} gün`, 'Ücretsiz deneme', 'Tüm modüller açık, kredi kartı istenmez.'],
-            ['7/24', 'Bayileriniz sipariş verir', 'Mesai dışında, hafta sonu, telefondan; siparişler sizi bekler.'],
-            ['%100', 'Verileriniz sizin', 'Her firmanın verisi ayrıdır; dilediğinizde Excel olarak alırsınız.'],
-          ].map(([v, t, d], i) => (
-            <div key={t} className={`rounded-[2rem] bg-white text-center px-6 py-10 shadow-[0_10px_40px_-20px_rgba(15,23,42,0.2)] ${i === 1 ? 'md:-mt-6 border-b-[6px] border-indigo-500' : ''}`}>
-              <p className="text-6xl font-light tracking-[-0.05em] text-slate-950">{v}</p>
-              <p className="mt-3 text-lg font-semibold text-slate-900">{t}</p>
-              <p className="mt-4 text-slate-500 max-w-[16rem] mx-auto">{d}</p>
-            </div>
-          ))}
-        </div>
-      </section>
-
       <Comparison />
+      <SavingsCalculator />
 
       {/* Paketler */}
       {plans.length > 0 && (
@@ -269,7 +253,8 @@ const Landing = () => {
               </button>
             </div>
           </div>
-          <div className={`mt-12 grid gap-5 ${plans.length >= 3 ? 'md:grid-cols-3' : 'md:grid-cols-2'}`}>
+          <p className="mt-4 text-sm text-slate-500">Fiyatlara KDV dahil değildir. Tüm paketlerde bütün özellikler açıktır; fark yalnızca bayi, ürün ve yönetici sayısındadır.</p>
+          <div className={`mt-10 grid gap-5 ${plans.length >= 3 ? 'md:grid-cols-3' : 'md:grid-cols-2'}`}>
             {plans.map((p, i) => (
               <div key={p.code} className={`rounded-[2rem] border p-2 flex flex-col ${i === 1 ? 'border-indigo-300 bg-indigo-50/40' : 'border-slate-200/70 bg-white/40'}`}>
                 <div className="rounded-[1.6rem] bg-white p-7 flex-1 shadow-[0_10px_40px_-20px_rgba(15,23,42,0.18)]">
@@ -279,7 +264,7 @@ const Landing = () => {
                   </div>
                   <p className="mt-5 flex flex-wrap items-baseline gap-x-1.5">
                     <span className="text-4xl font-semibold tracking-[-0.04em]">{formatTRY(cycle === 'YEARLY' ? p.priceYearly : p.priceMonthly)}</span>
-                    <span className="text-slate-500">/{cycle === 'YEARLY' ? 'yıl' : 'ay'}</span>
+                    <span className="text-slate-500">/{cycle === 'YEARLY' ? 'yıl' : 'ay'} + KDV</span>
                   </p>
                   {p.description && <p className="mt-3 text-slate-500">{p.description}</p>}
                   <ul className="mt-6 pt-6 border-t border-slate-100 space-y-3">
@@ -294,18 +279,19 @@ const Landing = () => {
               </div>
             ))}
           </div>
+          <p className="mt-8 text-center text-slate-600">Hangi paketin size uygun olduğundan emin değil misiniz? <a href="#iletisim" className="font-semibold text-indigo-600 hover:underline">Ekibimizle görüşün</a>, bayi ve ürün sayınıza göre birlikte bakalım.</p>
         </section>
       )}
 
       {/* Kayıt */}
       <section id="kayit" className="scroll-mt-24 max-w-6xl mx-auto px-5 pt-24 md:pt-32">
         <Frame inner="grid lg:grid-cols-2 gap-2 p-2">
-          <div className="rounded-[1.4rem] bg-gradient-to-br from-cyan-50 via-indigo-50 to-violet-100 p-8 md:p-12 flex flex-col items-start justify-center">
-            <Chip>Hemen başlayın</Chip>
-            <h2 className="mt-5 text-3xl md:text-4xl font-semibold tracking-[-0.04em] leading-tight text-slate-950">Portalınız birkaç dakika içinde hazır</h2>
+          <div className="rounded-[1.4rem] bg-[#0b1120] text-white p-8 md:p-12 flex flex-col items-start justify-center">
+            <span className="text-xs font-black uppercase tracking-[0.2em] text-indigo-300">Hemen başlayın</span>
+            <h2 className="mt-4 text-3xl md:text-4xl font-semibold tracking-[-0.04em] leading-tight">Portalınız birkaç dakika içinde hazır</h2>
             <ul className="mt-7 space-y-3.5">
               {[`${trialDays} gün boyunca tüm özellikler ücretsiz`, 'Kredi kartı istenmez', `firmaniz.${ROOT_DOMAIN_LABEL} adresi hemen açılır`, 'Excel ile ürün yükleme, hazır örnek dosya'].map((t) => (
-                <li key={t} className="flex items-center gap-3 text-slate-800"><span className="h-6 w-6 rounded-full bg-white shadow flex items-center justify-center"><Check className="h-3.5 w-3.5 text-indigo-600" /></span>{t}</li>
+                <li key={t} className="flex items-center gap-3 text-slate-300"><span className="h-6 w-6 rounded-full bg-white/10 flex items-center justify-center"><Check className="h-3.5 w-3.5 text-indigo-300" /></span>{t}</li>
               ))}
             </ul>
           </div>
@@ -358,24 +344,21 @@ const Landing = () => {
                   <input required minLength={8} type="password" autoComplete="new-password" className="premium-input" value={form.password} onChange={(e) => setForm({ ...form, password: e.target.value })} />
                 </div>
                 {plans.length > 0 && (
-                  <div>
-                    <label className="premium-label">Paket</label>
-                    <select className="premium-input" value={form.planCode} onChange={(e) => setForm({ ...form, planCode: e.target.value })}>
-                      {plans.map((p) => <option key={p.code} value={p.code}>{p.name} — {formatTRY(p.priceMonthly)}/ay</option>)}
-                    </select>
-                  </div>
+                  <p className="text-sm text-slate-600">Seçili paket: <b className="text-slate-900">{plans.find((p) => p.code === form.planCode)?.name}</b> · <a href="#paketler" className="text-indigo-600 font-semibold hover:underline">değiştir</a> <span className="text-slate-400">(deneme süresince ücret alınmaz)</span></p>
                 )}
                 {error && <p className="text-xs font-bold text-red-600 bg-red-50 p-3 rounded-xl">{error}</p>}
                 <PrimaryButton type="submit" className="w-full" disabled={submitting || slugState?.available === false}>
                   {submitting ? <Loader2 className="h-4 w-4 animate-spin" /> : <>Ücretsiz denemeyi başlat <ArrowRight className="h-4 w-4" /></>}
                 </PrimaryButton>
                 {slugState?.available === false && <p className="text-[11px] text-center text-red-500">Başka bir portal adresi seçin.</p>}
-                <p className="text-[11px] text-center text-slate-400">Kayıt olarak hizmet koşullarını kabul etmiş olursunuz.</p>
+                <p className="text-[11px] text-center text-slate-500">Kayıt olarak <a href="/kullanim-kosullari" target="_blank" className="underline">Kullanım Koşulları</a>'nı kabul etmiş olursunuz. Kişisel verileriniz <a href="/kvkk" target="_blank" className="underline">KVKK Aydınlatma Metni</a> kapsamında işlenir.</p>
               </form>
             )}
           </div>
         </Frame>
       </section>
+
+      <ContactSales company={company} />
 
       {/* SSS */}
       <section id="sss" className="scroll-mt-24 max-w-4xl mx-auto px-5 pt-24 md:pt-32">
@@ -398,43 +381,16 @@ const Landing = () => {
 
       {/* Kapanış + alt bilgi */}
       <section className="px-3 md:px-6 pt-24 md:pt-32 pb-3 md:pb-6">
-        <div className="max-w-[90rem] mx-auto rounded-[2.5rem] overflow-hidden bg-[radial-gradient(60%_80%_at_0%_100%,rgba(165,180,252,0.6),transparent_70%),radial-gradient(60%_80%_at_100%_0%,rgba(103,232,249,0.45),transparent_70%),linear-gradient(180deg,#f5f7ff,#eef2ff)] p-3 md:p-4">
-          <div className="text-center py-20 md:py-24 px-5">
-            <Heading>Bayi siparişlerinizi <Highlight>bugün</Highlight> dijitale taşıyın</Heading>
-            <p className="mt-5 text-lg text-slate-700">Ücretsiz deneyin; beğenmezseniz hiçbir şey ödemezsiniz.</p>
+        <div className="max-w-[90rem] mx-auto rounded-[2.5rem] overflow-hidden bg-[#0b1120] p-3 md:p-4">
+          <div className="text-center py-20 md:py-24 px-5 text-white bg-[radial-gradient(60%_80%_at_50%_0%,rgba(99,102,241,0.35),transparent_70%)] rounded-[2rem]">
+            <h2 className="text-3xl sm:text-4xl lg:text-[3.25rem] font-semibold tracking-[-0.04em] leading-[1.08]">Bayi siparişlerinizi <span className="text-indigo-300">bugün</span> dijitale taşıyın</h2>
+            <p className="mt-5 text-lg text-slate-300">Ücretsiz deneyin; beğenmezseniz hiçbir şey ödemezsiniz.</p>
             <div className="mt-8 flex flex-wrap items-center justify-center gap-4">
-              <PrimaryButton href="#kayit">Ücretsiz başla <ArrowRight className="h-4 w-4" /></PrimaryButton>
-              <a href="#paketler" className="h-12 px-3 flex items-center text-[15px] font-semibold text-slate-800 hover:text-slate-950">Paketleri incele</a>
+              <a href="#kayit" className="h-12 px-6 rounded-xl bg-white text-[#0b1120] text-[15px] font-semibold flex items-center gap-2 hover:bg-indigo-50">Ücretsiz başla <ArrowRight className="h-4 w-4" /></a>
+              <a href="#iletisim" className="h-12 px-4 flex items-center text-[15px] font-semibold text-slate-300 hover:text-white">Ekibimizle görüşün</a>
             </div>
           </div>
-          <footer className="rounded-[2rem] bg-white px-6 md:px-12 py-12">
-            <div className="grid gap-10 md:grid-cols-[1.4fr_1fr_1fr_1.2fr]">
-              <div>
-                <span className="flex items-center gap-2.5">
-                  <span className="h-9 w-9 rounded-xl bg-gradient-to-br from-sky-400 to-indigo-600 flex items-center justify-center"><Store className="h-5 w-5 text-white" /></span>
-                  <span className="text-xl font-semibold tracking-tight">{PLATFORM_NAME}</span>
-                </span>
-                <p className="mt-4 text-slate-500 max-w-xs">Üreticiler ve distribütörler için bayi sipariş, cari ve tahsilat platformu.</p>
-              </div>
-              <div>
-                <p className="font-semibold text-slate-950">Ürün</p>
-                <ul className="mt-4 space-y-2.5 text-slate-600">{NAV.map(([l, h]) => <li key={h}><a href={h} className="hover:text-slate-950">{l}</a></li>)}</ul>
-              </div>
-              <div>
-                <p className="font-semibold text-slate-950">Başlayın</p>
-                <ul className="mt-4 space-y-2.5 text-slate-600">
-                  <li><a href="#kayit" className="hover:text-slate-950">Ücretsiz deneme</a></li>
-                  <li><a href="#paketler" className="hover:text-slate-950">Paketler</a></li>
-                  {SUPPORT_EMAIL && <li><a href={`mailto:${SUPPORT_EMAIL}`} className="hover:text-slate-950">{SUPPORT_EMAIL}</a></li>}
-                </ul>
-              </div>
-              <div>
-                <p className="font-semibold text-slate-950">Firma girişi</p>
-                <div className="mt-4">{loginForm()}</div>
-              </div>
-            </div>
-            <p className="mt-12 pt-6 border-t border-slate-100 text-center text-sm text-slate-500">© {new Date().getFullYear()} {PLATFORM_NAME}. Tüm hakları saklıdır.</p>
-          </footer>
+          <SiteFooter company={company} brand={brand} nav={NAV} loginForm={loginForm()} />
         </div>
       </section>
       <StickyCta trialDays={trialDays} />

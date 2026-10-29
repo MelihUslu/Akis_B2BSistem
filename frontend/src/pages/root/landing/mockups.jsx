@@ -18,7 +18,7 @@ export const PortalMockup = () => (
       <span className="h-2.5 w-2.5 rounded-full bg-red-300" /><span className="h-2.5 w-2.5 rounded-full bg-amber-300" /><span className="h-2.5 w-2.5 rounded-full bg-emerald-300" />
       <span className="ml-3 flex-1 max-w-xs h-7 rounded-lg bg-slate-100 flex items-center px-3 text-[11px] text-slate-400">yildizhirdavat.akisb2b.com</span>
     </div>
-    <div className="grid grid-cols-[9rem_minmax(0,1fr)] md:grid-cols-[11rem_minmax(0,1fr)_14rem]">
+    <div className="grid grid-cols-[9rem_minmax(0,1fr)] md:grid-cols-[11rem_minmax(0,1fr)]">
       <div className="hidden sm:block bg-[#0f172a] p-4 space-y-3">
         <span className="block h-6 w-20 rounded-md bg-white/90" />
         {['Ürün Kataloğu', 'Hızlı Sipariş', 'Siparişlerim', 'Finansal Durum'].map((m, i) => (
@@ -28,9 +28,9 @@ export const PortalMockup = () => (
       <div className="col-span-2 sm:col-span-1 p-4 space-y-3 min-w-0">
         <div className="flex items-center gap-2 h-9 px-3 rounded-xl bg-white border border-slate-200 text-[11px] text-slate-400"><Search className="h-3.5 w-3.5" /> Ürün adı, SKU veya barkod</div>
         <div className="flex gap-1.5">{['Kategoriler', 'Marka', 'Stoktakiler'].map((c, i) => <span key={c} className={`text-[10px] font-semibold px-2.5 py-1.5 rounded-lg border ${i === 0 ? 'bg-indigo-50 border-indigo-200 text-indigo-700' : 'bg-white border-slate-200 text-slate-600'}`}>{c}</span>)}</div>
-        <div className="grid grid-cols-2 lg:grid-cols-3 gap-2.5">
+        <div className="grid grid-cols-2 md:grid-cols-3 gap-2.5">
           {PRODUCTS.map((p, i) => (
-            <div key={p.sku} className={`bg-white rounded-xl border border-slate-200 overflow-hidden ${i === 2 ? 'hidden lg:block' : ''}`}>
+            <div key={p.sku} className={`bg-white rounded-xl border border-slate-200 overflow-hidden ${i === 2 ? 'hidden md:block' : ''}`}>
               <div className={`aspect-[4/3] bg-gradient-to-br ${p.hue} flex items-center justify-center text-3xl`}>{p.icon}</div>
               <div className="p-2.5 space-y-1">
                 <p className="text-[9px] text-slate-400 font-semibold">{p.sku}</p>
@@ -41,18 +41,6 @@ export const PortalMockup = () => (
             </div>
           ))}
         </div>
-      </div>
-      <div className="hidden md:block p-4 border-l border-slate-200/70 bg-white space-y-3">
-        <p className="text-[11px] font-black text-slate-900">Sepetim</p>
-        {[['Akülü Matkap', '2 × ₺4.500'], ['Anahtar Takımı', '10 × ₺850']].map(([n, q]) => (
-          <div key={n} className="flex items-center gap-2"><span className="h-8 w-8 rounded-lg bg-slate-100" /><span className="min-w-0"><span className="block text-[10px] font-bold text-slate-800 truncate">{n}</span><span className="block text-[9px] text-slate-400">{q}</span></span></div>
-        ))}
-        <div className="pt-2 border-t border-slate-100 space-y-1 text-[10px]">
-          <p className="flex justify-between text-slate-500"><span>Miktar indirimi</span><span className="text-emerald-600 font-bold">−%5</span></p>
-          <p className="flex justify-between font-black text-slate-900 text-[12px]"><span>Toplam</span><span>₺18.278</span></p>
-        </div>
-        <div className="rounded-lg bg-slate-50 p-2 space-y-1"><p className="text-[9px] text-slate-500">Kullanılabilir limit</p><span className="block h-1.5 rounded-full bg-slate-200"><span className="block h-full w-3/5 rounded-full bg-gradient-to-r from-sky-400 to-indigo-600" /></span></div>
-        <span className="block h-8 rounded-lg bg-[#0b0d12] text-white text-[10px] font-bold flex items-center justify-center">Siparişi Onayla</span>
       </div>
     </div>
   </div>

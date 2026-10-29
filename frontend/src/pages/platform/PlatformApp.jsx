@@ -1,7 +1,7 @@
 import { Suspense, lazy, useState } from 'react';
 import { Routes, Route, Navigate, NavLink, useNavigate, useLocation, Link } from 'react-router-dom';
 import ErrorBoundary from '../../components/ErrorBoundary';
-import { LayoutDashboard, Building2, Layers, Receipt, LogOut, Lock, Mail, Megaphone, LifeBuoy, ScrollText, ShieldCheck, Menu, X, Bug, BookOpen, Activity, Gauge } from 'lucide-react';
+import { LayoutDashboard, Building2, Layers, Receipt, LogOut, Lock, Mail, Megaphone, LifeBuoy, ScrollText, ShieldCheck, Menu, X, Bug, BookOpen, Activity, Gauge, MessagesSquare, Globe } from 'lucide-react';
 import { platformApi, errorMessage } from '../../services/api';
 import TwoFactorStep from '../../components/TwoFactorStep';
 import ThemeToggle from '../../components/ThemeToggle';
@@ -20,6 +20,8 @@ const PlatformSecurity = lazy(() => import('./PlatformSecurity'));
 const PlatformErrors = lazy(() => import('./PlatformErrors'));
 const PlatformSystem = lazy(() => import('./PlatformSystem'));
 const PlatformMonitoring = lazy(() => import('./PlatformMonitoring'));
+const PlatformLiveChat = lazy(() => import('./PlatformLiveChat'));
+const PlatformSite = lazy(() => import('./PlatformSite'));
 const PlatformHelp = lazy(() => import('./PlatformHelp'));
 
 const readUser = () => {
@@ -100,11 +102,13 @@ const MENU = [
   { name: 'Paketler', path: '/plans', icon: Layers },
   { name: 'Ödemeler', path: '/payments', icon: Receipt },
   { name: 'Destek', path: '/support', icon: LifeBuoy },
+  { name: 'Canlı Destek', path: '/live-chat', icon: MessagesSquare },
   { name: 'Yardım Merkezi', path: '/help', icon: BookOpen },
   { name: 'Duyurular', path: '/announcements', icon: Megaphone },
   { name: 'İşlem Kaydı', path: '/audit', icon: ScrollText },
   { name: 'Güvenlik', path: '/security', icon: ShieldCheck },
   { group: 'Geliştirici' },
+  { name: 'Site ve Chatbot', path: '/site', icon: Globe },
   { name: 'İzleme', path: '/monitoring', icon: Gauge },
   { name: 'Hatalar', path: '/errors', icon: Bug },
   { name: 'Sistem Durumu', path: '/system', icon: Activity },
@@ -171,6 +175,8 @@ const PlatformLayout = ({ user, onLogout }) => {
         <Route path="errors" element={<PlatformErrors />} />
         <Route path="system" element={<PlatformSystem />} />
         <Route path="monitoring" element={<PlatformMonitoring />} />
+        <Route path="live-chat" element={<PlatformLiveChat />} />
+        <Route path="site" element={<PlatformSite />} />
         <Route path="*" element={<Navigate to="/" replace />} />
       </Routes>
       </Suspense>

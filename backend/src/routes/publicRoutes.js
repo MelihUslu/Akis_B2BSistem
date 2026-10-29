@@ -3,6 +3,7 @@ import { reportClientError, domainCheck, getPlans, slugAvailable, signup, verify
 import { platformContext } from '../middlewares/tenantMiddleware.js';
 import { posCallback, paytrNotify } from '../controllers/paymentController.js';
 import { rateLimit } from '../middlewares/rateLimit.js';
+import { getPublicSite, startChat, getChat, postChat, postLead } from '../controllers/siteController.js';
 
 const router = express.Router();
 
@@ -18,6 +19,13 @@ router.get('/slug-available', rateLimit({ windowMs: 60 * 1000, max: 30 }), slugA
 router.post('/signup', rateLimit({ windowMs: 60 * 60 * 1000, max: 5, message: 'Çok fazla kayıt denemesi. Lütfen daha sonra tekrar deneyin.' }), signup);
 router.post('/verify-email', rateLimit({ windowMs: 15 * 60 * 1000, max: 20 }), verifyEmail);
 router.post('/resend-verification', rateLimit({ windowMs: 15 * 60 * 1000, max: 5 }), resendVerification);
+
+// Tanıtım sitesi: ayarlar, canlı sohbet, demo talebi
+router.get('/site', getPublicSite);
+router.post('/chat', rateLimit({ windowMs: 60 * 60 * 1000, max: 20, message: 'Çok fazla sohbet açıldı. Biraz sonra tekrar deneyin.' }), startChat);
+router.get('/chat/:id', rateLimit({ windowMs: 60 * 1000, max: 60 }), getChat);
+router.post('/chat/:id/messages', rateLimit({ windowMs: 60 * 1000, max: 12, message: 'Çok hızlı mesaj gönderiyorsunuz. Biraz bekleyin.' }), postChat);
+router.post('/leads', rateLimit({ windowMs: 60 * 60 * 1000, max: 5, message: 'Çok fazla talep gönderildi. Lütfen daha sonra tekrar deneyin.' }), postLead);
 
 // iyzico ödeme formu dönüşü (form POST) ve abonelik bildirimleri
 router.post('/iyzico/callback', express.urlencoded({ extended: false }), iyzicoCallback);

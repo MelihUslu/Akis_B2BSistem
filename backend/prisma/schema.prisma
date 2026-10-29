@@ -661,6 +661,7 @@ model Tenant {
   currentPeriodEnd       DateTime?
   cancelAtPeriodEnd      Boolean           @default(false) // İptal edildi, dönem sonuna kadar açık
   signupSource           String            @default("PLATFORM") // PLATFORM (sen açtın), SELF (kendi kayıt oldu)
+  signupUtm              Json? // Kayıt sırasındaki reklam kaynağı (utm_source, utm_campaign…)
   notes                  String? // Platform sahibinin iç notları
   // iyzico abonelik bilgileri
   iyzicoCustomerRef      String?
@@ -1252,4 +1253,62 @@ model ApiRequestLog {
 
   @@index([tenantId, createdAt])
   @@index([createdAt])
+}
+
+// ─── Tanıtım sitesi, canlı sohbet ve satış talepleri (platform düzeyi, kiracıya ait değil) ───
+
+// Site ayarları: firma bilgileri, yasal metinler, chatbot, demo, reklam ölçümü (key → JSON)
+model SiteSetting {
+  key       String   @id
+  value     Json
+  updatedAt DateTime @updatedAt
+}
+
+// Satış talebi: tanıtım sayfasındaki form veya chatbot konuşmasından
+model Lead {
+  id            Int          @id @default(autoincrement())
+  source        String // FORM, CHAT
+  name          String       @default("")
+  company       String       @default("")
+  phone         String       @default("")
+  email         String       @default("")
+  message       String       @default("")
+  status        String       @default("NEW") // NEW, CONTACTED, WON, LOST
+  note          String       @default("")
+  utm           Json?
+  chatSessionId String?      @unique
+  chatSession   ChatSession? @relation(fields: [chatSessionId], references: [id], onDelete: SetNull)
+  createdAt     DateTime     @default(now())
+  updatedAt     DateTime     @updatedAt
+
+  @@index([status, createdAt])
+}
+
+// Ziyaretçi sohbeti. id tahmin edilemez rastgele değerdir ve ziyaretçinin oturum anahtarı olarak kullanılır.
+model ChatSession {
+  id            String        @id
+  status        String        @default("BOT") // BOT (otomatik), HUMAN (temsilci devraldı), CLOSED
+  needsHuman    Boolean       @default(false) // ziyaretçi temsilci istedi / bot yanıtlayamadı
+  unread        Boolean       @default(false) // platform panelinde okunmamış ziyaretçi mesajı
+  pageUrl       String        @default("")
+  utm           Json?
+  ip            String        @default("")
+  userMessages  Int           @default(0)
+  createdAt     DateTime      @default(now())
+  lastMessageAt DateTime      @default(now())
+  messages      ChatMessage[]
+  lead          Lead?
+
+  @@index([lastMessageAt])
+}
+
+model ChatMessage {
+  id        Int         @id @default(autoincrement())
+  sessionId String
+  session   ChatSession @relation(fields: [sessionId], references: [id], onDelete: Cascade)
+  role      String // USER, BOT, AGENT
+  text      String
+  createdAt DateTime    @default(now())
+
+  @@index([sessionId, id])
 }

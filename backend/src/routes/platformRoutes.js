@@ -1,5 +1,6 @@
 import express from 'express';
 import { systemStatus } from '../services/systemStatus.js';
+import { getSiteAdmin, putSiteAdmin, listChats, getChatAdmin, replyChat, updateChat, listLeads, updateLead } from '../controllers/siteController.js';
 import { monitoringOverview, listJobRuns, listExternalCalls, listApiRequests, listSlowRequests, monitoringFilters } from '../services/monitoringReport.js';
 import {
   platformLogin, getDashboard, listTenants, getTenant, createTenant, updateTenant, addManualPayment,
@@ -54,6 +55,15 @@ router.get('/audit-logs', platformAuditLogs);
 router.get('/errors', listErrors);
 router.get('/system', async (req, res) => res.json(await systemStatus()));
 // İzleme (istek metrikleri, arka plan işleri, dış servisler, entegrasyon API'si)
+// Tanıtım sitesi ayarları, canlı sohbet ve satış talepleri
+router.get('/site', getSiteAdmin);
+router.put('/site', putSiteAdmin);
+router.get('/chats', listChats);
+router.get('/chats/:id', getChatAdmin);
+router.post('/chats/:id/messages', replyChat);
+router.patch('/chats/:id', updateChat);
+router.get('/leads', listLeads);
+router.patch('/leads/:id', updateLead);
 router.get('/monitoring/overview', async (req, res) => res.json(await monitoringOverview(Math.min(Math.max(parseInt(req.query.hours) || 24, 1), 24 * 14))));
 router.get('/monitoring/filters', async (req, res) => res.json(await monitoringFilters()));
 router.get('/monitoring/jobs', async (req, res) => res.json(await listJobRuns(req.query)));
