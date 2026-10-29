@@ -4,6 +4,8 @@ import { publicApi } from '../../services/api';
 import { captureUtm, getConsent, setConsent, loadTracking } from '../../utils/site';
 import ChatWidget from '../../components/site/ChatWidget';
 import Landing from './Landing';
+import Signup, { SignupDone } from './Signup';
+import Login from './Login';
 import LegalPage from './legal/LegalPage';
 import { LEGAL_PAGES } from './legal/texts';
 
@@ -25,18 +27,26 @@ const CookieBanner = ({ tracking }) => {
   );
 };
 
+// Sayfa değişince başa döner; iç sayfadan /#paketler gibi bir bağlantıyla gelindiyse o bölüme kayar
 const ScrollTop = () => {
-  const { pathname } = useLocation();
-  useEffect(() => { if (pathname !== '/') window.scrollTo(0, 0); }, [pathname]);
+  const { pathname, hash } = useLocation();
+  useEffect(() => {
+    if (!hash) { window.scrollTo(0, 0); return undefined; }
+    const t = setTimeout(() => document.getElementById(hash.slice(1))?.scrollIntoView({ behavior: 'smooth' }), 50);
+    return () => clearTimeout(t);
+  }, [pathname, hash]);
   return null;
 };
 
 /**
- * Kök alan adı (tanıtım sitesi): ana sayfa, yasal metinler, canlı sohbet, çerez onayı.
+ * Kök alan adı (tanıtım sitesi): ana sayfa, kayıt (/kayit), giriş (/giris), yasal metinler, canlı sohbet, çerez onayı.
  * Site ayarları (firma bilgileri, chatbot, demo, ölçüm) platform panelinden yönetilir.
  */
 const RootApp = () => {
   const [site, setSite] = useState(null);
+  // Kayıt ve giriş sayfalarında sohbet balonu gösterilmez (yalnızca "Ekibimize yazın" ile açılır)
+  const { pathname } = useLocation();
+  const onSignup = pathname.startsWith('/kayit') || pathname === '/giris';
   useEffect(() => {
     captureUtm();
     publicApi.get('/site').then((r) => setSite(r.data)).catch(() => setSite({}));
@@ -47,10 +57,13 @@ const RootApp = () => {
       <ScrollTop />
       <Routes>
         <Route path="/" element={<Landing site={site} />} />
+        <Route path="/kayit" element={<Signup site={site} />} />
+        <Route path="/kayit/tamam" element={<SignupDone site={site} />} />
+        <Route path="/giris" element={<Login site={site} />} />
         {Object.entries(LEGAL_PAGES).map(([key, p]) => <Route key={key} path={p.path} element={<LegalPage page={key} site={site} />} />)}
         <Route path="*" element={<Navigate to="/" replace />} />
       </Routes>
-      {site?.chatbot?.enabled && <ChatWidget chatbot={site.chatbot} company={site.company} raised />}
+      {site?.chatbot?.enabled && <ChatWidget chatbot={site.chatbot} company={site.company} raised={!onSignup} hideLauncher={onSignup} />}
       {site && <CookieBanner tracking={site.tracking} />}
     </>
   );

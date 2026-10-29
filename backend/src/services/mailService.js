@@ -89,6 +89,20 @@ export const sendVerificationMail = ({ to, name, token, tenant }) =>
     )
   });
 
+// "Portal adresimi unuttum": e-postanın kayıtlı olduğu portalların giriş bağlantıları
+const esc = (v) => String(v).replace(/[&<>"]/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
+export const sendPortalListMail = ({ to, tenants }) =>
+  sendMail({
+    to,
+    subject: `${PLATFORM_NAME()} · Portal adresleriniz`,
+    html: layout(
+      'Portal adresleriniz',
+      `<p>Bu e-posta adresiyle kayıtlı olduğunuz portallar:</p>
+       ${tenants.map((t) => `<p style="margin:12px 0"><b>${esc(t.name)}</b><br><a href="${tenantPortalUrl(t)}/login" style="color:#4f46e5">${tenantPortalUrl(t).replace(/^https?:\/\//, '')}</a></p>`).join('')}
+       <p style="font-size:13px;color:#64748b">Bu isteği siz yapmadıysanız e-postayı yok sayabilirsiniz.</p>`
+    )
+  });
+
 export const sendTrialEndingMail = ({ to, tenant, daysLeft }) =>
   sendMail({
     to,

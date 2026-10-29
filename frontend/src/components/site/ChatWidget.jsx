@@ -62,9 +62,10 @@ const Linkify = ({ text }) => text.split(/(https?:\/\/[^\s)]+)/g).map((part, i) 
 
 /**
  * Tanıtım sitesi canlı sohbeti. Bot otomatik yanıtlar; temsilci platform panelinden devralırsa yanıtları burada görünür.
+ * hideLauncher: yüzen düğme gizlenir (kayıt sayfası); sohbet yalnızca 'akis:open-chat' olayıyla açılır.
  * Sohbet tarayıcıda hatırlanır (sayfa yenilenince devam eder). Açıkken 4 sn'de bir yeni mesaj kontrol edilir.
  */
-const ChatWidget = ({ chatbot, company, raised = false }) => {
+const ChatWidget = ({ chatbot, company, raised = false, hideLauncher = false }) => {
   const [open, setOpen] = useState(false);
   const [sessionId, setSessionId] = useState(readSession);
   const [messages, setMessages] = useState([]);
@@ -80,10 +81,10 @@ const ChatWidget = ({ chatbot, company, raised = false }) => {
 
   // 20 sn sonra küçük bir davet balonu (bir kez)
   useEffect(() => {
-    if (sessionId) return undefined;
+    if (sessionId || hideLauncher) return undefined;
     const t = setTimeout(() => setNudge(true), 20000);
     return () => clearTimeout(t);
-  }, [sessionId]);
+  }, [sessionId, hideLauncher]);
 
   // Sayfadaki "Ekibimize yazın" bağlantıları sohbeti açar
   useEffect(() => {
@@ -212,16 +213,16 @@ const ChatWidget = ({ chatbot, company, raised = false }) => {
         </div>
       )}
 
-      {nudge && !open && (
+      {nudge && !open && !hideLauncher && (
         <button onClick={() => { setNudge(false); setOpen(true); }} className="absolute bottom-[4.5rem] right-0 w-64 text-left rounded-2xl rounded-br-md bg-white border border-slate-200 shadow-xl px-4 py-3 text-sm text-slate-700 animate-in fade-in slide-in-from-bottom-2">
           Merhaba, aklınıza takılan bir şey var mı? Hemen yanıtlayalım.
           <span onClick={(e) => { e.stopPropagation(); setNudge(false); }} className="absolute top-1.5 right-2 text-slate-400 text-xs">✕</span>
         </button>
       )}
-      <button onClick={() => { setNudge(false); setOpen(!open); }} aria-label={open ? 'Sohbeti kapat' : 'Canlı sohbet'}
+      {(!hideLauncher || open) && <button onClick={() => { setNudge(false); setOpen(!open); }} aria-label={open ? 'Sohbeti kapat' : 'Canlı sohbet'}
         className="h-14 w-14 rounded-2xl bg-[#0b1120] text-white shadow-[0_15px_40px_-10px_rgba(15,23,42,0.6)] flex items-center justify-center hover:scale-105 transition-transform">
         {open ? <X className="h-6 w-6" /> : <MessageCircle className="h-6 w-6" />}
-      </button>
+      </button>}
     </div>
   );
 };

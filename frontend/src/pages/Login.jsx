@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react';
 import { useAuth } from '../context/AuthContext';
 import { useTenant } from '../context/TenantContext';
-import { useNavigate, Link } from 'react-router-dom';
+import { useNavigate, useLocation, Link } from 'react-router-dom';
 import { Mail, Lock, ChevronRight, AlertCircle } from 'lucide-react';
 import loginIllustration from '../assets/akis_login.png';
 import TwoFactorStep from '../components/TwoFactorStep';
@@ -21,7 +21,8 @@ const Login = () => {
   const [isLoading, setIsLoading] = useState(false);
   const [isVisible, setIsVisible] = useState(false);
   const { login, verifyTwoFactor } = useAuth();
-  const [challenge, setChallenge] = useState(null);
+  // Ortak girişten (/giris-aktar) iki aşamalı doğrulama adımıyla gelinebilir
+  const [challenge, setChallenge] = useState(useLocation().state?.challenge || null);
   const navigate = useNavigate();
 
   useEffect(() => {

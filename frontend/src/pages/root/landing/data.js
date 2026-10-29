@@ -74,3 +74,6 @@ export const FAQ = [
   ['Verilerim güvende mi?', 'Her firmanın verisi ayrıdır, başka firma göremez. Veritabanı her gün yedeklenir. Hesabınızı kapattığınızda verileriniz KVKK\'ya uygun şekilde silinir.'],
   ['Takıldığımda destek alabilir miyim?', 'Panelden destek talebi açarsınız; acil talepler için hedef yanıt süremiz 2 saat. Yardım merkezinde adım adım rehberler de var.'],
 ];
+
+// Menü bölümleri: [etiket, ana sayfadaki bölüm kimliği]
+export const NAV = [['Özellikler', 'ozellikler'], ['Nasıl çalışır', 'adimlar'], ['Paketler', 'paketler'], ['SSS', 'sss']];

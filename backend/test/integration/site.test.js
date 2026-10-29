@@ -169,3 +169,18 @@ test('demo talep formu: onay ve iletişim zorunlu; platformda durum ve not günc
   const list = await call('/platform/leads?status=CONTACTED', { token: platformToken });
   assert.ok(list.data.data.some((l) => l.id === ok.data.id && l.utm.utm_source === 'meta'));
 });
+
+test('giriş sayfası: portal adresi kontrolü ve "adresimi unuttum" (hesap varlığını belli etmez)', { skip }, async () => {
+  const tenant = await prisma.tenant.findFirst({ select: { slug: true, name: true } });
+  if (tenant) {
+    const found = await call(`/public/portal?slug=${encodeURIComponent(tenant.slug.toUpperCase())}`);
+    assert.deepEqual(found.data, { slug: tenant.slug, exists: true, name: tenant.name });
+  }
+  const missing = await call('/public/portal?slug=boyle-bir-portal-yok');
+  assert.equal(missing.data.exists, false);
+  assert.equal(missing.data.name, null);
+  assert.equal((await call('/public/find-portal', { method: 'POST', body: { email: 'gecersiz' } })).status, 400);
+  const a = await call('/public/find-portal', { method: 'POST', body: { email: 'kimse@yok.test' } });
+  assert.equal(a.status, 200);
+  assert.match(a.data.message, /kayıtlıysa/);
+});

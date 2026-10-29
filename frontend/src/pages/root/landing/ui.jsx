@@ -1,3 +1,4 @@
+import { Link } from 'react-router-dom';
 import { Sparkles } from 'lucide-react';
 
 // Tanıtım sayfasının ortak görsel parçaları
@@ -22,11 +23,12 @@ export const Heading = ({ children, className = '' }) => (
 );
 
 // Siyah düğme, altında renk geçişli çizgi
-export const PrimaryButton = ({ href, onClick, children, className = '', type, disabled }) => {
+// to: uygulama içi sayfa (sayfa yenilenmeden), href: dış bağlantı
+export const PrimaryButton = ({ to, href, onClick, children, className = '', type, disabled }) => {
   const inner = 'flex items-center justify-center gap-2 h-12 px-6 rounded-xl bg-[#0b0d12] text-white text-[15px] font-semibold hover:bg-black transition-colors';
   return (
     <span className={`inline-block rounded-xl bg-indigo-500 pb-1 transition-transform ${disabled ? 'opacity-60' : 'hover:-translate-y-0.5'} ${className}`}>
-      {href ? <a href={href} className={inner}>{children}</a> : <button type={type || 'button'} onClick={onClick} disabled={disabled} className={`${inner} w-full disabled:cursor-not-allowed`}>{children}</button>}
+      {to ? <Link to={to} className={inner}>{children}</Link> : href ? <a href={href} className={inner}>{children}</a> : <button type={type || 'button'} onClick={onClick} disabled={disabled} className={`${inner} w-full disabled:cursor-not-allowed`}>{children}</button>}
     </span>
   );
 };

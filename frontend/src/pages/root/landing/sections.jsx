@@ -1,4 +1,5 @@
 import { useEffect, useRef, useState } from 'react';
+import { Link } from 'react-router-dom';
 import {
   X, Check, Minus, ArrowRight, Hammer, BrickWall, Package, Wheat, SprayCan, CarFront, PlugZap, Stethoscope, Shirt, NotebookPen, Sprout, Factory, Crown, Briefcase, Calculator, Store, LayoutGrid, ClipboardCheck, Sparkles, Webhook, ShieldCheck
 } from 'lucide-react';
@@ -215,7 +216,7 @@ export const SavingsCalculator = () => {
             <p className="mt-3 text-6xl md:text-7xl font-semibold tracking-[-0.05em] tabular-nums">{hours.toLocaleString('tr-TR')}<span className="text-2xl md:text-3xl font-medium"> saat / ay</span></p>
             <p className="mt-3 text-lg text-white/90">≈ {workdays.toLocaleString('tr-TR')} tam iş günü; satışa ve bayi ziyaretine ayrılabilir.</p>
             <p className="mt-6 text-sm text-white/70">Tahmini hesap: ayda {days} iş günü varsayılmıştır. Yanlış ürün, yanlış fiyat ve tahsilat takibi için harcanan süre dahil değildir.</p>
-            <PrimaryButton href="#kayit" className="mt-8 self-start">Bu süreyi geri kazanın <ArrowRight className="h-4 w-4" /></PrimaryButton>
+            <PrimaryButton to="/kayit" className="mt-8 self-start">Bu süreyi geri kazanın <ArrowRight className="h-4 w-4" /></PrimaryButton>
           </div>
         </Frame>
       </Reveal>
@@ -264,21 +265,17 @@ export const Comparison = () => (
 export const StickyCta = ({ trialDays }) => {
   const [show, setShow] = useState(false);
   useEffect(() => {
-    const onScroll = () => {
-      const form = document.getElementById('kayit')?.getBoundingClientRect();
-      const nearForm = form && form.top < window.innerHeight && form.bottom > 0;
-      setShow(window.scrollY > 700 && !nearForm);
-    };
+    const onScroll = () => setShow(window.scrollY > 700);
     onScroll();
     window.addEventListener('scroll', onScroll, { passive: true });
     return () => window.removeEventListener('scroll', onScroll);
   }, []);
   return (
     <div className={`md:hidden fixed inset-x-3 z-40 transition-all duration-300 ${show ? 'bottom-3 opacity-100' : '-bottom-24 opacity-0'}`} style={{ paddingBottom: 'env(safe-area-inset-bottom)' }}>
-      <a href="#kayit" className="flex items-center justify-between gap-3 h-14 pl-5 pr-2 rounded-2xl bg-[#0b0d12] text-white shadow-2xl">
+      <Link to="/kayit" className="flex items-center justify-between gap-3 h-14 pl-5 pr-2 rounded-2xl bg-[#0b0d12] text-white shadow-2xl">
         <span className="text-sm font-semibold">{trialDays} gün ücretsiz deneyin</span>
         <span className="h-10 px-4 rounded-xl bg-indigo-500 text-sm font-semibold flex items-center gap-1.5">Başla <ArrowRight className="h-4 w-4" /></span>
-      </a>
+      </Link>
     </div>
   );
 };
@@ -315,8 +312,8 @@ export const LiveDemo = ({ demo }) => {
 
 // Alt bilgi: firma bilgileri ve yasal bağlantılar
 const LEGAL_LINKS = [['KVKK Aydınlatma Metni', '/kvkk'], ['Gizlilik Politikası', '/gizlilik'], ['Kullanım Koşulları', '/kullanim-kosullari'], ['Çerez Politikası', '/cerez-politikasi']];
-export const SiteFooter = ({ company, brand, nav, loginForm }) => (
-  <footer className="mt-3 rounded-[2rem] bg-white px-6 md:px-12 py-12">
+export const SiteFooter = ({ company, brand, nav, className = 'mt-3' }) => (
+  <footer className={`${className} rounded-[2rem] bg-white px-6 md:px-12 py-12`}>
     <div className="grid gap-10 md:grid-cols-2 lg:grid-cols-[1.4fr_0.8fr_1fr_1.2fr]">
       <div>
         <span className="flex items-center gap-2.5">
@@ -335,7 +332,7 @@ export const SiteFooter = ({ company, brand, nav, loginForm }) => (
       </div>
       <div>
         <p className="font-semibold text-slate-950">Ürün</p>
-        <ul className="mt-4 space-y-2.5 text-slate-600">{nav.map(([l, h]) => <li key={h}><a href={h} className="hover:text-slate-950">{l}</a></li>)}</ul>
+        <ul className="mt-4 space-y-2.5 text-slate-600">{nav.map(([l, h]) => <li key={h}>{h.startsWith('/') ? <Link to={h} className="hover:text-slate-950">{l}</Link> : <a href={h} className="hover:text-slate-950">{l}</a>}</li>)}</ul>
       </div>
       <div>
         <p className="font-semibold text-slate-950">Yasal</p>
@@ -343,7 +340,8 @@ export const SiteFooter = ({ company, brand, nav, loginForm }) => (
       </div>
       <div>
         <p className="font-semibold text-slate-950">Firma girişi</p>
-        <div className="mt-4">{loginForm}</div>
+        <p className="mt-4 text-sm text-slate-600">E-posta ve şifrenizle portalınıza girin.</p>
+        <Link to="/giris" className="mt-4 h-10 px-4 rounded-xl bg-[#0b0d12] text-white text-sm font-semibold inline-flex items-center gap-2 hover:bg-black">Giriş yap <ArrowRight className="h-4 w-4" /></Link>
       </div>
     </div>
     <p className="mt-12 pt-6 border-t border-slate-100 text-center text-sm text-slate-500">© {new Date().getFullYear()} {(company?.legalName || brand).replace(/\.$/, '')}. Tüm hakları saklıdır.</p>

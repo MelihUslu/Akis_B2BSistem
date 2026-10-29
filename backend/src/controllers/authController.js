@@ -10,6 +10,7 @@ import { tenantAccess, ACCESS_MESSAGES } from '../middlewares/tenantMiddleware.j
 import { assertWithinLimit, LimitError } from '../services/limitService.js';
 import * as twoFactor from '../services/twoFactorService.js';
 import { audit, clientIp } from '../services/auditService.js';
+import { consumeHandoff, HandoffError } from '../services/loginHandoff.js';
 
 // Oturum token'ı + istemciye dönen kullanıcı bilgisi
 const sessionFor = (user, tenantId) => ({
@@ -65,6 +66,47 @@ export const register = async (req, res) => {
   }
 };
 
+// Şifre (ya da ortak girişten gelen aktarım kodu) doğrulandıktan sonraki ortak kontroller ve oturum
+const finishLogin = async (req, res, user) => {
+  if (!user.isActive) {
+    return res.status(403).json({ message: 'Kullanıcı hesabınız devre dışı bırakılmış. Firma yöneticinizle iletişime geçin.' });
+  }
+
+  if (user.emailVerifyToken) {
+    return res.status(403).json({ message: 'Lütfen önce e-posta adresinize gönderilen doğrulama linkine tıklayın.', code: 'EMAIL_NOT_VERIFIED' });
+  }
+
+  const access = tenantAccess(req.tenant);
+  if (!access.active && (user.role !== 'ADMIN' || ['SUSPENDED', 'CANCELLED'].includes(access.reason))) {
+    return res.status(402).json({
+      message: user.role === 'ADMIN' ? ACCESS_MESSAGES[access.reason] : 'Portal şu anda kullanıma kapalı. Lütfen tedarikçi firmanızla iletişime geçin.',
+      code: 'SUBSCRIPTION_INACTIVE'
+    });
+  }
+
+  if (user.role === 'PLASIYER') {
+    return res.status(403).json({ message: 'Plasiyer hesapları için panel girişi henüz aktif değil.' });
+  }
+  if (user.role === 'BAYI') {
+    if (user.company?.status === 'PENDING') {
+      return res.status(403).json({ message: 'Bayilik başvurunuz henüz onaylanmadı.' });
+    }
+    if (user.company?.status !== 'ACTIVE') {
+      return res.status(403).json({ message: 'Hesabınız askıya alınmıştır. Lütfen firma yetkilisiyle iletişime geçin.' });
+    }
+  }
+
+  // İki aşamalı doğrulama açıksa önce kod istenir
+  if (user.twoFactorEnabled) {
+    return res.json({ twoFactorRequired: true, challenge: twoFactor.issueChallenge(user) });
+  }
+
+  await prisma.user.update({ where: { id: user.id }, data: { lastLoginAt: new Date() } });
+  if (user.role === 'ADMIN') audit({ tenantId: req.tenant.id, actorId: user.id, actorName: user.name, action: 'Giriş yapıldı', ip: clientIp(req) });
+
+  res.status(200).json({ message: 'Giriş başarılı.', ...sessionFor(user, req.tenant.id) });
+};
+
 export const login = async (req, res) => {
   try {
     const { email, password } = req.body;
@@ -76,43 +118,7 @@ export const login = async (req, res) => {
       return res.status(401).json({ message: 'Geçersiz e-posta veya şifre.' });
     }
 
-    if (!user.isActive) {
-      return res.status(403).json({ message: 'Kullanıcı hesabınız devre dışı bırakılmış. Firma yöneticinizle iletişime geçin.' });
-    }
-
-    if (user.emailVerifyToken) {
-      return res.status(403).json({ message: 'Lütfen önce e-posta adresinize gönderilen doğrulama linkine tıklayın.', code: 'EMAIL_NOT_VERIFIED' });
-    }
-
-    const access = tenantAccess(req.tenant);
-    if (!access.active && (user.role !== 'ADMIN' || ['SUSPENDED', 'CANCELLED'].includes(access.reason))) {
-      return res.status(402).json({
-        message: user.role === 'ADMIN' ? ACCESS_MESSAGES[access.reason] : 'Portal şu anda kullanıma kapalı. Lütfen tedarikçi firmanızla iletişime geçin.',
-        code: 'SUBSCRIPTION_INACTIVE'
-      });
-    }
-
-    if (user.role === 'PLASIYER') {
-      return res.status(403).json({ message: 'Plasiyer hesapları için panel girişi henüz aktif değil.' });
-    }
-    if (user.role === 'BAYI') {
-      if (user.company?.status === 'PENDING') {
-        return res.status(403).json({ message: 'Bayilik başvurunuz henüz onaylanmadı.' });
-      }
-      if (user.company?.status !== 'ACTIVE') {
-        return res.status(403).json({ message: 'Hesabınız askıya alınmıştır. Lütfen firma yetkilisiyle iletişime geçin.' });
-      }
-    }
-
-    // İki aşamalı doğrulama açıksa önce kod istenir
-    if (user.twoFactorEnabled) {
-      return res.json({ twoFactorRequired: true, challenge: twoFactor.issueChallenge(user) });
-    }
-
-    await prisma.user.update({ where: { id: user.id }, data: { lastLoginAt: new Date() } });
-    if (user.role === 'ADMIN') audit({ tenantId: req.tenant.id, actorId: user.id, actorName: user.name, action: 'Giriş yapıldı', ip: clientIp(req) });
-
-    res.status(200).json({ message: 'Giriş başarılı.', ...sessionFor(user, req.tenant.id) });
+    return await finishLogin(req, res, user);
   } catch (error) {
     console.error('Login error:', error);
     res.status(500).json({ message: 'Giriş sırasında bir sunucu hatası oluştu.' });
@@ -184,6 +190,20 @@ export const listUsers = async (req, res) => {
 // ─── İki aşamalı doğrulama ───────────────────────────────────────────────────
 
 // Girişin ikinci adımı: doğrulama bileti + uygulama kodu (veya yedek kod)
+// Ortak giriş sayfasından (/giris) gelen tek kullanımlık kodla oturum açma
+export const handoffLogin = async (req, res) => {
+  try {
+    const uid = consumeHandoff(req.body?.code, req.tenant.id);
+    const user = await prisma.user.findFirst({ where: { id: uid }, include: { company: true } });
+    if (!user) return res.status(401).json({ message: 'Kullanıcı bulunamadı.' });
+    return await finishLogin(req, res, user);
+  } catch (error) {
+    if (error instanceof HandoffError) return res.status(401).json({ message: error.message });
+    console.error('Handoff login error:', error);
+    res.status(500).json({ message: 'Giriş sırasında bir sunucu hatası oluştu.' });
+  }
+};
+
 export const verifyTwoFactorLogin = async (req, res) => {
   try {
     const { uid, tenantId } = twoFactor.readChallenge(req.body.challenge);

@@ -12,6 +12,7 @@ const Login = lazy(() => import('./pages/Login'));
 const VerifyEmail = lazy(() => import('./pages/VerifyEmail'));
 const DealerApplication = lazy(() => import('./pages/DealerApplication'));
 const Impersonate = lazy(() => import('./pages/Impersonate'));
+const LoginHandoff = lazy(() => import('./pages/LoginHandoff'));
 const ForgotPassword = lazy(() => import('./pages/ForgotPassword'));
 const ResetPassword = lazy(() => import('./pages/ResetPassword'));
 const ApiDocs = lazy(() => import('./pages/developer/ApiDocs'));
@@ -53,6 +54,7 @@ const AppRoutes = () => {
     <Suspense fallback={<PageLoader />}>
     <Routes>
       <Route path="/impersonate" element={<Impersonate />} />
+      <Route path="/giris-aktar" element={<LoginHandoff />} />
       <Route path="/login" element={user ? <Navigate to={user.role === 'ADMIN' ? '/admin' : '/bayi'} /> : <Login />} />
       <Route path="/verify-email" element={<VerifyEmail />} />
       <Route path="/developer" element={<ApiDocs />} />

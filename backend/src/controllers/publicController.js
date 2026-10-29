@@ -1,9 +1,11 @@
 import bcrypt from 'bcrypt';
 import crypto from 'crypto';
 import prisma from '../utils/prisma.js';
-import { RESERVED_SLUGS, ROOT_DOMAIN, isRootHost, tenantUrl } from '../config.js';
+import { RESERVED_SLUGS, ROOT_DOMAIN, isRootHost, tenantUrl, tenantPortalUrl } from '../config.js';
 import { loadTenantByHost } from '../middlewares/tenantMiddleware.js';
-import { sendVerificationMail, sendPlatformAlert } from '../services/mailService.js';
+import { issueHandoff } from '../services/loginHandoff.js';
+import { audit, clientIp } from '../services/auditService.js';
+import { sendVerificationMail, sendPlatformAlert, sendPortalListMail } from '../services/mailService.js';
 import * as iyzico from '../services/iyzicoService.js';
 import { syncSubscription } from '../services/iyzicoSyncService.js';
 
@@ -38,6 +40,51 @@ export const slugAvailable = async (req, res) => {
   const slug = normalizeSlug(req.query.slug);
   const error = await checkSlug(slug);
   res.json({ slug, available: !error, message: error });
+};
+
+// Giriş sayfası: yazılan portal adresi var mı (kapalı / iptal edilmiş firmalar da giriş ekranını görür, orada uyarılır)
+export const portalLookup = async (req, res) => {
+  const slug = normalizeSlug(req.query.slug);
+  const tenant = SLUG_RE.test(slug) ? await prisma.tenant.findUnique({ where: { slug }, select: { name: true } }) : null;
+  res.json({ slug, exists: Boolean(tenant), name: tenant?.name || null });
+};
+
+/**
+ * Ortak giriş (kök alan adı /giris): e-posta + şifre tüm portallarda aranır. Şifresi eşleşen her hesap için
+ * portala tek kullanımlık aktarım kodu döner; portal kodu kendi oturumuna çevirir ve kendi kontrollerini yapar
+ * (pasif hesap, doğrulanmamış e-posta, abonelik, iki aşamalı doğrulama). Birden fazla eşleşmede kullanıcı seçer.
+ */
+const ROLE_LABELS = { ADMIN: 'Yönetici', BAYI: 'Bayi', PLASIYER: 'Plasiyer' };
+const DUMMY_HASH = '$2b$10$CwTycUXWue0Thq9StjUM0uJ8.Lr0nB8v4G0Jk5wJ0F0eQkqzYz1y6';
+export const centralLogin = async (req, res) => {
+  const email = String(req.body?.email || '').toLowerCase().trim().slice(0, 160);
+  const password = String(req.body?.password || '');
+  if (!email || !password) return res.status(400).json({ message: 'E-posta ve şifrenizi yazın.' });
+  const users = await prisma.user.findMany({
+    where: { email, tenantId: { not: null }, role: { in: Object.keys(ROLE_LABELS) } },
+    include: { tenant: true }, take: 10
+  });
+  if (!users.length) await bcrypt.compare(password, DUMMY_HASH); // hesap yoksa da yanıt süresi benzer olsun
+  const portals = [];
+  for (const user of users) {
+    if (await bcrypt.compare(password, user.password)) {
+      portals.push({ name: user.tenant.name, slug: user.tenant.slug, url: tenantPortalUrl(user.tenant), role: ROLE_LABELS[user.role], code: issueHandoff(user) });
+    } else {
+      audit({ tenantId: user.tenantId, actorType: 'USER', actorId: user.id, actorName: email.slice(0, 100), action: 'Başarısız giriş denemesi (ortak giriş)', ip: clientIp(req) });
+    }
+  }
+  if (!portals.length) return res.status(401).json({ message: 'Geçersiz e-posta veya şifre.' });
+  res.json({ portals });
+};
+
+// "Portal adresimi unuttum": adres e-postaya gönderilir; hesabın var olup olmadığı yanıtta belli edilmez
+export const findPortal = async (req, res) => {
+  const email = String(req.body?.email || '').toLowerCase().trim().slice(0, 160);
+  if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) return res.status(400).json({ message: 'Geçerli bir e-posta adresi yazın.' });
+  const users = await prisma.user.findMany({ where: { email, isActive: true, tenantId: { not: null } }, select: { tenant: true }, take: 20 });
+  const tenants = [...new Map(users.map((u) => [u.tenant.id, u.tenant])).values()];
+  if (tenants.length) await sendPortalListMail({ to: email, tenants }).catch(() => {});
+  res.json({ message: 'Bu e-posta adresi bir portala kayıtlıysa, portal adreslerinizi e-postayla gönderdik.' });
 };
 
 /**

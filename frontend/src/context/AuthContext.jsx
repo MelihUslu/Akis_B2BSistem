@@ -53,6 +53,18 @@ export const AuthProvider = ({ children }) => {
     }
   };
 
+  // Ortak giriş sayfasından (kök alan adı /giris) gelen tek kullanımlık kodla oturum
+  const loginWithHandoff = async (code) => {
+    try {
+      const response = await api.post('/auth/handoff', { code });
+      if (response.data.twoFactorRequired) return { success: false, twoFactorRequired: true, challenge: response.data.challenge };
+      startSession(response.data);
+      return { success: true, user: response.data.user };
+    } catch (error) {
+      return { success: false, message: error.response?.data?.message || 'Giriş başarısız oldu.' };
+    }
+  };
+
   const verifyTwoFactor = async (challenge, code) => {
     try {
       const response = await api.post('/auth/2fa/verify', { challenge, code });
@@ -72,7 +84,7 @@ export const AuthProvider = ({ children }) => {
   };
 
   return (
-    <AuthContext.Provider value={{ user, login, verifyTwoFactor, startSession, logout }}>
+    <AuthContext.Provider value={{ user, login, loginWithHandoff, verifyTwoFactor, startSession, logout }}>
       {children}
     </AuthContext.Provider>
   );

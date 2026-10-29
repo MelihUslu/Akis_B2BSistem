@@ -495,3 +495,26 @@ test('hata izleme: aynı hata gruplanır, tarayıcı hatası kaydedilir, kullan�
   assert.equal(await runAsPlatform(() => prisma.errorLog.count()), before);
   await runAsPlatform(() => prisma.errorLog.deleteMany({ where: { message: { startsWith: 'itest' } } }));
 });
+
+test('ortak giriş (/giris): şifre doğrulanır, portala tek kullanımlık ve yalnızca o firmada geçerli kodla geçilir', { skip }, async () => {
+  const bad = await api('/public/login', { method: 'POST', body: { email: 'admin@itest-a.test', password: 'yanlis' } });
+  assert.equal(bad.status, 401);
+  const ok = await api('/public/login', { method: 'POST', body: { email: ' ADMIN@itest-a.test ', password: 'Test12345' } });
+  assert.equal(ok.status, 200);
+  assert.equal(ok.data.portals.length, 1);
+  const [portal] = ok.data.portals;
+  assert.equal(portal.slug, 'itest-a');
+  assert.equal(portal.role, 'Yönetici');
+
+  const wrongTenant = await api('/auth/handoff', { tenant: 'itest-b', method: 'POST', body: { code: portal.code } });
+  assert.equal(wrongTenant.status, 401, 'kod başka firmada geçmez');
+  const session = await api('/auth/handoff', { tenant: 'itest-a', method: 'POST', body: { code: portal.code } });
+  assert.equal(session.status, 200);
+  assert.ok(session.data.token);
+  assert.equal(session.data.user.email, 'admin@itest-a.test');
+  const me = await api('/auth/me', { tenant: 'itest-a', token: session.data.token });
+  assert.equal(me.status, 200);
+  const again = await api('/auth/handoff', { tenant: 'itest-a', method: 'POST', body: { code: portal.code } });
+  assert.equal(again.status, 401, 'kod ikinci kez kullanılamaz');
+  assert.equal((await api('/auth/handoff', { tenant: 'itest-a', method: 'POST', body: { code: 'sahte' } })).status, 401);
+});
