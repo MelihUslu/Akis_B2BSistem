@@ -1,6 +1,6 @@
 import { basePrisma as db } from '../utils/prisma.js';
 import { publicSiteSettings, getSiteSettings, saveSiteSettings } from '../services/siteSettings.js';
-import { createSession, visitorMessage, agentMessage, createFormLead, MAX_USER_MESSAGES } from '../services/chatbot.js';
+import { createSession, visitorMessage, submitContact, agentMessage, createFormLead, MAX_USER_MESSAGES } from '../services/chatbot.js';
 
 const EMAIL = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 const cleanUtm = (u) => (u && typeof u === 'object'
@@ -28,8 +28,11 @@ export const getChat = async (req, res) => {
   const session = await loadSession(req, res);
   if (!session) return;
   const after = parseInt(req.query.after) || 0;
-  const messages = await db.chatMessage.findMany({ where: { sessionId: session.id, id: { gt: after } }, orderBy: { id: 'asc' }, take: 200 });
-  res.json({ status: session.status, messages: messages.map(view) });
+  const [messages, lead] = await Promise.all([
+    db.chatMessage.findMany({ where: { sessionId: session.id, id: { gt: after } }, orderBy: { id: 'asc' }, take: 200 }),
+    db.lead.findUnique({ where: { chatSessionId: session.id }, select: { id: true } })
+  ]);
+  res.json({ status: session.status, hasLead: Boolean(lead), messages: messages.map(view) });
 };
 
 export const postChat = async (req, res) => {
@@ -39,8 +42,21 @@ export const postChat = async (req, res) => {
   if (!text) return res.status(400).json({ message: 'Mesaj boş olamaz.' });
   if (session.status === 'CLOSED') return res.status(409).json({ message: 'Bu sohbet kapatıldı. Yeni bir sohbet başlatabilirsiniz.' });
   if (session.userMessages >= MAX_USER_MESSAGES) return res.status(429).json({ message: 'Bu sohbette mesaj sınırına ulaşıldı. Ekibimiz size e-postayla ya da telefonla dönebilir.' });
-  const messages = await visitorMessage(session, text);
-  res.json({ messages: messages.map(view) });
+  const { messages, askContact, hasLead } = await visitorMessage(session, text);
+  res.json({ messages: messages.map(view), askContact, hasLead });
+};
+
+// Sohbetteki hızlı "Beni arayın" formu
+const PHONE_DIGITS = /^\+?[\d\s()-]{10,20}$/;
+export const postChatContact = async (req, res) => {
+  const session = await loadSession(req, res);
+  if (!session) return;
+  const { name, phone, company, callTime } = req.body || {};
+  if (!String(name || '').trim()) return res.status(400).json({ message: 'Adınızı yazın.' });
+  if (!PHONE_DIGITS.test(String(phone || '').trim()) || String(phone).replace(/\D/g, '').length < 10) return res.status(400).json({ message: 'Geçerli bir telefon numarası yazın.' });
+  if (session.status === 'CLOSED') return res.status(409).json({ message: 'Bu sohbet kapatıldı. Yeni bir sohbet başlatabilirsiniz.' });
+  const messages = await submitContact(session, { name, phone, company, callTime });
+  res.status(201).json({ messages: messages.map(view), hasLead: true });
 };
 
 export const postLead = async (req, res) => {

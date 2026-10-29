@@ -130,47 +130,87 @@ export const ReturnMock = () => (
   </div>
 );
 
-// Kurulum adımlarının çizimleri
+// Kurulum adımlarının çizimleri: her adım açıldığında kendi içinde canlanır (alanlar yazılır, dosya yüklenir, bayiler eklenir, grafik çizilir)
+const at = (ms) => ({ animationDelay: `${ms}ms` });
+
+// Sayıyı sıfırdan hedefe sayar; hareket azaltma tercihi açıksa doğrudan hedefi gösterir
+const CountUp = ({ to, delay = 0, format = (n) => n.toLocaleString('tr-TR') }) => {
+  const [reduced] = useState(() => !!window.matchMedia?.('(prefers-reduced-motion: reduce)').matches);
+  const [n, setN] = useState(reduced ? to : 0);
+  useEffect(() => {
+    if (reduced) return undefined;
+    let raf;
+    let start;
+    const tick = (t) => {
+      start ??= t + delay;
+      const p = Math.min(1, Math.max(0, (t - start) / 1200));
+      setN(to * (1 - (1 - p) ** 3));
+      if (p < 1) raf = requestAnimationFrame(tick);
+    };
+    raf = requestAnimationFrame(tick);
+    return () => cancelAnimationFrame(raf);
+  }, [to, delay, reduced]);
+  return format(n);
+};
+
+const CARD = 'rounded-2xl bg-white shadow-[0_20px_50px_-25px_rgba(15,23,42,0.35)] p-5 w-full max-w-sm';
+
 export const StepMock = ({ step }) => {
   if (step === 0) return (
-    <div className="rounded-2xl bg-white shadow-[0_20px_50px_-25px_rgba(15,23,42,0.35)] p-6 space-y-3 w-full max-w-sm bg-gradient-to-b from-indigo-50/70 to-white">
-      <span className="mx-auto h-12 w-12 rounded-2xl bg-gradient-to-br from-sky-400 to-indigo-600 flex items-center justify-center shadow-lg"><Store className="h-6 w-6 text-white" /></span>
-      <p className="text-center font-semibold text-slate-900">Portalınızı oluşturun</p>
-      {['Firma adı', 'yildizhirdavat.akisb2b.com', 'İş e-postası'].map((p) => <span key={p} className="block h-10 rounded-xl bg-slate-100 px-3 text-xs text-slate-400 flex items-center">{p}</span>)}
-      <span className="block h-10 rounded-xl bg-[#0b0d12] border-b-4 border-indigo-500 text-white text-xs font-bold flex items-center justify-center">Ücretsiz denemeyi başlat</span>
+    <div className={`${CARD} p-6 space-y-3 bg-gradient-to-b from-indigo-50/70 to-white`}>
+      <span className="step-pop mx-auto h-12 w-12 rounded-2xl bg-gradient-to-br from-indigo-500 to-indigo-700 flex items-center justify-center shadow-lg"><Store className="h-6 w-6 text-white" /></span>
+      <p className="step-rise text-center font-semibold text-slate-900" style={at(150)}>Portalınızı oluşturun</p>
+      {['Yıldız Hırdavat', 'yildizhirdavat.akisb2b.com', 'satis@yildizhirdavat.com'].map((p, i) => (
+        <span key={p} className="step-rise block h-10 rounded-xl bg-slate-100 px-3 text-xs text-slate-700 font-medium flex items-center" style={at(300 + i * 700)}>
+          <span className="step-type truncate" style={at(450 + i * 700)}>{p}</span>
+          {i === 1 && <Check className="step-pop ml-auto h-4 w-4 text-emerald-600 shrink-0" style={at(1300)} />}
+        </span>
+      ))}
+      <span className="step-rise block" style={at(2500)}><span className="step-pulse h-10 rounded-xl bg-[#0b0d12] border-b-4 border-indigo-500 text-white text-xs font-bold flex items-center justify-center">Ücretsiz denemeyi başlat</span></span>
     </div>
   );
   if (step === 1) return (
-    <div className="rounded-2xl bg-white shadow-[0_20px_50px_-25px_rgba(15,23,42,0.35)] p-5 space-y-3 w-full max-w-sm">
-      <p className="text-sm font-semibold text-slate-900">Excel ile toplu ürün yükleme</p>
-      <div className="rounded-xl border-2 border-dashed border-indigo-200 bg-indigo-50/50 p-5 text-center text-xs text-indigo-700 font-semibold">urunler.xlsx · 1.240 satır</div>
-      {[['Yeni ürün', '1.180'], ['Güncellenen', '54'], ['Hatalı satır', '6']].map(([k, v], i) => (
-        <p key={k} className="flex justify-between text-xs"><span className="text-slate-500">{k}</span><span className={`font-black ${i === 2 ? 'text-red-600' : 'text-slate-900'}`}>{v}</span></p>
+    <div className={`${CARD} space-y-3`}>
+      <p className="step-rise text-sm font-semibold text-slate-900">Excel ile toplu ürün yükleme</p>
+      <div className="step-rise rounded-xl border-2 border-dashed border-indigo-200 bg-indigo-50/50 p-4 text-center" style={at(150)}>
+        <p className="text-xs text-indigo-700 font-semibold">urunler.xlsx · 1.240 satır</p>
+        <div className="mt-3 h-1.5 rounded-full bg-indigo-100 overflow-hidden"><div className="step-fill h-full rounded-full bg-indigo-600" style={at(400)} /></div>
+      </div>
+      {[['Yeni ürün', 1180], ['Güncellenen', 54], ['Hatalı satır', 6]].map(([k, v], i) => (
+        <p key={k} className="step-rise flex justify-between text-xs" style={at(1900 + i * 200)}>
+          <span className="text-slate-500">{k}</span>
+          <span className={`font-black tabular-nums ${i === 2 ? 'text-red-600' : 'text-slate-900'}`}><CountUp to={v} delay={1900 + i * 200} format={(n) => Math.round(n).toLocaleString('tr-TR')} /></span>
+        </p>
       ))}
+      <p className="step-rise flex items-center gap-1.5 text-[11px] font-bold text-emerald-700" style={at(3000)}><Check className="h-3.5 w-3.5" /> Katalog yayında</p>
     </div>
   );
   if (step === 2) return (
-    <div className="rounded-2xl bg-white shadow-[0_20px_50px_-25px_rgba(15,23,42,0.35)] p-5 space-y-2.5 w-full max-w-sm">
-      <p className="text-sm font-semibold text-slate-900">Bayi davetleri</p>
-      {[['Yıldız Hırdavat', 'Gold · %12', true], ['Kaya Yapı Market', 'Standart', true], ['Demir Teknik', 'Başvuru', false]].map(([n, g, ok]) => (
-        <div key={n} className="flex items-center gap-3 rounded-xl bg-slate-50 px-3 py-2.5">
+    <div className={`${CARD} space-y-2.5`}>
+      <p className="step-rise text-sm font-semibold text-slate-900">Bayi davetleri</p>
+      {[['Yıldız Hırdavat', 'Gold · %12', true], ['Kaya Yapı Market', 'Standart', true], ['Demir Teknik', 'Başvuru', false]].map(([n, g, ok], i) => (
+        <div key={n} className="step-rise flex items-center gap-3 rounded-xl bg-slate-50 px-3 py-2.5" style={at(250 + i * 550)}>
           <span className="h-8 w-8 rounded-lg bg-indigo-100 text-indigo-600 text-[11px] font-black flex items-center justify-center">{n.split(' ').map((w) => w[0]).join('').slice(0, 2)}</span>
           <span className="flex-1 min-w-0"><span className="block text-xs font-bold text-slate-800 truncate">{n}</span><span className="block text-[10px] text-slate-400">{g}</span></span>
-          <span className={`text-[10px] font-black px-2 py-0.5 rounded-full ${ok ? 'bg-emerald-50 text-emerald-700' : 'bg-orange-50 text-orange-600'}`}>{ok ? 'Aktif' : 'Onay bekliyor'}</span>
+          <span className={`step-pop text-[10px] font-black px-2 py-0.5 rounded-full ${ok ? 'bg-emerald-50 text-emerald-700' : 'bg-orange-50 text-orange-600'}`} style={at(550 + i * 550)}>{ok ? 'Aktif' : 'Onay bekliyor'}</span>
         </div>
       ))}
+      <p className="step-rise text-[11px] text-slate-500 pt-1" style={at(2100)}>Davet e-postaları gönderildi · <b className="text-slate-800">3 bayi</b></p>
     </div>
   );
   return (
-    <div className="rounded-2xl bg-white shadow-[0_20px_50px_-25px_rgba(15,23,42,0.35)] p-5 space-y-3 w-full max-w-sm">
-      <p className="text-sm font-semibold text-slate-900">Bu ay</p>
+    <div className={`${CARD} space-y-3`}>
+      <p className="step-rise flex items-center justify-between text-sm font-semibold text-slate-900">Bu ay <span className="text-[11px] font-black text-emerald-600 bg-emerald-50 px-2 py-0.5 rounded-full">▲ %38</span></p>
       <svg viewBox="0 0 300 110" className="w-full h-28" aria-hidden="true">
         <defs><linearGradient id="lg-area" x1="0" x2="0" y1="0" y2="1"><stop offset="0%" stopColor="#6366f1" stopOpacity="0.25" /><stop offset="100%" stopColor="#6366f1" stopOpacity="0" /></linearGradient></defs>
-        <path d="M0 90 C40 80 60 60 90 66 S150 30 180 40 S240 14 300 8 L300 110 L0 110 Z" fill="url(#lg-area)" />
-        <path d="M0 90 C40 80 60 60 90 66 S150 30 180 40 S240 14 300 8" fill="none" stroke="#6366f1" strokeWidth="3" strokeLinecap="round" />
+        <path className="step-fade" style={at(900)} d="M0 90 C40 80 60 60 90 66 S150 30 180 40 S240 14 300 8 L300 110 L0 110 Z" fill="url(#lg-area)" />
+        <path className="step-draw" pathLength="1" d="M0 90 C40 80 60 60 90 66 S150 30 180 40 S240 14 300 8" fill="none" stroke="#6366f1" strokeWidth="3" strokeLinecap="round" />
+        <circle className="step-pop" style={{ ...at(1500), transformOrigin: '296px 9px' }} cx="296" cy="9" r="5" fill="#6366f1" stroke="white" strokeWidth="2" />
       </svg>
       <div className="grid grid-cols-3 gap-2 text-center">
-        {[['Sipariş', '128'], ['Ciro', '₺1,2 M'], ['Aktif bayi', '34']].map(([k, v]) => <div key={k} className="rounded-xl bg-slate-50 py-2"><p className="text-sm font-black text-slate-900">{v}</p><p className="text-[10px] text-slate-500">{k}</p></div>)}
+        {[['Sipariş', 128, (n) => Math.round(n)], ['Ciro', 1.2, (n) => `₺${n.toLocaleString('tr-TR', { minimumFractionDigits: 1, maximumFractionDigits: 1 })} M`], ['Aktif bayi', 34, (n) => Math.round(n)]].map(([k, v, f], i) => (
+          <div key={k} className="step-rise rounded-xl bg-slate-50 py-2" style={at(300 + i * 150)}><p className="text-sm font-black text-slate-900 tabular-nums"><CountUp to={v} delay={300 + i * 150} format={f} /></p><p className="text-[10px] text-slate-500">{k}</p></div>
+        ))}
       </div>
     </div>
   );

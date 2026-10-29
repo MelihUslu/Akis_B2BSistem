@@ -16,10 +16,20 @@ export const SOLUTIONS = [
   ['Cari hesap bayinin cebinde', 'Ekstre, mutabakat, kartla ödeme ve vade hatırlatması portalda.'],
 ];
 
+// Sektörler: ikon anahtarı (sections.jsx'te eşlenir), örnek ürünler ve vurgu rengi
 export const SECTORS = [
-  ['🔩', 'Hırdavat ve nalbur'], ['🧱', 'Yapı market'], ['📦', 'Ambalaj ve sarf'], ['🥫', 'Gıda toptan'],
-  ['🧴', 'Kozmetik ve temizlik'], ['🚗', 'Otomotiv yedek parça'], ['💡', 'Elektrik malzemesi'], ['🩺', 'Medikal sarf'],
-  ['👕', 'Tekstil ve iş elbisesi'], ['🖊️', 'Kırtasiye'], ['🌱', 'Tarım ve bahçe'], ['🔧', 'Endüstriyel ekipman'],
+  { icon: 'hammer', name: 'Hırdavat ve nalbur', items: 'Vida, dübel, el aletleri', color: '#475569' },
+  { icon: 'brick', name: 'Yapı market', items: 'Seramik, boya, izolasyon', color: '#c2410c' },
+  { icon: 'package', name: 'Ambalaj ve sarf', items: 'Koli, streç, bant', color: '#a16207' },
+  { icon: 'wheat', name: 'Gıda toptan', items: 'Bakliyat, un, konserve', color: '#ca8a04' },
+  { icon: 'spray', name: 'Kozmetik ve temizlik', items: 'Deterjan, şampuan, kâğıt', color: '#0891b2' },
+  { icon: 'car', name: 'Otomotiv yedek parça', items: 'Filtre, fren, aydınlatma', color: '#dc2626' },
+  { icon: 'plug', name: 'Elektrik malzemesi', items: 'Kablo, sigorta, aydınlatma', color: '#d97706' },
+  { icon: 'medical', name: 'Medikal sarf', items: 'Eldiven, enjektör, pansuman', color: '#0d9488' },
+  { icon: 'shirt', name: 'Tekstil ve iş elbisesi', items: 'Tulum, iş ayakkabısı, yelek', color: '#4f46e5' },
+  { icon: 'notebook', name: 'Kırtasiye', items: 'Defter, kalem, ofis sarf', color: '#7c3aed' },
+  { icon: 'sprout', name: 'Tarım ve bahçe', items: 'Tohum, gübre, sulama', color: '#16a34a' },
+  { icon: 'factory', name: 'Endüstriyel ekipman', items: 'Rulman, pnömatik, kaynak', color: '#334155' },
 ];
 
 export const ROLES = [

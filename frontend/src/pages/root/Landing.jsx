@@ -6,15 +6,15 @@ import { publicApi, errorMessage } from '../../services/api';
 import { tenantUrl, ROOT_DOMAIN_LABEL } from '../../utils/tenant';
 import { formatTRY } from '../../utils/format';
 import { Chip, Highlight, Heading, PrimaryButton, Frame, Brackets } from './landing/ui';
-import { PortalMockup, CatalogMock, ApprovalMock, CreditMock, AiQuoteMock, ErpMock, ReturnMock, StepMock, FloatingLimit, LiveTicker } from './landing/mockups';
-import { ProblemSolution, Sectors, DualView, FeatureCatalog, SavingsCalculator, Comparison, StickyCta, Integrations, LiveDemo, ContactSales, SiteFooter } from './landing/sections';
+import { PortalMockup, CatalogMock, ApprovalMock, CreditMock, AiQuoteMock, ErpMock, ReturnMock, FloatingLimit, LiveTicker } from './landing/mockups';
+import { ProblemSolution, Sectors, DualView, FeatureCatalog, SavingsCalculator, Comparison, StickyCta, SetupSteps, LiveDemo, SiteFooter } from './landing/sections';
 import { getUtm, trackEvent } from '../../utils/site';
 import { FAQ as FAQ_ITEMS } from './landing/data';
 
 const PLATFORM_NAME = import.meta.env.VITE_PLATFORM_NAME || 'Akis B2B';
 const limitText = (n, label) => (n < 0 ? `Sınırsız ${label}` : `${n.toLocaleString('tr-TR')} ${label}`);
 
-const NAV = [['Özellikler', '#ozellikler'], ['Nasıl çalışır', '#adimlar'], ['Paketler', '#paketler'], ['SSS', '#sss'], ['İletişim', '#iletisim']];
+const NAV = [['Özellikler', '#ozellikler'], ['Nasıl çalışır', '#adimlar'], ['Paketler', '#paketler'], ['SSS', '#sss']];
 
 const TABS = [
   { id: 'catalog', icon: LayoutGrid, label: 'Bayiye özel katalog', title: 'Her bayi kendi fiyatını görür', text: 'Bayi grubu iskontoları, bayiye özel ve kademeli fiyatlar, miktar indirimi, koli katsayısı ve minimum sipariş. Dövizli ürünler günün kuruyla TL\'ye çevrilir.', mock: CatalogMock },
@@ -25,12 +25,8 @@ const TABS = [
   { id: 'rma', icon: RotateCcw, label: 'İade / değişim', title: 'Fotoğraflı, takip edilebilir iade', text: 'Bayi sipariş detayından iade ister, fotoğraf ekler. Siz onaylayınca tutar cari hesaba alacak olarak yazılır, stok geri alınır.', mock: ReturnMock },
 ];
 
-const STEPS = [
-  { title: 'Hesabınızı açın', points: ['Firma adınızı ve portal adresinizi seçin.', 'Kredi kartı gerekmez; deneme hemen başlar.'] },
-  { title: 'Ürünlerinizi yükleyin', points: ['Excel ile toplu yükleme ya da ERP\'den API ile.', 'Kategori, varyant, döviz ve stok bilgileriyle.'] },
-  { title: 'Bayilerinizi ekleyin', points: ['Bayi gruplarını ve iskontoları tanımlayın.', 'Bayiler başvurur ya da siz davet edersiniz.'] },
-  { title: 'Sipariş almaya başlayın', points: ['Bayileriniz 7/24 sipariş verir.', 'Onay, sevkiyat ve tahsilatı tek yerden yönetin.'] },
-];
+// "Ekibimize yazın" bağlantıları canlı sohbeti açar (ChatWidget bu olayı dinler)
+const openChat = () => window.dispatchEvent(new Event('akis:open-chat'));
 
 const FAQ = FAQ_ITEMS.map(([q, a]) => [q, a.replace('{domain}', ROOT_DOMAIN_LABEL)]);
 
@@ -49,7 +45,6 @@ const Landing = ({ site }) => {
   const [loginOpen, setLoginOpen] = useState(false);
   const [menuOpen, setMenuOpen] = useState(false);
   const [tab, setTab] = useState(TABS[0].id);
-  const [step, setStep] = useState(0);
   const [faq, setFaq] = useState(0);
 
   useEffect(() => { document.title = `${brand} · Bayileriniz için B2B sipariş portalı`; }, [brand]);
@@ -171,7 +166,6 @@ const Landing = ({ site }) => {
         </div>
       </section>
 
-      <Integrations />
       <ProblemSolution />
 
       {/* Sekmeli özellikler */}
@@ -206,32 +200,7 @@ const Landing = ({ site }) => {
       <FeatureCatalog />
       <Sectors />
 
-      {/* Kurulum adımları */}
-      <section id="adimlar" className="scroll-mt-24 px-3 md:px-6 pt-24 md:pt-32">
-        <div className="max-w-[90rem] mx-auto rounded-[2.5rem] bg-white py-20 md:py-24 px-5">
-          <div className="text-center max-w-3xl mx-auto">
-            <Chip>Kolay kurulum</Chip>
-            <Heading className="mt-5">Teknik bilgi gerekmeden <br className="hidden md:block" />4 adımda yayında</Heading>
-          </div>
-          <div className="max-w-6xl mx-auto mt-12 rounded-[2rem] border border-slate-200/80 p-2 grid lg:grid-cols-2 gap-2">
-            <div className="rounded-[1.6rem] bg-[#f3f4f7] min-h-[24rem] flex items-center justify-center p-6 md:p-10">
-              <div key={step} className="w-full flex justify-center animate-in fade-in zoom-in-95 duration-500"><StepMock step={step} /></div>
-            </div>
-            <div className="p-3 md:p-6 flex flex-col justify-center gap-2">
-              {STEPS.map((s, i) => (
-                <button key={s.title} onClick={() => setStep(i)}
-                  className={`text-left rounded-2xl px-5 py-4 transition-all ${step === i ? 'bg-white border border-slate-200 shadow-[0_10px_30px_-15px_rgba(15,23,42,0.25)]' : 'hover:bg-slate-50'}`}>
-                  <p className="flex items-center gap-3 text-[17px] font-semibold tracking-tight text-slate-950">
-                    <span className={`h-7 w-7 rounded-lg text-xs font-black flex items-center justify-center ${step === i ? 'bg-indigo-600 text-white' : 'bg-slate-100 text-slate-500'}`}>{i + 1}</span>
-                    {s.title}
-                  </p>
-                  {step === i && <ul className="mt-3 ml-10 space-y-1 text-slate-600 list-disc">{s.points.map((p) => <li key={p}>{p}</li>)}</ul>}
-                </button>
-              ))}
-            </div>
-          </div>
-        </div>
-      </section>
+      <SetupSteps />
 
       <Comparison />
       <SavingsCalculator />
@@ -279,21 +248,45 @@ const Landing = ({ site }) => {
               </div>
             ))}
           </div>
-          <p className="mt-8 text-center text-slate-600">Hangi paketin size uygun olduğundan emin değil misiniz? <a href="#iletisim" className="font-semibold text-indigo-600 hover:underline">Ekibimizle görüşün</a>, bayi ve ürün sayınıza göre birlikte bakalım.</p>
+          <p className="mt-8 text-center text-slate-600">Hangi paketin size uygun olduğundan emin değil misiniz? <button type="button" onClick={openChat} className="font-semibold text-indigo-600 hover:underline">Ekibimize yazın</button>, bayi ve ürün sayınıza göre birlikte bakalım.</p>
         </section>
       )}
 
       {/* Kayıt */}
       <section id="kayit" className="scroll-mt-24 max-w-6xl mx-auto px-5 pt-24 md:pt-32">
         <Frame inner="grid lg:grid-cols-2 gap-2 p-2">
-          <div className="rounded-[1.4rem] bg-[#0b1120] text-white p-8 md:p-12 flex flex-col items-start justify-center">
-            <span className="text-xs font-black uppercase tracking-[0.2em] text-indigo-300">Hemen başlayın</span>
-            <h2 className="mt-4 text-3xl md:text-4xl font-semibold tracking-[-0.04em] leading-tight">Portalınız birkaç dakika içinde hazır</h2>
-            <ul className="mt-7 space-y-3.5">
-              {[`${trialDays} gün boyunca tüm özellikler ücretsiz`, 'Kredi kartı istenmez', `firmaniz.${ROOT_DOMAIN_LABEL} adresi hemen açılır`, 'Excel ile ürün yükleme, hazır örnek dosya'].map((t) => (
-                <li key={t} className="flex items-center gap-3 text-slate-300"><span className="h-6 w-6 rounded-full bg-white/10 flex items-center justify-center"><Check className="h-3.5 w-3.5 text-indigo-300" /></span>{t}</li>
-              ))}
-            </ul>
+          <div className="relative overflow-hidden rounded-[1.4rem] bg-[#0b1120] text-white p-8 md:p-12 flex flex-col justify-center">
+            <div aria-hidden="true" className="absolute inset-0 [background-image:linear-gradient(rgba(255,255,255,0.05)_1px,transparent_1px),linear-gradient(90deg,rgba(255,255,255,0.05)_1px,transparent_1px)] [background-size:32px_32px] [mask-image:radial-gradient(ellipse_at_top_left,black,transparent_70%)]" />
+            <div aria-hidden="true" className="absolute -top-32 -left-24 h-96 w-96 rounded-full bg-[radial-gradient(closest-side,rgba(99,102,241,0.55),transparent)]" />
+            <div aria-hidden="true" className="absolute -bottom-40 -right-24 h-96 w-96 rounded-full bg-[radial-gradient(closest-side,rgba(56,189,248,0.22),transparent)]" />
+            <div className="relative">
+              <span className="inline-flex items-center gap-2 rounded-full bg-white/10 ring-1 ring-white/15 px-3 py-1 text-[11px] font-bold uppercase tracking-[0.18em] text-indigo-200">
+                <span className="relative flex h-2 w-2"><span className="absolute inset-0 rounded-full bg-emerald-400 animate-ping opacity-75" /><span className="relative h-2 w-2 rounded-full bg-emerald-400" /></span>
+                Hemen başlayın
+              </span>
+              <h2 className="mt-5 text-3xl md:text-[2.6rem] font-semibold tracking-[-0.04em] leading-[1.1]">Portalınız <span className="bg-gradient-to-r from-indigo-300 to-sky-300 bg-clip-text text-transparent">birkaç dakika</span> içinde hazır</h2>
+              <div className="mt-7 flex items-end gap-3">
+                <span className="text-6xl md:text-7xl font-semibold tracking-[-0.05em] leading-none">{trialDays}</span>
+                <span className="pb-1.5 text-slate-300 leading-tight">gün boyunca<br /><b className="text-white">tüm özellikler ücretsiz</b></span>
+              </div>
+              <ul className="mt-7 grid sm:grid-cols-2 gap-2.5">
+                {['Kredi kartı istenmez', 'Kurulum ücreti yok', `firmaniz.${ROOT_DOMAIN_LABEL} adresi`, 'Excel ile hızlı ürün yükleme'].map((t) => (
+                  <li key={t} className="flex items-center gap-2.5 rounded-xl bg-white/[0.06] ring-1 ring-white/10 px-3 py-2.5 text-sm text-slate-200">
+                    <span className="h-5 w-5 shrink-0 rounded-full bg-indigo-500 flex items-center justify-center"><Check className="h-3 w-3 text-white" /></span>{t}
+                  </li>
+                ))}
+              </ul>
+              <div className="mt-8 rounded-2xl bg-white text-slate-900 p-3 shadow-[0_25px_60px_-20px_rgba(0,0,0,0.6)] rotate-[-1.5deg]">
+                <div className="flex items-center gap-1.5 px-1">
+                  {['bg-red-400', 'bg-amber-400', 'bg-emerald-400'].map((c) => <span key={c} className={`h-2 w-2 rounded-full ${c}`} />)}
+                  <span className="ml-2 flex-1 truncate rounded-md bg-slate-100 px-2 py-1 text-[11px] font-semibold text-slate-500">🔒 {(slugState?.slug || 'firmaniz')}.{ROOT_DOMAIN_LABEL}</span>
+                </div>
+                <div className="mt-2.5 flex items-center gap-3 rounded-xl bg-emerald-50 px-3 py-2.5">
+                  <span className="h-8 w-8 rounded-lg bg-emerald-500 flex items-center justify-center"><Check className="h-4 w-4 text-white" /></span>
+                  <span className="min-w-0"><span className="block text-xs font-bold">Portalınız yayında</span><span className="block text-[11px] text-slate-500">Bayileriniz sipariş vermeye hazır</span></span>
+                </div>
+              </div>
+            </div>
           </div>
           <div className="p-6 md:p-10">
             {done ? (
@@ -358,7 +351,6 @@ const Landing = ({ site }) => {
         </Frame>
       </section>
 
-      <ContactSales company={company} />
 
       {/* SSS */}
       <section id="sss" className="scroll-mt-24 max-w-4xl mx-auto px-5 pt-24 md:pt-32">
@@ -387,7 +379,7 @@ const Landing = ({ site }) => {
             <p className="mt-5 text-lg text-slate-300">Ücretsiz deneyin; beğenmezseniz hiçbir şey ödemezsiniz.</p>
             <div className="mt-8 flex flex-wrap items-center justify-center gap-4">
               <a href="#kayit" className="h-12 px-6 rounded-xl bg-white text-[#0b1120] text-[15px] font-semibold flex items-center gap-2 hover:bg-indigo-50">Ücretsiz başla <ArrowRight className="h-4 w-4" /></a>
-              <a href="#iletisim" className="h-12 px-4 flex items-center text-[15px] font-semibold text-slate-300 hover:text-white">Ekibimizle görüşün</a>
+              <button type="button" onClick={openChat} className="h-12 px-4 flex items-center text-[15px] font-semibold text-slate-300 hover:text-white">Ekibimize yazın</button>
             </div>
           </div>
           <SiteFooter company={company} brand={brand} nav={NAV} loginForm={loginForm()} />

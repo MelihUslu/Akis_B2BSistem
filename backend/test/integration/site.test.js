@@ -84,6 +84,39 @@ test('sohbet (yapay zekâ yok): kural tabanlı yanıt, iletişim bilgisiyle tale
   assert.equal(session.needsHuman, true);
 });
 
+test('satış akışı (yapay zekâ yok): sektör ve bayi sayısı sorulur, paket önerilir, "Beni arayın" ile talep özetiyle iletilir', { skip }, async () => {
+  const s = await startChat();
+  const first = await call(`/public/chat/${s.id}/messages`, { method: 'POST', body: { text: 'Kargo entegrasyonu var mı?' } });
+  assert.match(first.data.messages[1].text, /Yurtiçi/);
+  assert.match(first.data.messages[1].text, /Hangi sektörde/, 'yanıtın ardından netleştirici soru');
+  const sector = await call(`/public/chat/${s.id}/messages`, { method: 'POST', body: { text: 'Hırdavat malzemesi satıyoruz' } });
+  assert.match(sector.data.messages[1].text, /kaç bayi/i, 'sektör öğrenilince bayi sayısı sorulur');
+  const dealers = await call(`/public/chat/${s.id}/messages`, { method: 'POST', body: { text: '8' } });
+  assert.match(dealers.data.messages[1].text, /Site Test paketi/, 'bayi sayısına uygun paket');
+  assert.equal(dealers.data.askContact, true, 'hızlı iletişim formu açılır');
+  assert.equal(dealers.data.hasLead, false);
+
+  assert.equal((await call(`/public/chat/${s.id}/contact`, { method: 'POST', body: { name: 'Ali', phone: '123' } })).status, 400, 'geçersiz telefon');
+  const contact = await call(`/public/chat/${s.id}/contact`, { method: 'POST', body: { name: 'Ali Demir', phone: '0532 222 33 44', company: 'Demir Hırdavat', callTime: 'Bugün' } });
+  assert.equal(contact.status, 201);
+  assert.match(contact.data.messages[1].text, /Bugün sizi 0532 222 33 44/);
+  const lead = await prisma.lead.findUnique({ where: { chatSessionId: s.id } });
+  created.leads.push(lead.id);
+  assert.equal(lead.company, 'Demir Hırdavat');
+  assert.match(lead.message, /Sektör: Hırdavat ve nalbur/);
+  assert.match(lead.message, /Bayi sayısı: ~8/);
+  assert.match(lead.message, /İlgilendiği: Kargo/);
+  assert.match(lead.message, /Uygun zaman: Bugün/);
+  assert.equal((await prisma.chatSession.findUnique({ where: { id: s.id } })).needsHuman, true, 'satış ekibi aramalı');
+  assert.equal((await call(`/public/chat/${s.id}`)).data.hasLead, true);
+
+  // Sonraki mesajda özet korunur
+  await call(`/public/chat/${s.id}/messages`, { method: 'POST', body: { text: 'ERP ile çalışır mı?' } });
+  const after = await prisma.lead.findUnique({ where: { id: lead.id } });
+  assert.match(after.message, /Uygun zaman: Bugün/);
+  assert.match(after.message, /ERP entegrasyonu/);
+});
+
 test('temsilci devralınca bot susar, bota geri verilince yanıtlar', { skip }, async () => {
   const s = await startChat();
   await call(`/platform/chats/${s.id}/messages`, { method: 'POST', token: platformToken, body: { text: 'Merhaba, ben temsilci.' } });
@@ -104,7 +137,7 @@ test('sohbet (yapay zekâ): bilgiler istemde, talep yapay zekânın çıkardığ
   const env = { ...process.env };
   process.env.AI_PROVIDER = 'anthropic'; process.env.AI_API_KEY = 'test'; process.env.AI_DAILY_LIMIT = '0';
   let seen;
-  ai.setAiProviderForTests({ generateJson: async (req) => { seen = req; return { reply: 'Merhaba Mehmet Bey, ekibimiz arayacak.', handoff: false, lead: { name: 'Mehmet Kaya', company: 'Kaya Yapı', phone: '', email: 'mehmet@kaya.test' } }; } });
+  ai.setAiProviderForTests({ generateJson: async (req) => { seen = req; return { reply: 'Merhaba Mehmet Bey, ekibimiz arayacak.', handoff: false, askContact: false, summary: '40 bayi, WhatsApp ile sipariş alıyor', lead: { name: 'Mehmet Kaya', company: 'Kaya Yapı', phone: '', email: 'mehmet@kaya.test', sector: 'Yapı market', dealerCount: '40', callTime: '' } }; } });
   try {
     const s = await startChat();
     const r = await call(`/public/chat/${s.id}/messages`, { method: 'POST', body: { text: 'Kaya Yapıdan Mehmet, mehmet@kaya.test' } });
@@ -114,6 +147,8 @@ test('sohbet (yapay zekâ): bilgiler istemde, talep yapay zekânın çıkardığ
     const lead = await prisma.lead.findUnique({ where: { chatSessionId: s.id } });
     created.leads.push(lead.id);
     assert.equal(lead.company, 'Kaya Yapı');
+    assert.match(lead.message, /Sektör: Yapı market · Bayi sayısı: ~40/);
+    assert.match(lead.message, /Not: 40 bayi, WhatsApp/);
     ai.setAiProviderForTests({ generateJson: async () => { throw new Error('servis yok'); } });
     const fb = await call(`/public/chat/${s.id}/messages`, { method: 'POST', body: { text: 'kargo entegrasyonu var mı' } });
     assert.match(fb.data.messages[1].text, /Yurtiçi/, 'yapay zekâ hata verince kural tabanlı yanıt');

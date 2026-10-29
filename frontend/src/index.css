@@ -205,3 +205,37 @@ html.dark .from-slate-900\/30 { --tw-gradient-from: rgb(2 6 23 / .3); }
 
 html.dark .custom-scrollbar::-webkit-scrollbar-thumb { background: #334155; }
 html.dark ::selection { background: rgb(99 102 241 / .4); }
+
+/* Tanıtım sayfası: kurulum adımları animasyonları */
+@keyframes step-progress { from { transform: scaleX(0); } to { transform: scaleX(1); } }
+@keyframes step-rise { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: none; } }
+@keyframes step-type { from { clip-path: inset(0 100% 0 0); } to { clip-path: inset(0 0 0 0); } }
+@keyframes step-fill { from { width: 0; } to { width: 100%; } }
+@keyframes step-draw { from { stroke-dashoffset: 1; } to { stroke-dashoffset: 0; } }
+@keyframes step-fade { from { opacity: 0; } to { opacity: 1; } }
+@keyframes step-pop { 0% { transform: scale(.6); opacity: 0; } 70% { transform: scale(1.12); opacity: 1; } 100% { transform: scale(1); opacity: 1; } }
+@keyframes step-pulse { 0%, 100% { box-shadow: 0 0 0 0 rgba(99,102,241,.45); } 50% { box-shadow: 0 0 0 8px rgba(99,102,241,0); } }
+.step-progress { transform-origin: left; animation: step-progress var(--step-ms, 5s) linear forwards; }
+.step-rise { opacity: 0; animation: step-rise .5s cubic-bezier(0.16, 1, 0.3, 1) forwards; }
+.step-type { clip-path: inset(0 100% 0 0); animation: step-type .7s steps(18) forwards; }
+.step-fill { width: 0; animation: step-fill 1.6s cubic-bezier(0.65, 0, 0.35, 1) forwards; }
+.step-draw { stroke-dasharray: 1; stroke-dashoffset: 1; animation: step-draw 1.6s cubic-bezier(0.65, 0, 0.35, 1) forwards; }
+.step-fade { opacity: 0; animation: step-fade .8s ease-out forwards; }
+.step-pop { opacity: 0; animation: step-pop .45s cubic-bezier(0.16, 1, 0.3, 1) forwards; }
+.step-pulse { animation: step-pulse 1.6s ease-in-out infinite; }
+@media (prefers-reduced-motion: reduce) {
+  .step-rise, .step-type, .step-fill, .step-draw, .step-fade, .step-pop { animation: none; opacity: 1; clip-path: none; stroke-dashoffset: 0; }
+  .step-fill { width: 100%; }
+  .step-progress, .step-pulse { animation: none; }
+}
+
+/* Tanıtım sayfası: kayan sektör kartları */
+@keyframes sector-scroll { from { transform: translateX(0); } to { transform: translateX(-100%); } }
+.sector-track { animation: sector-scroll 45s linear infinite; }
+.sector-reverse { animation-direction: reverse; }
+.sector-marquee:hover .sector-track { animation-play-state: paused; }
+@media (prefers-reduced-motion: reduce) {
+  .sector-marquee { flex-wrap: wrap; justify-content: center; mask-image: none; }
+  .sector-track { animation: none; flex-wrap: wrap; justify-content: center; }
+  .sector-track[aria-hidden="true"] { display: none; }
+}

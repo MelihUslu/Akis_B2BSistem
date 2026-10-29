@@ -57,6 +57,7 @@ const ChatThread = ({ id, onChanged }) => {
           {lead.company && <span className="flex items-center gap-1"><Building2 className="h-3.5 w-3.5" />{lead.company}</span>}
           {lead.phone && <a href={`tel:${lead.phone}`} className="flex items-center gap-1 underline"><Phone className="h-3.5 w-3.5" />{lead.phone}</a>}
           {lead.email && <a href={`mailto:${lead.email}`} className="flex items-center gap-1 underline"><Mail className="h-3.5 w-3.5" />{lead.email}</a>}
+          {lead.message && <p className="basis-full text-xs text-emerald-800">{lead.message}</p>}
         </div>
       )}
       <div ref={listRef} className="flex-1 overflow-y-auto p-5 space-y-3 bg-gray-50">

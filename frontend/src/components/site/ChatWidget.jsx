@@ -1,13 +1,61 @@
 import { useEffect, useRef, useState } from 'react';
-import { MessageCircle, X, Send, Loader2, Phone } from 'lucide-react';
+import { MessageCircle, X, Send, Loader2, Phone, PhoneCall, Check } from 'lucide-react';
 import { publicApi, errorMessage } from '../../services/api';
 import { getUtm, trackEvent } from '../../utils/site';
 
 const SESSION_KEY = 'akis_chat_session';
 const readSession = () => { try { return localStorage.getItem(SESSION_KEY); } catch { return null; } };
-const PHONE_OR_EMAIL = /(\d[\d\s-]{8,}\d)|([\w.+-]+@[\w-]+\.[\w.-]+)/;
 
 // Mesajdaki bağlantıları tıklanabilir yap (yalnızca http/https)
+const CALL_TIMES = ['Hemen', 'Bugün', 'Yarın'];
+
+// Sohbet içindeki hızlı "Beni arayın" formu: ad + telefon yeterli, bilgiler satış ekibine anında gider
+const ContactCard = ({ sessionId, onDone, onClose }) => {
+  const [f, setF] = useState({ name: '', phone: '', company: '', callTime: 'Hemen' });
+  const [busy, setBusy] = useState(false);
+  const [error, setError] = useState(null);
+  const submit = async (e) => {
+    e.preventDefault();
+    setBusy(true);
+    setError(null);
+    try {
+      const r = await publicApi.post(`/chat/${sessionId}/contact`, f);
+      onDone(r.data.messages);
+    } catch (err) {
+      setError(errorMessage(err, 'Gönderilemedi.'));
+    } finally {
+      setBusy(false);
+    }
+  };
+  const input = 'w-full h-10 rounded-xl bg-slate-50 border border-slate-200 px-3 text-sm outline-none focus:bg-white focus:border-indigo-400 focus:ring-2 focus:ring-indigo-100';
+  return (
+    <form onSubmit={submit} className="rounded-2xl bg-white border border-indigo-200 shadow-[0_10px_30px_-15px_rgba(79,70,229,0.4)] p-4 space-y-2.5 animate-in fade-in slide-in-from-bottom-2 duration-300">
+      <div className="flex items-start gap-2.5">
+        <span className="h-8 w-8 shrink-0 rounded-lg bg-indigo-600 flex items-center justify-center"><PhoneCall className="h-4 w-4 text-white" /></span>
+        <div className="flex-1 min-w-0">
+          <p className="text-sm font-bold text-slate-900 leading-tight">Sizi arayalım</p>
+          <p className="text-[11px] text-slate-500">Satış ekibimiz kısa bir görüşmeyle dönsün.</p>
+        </div>
+        <button type="button" onClick={onClose} className="text-slate-400 hover:text-slate-600" aria-label="Kapat"><X className="h-4 w-4" /></button>
+      </div>
+      <input required autoFocus value={f.name} onChange={(e) => setF({ ...f, name: e.target.value })} placeholder="Ad soyad" className={input} maxLength={120} />
+      <input required type="tel" inputMode="tel" value={f.phone} onChange={(e) => setF({ ...f, phone: e.target.value })} placeholder="Telefon (05xx xxx xx xx)" className={input} maxLength={20} />
+      <input value={f.company} onChange={(e) => setF({ ...f, company: e.target.value })} placeholder="Firma adı (isteğe bağlı)" className={input} maxLength={160} />
+      <div className="flex gap-1.5">
+        {CALL_TIMES.map((t) => (
+          <button key={t} type="button" onClick={() => setF({ ...f, callTime: t })}
+            className={`flex-1 h-8 rounded-lg text-xs font-semibold border transition-colors ${f.callTime === t ? 'bg-indigo-600 border-indigo-600 text-white' : 'bg-white border-slate-200 text-slate-600 hover:border-indigo-300'}`}>{t}</button>
+        ))}
+      </div>
+      {error && <p className="text-xs text-red-600">{error}</p>}
+      <button disabled={busy} className="w-full h-10 rounded-xl bg-[#0b1120] text-white text-sm font-semibold flex items-center justify-center gap-2 disabled:opacity-60">
+        {busy ? <Loader2 className="h-4 w-4 animate-spin" /> : <PhoneCall className="h-4 w-4" />} Beni arayın
+      </button>
+      <p className="text-[10px] text-slate-400 leading-snug">Bilgileriniz yalnızca sizinle iletişim için <a href="/kvkk" className="underline">KVKK metni</a> kapsamında kullanılır.</p>
+    </form>
+  );
+};
+
 const Linkify = ({ text }) => text.split(/(https?:\/\/[^\s)]+)/g).map((part, i) => (
   /^https?:\/\//.test(part) ? <a key={i} href={part} target="_blank" rel="noreferrer" className="underline break-all">{part}</a> : <span key={i}>{part}</span>
 ));
@@ -24,6 +72,8 @@ const ChatWidget = ({ chatbot, company, raised = false }) => {
   const [sending, setSending] = useState(false);
   const [error, setError] = useState(null);
   const [nudge, setNudge] = useState(false);
+  const [hasLead, setHasLead] = useState(false);
+  const [contactOpen, setContactOpen] = useState(false);
   const listRef = useRef(null);
   const tempSeq = useRef(0); // gönderilirken gösterilen geçici mesajın kimliği
   const lastId = messages.at(-1)?.id || 0;
@@ -35,11 +85,18 @@ const ChatWidget = ({ chatbot, company, raised = false }) => {
     return () => clearTimeout(t);
   }, [sessionId]);
 
+  // Sayfadaki "Ekibimize yazın" bağlantıları sohbeti açar
+  useEffect(() => {
+    const show = () => { setNudge(false); setOpen(true); };
+    window.addEventListener('akis:open-chat', show);
+    return () => window.removeEventListener('akis:open-chat', show);
+  }, []);
+
   // Açılınca: mevcut sohbeti yükle ya da yenisini başlat
   useEffect(() => {
     if (!open) return;
     if (sessionId && messages.length === 0) {
-      publicApi.get(`/chat/${sessionId}`).then((r) => setMessages(r.data.messages)).catch(() => {
+      publicApi.get(`/chat/${sessionId}`).then((r) => { setMessages(r.data.messages); setHasLead(r.data.hasLead); }).catch(() => {
         try { localStorage.removeItem(SESSION_KEY); } catch { /* gizli sekme */ }
         setSessionId(null);
       });
@@ -63,7 +120,14 @@ const ChatWidget = ({ chatbot, company, raised = false }) => {
     return () => clearInterval(t);
   }, [open, sessionId, lastId]);
 
-  useEffect(() => { listRef.current?.scrollTo({ top: listRef.current.scrollHeight, behavior: 'smooth' }); }, [messages, sending, open]);
+  useEffect(() => { listRef.current?.scrollTo({ top: listRef.current.scrollHeight, behavior: 'smooth' }); }, [messages, sending, open, contactOpen]);
+
+  const contactDone = (msgs) => {
+    setMessages((prev) => [...prev, ...msgs.filter((m) => !prev.some((p) => p.id === m.id))]);
+    setHasLead(true);
+    setContactOpen(false);
+    trackEvent('lead');
+  };
 
   const send = async (value) => {
     const body = (value ?? text).trim();
@@ -77,7 +141,9 @@ const ChatWidget = ({ chatbot, company, raised = false }) => {
     try {
       const r = await publicApi.post(`/chat/${sessionId}/messages`, { text: body });
       setMessages((prev) => [...prev.filter((m) => m.id !== temp.id), ...r.data.messages]);
-      if (PHONE_OR_EMAIL.test(body)) trackEvent('lead');
+      if (r.data.hasLead && !hasLead) trackEvent('lead');
+      setHasLead(Boolean(r.data.hasLead));
+      if (r.data.askContact && !r.data.hasLead) setContactOpen(true);
     } catch (e) {
       setMessages((prev) => prev.filter((m) => m.id !== temp.id));
       setText(body);
@@ -119,8 +185,20 @@ const ChatWidget = ({ chatbot, company, raised = false }) => {
                 {chatbot.quickReplies.map((q) => <button key={q} onClick={() => send(q)} className="px-3 py-1.5 rounded-full bg-white border border-indigo-200 text-xs font-semibold text-indigo-700 hover:bg-indigo-50">{q}</button>)}
               </div>
             )}
+            {contactOpen && !hasLead && sessionId && <ContactCard sessionId={sessionId} onDone={contactDone} onClose={() => setContactOpen(false)} />}
             {error && <p className="text-xs text-red-600 bg-red-50 rounded-xl px-3 py-2">{error}</p>}
           </div>
+
+          {userWrote && !hasLead && !contactOpen && (
+            <div className="px-3 pt-2 flex">
+              <button onClick={() => setContactOpen(true)} className="inline-flex items-center gap-1.5 rounded-full bg-indigo-50 border border-indigo-100 px-3 py-1.5 text-xs font-semibold text-indigo-700 hover:bg-indigo-100">
+                <PhoneCall className="h-3.5 w-3.5" /> Beni arayın
+              </button>
+            </div>
+          )}
+          {hasLead && (
+            <p className="px-4 pt-2 flex items-center gap-1.5 text-[11px] font-semibold text-emerald-700"><Check className="h-3.5 w-3.5" /> Bilgileriniz satış ekibine iletildi</p>
+          )}
 
           <form onSubmit={(e) => { e.preventDefault(); send(); }} className="p-3 border-t border-slate-100 flex items-end gap-2">
             <textarea rows={1} value={text} onChange={(e) => setText(e.target.value)} maxLength={1000}

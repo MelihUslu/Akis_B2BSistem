@@ -1,14 +1,13 @@
 import { useEffect, useRef, useState } from 'react';
 import {
-  X, Check, Minus, ArrowRight, Phone, Mail, MessageCircle, Loader2, Crown, Briefcase, Calculator, Store, LayoutGrid, ClipboardCheck, Sparkles, Webhook, ShieldCheck
+  X, Check, Minus, ArrowRight, Hammer, BrickWall, Package, Wheat, SprayCan, CarFront, PlugZap, Stethoscope, Shirt, NotebookPen, Sprout, Factory, Crown, Briefcase, Calculator, Store, LayoutGrid, ClipboardCheck, Sparkles, Webhook, ShieldCheck
 } from 'lucide-react';
 import { Chip, Heading, PrimaryButton, Frame } from './ui';
-import { PhoneMockup, DashboardMockup } from './mockups';
+import { PhoneMockup, DashboardMockup, StepMock } from './mockups';
 import { PROBLEMS, SOLUTIONS, SECTORS, FEATURE_GROUPS, COMPARISON } from './data';
-import { publicApi, errorMessage } from '../../../services/api';
-import { getUtm, trackEvent } from '../../../utils/site';
 
 const ICONS = { owner: Crown, sales: Briefcase, finance: Calculator, dealer: Store, catalog: LayoutGrid, order: ClipboardCheck, erp: Webhook, security: ShieldCheck };
+const SECTOR_ICONS = { hammer: Hammer, brick: BrickWall, package: Package, wheat: Wheat, spray: SprayCan, car: CarFront, plug: PlugZap, medical: Stethoscope, shirt: Shirt, notebook: NotebookPen, sprout: Sprout, factory: Factory };
 
 // Görünüme girince yumuşakça beliren blok (hareket azaltma tercihine uyar)
 export const Reveal = ({ children, className = '', delay = 0 }) => {
@@ -70,15 +69,45 @@ export const ProblemSolution = () => (
 );
 
 // Sektörler: sade etiketler
+const SectorCard = ({ sector }) => {
+  const Icon = SECTOR_ICONS[sector.icon];
+  return (
+    <div className="shrink-0 w-64 flex items-center gap-3.5 rounded-2xl bg-white border border-slate-200/80 px-4 py-3.5 shadow-[0_8px_24px_-16px_rgba(15,23,42,0.25)] transition-[transform,box-shadow] duration-300 hover:-translate-y-0.5 hover:shadow-[0_16px_36px_-18px_rgba(15,23,42,0.35)]">
+      <span className="h-11 w-11 shrink-0 rounded-xl flex items-center justify-center ring-1 ring-inset"
+        style={{ color: sector.color, background: `color-mix(in srgb, ${sector.color} 9%, white)`, '--tw-ring-color': `color-mix(in srgb, ${sector.color} 18%, transparent)` }}>
+        <Icon className="h-5 w-5" strokeWidth={1.75} />
+      </span>
+      <span className="min-w-0">
+        <span className="block text-[15px] font-semibold tracking-tight text-slate-900 truncate">{sector.name}</span>
+        <span className="block text-xs text-slate-500 truncate">{sector.items}</span>
+      </span>
+    </div>
+  );
+};
+
+// İki sıra, zıt yönlerde yavaşça kayan sektör kartları. Kesintisiz döngü için liste iki kez yazılır;
+// fareyle üstüne gelince durur, hareket azaltma tercihi açıksa kartlar sabit dizilir.
+const SectorRow = ({ items, reverse }) => (
+  <div className="sector-marquee group flex overflow-hidden [mask-image:linear-gradient(90deg,transparent,black_6%,black_94%,transparent)]">
+    {[0, 1].map((copy) => (
+      <div key={copy} aria-hidden={copy === 1} className={`sector-track flex shrink-0 gap-3 pr-3 ${reverse ? 'sector-reverse' : ''}`}>
+        {items.map((s) => <SectorCard key={s.name} sector={s} />)}
+      </div>
+    ))}
+  </div>
+);
+
 export const Sectors = () => (
-  <section className="max-w-5xl mx-auto px-5 pt-24 md:pt-32">
-    <Reveal className="rounded-[2rem] border border-slate-200/70 bg-white/60 px-6 py-12 md:px-12 md:py-14 text-center">
-      <p className="text-xs font-black uppercase tracking-[0.2em] text-indigo-600">Kimler için?</p>
-      <h2 className="mt-4 text-2xl md:text-[2rem] font-semibold tracking-[-0.03em] leading-tight text-slate-950">Bayi ve toptan satış yapan her üretici ve distribütör için</h2>
-      <div className="mt-8 flex flex-wrap justify-center gap-2">
-        {SECTORS.map(([, n]) => (
-          <span key={n} className="px-4 py-2 rounded-full bg-white border border-slate-200 text-sm font-medium text-slate-700">{n}</span>
-        ))}
+  <section className="pt-24 md:pt-32 overflow-hidden">
+    <Reveal>
+      <div className="text-center max-w-4xl mx-auto px-5">
+        <p className="text-xs font-black uppercase tracking-[0.2em] text-indigo-600">Kimler için?</p>
+        <h2 className="mt-4 text-2xl md:text-[2rem] font-semibold tracking-[-0.03em] leading-tight text-slate-950">Bayi ve toptan satış yapan her üretici ve distribütör için</h2>
+        <p className="mt-3 text-slate-500">Katalog, fiyat ve sipariş yapınız ne olursa olsun aynı portal uyum sağlar.</p>
+      </div>
+      <div className="mt-10 space-y-3">
+        <SectorRow items={SECTORS.slice(0, 6)} />
+        <SectorRow items={SECTORS.slice(6)} reverse />
       </div>
     </Reveal>
   </section>
@@ -254,22 +283,6 @@ export const StickyCta = ({ trialDays }) => {
   );
 };
 
-// Entegrasyonlar: gerçek, çalışan bağlantılar (logo görseli yerine adları)
-const INTEGRATIONS = [['iyzico', 'Sanal POS'], ['PayTR', 'Sanal POS'], ['Paraşüt', 'e-Fatura'], ['Yurtiçi Kargo', 'Kargo'], ['TCMB', 'Döviz kuru'], ['REST API', 'ERP / muhasebe']];
-export const Integrations = () => (
-  <section className="max-w-6xl mx-auto px-5 pt-16 md:pt-20">
-    <p className="text-center text-sm font-semibold text-slate-500">Kullandığınız servislerle hazır entegrasyon</p>
-    <div className="mt-6 grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-3">
-      {INTEGRATIONS.map(([name, kind]) => (
-        <div key={name} className="h-16 rounded-2xl bg-white border border-slate-200/70 flex flex-col items-center justify-center">
-          <span className="text-[15px] font-bold tracking-tight text-slate-800">{name}</span>
-          <span className="text-[11px] text-slate-400">{kind}</span>
-        </div>
-      ))}
-    </div>
-  </section>
-);
-
 // Canlı demo (platform panelinden açılırsa)
 export const LiveDemo = ({ demo }) => {
   if (!demo?.enabled || !demo.url) return null;
@@ -295,71 +308,6 @@ export const LiveDemo = ({ demo }) => {
           </div>
           <PrimaryButton href={demo.url}>Demo portalını aç <ArrowRight className="h-4 w-4" /></PrimaryButton>
         </div>
-      </Reveal>
-    </section>
-  );
-};
-
-// Satış ekibiyle görüşme formu + iletişim bilgileri
-export const ContactSales = ({ company }) => {
-  const [form, setForm] = useState({ name: '', company: '', phone: '', email: '', message: '', consent: false });
-  const [state, setState] = useState({ sending: false, done: null, error: null });
-  const set = (k) => (e) => setForm({ ...form, [k]: e.target.type === 'checkbox' ? e.target.checked : e.target.value });
-  const submit = async (e) => {
-    e.preventDefault();
-    setState({ sending: true, done: null, error: null });
-    try {
-      const r = await publicApi.post('/leads', { ...form, utm: getUtm() });
-      setState({ sending: false, done: r.data.message, error: null });
-      trackEvent('lead');
-    } catch (err) {
-      setState({ sending: false, done: null, error: errorMessage(err, 'Gönderilemedi.') });
-    }
-  };
-  const wa = company?.whatsapp?.replace(/\D/g, '');
-  const input = 'w-full h-12 rounded-xl bg-slate-50 border border-slate-200 px-4 text-[15px] outline-none focus:bg-white focus:border-indigo-400 focus:ring-4 focus:ring-indigo-100';
-  return (
-    <section id="iletisim" className="scroll-mt-24 max-w-6xl mx-auto px-5 pt-24 md:pt-32">
-      <Reveal>
-        <Frame inner="grid lg:grid-cols-[minmax(0,0.85fr)_minmax(0,1.15fr)] gap-2 p-2">
-          <div className="rounded-[1.4rem] bg-slate-50 p-8 md:p-10">
-            <Chip>İletişim</Chip>
-            <h2 className="mt-5 text-3xl md:text-4xl font-semibold tracking-[-0.04em] leading-tight text-slate-950">Önce konuşmak ister misiniz?</h2>
-            <p className="mt-3 text-slate-600">Size ürünü canlı olarak gösterelim, ürün ve bayi yapınıza göre kurulumu birlikte planlayalım.</p>
-            <div className="mt-7 space-y-3">
-              {company?.phone && <a href={`tel:${company.phone.replace(/\s/g, '')}`} className="flex items-center gap-3 font-semibold text-slate-900 hover:text-indigo-600"><span className="h-10 w-10 rounded-xl bg-white border border-slate-200 flex items-center justify-center"><Phone className="h-4 w-4 text-indigo-600" /></span>{company.phone}</a>}
-              {wa && <a href={`https://wa.me/${wa.startsWith('0') ? `9${wa}` : wa}`} target="_blank" rel="noreferrer" className="flex items-center gap-3 font-semibold text-slate-900 hover:text-indigo-600"><span className="h-10 w-10 rounded-xl bg-white border border-slate-200 flex items-center justify-center"><MessageCircle className="h-4 w-4 text-emerald-600" /></span>WhatsApp ile yazın</a>}
-              {company?.email && <a href={`mailto:${company.email}`} className="flex items-center gap-3 font-semibold text-slate-900 hover:text-indigo-600"><span className="h-10 w-10 rounded-xl bg-white border border-slate-200 flex items-center justify-center"><Mail className="h-4 w-4 text-indigo-600" /></span>{company.email}</a>}
-            </div>
-          </div>
-          <div className="p-6 md:p-10">
-            {state.done ? (
-              <div className="h-full flex flex-col items-center justify-center text-center py-10">
-                <span className="h-14 w-14 rounded-2xl bg-emerald-50 text-emerald-600 flex items-center justify-center"><Check className="h-7 w-7" /></span>
-                <p className="mt-5 text-xl font-semibold text-slate-950">{state.done}</p>
-              </div>
-            ) : (
-              <form onSubmit={submit} className="space-y-3.5">
-                <div className="grid sm:grid-cols-2 gap-3.5">
-                  <input required placeholder="Adınız soyadınız" value={form.name} onChange={set('name')} className={input} />
-                  <input placeholder="Firma adı" value={form.company} onChange={set('company')} className={input} />
-                  <input placeholder="Telefon" inputMode="tel" value={form.phone} onChange={set('phone')} className={input} />
-                  <input type="email" placeholder="E-posta" value={form.email} onChange={set('email')} className={input} />
-                </div>
-                <textarea rows={3} placeholder="Kısaca ihtiyacınız (bayi sayısı, kullandığınız ERP vb.)" value={form.message} onChange={set('message')} className={`${input} h-auto py-3 resize-none`} />
-                <label className="flex items-start gap-2.5 text-[13px] text-slate-600">
-                  <input type="checkbox" checked={form.consent} onChange={set('consent')} className="mt-0.5 h-4 w-4 accent-indigo-600" />
-                  <span><a href="/kvkk" target="_blank" className="underline">KVKK Aydınlatma Metni</a>'ni okudum; talebime dönüş yapılması için bilgilerimin işlenmesini kabul ediyorum.</span>
-                </label>
-                {state.error && <p className="text-sm text-red-600 bg-red-50 rounded-xl px-3 py-2">{state.error}</p>}
-                <PrimaryButton type="submit" className="w-full" disabled={state.sending || !form.consent}>
-                  {state.sending ? <Loader2 className="h-4 w-4 animate-spin" /> : <>Beni arayın <ArrowRight className="h-4 w-4" /></>}
-                </PrimaryButton>
-                <p className="text-center text-xs text-slate-500">Telefon ya da e-postadan en az birini yazın. Genellikle aynı iş günü içinde dönüyoruz.</p>
-              </form>
-            )}
-          </div>
-        </Frame>
       </Reveal>
     </section>
   );
@@ -401,3 +349,78 @@ export const SiteFooter = ({ company, brand, nav, loginForm }) => (
     <p className="mt-12 pt-6 border-t border-slate-100 text-center text-sm text-slate-500">© {new Date().getFullYear()} {(company?.legalName || brand).replace(/\.$/, '')}. Tüm hakları saklıdır.</p>
   </footer>
 );
+
+// ─── Kurulum adımları: kendiliğinden sırayla ilerler ──────────────────────────
+const STEPS = [
+  { title: 'Hesabınızı açın', points: ['Firma adınızı ve portal adresinizi seçin.', 'Kredi kartı gerekmez; deneme hemen başlar.'] },
+  { title: 'Ürünlerinizi yükleyin', points: ['Excel ile toplu yükleme ya da ERP\'den API ile.', 'Kategori, varyant, döviz ve stok bilgileriyle.'] },
+  { title: 'Bayilerinizi ekleyin', points: ['Bayi gruplarını ve iskontoları tanımlayın.', 'Bayiler başvurur ya da siz davet edersiniz.'] },
+  { title: 'Sipariş almaya başlayın', points: ['Bayileriniz 7/24 sipariş verir.', 'Onay, sevkiyat ve tahsilatı tek yerden yönetin.'] },
+];
+const STEP_MS = 5000;
+
+// Adımlar 5 sn'de bir kendiliğinden değişir (ilerleme çubuğu dolunca). Fareyle üstüne gelince
+// ya da bölüm ekranda değilken durur; tıklanan adımdan devam eder. Hareket azaltma tercihi açıksa elle seçilir.
+export const SetupSteps = () => {
+  const [step, setStep] = useState(0);
+  const [hover, setHover] = useState(false);
+  const [inView, setInView] = useState(() => !('IntersectionObserver' in window));
+  const ref = useRef(null);
+  useEffect(() => {
+    const el = ref.current;
+    if (!el || !('IntersectionObserver' in window)) return undefined;
+    const io = new IntersectionObserver(([e]) => setInView(e.isIntersecting), { threshold: 0.35 });
+    io.observe(el);
+    return () => io.disconnect();
+  }, []);
+  const running = inView && !hover;
+  const next = () => setStep((s) => (s + 1) % STEPS.length);
+
+  return (
+    <section id="adimlar" className="scroll-mt-24 px-3 md:px-6 pt-24 md:pt-32">
+      <div className="max-w-[90rem] mx-auto rounded-[2.5rem] bg-white py-20 md:py-24 px-5">
+        <div className="text-center max-w-3xl mx-auto">
+          <Chip>Kolay kurulum</Chip>
+          <Heading className="mt-5">Teknik bilgi gerekmeden <br className="hidden md:block" />4 adımda yayında</Heading>
+        </div>
+        <div ref={ref} onMouseEnter={() => setHover(true)} onMouseLeave={() => setHover(false)}
+          className="max-w-6xl mx-auto mt-12 rounded-[2rem] border border-slate-200/80 p-2 grid lg:grid-cols-2 gap-2">
+          <div className="relative overflow-hidden rounded-[1.6rem] bg-[#f3f4f7] min-h-[26rem] flex items-center justify-center p-6 md:p-10">
+            <div aria-hidden="true" className="absolute inset-0 opacity-60 [background-image:radial-gradient(#cbd5e1_1px,transparent_1px)] [background-size:22px_22px] [mask-image:radial-gradient(ellipse_at_center,black,transparent_75%)]" />
+            <div aria-hidden="true" className="absolute h-72 w-72 rounded-full bg-indigo-300/30 blur-3xl transition-transform duration-1000" style={{ transform: `translate(${[-30, 30, -20, 25][step]}%, ${[-20, 15, 25, -10][step]}%)` }} />
+            <span className="absolute top-5 left-5 inline-flex items-center gap-2 rounded-full bg-white/90 px-3 py-1 text-[11px] font-bold text-slate-600 ring-1 ring-slate-200">
+              Adım {step + 1} / {STEPS.length}
+              <span className="flex gap-1">{STEPS.map((s, i) => <span key={s.title} className={`h-1.5 rounded-full transition-all duration-500 ${i === step ? 'w-4 bg-indigo-600' : i < step ? 'w-1.5 bg-indigo-300' : 'w-1.5 bg-slate-300'}`} />)}</span>
+            </span>
+            <div key={step} className="relative w-full flex justify-center animate-in fade-in zoom-in-95 slide-in-from-bottom-4 duration-700"><StepMock step={step} /></div>
+          </div>
+          <div className="p-3 md:p-6 flex flex-col justify-center gap-2">
+            {STEPS.map((s, i) => {
+              const active = step === i;
+              return (
+                <button key={s.title} onClick={() => setStep(i)}
+                  className={`relative overflow-hidden text-left rounded-2xl px-5 py-4 transition-all duration-500 ${active ? 'bg-white border border-slate-200 shadow-[0_10px_30px_-15px_rgba(15,23,42,0.25)]' : 'border border-transparent hover:bg-slate-50'}`}>
+                  <p className={`flex items-center gap-3 text-[17px] font-semibold tracking-tight transition-colors ${active ? 'text-slate-950' : i < step ? 'text-slate-700' : 'text-slate-500'}`}>
+                    <span className={`h-7 w-7 rounded-lg text-xs font-black flex items-center justify-center transition-all duration-500 ${active ? 'bg-indigo-600 text-white scale-110' : i < step ? 'bg-indigo-100 text-indigo-600' : 'bg-slate-100 text-slate-500'}`}>
+                      {i < step ? <Check className="h-3.5 w-3.5" /> : i + 1}
+                    </span>
+                    {s.title}
+                  </p>
+                  <div className={`grid transition-[grid-template-rows,opacity] duration-500 ${active ? 'grid-rows-[1fr] opacity-100' : 'grid-rows-[0fr] opacity-0'}`}>
+                    <ul className="overflow-hidden ml-10 space-y-1 text-slate-600 list-disc">{s.points.map((p, j) => <li key={p} className={j === 0 ? 'mt-3' : ''}>{p}</li>)}</ul>
+                  </div>
+                  {active && (
+                    <span className="absolute left-0 bottom-0 h-[3px] w-full bg-slate-100">
+                      <span key={step} onAnimationEnd={next} className="step-progress block h-full bg-indigo-600"
+                        style={{ '--step-ms': `${STEP_MS}ms`, animationPlayState: running ? 'running' : 'paused' }} />
+                    </span>
+                  )}
+                </button>
+              );
+            })}
+          </div>
+        </div>
+      </div>
+    </section>
+  );
+};
