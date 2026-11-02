@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react';
-import { Settings, Percent, Coins, Users, Bell, Save, UserPlus, RefreshCw, Building2, ImagePlus, FileSignature } from 'lucide-react';
+import { Settings, Percent, Coins, Users, Bell, Save, UserPlus, RefreshCw, Building2, ImagePlus, FileSignature, Store } from 'lucide-react';
 import api, { errorMessage } from '../../services/api';
 import useAlert from '../../hooks/useAlert';
 import { useTenant } from '../../context/TenantContext';
@@ -112,6 +112,64 @@ const FIELDS = [
   ] },
 ];
 
+const Switch = ({ on, onChange, label }) => (
+  <button type="button" role="switch" aria-checked={on} aria-label={label} onClick={() => onChange(!on)}
+    className={`relative inline-flex h-6 w-11 shrink-0 rounded-full transition-colors ${on ? 'bg-indigo-600' : 'bg-gray-200'}`}>
+    <span className={`absolute top-0.5 h-5 w-5 rounded-full bg-white shadow transition-transform ${on ? 'translate-x-5' : 'translate-x-0.5'}`} />
+  </button>
+);
+
+// Sipariş ve teslimat: stokta olmayan ürüne teklif talebi, Gel-Al
+const OrderOptionsCard = ({ draft, setDraft }) => {
+  const on = (k) => draft[k] === 'true';
+  const toggle = (k) => (v) => setDraft({ ...draft, [k]: v ? 'true' : 'false' });
+  const set = (k) => (e) => setDraft({ ...draft, [k]: e.target.value });
+  return (
+    <div className="card-premium p-6 space-y-5">
+      <h3 className="font-black text-gray-900 flex items-center"><Store className="h-5 w-5 mr-2 text-indigo-500" /> Sipariş ve Teslimat</h3>
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+        <div className="rounded-2xl ring-1 ring-gray-100 p-5 space-y-2">
+          <div className="flex items-start justify-between gap-4">
+            <div>
+              <p className="font-black text-sm text-gray-900">Stokta olmayan ürünler için teklif talebi al</p>
+              <p className="text-xs text-gray-500 mt-1">Açıkken bayi, stokta olmayan üründe miktar belirterek teklif ister; talep Teklifler ekranına "stokta yok" uyarısıyla düşer. Sipariş oluşmaz, stok düşmez.</p>
+            </div>
+            <Switch on={on('quote_out_of_stock')} onChange={toggle('quote_out_of_stock')} label="Stokta olmayan ürünler için teklif talebi" />
+          </div>
+          <p className="text-[11px] text-gray-400">Kapalıyken mevcut kural geçerli: stokta olmayan ürüne yalnızca "Gelince haber ver" denebilir.</p>
+        </div>
+
+        <div className="rounded-2xl ring-1 ring-gray-100 p-5 space-y-4">
+          <div className="flex items-start justify-between gap-4">
+            <div>
+              <p className="font-black text-sm text-gray-900">Gel-Al teslimat</p>
+              <p className="text-xs text-gray-500 mt-1">Bayi siparişte "Gel-Al" seçip teslim alacağı tarih ve saati belirtir. Kargo ücreti uygulanmaz; stok ve ödeme kuralları aynıdır.</p>
+            </div>
+            <Switch on={on('pickup_enabled')} onChange={toggle('pickup_enabled')} label="Gel-Al teslimat" />
+          </div>
+          {on('pickup_enabled') && (
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+              <div className="sm:col-span-2">
+                <label className="premium-label">Teslim alma adresi</label>
+                <input className="premium-input" placeholder="Boşsa firma adresi gösterilir" value={draft.pickup_address ?? ''} onChange={set('pickup_address')} />
+              </div>
+              <div>
+                <label className="premium-label">Teslim alma saatleri</label>
+                <input className="premium-input" placeholder="Hafta içi 09:00–18:00" value={draft.pickup_hours ?? ''} onChange={set('pickup_hours')} />
+              </div>
+              <div>
+                <label className="premium-label">En erken (saat sonra)</label>
+                <input type="number" min="0" step="1" className="premium-input" value={draft.pickup_lead_hours ?? ''} onChange={set('pickup_lead_hours')} />
+                <p className="text-[10px] font-semibold text-gray-400 mt-1 ml-1">Hazırlık süresi; bayi bundan önceki bir zamanı seçemez</p>
+              </div>
+            </div>
+          )}
+        </div>
+      </div>
+    </div>
+  );
+};
+
 const SettingsPage = () => {
   const [settings, setSettings] = useState(null);
   const [draft, setDraft] = useState({});
@@ -211,6 +269,8 @@ const SettingsPage = () => {
         </div>
         <button onClick={loadRates} className="flex items-center text-xs font-black text-indigo-600 hover:underline"><RefreshCw className="h-3.5 w-3.5 mr-1" /> Yenile</button>
       </div>
+
+      <OrderOptionsCard draft={draft} setDraft={setDraft} />
 
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
         {FIELDS.map(({ section, icon: Icon, items }) => (

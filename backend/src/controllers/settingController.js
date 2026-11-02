@@ -1,5 +1,5 @@
 import prisma, { currentTenantId } from '../utils/prisma.js';
-import { getSettingsMap, SETTING_DEFAULTS } from '../services/settingsService.js';
+import { getSettingsMap, SETTING_DEFAULTS, portalSettings } from '../services/settingsService.js';
 import { getExchangeRates } from '../services/exchangeRateService.js';
 
 export const getSettings = async (req, res) => {
@@ -30,4 +30,9 @@ export const updateSetting = async (req, res) => {
 export const getRates = async (req, res) => {
   const fx = await getExchangeRates();
   res.json(fx);
+};
+
+// Bayi portalı: teklif ve Gel-Al ayarları (tüm oturumlara açık)
+export const getPortalSettings = async (req, res) => {
+  res.json(portalSettings(await getSettingsMap(), req.tenant));
 };

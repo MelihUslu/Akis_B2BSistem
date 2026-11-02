@@ -5,7 +5,7 @@ import { loadOrderableProducts, effectiveProduct, variantLabelOf, availableCredi
 import { createOrderRecord, OrderError } from './orderController.js';
 import { notifyAdmins, notifyCompany, notifyUser, safeNotify } from '../services/notificationService.js';
 import { emitEvent } from '../services/webhookService.js';
-import { getSettingsMap, num } from '../services/settingsService.js';
+import { getSettingsMap, num, flag } from '../services/settingsService.js';
 import { hasPermission } from '../services/permissions.js';
 import { tenantPortalUrl } from '../config.js';
 import { sendQuoteMail } from '../services/mailService.js';
@@ -576,18 +576,32 @@ export const createQuote = async (req, res) => {
       if (raw.isMaster && raw._count.variants > 0) return res.status(400).json({ message: `${raw.name}: Lütfen bir varyant seçin.` });
     }
 
+    // Stokta olmayan ürün: ayar açıksa teklif alınır (sipariş oluşmaz, stok düşmez), kapalıysa stok kuralı geçerli
+    const nameOf = (raw) => [raw.parent?.name || raw.name, variantLabelOf(raw)].filter(Boolean).join(' — ');
+    const outOfStock = items.filter(i => (products.get(i.productId).stock ?? 0) <= 0);
+    if (outOfStock.length) {
+      const { quote_out_of_stock } = await getSettingsMap();
+      if (!flag(quote_out_of_stock)) {
+        return res.status(400).json({ message: `${outOfStock.map(i => nameOf(products.get(i.productId))).join(', ')} stokta yok. Stokta olmayan ürünler için teklif talebi alınmıyor.` });
+      }
+    }
+    const outIds = new Set(outOfStock.map(i => i.productId));
+
     const quote = await createWithNumber(async (tx, number) => {
       const q = await tx.quoteRequest.create({
         data: { number, source: 'DEALER', companyId: req.user.companyId, userId: req.user.id, note: String(req.body.note || '').trim() || null }
       });
       await tx.quoteRequestItem.createMany({
-        data: items.map((i, idx) => ({ quoteRequestId: q.id, productId: i.productId, quantity: i.quantity, sortOrder: idx, variantLabel: variantLabelOf(products.get(i.productId)) }))
+        data: items.map((i, idx) => ({
+          quoteRequestId: q.id, productId: i.productId, quantity: i.quantity, sortOrder: idx, variantLabel: variantLabelOf(products.get(i.productId)),
+          ...(outIds.has(i.productId) && { warnings: ['Talep anında stokta yoktu (tedarik gerekir).'] })
+        }))
       });
       return q;
     });
 
     const company = await prisma.company.findUnique({ where: { id: req.user.companyId } });
-    safeNotify(notifyAdmins({ type: 'QUOTE', title: 'Yeni teklif talebi', message: `${company.name} ${items.length} kalem için teklif istedi (${quoteNo(quote)}).`, link: `/admin/quotes/${quote.id}` }));
+    safeNotify(notifyAdmins({ type: 'QUOTE', title: 'Yeni teklif talebi', message: `${company.name} ${items.length} kalem için teklif istedi (${quoteNo(quote)})${outIds.size ? `; ${outIds.size} kalem stokta yok` : ''}.`, link: `/admin/quotes/${quote.id}` }));
     emitEvent(req.tenant.id, 'quote.created', { id: quote.id, number: quote.number, companyId: req.user.companyId, items: items.length });
     res.locals.auditEntityId = quote.id;
     res.status(201).json({ message: 'Teklif talebiniz alındı. Fiyatlandırıldığında size bildirim göndereceğiz.', quote: { id: quote.id, code: quoteNo(quote) } });

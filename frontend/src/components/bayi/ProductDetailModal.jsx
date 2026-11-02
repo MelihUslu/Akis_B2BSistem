@@ -4,6 +4,7 @@ import {
 } from 'lucide-react';
 import { formatTRY, normalizeQty } from '../../utils/format';
 import { t } from '../../i18n';
+import usePortalSettings from '../../hooks/usePortalSettings';
 
 const parseImages = (images) => {
   try { return JSON.parse(images || '[]'); } catch { return []; }
@@ -29,6 +30,7 @@ const initialSelection = (product) => {
  * gösterilir; seçim tamamlanınca o kombinasyonun fiyatı, stoğu ve SKU'su gelir.
  */
 const ProductDetailModal = ({ product, rules, onClose, onAddToCart, onRequestQuote, onToggleFavorite, onToggleStockAlert, onOpenProduct }) => {
+  const { quoteOutOfStock } = usePortalSettings();
   const options = product.options || [];
   const variants = product.variants || [];
   const hasVariants = product.requiresVariant && variants.length > 0;
@@ -81,8 +83,10 @@ const ProductDetailModal = ({ product, rules, onClose, onAddToCart, onRequestQuo
 
   const quoteItem = () => ({
     productId: active.id, name: product.name, sku: active.sku, variantLabel: resolved?.variantLabel,
-    quantity: normalizeQty(quantity, active), unit: active.unit
+    quantity: normalizeQty(quantity, active), unit: active.unit, outOfStock: Boolean(resolved && !resolved.inStock)
   });
+  // Stokta olmayan ürüne teklif yalnızca ayar açıksa (aksi halde mevcut stok kuralı: yalnızca "gelince haber ver")
+  const soldOut = Boolean(resolved && !resolved.inStock);
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-0 md:p-6">
@@ -259,10 +263,20 @@ const ProductDetailModal = ({ product, rules, onClose, onAddToCart, onRequestQuo
                 </button>
               )}
             </div>
-            <button disabled={hasVariants && !resolved} onClick={() => onRequestQuote([quoteItem()])}
-              className={`w-full py-3 rounded-2xl text-xs font-black uppercase tracking-widest flex items-center justify-center disabled:opacity-40 ${active.priceHidden ? 'bg-indigo-600 text-white hover:bg-indigo-700' : 'bg-white border border-gray-200 text-gray-600 hover:border-indigo-300 hover:text-indigo-600'}`}>
-              <FileSignature className="h-4 w-4 mr-2" /> {active.priceHidden ? t('Fiyat Teklifi İste') : t('Toplu Alım İçin Teklif İste')}
-            </button>
+            {soldOut && quoteOutOfStock ? (
+              <div className="space-y-2">
+                <button onClick={() => onRequestQuote([quoteItem()])}
+                  className="w-full py-3 rounded-2xl text-xs font-black uppercase tracking-widest flex items-center justify-center bg-amber-500 text-white hover:bg-amber-600">
+                  <FileSignature className="h-4 w-4 mr-2" /> {t('Stokta Yok — Teklif İste')}
+                </button>
+                <p className="text-[11px] text-gray-500 text-center">{t('Miktarı belirtin; firma tedarik süresi ve fiyatla dönüş yapar. Sipariş oluşmaz.')}</p>
+              </div>
+            ) : !soldOut && (
+              <button disabled={hasVariants && !resolved} onClick={() => onRequestQuote([quoteItem()])}
+                className={`w-full py-3 rounded-2xl text-xs font-black uppercase tracking-widest flex items-center justify-center disabled:opacity-40 ${active.priceHidden ? 'bg-indigo-600 text-white hover:bg-indigo-700' : 'bg-white border border-gray-200 text-gray-600 hover:border-indigo-300 hover:text-indigo-600'}`}>
+                <FileSignature className="h-4 w-4 mr-2" /> {active.priceHidden ? t('Fiyat Teklifi İste') : t('Toplu Alım İçin Teklif İste')}
+              </button>
+            )}
           </div>
         </div>
       </div>

@@ -1,5 +1,5 @@
 import React from 'react';
-import { Clock, CheckCircle, Truck, PackageCheck, XCircle } from 'lucide-react';
+import { Clock, CheckCircle, Truck, PackageCheck, XCircle, Store } from 'lucide-react';
 import { formatDate } from '../utils/format';
 import { t } from '../i18n';
 
@@ -13,14 +13,17 @@ const OrderTimeline = ({ order, compact = false }) => {
   }
 
   const approved = order.status !== 'PENDING';
-  const shipped = ['SHIPPED', 'COMPLETED'].includes(order.status);
+  const pickup = order.deliveryMethod === 'PICKUP';
+  const shipped = ['SHIPPED', 'READY_FOR_PICKUP', 'COMPLETED'].includes(order.status);
   const delivered = order.status === 'COMPLETED';
 
   const steps = [
     { label: t('Sipariş Alındı'), done: true, date: order.createdAt, icon: Clock },
     { label: order.status === 'PARTIAL_APPROVED' ? t('Kısmen Onaylandı') : t('Onaylandı'), done: approved, date: order.approvedAt, icon: CheckCircle },
-    { label: t('Kargoya Verildi'), done: shipped, date: order.shippedAt, icon: Truck },
-    { label: t('Teslim Edildi'), done: delivered, date: delivered ? order.updatedAt : null, icon: PackageCheck },
+    pickup
+      ? { label: t('Teslim Almaya Hazır'), done: shipped, date: order.readyAt, icon: Store }
+      : { label: t('Kargoya Verildi'), done: shipped, date: order.shippedAt, icon: Truck },
+    { label: pickup ? t('Teslim Alındı') : t('Teslim Edildi'), done: delivered, date: delivered ? order.updatedAt : null, icon: PackageCheck },
   ];
 
   return (

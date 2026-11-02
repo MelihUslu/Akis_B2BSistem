@@ -12,6 +12,7 @@ import EmptyState from '../../components/shared/EmptyState';
 import { useCart } from '../../context/CartContext';
 import { useAuth } from '../../context/AuthContext';
 import useAlert from '../../hooks/useAlert';
+import usePortalSettings from '../../hooks/usePortalSettings';
 import { formatTRY, normalizeQty } from '../../utils/format';
 import { cartQtyFor, canSelect, EMPTY_CATALOG_FILTERS } from '../../utils/catalog';
 import { t } from '../../i18n';
@@ -61,6 +62,7 @@ const ProductCatalog = () => {
   const [notice, setNotice] = useState(null);
   const noticeTimer = useRef(null);
   const { alertElement, showAlert } = useAlert();
+  const portal = usePortalSettings();
   const { cart, cartTotal, addToCart, setIsCartOpen } = useCart();
 
   const queryKey = JSON.stringify([f, search]);
@@ -198,7 +200,13 @@ const ProductCatalog = () => {
     open: setDetail,
     favorite: toggleFavorite,
     stockAlert: (item) => toggleStockAlert(item),
-    inCart: (item) => cartQtyFor(item, cart)
+    inCart: (item) => cartQtyFor(item, cart),
+    // Stokta olmayan ürün için teklif talebi (Ayarlar → Sipariş ve Teslimat)
+    quoteOutOfStock: portal.quoteOutOfStock,
+    quote: (item) => {
+      const parent = parentOf.get(item.id);
+      setQuoteItems([{ productId: item.id, name: parent?.name || item.name, sku: item.sku, variantLabel: item.variantLabel, quantity: Math.max(item.moq || 1, 1), unit: item.unit, outOfStock: !item.inStock }]);
+    }
   };
 
   // Etkin filtreler: tek tıkla kaldırılabilen etiketler

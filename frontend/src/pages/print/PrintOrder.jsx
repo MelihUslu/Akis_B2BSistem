@@ -36,6 +36,7 @@ const PrintOrder = () => {
           <p className="text-[10px] font-black text-gray-500 uppercase mb-1">Ödeme / Teslimat</p>
           <p>{order.paymentMethod === 'WIRE_TRANSFER' ? 'Havale / EFT' : 'Cari hesap'}{order.dueDate && ` · Vade: ${formatDate(order.dueDate)}`}</p>
           {order.trackingNumber && <p>{carrierName(order.cargoCompany)} {order.trackingNumber}</p>}
+          {order.deliveryMethod === 'PICKUP' && <p><b>Gel-Al</b>{order.pickupAt && ` · Teslim alma: ${new Date(order.pickupAt).toLocaleString('tr-TR', { dateStyle: 'short', timeStyle: 'short' })}`}</p>}
           {order.shippingAddress && (
             <p className="text-gray-600 leading-snug mt-1">
               <b>Teslimat:</b> {order.shippingAddress.contactName} · {order.shippingAddress.phone}<br />

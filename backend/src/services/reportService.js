@@ -3,7 +3,7 @@ import prisma from '../utils/prisma.js';
 import { getExchangeRates, toTRY } from './exchangeRateService.js';
 
 // Satış sayılan sipariş durumları (bekleyen ve iptal edilenler hariç)
-const SOLD = ['APPROVED', 'PARTIAL_APPROVED', 'SHIPPED', 'COMPLETED'];
+const SOLD = ['APPROVED', 'PARTIAL_APPROVED', 'SHIPPED', 'READY_FOR_PICKUP', 'COMPLETED'];
 const DAY = 24 * 60 * 60 * 1000;
 const r2 = (n) => Math.round(Number((n * 100).toPrecision(15))) / 100;
 

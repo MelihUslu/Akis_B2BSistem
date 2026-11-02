@@ -3,7 +3,7 @@ import api, { errorMessage } from '../../services/api';
 import {
   ShoppingCart, CheckCircle, Truck, AlertCircle, PackageCheck, Search, FileSpreadsheet, Printer, ExternalLink,
   X, Clock, Hourglass, Package, CheckCheck, ChevronLeft, ChevronRight, CalendarRange, ArrowDownUp, Ban, Building2,
-  CreditCard, Landmark, Inbox, TicketPercent, Undo2, MapPin, RefreshCw, Warehouse as WarehouseIcon
+  CreditCard, Landmark, Inbox, TicketPercent, Undo2, MapPin, RefreshCw, Warehouse as WarehouseIcon, Store
 } from 'lucide-react';
 import { useSearchParams, Link } from 'react-router-dom';
 import { downloadFile } from '../../utils/download';
@@ -19,12 +19,19 @@ const TABS = [
   { id: 'APPROVED', label: 'Onaylı', dot: 'bg-emerald-500' },
   { id: 'PARTIAL_APPROVED', label: 'Kısmi', dot: 'bg-amber-500' },
   { id: 'SHIPPED', label: 'Kargoda', dot: 'bg-blue-500' },
+  { id: 'READY_FOR_PICKUP', label: 'Teslim almaya hazır', dot: 'bg-violet-500' },
   { id: 'COMPLETED', label: 'Teslim', dot: 'bg-green-600' },
   { id: 'CANCELLED', label: 'İptal', dot: 'bg-red-500' },
 ];
 
 const EDITABLE = ['PENDING', 'PARTIAL_APPROVED', 'APPROVED'];
 const SHIPPABLE = ['APPROVED', 'PARTIAL_APPROVED', 'SHIPPED'];
+// Gel-Al siparişi kargoya verilmez: onaylanınca "Teslim almaya hazır", sonra "Teslim edildi"
+const isPickup = (o) => o.deliveryMethod === 'PICKUP';
+const canShip = (o) => !isPickup(o) && SHIPPABLE.includes(o.status);
+const canReady = (o) => isPickup(o) && ['APPROVED', 'PARTIAL_APPROVED'].includes(o.status);
+const canHandOver = (o) => isPickup(o) && ['APPROVED', 'PARTIAL_APPROVED', 'READY_FOR_PICKUP'].includes(o.status);
+const pickupText = (d) => new Date(d).toLocaleString('tr-TR', { weekday: 'short', day: '2-digit', month: 'short', hour: '2-digit', minute: '2-digit' });
 const HOUR = 60 * 60 * 1000;
 
 // "5 dk önce", "3 saat önce", "2 gün önce"
@@ -208,6 +215,17 @@ const OrderApproval = () => {
     }
   };
 
+  const handleReady = async (orderId) => {
+    try {
+      const res = await api.patch(`/orders/${orderId}/ready`);
+      showAlert({ type: 'success', title: 'Teslim Almaya Hazır', message: res.data.message });
+      setSelectedOrder(null);
+      fetchOrders();
+    } catch (error) {
+      showAlert({ type: 'error', title: 'Hata', message: errorMessage(error, 'Sipariş güncellenemedi.') });
+    }
+  };
+
   const handleComplete = async (orderId) => {
     try {
       await api.patch(`/orders/${orderId}/complete`);
@@ -222,7 +240,7 @@ const OrderApproval = () => {
   // ─── Toplu işlemler ────────────────────────────────────────────────────────
   const selected = orders.filter((o) => checked.has(o.id));
   const selPending = selected.filter((o) => o.status === 'PENDING');
-  const selShipped = selected.filter((o) => o.status === 'SHIPPED');
+  const selShipped = selected.filter((o) => o.status === 'SHIPPED' || o.status === 'READY_FOR_PICKUP');
 
   const toggleCheck = (id) => setChecked((prev) => {
     const next = new Set(prev);
@@ -275,6 +293,12 @@ const OrderApproval = () => {
   const rowAction = (order) => {
     if (order.status === 'PENDING') {
       return <button onClick={(e) => { e.stopPropagation(); quickApprove(order); }} className="inline-flex items-center gap-1.5 h-8 px-3 rounded-lg bg-emerald-50 text-emerald-700 text-xs font-bold ring-1 ring-emerald-100 hover:bg-emerald-100"><CheckCircle className="h-3.5 w-3.5" /> Onayla</button>;
+    }
+    if (canReady(order)) {
+      return <button onClick={(e) => { e.stopPropagation(); handleReady(order.id); }} className="inline-flex items-center gap-1.5 h-8 px-3 rounded-lg bg-violet-50 text-violet-700 text-xs font-bold ring-1 ring-violet-100 hover:bg-violet-100"><Store className="h-3.5 w-3.5" /> Hazır</button>;
+    }
+    if (order.status === 'READY_FOR_PICKUP') {
+      return <button onClick={(e) => { e.stopPropagation(); handleComplete(order.id); }} className="inline-flex items-center gap-1.5 h-8 px-3 rounded-lg bg-blue-50 text-blue-700 text-xs font-bold ring-1 ring-blue-100 hover:bg-blue-100"><PackageCheck className="h-3.5 w-3.5" /> Teslim</button>;
     }
     if (order.status === 'APPROVED' || order.status === 'PARTIAL_APPROVED') {
       return <button onClick={(e) => { e.stopPropagation(); openOrder(order); }} className="inline-flex items-center gap-1.5 h-8 px-3 rounded-lg bg-orange-50 text-orange-700 text-xs font-bold ring-1 ring-orange-100 hover:bg-orange-100"><Truck className="h-3.5 w-3.5" /> Kargola</button>;
@@ -434,6 +458,7 @@ const OrderApproval = () => {
                     <td className="px-3 py-3 max-w-[16rem]">
                       <p className="text-sm font-semibold text-gray-800 truncate">{order.company?.name}</p>
                       {order.couponCode && <p className="text-[11px] font-bold text-pink-600 flex items-center gap-1"><TicketPercent className="h-3 w-3" /> {order.couponCode}</p>}
+                      {isPickup(order) && <p className="text-[11px] font-bold text-violet-700 flex items-center gap-1"><Store className="h-3 w-3" /> Gel-Al{order.pickupAt && ` · ${pickupText(order.pickupAt)}`}</p>}
                     </td>
                     <td className="px-3 py-3 whitespace-nowrap">
                       <p className="text-sm text-gray-700">{formatDate(order.createdAt, true)}</p>
@@ -569,8 +594,20 @@ const OrderApproval = () => {
                   {editable && <p className="text-[11px] text-gray-400 pt-1">Kalem iptal ederseniz tutar ve kupon indirimi kaydettiğinizde yeniden hesaplanır.</p>}
                 </div>
 
+                {/* Gel-Al: planlanan teslim alma zamanı */}
+                {isPickup(order) && (
+                  <div className="rounded-2xl ring-1 ring-violet-100 bg-violet-50/40 p-4 space-y-1">
+                    <h4 className="text-sm font-black text-gray-900 flex items-center gap-2"><Store className="h-4 w-4 text-violet-500" /> Gel-Al (bayi teslim alacak)</h4>
+                    <p className="text-sm text-gray-700">Planlanan teslim alma: <b>{order.pickupAt ? pickupText(order.pickupAt) : '—'}</b>
+                      {order.pickupAt && new Date(order.pickupAt) < new Date() && order.status !== 'COMPLETED' && <span className="ml-2 text-[11px] font-bold text-red-600">zamanı geçti</span>}
+                    </p>
+                    {order.readyAt && <p className="text-xs text-gray-500">Hazırlandı: {formatDate(order.readyAt, true)}</p>}
+                    <p className="text-[11px] text-gray-500">Kargo ücreti yok. {order.status === 'PENDING' ? 'Önce siparişi onaylayın.' : canReady(order) ? 'Hazırlayınca "Teslim Almaya Hazır" deyin; bayiye bildirim gider.' : order.status === 'READY_FOR_PICKUP' ? 'Bayi teslim alınca "Teslim Edildi" deyin.' : ''}</p>
+                  </div>
+                )}
+
                 {/* Teslimat adresi */}
-                <div className="rounded-2xl ring-1 ring-gray-100 p-4">
+                {!isPickup(order) && <div className="rounded-2xl ring-1 ring-gray-100 p-4">
                   <h4 className="text-sm font-black text-gray-900 flex items-center gap-2 mb-1.5"><MapPin className="h-4 w-4 text-blue-500" /> Teslimat adresi</h4>
                   {order.shippingAddress ? (
                     <div className="text-sm text-gray-700">
@@ -578,11 +615,11 @@ const OrderApproval = () => {
                       <p className="text-xs text-gray-500 mt-0.5">{formatAddress(order.shippingAddress)}</p>
                     </div>
                   ) : <p className="text-xs text-gray-400">{order.company?.address || 'Adres girilmemiş.'}</p>}
-                </div>
+                </div>}
 
                 <InvoicePanel key={order.id} orderId={order.id} orderStatus={order.status} canManage onError={(message) => showAlert({ type: 'error', title: 'Fatura', message })} />
 
-                {SHIPPABLE.includes(order.status) && (
+                {canShip(order) && (
                   <div className="rounded-2xl ring-1 ring-orange-100 bg-orange-50/40 p-4 space-y-3">
                     <h4 className="text-sm font-black text-gray-900 flex items-center gap-2"><Truck className="h-4 w-4 text-orange-500" /> Kargo</h4>
                     {stats.cargoEnabled && order.status !== 'SHIPPED' && (
@@ -621,7 +658,7 @@ const OrderApproval = () => {
                     </div>
                   </div>
                 )}
-                {order.status === 'PENDING' && <p className="text-xs text-gray-400 flex items-center gap-1.5"><Undo2 className="h-3.5 w-3.5" /> Kargoya vermek için önce siparişi onaylayın.</p>}
+                {order.status === 'PENDING' && !isPickup(order) && <p className="text-xs text-gray-400 flex items-center gap-1.5"><Undo2 className="h-3.5 w-3.5" /> Kargoya vermek için önce siparişi onaylayın.</p>}
               </div>
 
               <div className="modal-footer items-center flex-wrap">
@@ -630,7 +667,17 @@ const OrderApproval = () => {
                     <CheckCircle className="h-4 w-4 mr-2" /> {order.status === 'PENDING' ? 'KARARI KAYDET' : 'GÜNCELLE'}
                   </button>
                 )}
-                {SHIPPABLE.includes(order.status) && (
+                {canReady(order) && (
+                  <button onClick={() => handleReady(order.id)} className="h-12 px-5 rounded-2xl bg-violet-600 hover:bg-violet-700 text-white text-[10px] font-black uppercase tracking-widest flex items-center justify-center flex-1">
+                    <Store className="h-4 w-4 mr-2" /> Teslim Almaya Hazır
+                  </button>
+                )}
+                {canHandOver(order) && (
+                  <button onClick={() => handleComplete(order.id)} className="h-12 px-5 rounded-2xl bg-emerald-600 hover:bg-emerald-700 text-white text-[10px] font-black uppercase tracking-widest flex items-center justify-center flex-1">
+                    <PackageCheck className="h-4 w-4 mr-2" /> Teslim Edildi
+                  </button>
+                )}
+                {canShip(order) && (
                   <button onClick={() => handleShip(order.id)} className="h-12 px-5 rounded-2xl bg-orange-500 hover:bg-orange-600 text-white text-[10px] font-black uppercase tracking-widest flex items-center justify-center flex-1">
                     <Truck className="h-4 w-4 mr-2" /> {order.status === 'SHIPPED' ? 'Takip No Güncelle' : 'Kargoya Ver'}
                   </button>
@@ -640,7 +687,7 @@ const OrderApproval = () => {
                     <PackageCheck className="h-4 w-4 mr-2" /> Teslim Edildi
                   </button>
                 )}
-                {!editable && !SHIPPABLE.includes(order.status) && <button onClick={closeDetail} className="btn-secondary flex-1">KAPAT</button>}
+                {!editable && !canShip(order) && !canHandOver(order) && <button onClick={closeDetail} className="btn-secondary flex-1">KAPAT</button>}
               </div>
             </aside>
           </div>

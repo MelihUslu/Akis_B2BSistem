@@ -66,7 +66,7 @@ const InvoicePanel = ({ orderId, orderStatus, canManage = false, onError }) => {
 
   if (state.loading) return null;
   const inv = state.invoice;
-  const approved = ['APPROVED', 'PARTIAL_APPROVED', 'SHIPPED', 'COMPLETED'].includes(orderStatus);
+  const approved = ['APPROVED', 'PARTIAL_APPROVED', 'SHIPPED', 'READY_FOR_PICKUP', 'COMPLETED'].includes(orderStatus);
   if (!canManage && inv?.status !== 'ISSUED') return null;
 
   return (

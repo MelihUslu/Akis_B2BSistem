@@ -43,6 +43,7 @@ const QuoteRequestModal = ({ items: initialItems, onClose, onDone }) => {
               <div className="flex-1 min-w-0">
                 <p className="text-sm font-bold text-gray-900 truncate">{item.name}</p>
                 <p className="text-[11px] text-gray-500 font-semibold">{item.sku}{item.variantLabel && ` · ${item.variantLabel}`}</p>
+                {item.outOfStock && <p className="text-[10px] font-black uppercase tracking-wider text-amber-600 mt-0.5">{t('Stokta yok · tedarik için teklif')}</p>}
               </div>
               <input type="number" min="1" className="premium-input !bg-white !py-2 w-24" value={item.quantity}
                 onChange={(e) => setItems(items.map((x, idx) => (idx === i ? { ...x, quantity: Math.max(1, parseInt(e.target.value) || 1) } : x)))} />

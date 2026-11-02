@@ -823,3 +823,116 @@ test('özel alan adı: alt alan adı ya da alan adının tamamı (A + www), www 
     delete process.env.CUSTOM_DOMAIN_IP;
   }
 });
+
+test('stokta olmayan ürün için teklif talebi (ayarla) ve Gel-Al sipariş: zaman kuralı, hazır, teslim, kargo yok', { skip }, async () => {
+  const a = tenants['itest-a'];
+  const admin = { tenant: 'itest-a', token: a.token };
+  const bcrypt = (await import('bcrypt')).default;
+  const { company, outId, inId } = await runAsPlatform(async () => {
+    const c = await prisma.company.create({ data: { tenantId: a.id, name: 'Gel-Al Bayi', status: 'ACTIVE', riskLimit: 100000, taxNumber: '2222222222' } });
+    await prisma.user.create({ data: { tenantId: a.id, companyId: c.id, email: 'gelal@itest-a.test', password: await bcrypt.hash('Test12345', 4), name: 'Gel-Al', role: 'BAYI', isOwner: true, emailVerifiedAt: new Date() } });
+    const category = await prisma.category.findFirst({ where: { tenantId: a.id } });
+    const out = await prisma.product.create({ data: { tenantId: a.id, name: 'Tükenmiş Matkap', sku: 'GA-OUT', price: 100, stock: 0, categoryId: category.id } });
+    const inp = await prisma.product.create({ data: { tenantId: a.id, name: 'Stoklu Vida', sku: 'GA-IN', price: 10, stock: 50, categoryId: category.id } });
+    return { company: c, outId: out.id, inId: inp.id };
+  });
+  const login = await api('/auth/login', { tenant: 'itest-a', method: 'POST', body: { email: 'gelal@itest-a.test', password: 'Test12345' } });
+  const dealer = { tenant: 'itest-a', token: login.data.token };
+  const setSetting = (key, value) => api('/settings', { ...admin, method: 'POST', body: { key, value } });
+
+  try {
+    // Varsayılan: kapalı
+    let portal = await api('/settings/portal', dealer);
+    assert.equal(portal.status, 200);
+    assert.equal(portal.data.quoteOutOfStock, false);
+    assert.equal(portal.data.pickup.enabled, false);
+
+    // 1) Teklif: ayar kapalıyken stokta olmayan ürün reddedilir, stoklu ürün kabul edilir
+    let res = await api('/quotes', { ...dealer, method: 'POST', body: { items: [{ productId: outId, quantity: 5 }] } });
+    assert.equal(res.status, 400);
+    assert.match(res.data.message, /Tükenmiş Matkap stokta yok/);
+    assert.equal((await api('/quotes', { ...dealer, method: 'POST', body: { items: [{ productId: inId, quantity: 5 }] } })).status, 201);
+
+    // Ayar açık: talep alınır, kalem uyarılı, sipariş oluşmaz, stok değişmez
+    await setSetting('quote_out_of_stock', 'true');
+    assert.equal((await api('/settings/portal', dealer)).data.quoteOutOfStock, true);
+    const ordersBefore = await runAsPlatform(() => prisma.order.count({ where: { companyId: company.id } }));
+    res = await api('/quotes', { ...dealer, method: 'POST', body: { items: [{ productId: outId, quantity: 12 }, { productId: inId, quantity: 3 }], note: 'Acil' } });
+    assert.equal(res.status, 201, res.data?.message);
+    const quote = await runAsPlatform(() => prisma.quoteRequest.findUnique({ where: { id: res.data.quote.id }, include: { items: { orderBy: { sortOrder: 'asc' } } } }));
+    assert.equal(quote.status, 'PENDING');
+    assert.equal(quote.items[0].quantity, 12);
+    assert.match(quote.items[0].warnings[0], /stokta yoktu/);
+    assert.equal(quote.items[1].warnings, null);
+    assert.equal(await runAsPlatform(() => prisma.order.count({ where: { companyId: company.id } })), ordersBefore);
+    assert.equal((await runAsPlatform(() => prisma.product.findUnique({ where: { id: outId } }))).stock, 0);
+
+    // 2) Gel-Al: kapalıyken seçilemez
+    const soon = (h) => new Date(Date.now() + h * 3600e3).toISOString();
+    const pickupOrder = (body) => api('/orders', { ...dealer, method: 'POST', body: { items: [{ productId: inId, quantity: 4 }], paymentMethod: 'CURRENT_ACCOUNT', deliveryMethod: 'PICKUP', ...body } });
+    res = await pickupOrder({ pickupAt: soon(24) });
+    assert.equal(res.status, 400);
+    assert.match(res.data.message, /Gel-Al/);
+
+    await setSetting('pickup_enabled', 'true');
+    await setSetting('pickup_lead_hours', '3');
+    await setSetting('pickup_address', 'Merkez Depo, Organize Sanayi 5. Cadde');
+    portal = await api('/settings/portal', dealer);
+    assert.deepEqual(portal.data.pickup, { enabled: true, address: 'Merkez Depo, Organize Sanayi 5. Cadde', hours: '', leadHours: 3 });
+
+    // Zaman kuralları: boş, geçmiş / çok yakın, 60 günden uzak
+    assert.equal((await pickupOrder({})).status, 400);
+    res = await pickupOrder({ pickupAt: soon(1) });
+    assert.equal(res.status, 400);
+    assert.match(res.data.message, /en erken 3 saat/);
+    assert.equal((await pickupOrder({ pickupAt: soon(24 * 61) })).status, 400);
+
+    const at = soon(26);
+    res = await pickupOrder({ pickupAt: at });
+    assert.equal(res.status, 201, res.data?.message);
+    const id = res.data.id;
+    const order = await runAsPlatform(() => prisma.order.findUnique({ where: { id } }));
+    assert.equal(order.deliveryMethod, 'PICKUP');
+    assert.equal(order.pickupAt.toISOString(), at);
+    assert.equal(order.shippingAddress, null);
+    assert.equal(order.totalAmount, 48); // 4 × 10 + %20 KDV — kargo ücreti yok
+
+    // Onaydan önce hazır yapılamaz; onayda stok düşer (mevcut kural)
+    assert.equal((await api(`/orders/${id}/ready`, { ...admin, method: 'PATCH' })).status, 400);
+    const items = await runAsPlatform(() => prisma.orderItem.findMany({ where: { orderId: id } }));
+    res = await api(`/orders/${id}/partial-approve`, { ...admin, method: 'PATCH', body: { itemStatuses: items.map((i) => ({ itemId: i.id, status: 'APPROVED' })) } });
+    assert.equal(res.status, 200, res.data?.message);
+    assert.equal((await runAsPlatform(() => prisma.product.findUnique({ where: { id: inId } }))).stock, 46);
+
+    // Kargoya verilemez, kargo gönderisi oluşturulamaz
+    assert.equal((await api(`/orders/${id}/ship`, { ...admin, method: 'PATCH', body: { trackingNumber: '123', cargoCompany: 'ARAS' } })).status, 400);
+
+    res = await api(`/orders/${id}/ready`, { ...admin, method: 'PATCH' });
+    assert.equal(res.status, 200, res.data?.message);
+    assert.equal(res.data.order.status, 'READY_FOR_PICKUP');
+    assert.ok(res.data.order.readyAt);
+    let note = null;
+    for (let i = 0; i < 20 && !note; i++) {
+      note = await runAsPlatform(() => prisma.notification.findFirst({ where: { title: 'Siparişiniz teslim almaya hazır', user: { companyId: company.id } } }));
+      if (!note) await new Promise((r) => setTimeout(r, 100));
+    }
+    assert.ok(note, 'bayiye hazır bildirimi');
+
+    // Bayi kendi siparişinde Gel-Al bilgisini görür
+    res = await api(`/orders/${id}`, dealer);
+    assert.equal(res.data.deliveryMethod, 'PICKUP');
+    assert.equal(res.data.status, 'READY_FOR_PICKUP');
+
+    res = await api(`/orders/${id}/complete`, { ...admin, method: 'PATCH' });
+    assert.equal(res.status, 200, res.data?.message);
+    assert.equal(res.data.order.status, 'COMPLETED');
+
+    // Ayar kapatılınca yeni Gel-Al siparişi alınmaz; kargo siparişi her zamanki gibi
+    await setSetting('pickup_enabled', 'false');
+    assert.equal((await pickupOrder({ pickupAt: soon(26) })).status, 400);
+  } finally {
+    for (const key of ['quote_out_of_stock', 'pickup_enabled', 'pickup_lead_hours', 'pickup_address']) {
+      await runAsPlatform(() => prisma.setting.deleteMany({ where: { tenantId: a.id, key } }));
+    }
+  }
+});

@@ -238,7 +238,7 @@ export const agingReport = async ({ kinds = ['DEALER', 'CUSTOMER'], companyId } 
 // Cari özet kartı: son 12 ay satış / alış, son sipariş ve tahsilat, açık teklifler
 export const partnerSummary = async (company) => {
   const since = new Date(Date.now() - 365 * 86400000);
-  const SOLD = ['APPROVED', 'PARTIAL_APPROVED', 'SHIPPED', 'COMPLETED'];
+  const SOLD = ['APPROVED', 'PARTIAL_APPROVED', 'SHIPPED', 'READY_FOR_PICKUP', 'COMPLETED'];
   const [sales, lastOrder, lastIn, lastOut, openQuotes, purchases, aging] = await Promise.all([
     prisma.order.aggregate({ where: { companyId: company.id, status: { in: SOLD }, createdAt: { gte: since } }, _sum: { totalAmount: true }, _count: { _all: true } }),
     prisma.order.findFirst({ where: { companyId: company.id, status: { not: 'CANCELLED' } }, orderBy: { createdAt: 'desc' }, select: { id: true, createdAt: true, totalAmount: true } }),

@@ -2,7 +2,7 @@ import prisma from '../utils/prisma.js';
 import { round2 } from '../services/pricingService.js';
 import { hasPermission } from '../services/permissions.js';
 
-const REVENUE_STATUSES = ['APPROVED', 'PARTIAL_APPROVED', 'SHIPPED', 'COMPLETED'];
+const REVENUE_STATUSES = ['APPROVED', 'PARTIAL_APPROVED', 'SHIPPED', 'READY_FOR_PICKUP', 'COMPLETED'];
 const DAY = 24 * 60 * 60 * 1000;
 
 export const getDashboard = async (req, res) => {

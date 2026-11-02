@@ -1,5 +1,5 @@
 import express from 'express';
-import { orderStats, getOrders, getOrderById, exportOrders, partialApproveOrder, shipOrder, completeOrder, createOrder, quoteOrder } from '../controllers/orderController.js';
+import { orderStats, getOrders, getOrderById, exportOrders, partialApproveOrder, shipOrder, completeOrder, readyOrder, createOrder, quoteOrder } from '../controllers/orderController.js';
 import { verifyToken, checkRole, requirePermission } from '../middlewares/authMiddleware.js';
 import { createShipment, refreshShipment, cancelShipment } from '../controllers/cargoController.js';
 import { getOrderInvoice, issueInvoice, setInvoiceNumber, removeInvoice, invoicePdfRedirect } from '../controllers/invoicingController.js';
@@ -29,6 +29,7 @@ router.post('/', checkRole(['BAYI']), createOrder);
 // Sadece ADMIN yönetebilir
 router.patch('/:id/partial-approve', requirePermission('ORDERS'), partialApproveOrder);
 router.patch('/:id/ship', requirePermission('ORDERS'), shipOrder);
+router.patch('/:id/ready', requirePermission('ORDERS'), readyOrder);
 router.patch('/:id/complete', requirePermission('ORDERS'), completeOrder);
 
 export default router;

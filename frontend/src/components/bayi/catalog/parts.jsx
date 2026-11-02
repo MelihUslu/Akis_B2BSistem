@@ -4,7 +4,7 @@ import { canSelect } from '../../../utils/catalog';
 import { t } from '../../../i18n';
 
 // Katalog tablosu ve kartlarının ortak parçaları (stok, fiyat, miktar, işlem düğmesi…)
-// row: { qtyOf, setQty, step, isSelected, toggle, add, open, favorite, stockAlert, inCart }
+// row: { qtyOf, setQty, step, isSelected, toggle, add, open, favorite, stockAlert, inCart, quote, quoteOutOfStock }
 
 export const Stock = ({ item }) => {
   const s = item.stock;
@@ -65,6 +65,18 @@ export const Qty = ({ item, row, wide }) => (
 export const Action = ({ item, row }) => {
   const base = 'h-9 w-full px-3 rounded-lg text-xs font-black flex items-center justify-center gap-1.5 whitespace-nowrap transition-colors';
   if (!item.inStock) {
+    // Ayar açıksa stokta olmayan ürün için teklif istenir; "haber ver" yanında simge olarak kalır
+    if (row.quoteOutOfStock) {
+      return (
+        <div className="flex gap-1.5">
+          <button type="button" onClick={() => row.quote(item)} className={`${base} flex-1 min-w-0 !px-2 !gap-1 bg-amber-500 text-white hover:bg-amber-600`}><FileText className="h-4 w-4" /> {t('Teklif iste')}</button>
+          <button type="button" onClick={() => row.stockAlert(item)} title={item.hasStockAlert ? t('Takibi bırak') : t('Gelince haber ver')} aria-label={item.hasStockAlert ? t('Takibi bırak') : t('Gelince haber ver')}
+            className={`h-9 w-9 shrink-0 rounded-lg flex items-center justify-center ${item.hasStockAlert ? 'bg-emerald-50 text-emerald-700 dark:text-emerald-400' : 'border border-gray-200 text-gray-500 hover:text-indigo-600'}`}>
+            {item.hasStockAlert ? <BellOff className="h-4 w-4" /> : <BellRing className="h-4 w-4" />}
+          </button>
+        </div>
+      );
+    }
     return item.hasStockAlert
       ? <button type="button" onClick={() => row.stockAlert(item)} className={`${base} bg-emerald-50 text-emerald-700 dark:text-emerald-400`}><BellOff className="h-4 w-4" /> {t('Takipte')}</button>
       : <button type="button" onClick={() => row.stockAlert(item)} className={`${base} border border-gray-200 text-gray-600 hover:border-indigo-300 hover:text-indigo-600`}><BellRing className="h-4 w-4" /> {t('Haber ver')}</button>;

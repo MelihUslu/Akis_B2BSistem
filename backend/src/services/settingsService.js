@@ -14,6 +14,11 @@ export const SETTING_DEFAULTS = {
   quote_valid_days: '15',       // Yeni teklifin varsayılan geçerlilik süresi (gün)
   quote_payment_terms: '',      // Yeni teklife önerilen ödeme / teslimat koşulları
   quote_delivery_terms: '',
+  quote_out_of_stock: 'false', // Stokta olmayan ürün için bayi teklif talebi açabilir
+  pickup_enabled: 'false',      // Gel-Al teslimat seçeneği
+  pickup_address: '',           // Teslim alma adresi (boşsa firma adresi)
+  pickup_hours: '',             // Teslim alma saatleri (bayiye bilgi, örn. "Hafta içi 09:00–18:00")
+  pickup_lead_hours: '2',       // Teslim alma zamanı en erken kaç saat sonrası seçilebilir
   usd_try: '',                  // TCMB'ye ulaşılamazsa kullanılacak manuel kurlar
   eur_try: ''
 };
@@ -29,3 +34,16 @@ export const num = (value, fallback = 0) => {
   const n = parseFloat(value);
   return Number.isFinite(n) ? n : fallback;
 };
+
+export const flag = (value) => String(value) === 'true';
+
+// Bayi portalının bilmesi gereken sipariş / teslimat ayarları
+export const portalSettings = (map, tenant) => ({
+  quoteOutOfStock: flag(map.quote_out_of_stock),
+  pickup: {
+    enabled: flag(map.pickup_enabled),
+    address: map.pickup_address || tenant?.address || '',
+    hours: map.pickup_hours || '',
+    leadHours: Math.max(0, num(map.pickup_lead_hours, 2))
+  }
+});

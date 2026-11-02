@@ -100,7 +100,7 @@ export const runDueDateReminders = async () => {
   const orders = await prisma.order.findMany({
     where: {
       dueDate: { not: null, lte: horizon },
-      status: { in: ['APPROVED', 'PARTIAL_APPROVED', 'SHIPPED', 'COMPLETED'] },
+      status: { in: ['APPROVED', 'PARTIAL_APPROVED', 'SHIPPED', 'READY_FOR_PICKUP', 'COMPLETED'] },
       company: { currentBalance: { lt: 0 } }
     },
     select: { id: true, companyId: true, dueDate: true, totalAmount: true }

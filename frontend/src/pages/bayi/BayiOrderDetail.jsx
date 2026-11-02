@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react';
 import { Link, useParams } from 'react-router-dom';
-import { ArrowLeft, Truck, RotateCcw, RotateCw, Package, Camera, X, Loader2, Printer, ExternalLink, MapPin } from 'lucide-react';
+import { ArrowLeft, Truck, RotateCcw, RotateCw, Package, Camera, X, Loader2, Printer, ExternalLink, MapPin, Store, Clock } from 'lucide-react';
 import { trackingUrl, carrierName } from '../../utils/cargo';
 import api, { errorMessage } from '../../services/api';
 import OrderTimeline from '../../components/OrderTimeline';
@@ -10,6 +10,24 @@ import InvoicePanel from '../../components/shared/InvoicePanel';
 import { formatAddress } from '../../utils/turkey';
 import { formatTRY, formatDate, firstImage, ORDER_STATUS, RETURN_STATUS } from '../../utils/format';
 import { t } from '../../i18n';
+import usePortalSettings from '../../hooks/usePortalSettings';
+
+// Gel-Al siparişi: planlanan teslim alma zamanı ve adresi
+const PickupCard = ({ order }) => {
+  const { pickup } = usePortalSettings();
+  const ready = order.status === 'READY_FOR_PICKUP';
+  return (
+    <div className={`card-premium p-5 flex items-start gap-3 ${ready ? 'ring-2 ring-violet-200' : ''}`}>
+      <Store className="h-5 w-5 text-violet-500 shrink-0 mt-0.5" />
+      <div className="text-sm space-y-0.5">
+        <p className="font-black text-gray-900">{t('Gel-Al')} {ready && <span className="ml-1 px-2 py-0.5 rounded-full bg-violet-100 text-violet-700 text-[11px]">{t('Siparişiniz hazır, teslim alabilirsiniz')}</span>}</p>
+        {order.pickupAt && <p className="text-gray-700 flex items-center"><Clock className="h-3.5 w-3.5 mr-1.5 text-gray-400" /> {t('Teslim alma:')} <b className="ml-1">{new Date(order.pickupAt).toLocaleString('tr-TR', { weekday: 'long', day: '2-digit', month: 'long', hour: '2-digit', minute: '2-digit' })}</b></p>}
+        {pickup.address && <p className="text-gray-600 flex items-start"><MapPin className="h-3.5 w-3.5 mr-1.5 mt-0.5 text-gray-400 shrink-0" /> {pickup.address}</p>}
+        {pickup.hours && <p className="text-xs text-gray-400">{pickup.hours}</p>}
+      </div>
+    </div>
+  );
+};
 
 const RETURNABLE = ['SHIPPED', 'COMPLETED'];
 
@@ -190,6 +208,8 @@ const BayiOrderDetail = () => {
           )}
         </div>
       </div>
+
+      {order.deliveryMethod === 'PICKUP' && <PickupCard order={order} />}
 
       {order.shippingAddress && (
         <div className="card-premium p-5 flex items-start gap-3">

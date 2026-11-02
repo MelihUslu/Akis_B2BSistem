@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react';
 import { useCart } from '../../context/CartContext';
-import { Truck, CreditCard, Landmark, ArrowRight, ShieldCheck, AlertTriangle, Tag, TicketPercent, X } from 'lucide-react';
+import { Truck, CreditCard, Landmark, ArrowRight, ShieldCheck, AlertTriangle, Tag, TicketPercent, X, Store, MapPin, Clock } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import api, { errorMessage } from '../../services/api';
 import useAlert from '../../hooks/useAlert';
@@ -8,11 +8,22 @@ import AddressBook from '../../components/shared/AddressBook';
 import { formatTRY } from '../../utils/format';
 import { t } from '../../i18n';
 import PageHeader from '../../components/shared/PageHeader';
+import usePortalSettings from '../../hooks/usePortalSettings';
+
+// datetime-local alanı için yerel saatle 'YYYY-MM-DDTHH:mm'
+const localInput = (d) => new Date(d.getTime() - d.getTimezoneOffset() * 60000).toISOString().slice(0, 16);
 
 const CheckoutPage = () => {
   const { cart, clearCart } = useCart();
   const [paymentMethod, setPaymentMethod] = useState('CURRENT_ACCOUNT');
   const [addressId, setAddressId] = useState(null);
+  const { pickup } = usePortalSettings();
+  const [delivery, setDelivery] = useState('SHIPPING');
+  const [pickupAt, setPickupAt] = useState('');
+  const isPickup = pickup.enabled && delivery === 'PICKUP';
+  const [openedAt] = useState(() => Date.now()); // sayfanın açıldığı an (seçilebilir zaman aralığı için)
+  const minPickup = localInput(new Date(openedAt + pickup.leadHours * 3600e3));
+  const maxPickup = localInput(new Date(openedAt + 60 * 864e5));
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [lastQuote, setQuote] = useState(null);
   const quote = cart.length ? lastQuote : null; // boş sepette özet gösterilmez
@@ -43,7 +54,7 @@ const CheckoutPage = () => {
   }, [cart, couponCode]); // eslint-disable-line react-hooks/exhaustive-deps
 
   const creditShort = paymentMethod === 'CURRENT_ACCOUNT' && quote && quote.total > quote.credit.available;
-  const blocked = !quote || quote.errors.length > 0 || creditShort;
+  const blocked = !quote || quote.errors.length > 0 || creditShort || (isPickup && !pickupAt);
 
   const handlePlaceOrder = async () => {
     if (!cart || cart.length === 0) {
@@ -57,7 +68,10 @@ const CheckoutPage = () => {
 
     setIsSubmitting(true);
     try {
-      const res = await api.post('/orders', { items: payloadItems, paymentMethod, couponCode: quote?.coupon?.code, addressId });
+      const res = await api.post('/orders', {
+        items: payloadItems, paymentMethod, couponCode: quote?.coupon?.code,
+        ...(isPickup ? { deliveryMethod: 'PICKUP', pickupAt: new Date(pickupAt).toISOString() } : { addressId })
+      });
       clearCart();
 
       showAlert({
@@ -135,12 +149,52 @@ const CheckoutPage = () => {
               ))}
             </div>
 
-            <div className="bg-gray-50 p-4 md:p-8 rounded-[2rem] border border-gray-100 space-y-4">
-              <h4 className="text-[10px] font-black text-gray-400 uppercase tracking-widest flex items-center">
-                <Truck className="mr-2 h-4 w-4" /> {t('Teslimat Adresi')}
-              </h4>
-              <AddressBook selectable compact value={addressId} onSelect={setAddressId} showAlert={showAlert} />
-            </div>
+            {pickup.enabled && (
+              <div className="space-y-4">
+                <h3 className="text-lg font-black text-gray-900 tracking-tight flex items-center">
+                  <Truck className="mr-3 h-5 w-5 text-blue-600" /> {t('Teslimat Şekli')}
+                </h3>
+                <div className="grid grid-cols-2 gap-3">
+                  {[
+                    { id: 'SHIPPING', name: t('Adrese Teslim'), desc: t('Kargo / sevkiyat ile'), icon: Truck },
+                    { id: 'PICKUP', name: t('Gel-Al'), desc: t('Depodan kendim alırım'), icon: Store },
+                  ].map((m) => (
+                    <button key={m.id} type="button" onClick={() => setDelivery(m.id)}
+                      className={`text-left p-4 rounded-2xl border-2 transition-all flex items-center gap-3 ${delivery === m.id ? 'border-blue-600 bg-blue-50/50' : 'border-gray-100 bg-white hover:border-gray-200'}`}>
+                      <div className={`p-2.5 rounded-xl shrink-0 ${delivery === m.id ? 'bg-blue-600 text-white' : 'bg-gray-100 text-gray-400'}`}><m.icon className="h-5 w-5" /></div>
+                      <div className="min-w-0">
+                        <h4 className="font-black text-gray-900 text-sm">{m.name}</h4>
+                        <p className="text-[11px] text-gray-400 font-bold">{m.desc}</p>
+                      </div>
+                    </button>
+                  ))}
+                </div>
+              </div>
+            )}
+
+            {isPickup ? (
+              <div className="bg-gray-50 p-4 md:p-8 rounded-[2rem] border border-gray-100 space-y-4">
+                <h4 className="text-[10px] font-black text-gray-400 uppercase tracking-widest flex items-center">
+                  <Store className="mr-2 h-4 w-4" /> {t('Gel-Al Bilgileri')}
+                </h4>
+                {pickup.address && <p className="text-sm font-bold text-gray-800 flex items-start"><MapPin className="h-4 w-4 mr-2 mt-0.5 text-blue-600 shrink-0" /> {pickup.address}</p>}
+                {pickup.hours && <p className="text-sm font-semibold text-gray-600 flex items-start"><Clock className="h-4 w-4 mr-2 mt-0.5 text-blue-600 shrink-0" /> {pickup.hours}</p>}
+                <div>
+                  <label className="premium-label">{t('Teslim alacağınız tarih ve saat')}</label>
+                  <input type="datetime-local" className="premium-input !bg-white" value={pickupAt} min={minPickup} max={maxPickup} onChange={(e) => setPickupAt(e.target.value)} />
+                  <p className="text-[11px] font-semibold text-gray-400 mt-1 ml-1">
+                    {pickup.leadHours > 0 ? t('En erken {n} saat sonrası seçilebilir. Sipariş hazır olunca bildirim alırsınız.', { n: pickup.leadHours }) : t('Sipariş hazır olunca bildirim alırsınız.')}
+                  </p>
+                </div>
+              </div>
+            ) : (
+              <div className="bg-gray-50 p-4 md:p-8 rounded-[2rem] border border-gray-100 space-y-4">
+                <h4 className="text-[10px] font-black text-gray-400 uppercase tracking-widest flex items-center">
+                  <Truck className="mr-2 h-4 w-4" /> {t('Teslimat Adresi')}
+                </h4>
+                <AddressBook selectable compact value={addressId} onSelect={setAddressId} showAlert={showAlert} />
+              </div>
+            )}
           </div>
 
           {/* Final Summary */}
@@ -193,6 +247,12 @@ const CheckoutPage = () => {
                     {couponError && <p className="text-[11px] font-bold text-red-500 normal-case tracking-normal">{couponError}</p>}
                   </form>
                 )}
+                {isPickup && (
+                  <div className="flex justify-between items-center text-sm font-bold text-gray-500 uppercase tracking-widest">
+                    <span className="flex items-center"><Store className="h-4 w-4 mr-1.5" /> {t('Gel-Al')}</span>
+                    <span className="text-emerald-600">{t('Kargo ücreti yok')}</span>
+                  </div>
+                )}
                 <div className="flex justify-between items-center text-sm font-bold text-gray-500 uppercase tracking-widest">
                   <span>{t('KDV')}</span>
                   <span className="text-gray-900">{formatTRY(quote?.vatAmount)}</span>
@@ -208,6 +268,10 @@ const CheckoutPage = () => {
                   </div>
                 </div>
               </div>
+
+              {isPickup && !pickupAt && quote && (
+                <p className="mt-6 text-xs font-bold text-amber-700 flex items-center"><Clock className="h-4 w-4 mr-2" /> {t('Gel-Al için teslim alma tarih ve saatini seçin.')}</p>
+              )}
 
               {(quoteError || quote?.errors.length > 0 || creditShort) && (
                 <div className="mt-8 bg-amber-50 border border-amber-100 rounded-2xl p-5 space-y-2">

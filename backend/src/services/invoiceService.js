@@ -63,7 +63,7 @@ export const issueOrderInvoice = async (tenant, orderId) => {
 
   const order = await loadOrder(orderId);
   if (!order) throw new Error('Sipariş bulunamadı.');
-  if (!['APPROVED', 'PARTIAL_APPROVED', 'SHIPPED', 'COMPLETED'].includes(order.status)) throw new Error('Yalnızca onaylanmış siparişin faturası kesilebilir.');
+  if (!['APPROVED', 'PARTIAL_APPROVED', 'SHIPPED', 'READY_FOR_PICKUP', 'COMPLETED'].includes(order.status)) throw new Error('Yalnızca onaylanmış siparişin faturası kesilebilir.');
   const data = orderInvoiceData(order);
   if (!data.lines.length) throw new Error('Faturalanacak kalem yok.');
 

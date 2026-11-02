@@ -7,7 +7,7 @@ import { notifyRestocked, safeNotify } from '../services/notificationService.js'
 import { assertWithinLimit, LimitError } from '../services/limitService.js';
 import { WEBHOOK_EVENTS, validateWebhookUrl, sendTestEvent, redeliver, MAX_ATTEMPTS } from '../services/webhookService.js';
 import { variantLabelOf, VARIANT_VALUES_INCLUDE, round2 } from '../services/pricingService.js';
-import { markShipped, markDelivered } from '../services/orderShippingService.js';
+import { markShipped, markDelivered, markReadyForPickup } from '../services/orderShippingService.js';
 import { emitEvent } from '../services/webhookService.js';
 
 const MAX_BATCH = 1000;
@@ -302,6 +302,8 @@ const orderOut = (o) => ({
   couponCode: o.couponCode, dueDate: o.dueDate, cargoCompany: o.cargoCompany, trackingNumber: o.trackingNumber,
   company: { id: o.company.id, externalCode: o.company.externalCode, name: o.company.name, taxNumber: o.company.taxNumber, taxOffice: o.company.taxOffice },
   shippingAddress: o.shippingAddress || null,
+  deliveryMethod: o.deliveryMethod || 'SHIPPING',
+  pickupAt: o.pickupAt || null,
   warehouse: o.warehouse ? { code: o.warehouse.code, name: o.warehouse.name } : null,
   invoice: o.invoice ? { status: o.invoice.status, number: o.invoice.number, documentType: o.invoice.documentType, issuedAt: o.invoice.issuedAt } : null,
   items: o.items.map(i => ({
@@ -349,6 +351,16 @@ export const apiUpdateOrderStatus = async (req, res) => {
   const order = await prisma.order.findUnique({ where: { id } });
   if (!order) return res.status(404).json({ error: 'Sipariş bulunamadı.' });
   const status = req.body.status;
+  // Gel-Al siparişi: READY_FOR_PICKUP (teslim almaya hazır) ya da COMPLETED (teslim edildi); kargoya verilmez
+  if (order.deliveryMethod === 'PICKUP') {
+    if (!['READY_FOR_PICKUP', 'COMPLETED'].includes(status)) return res.status(400).json({ error: 'Gel-Al siparişinde status READY_FOR_PICKUP veya COMPLETED olmalıdır.' });
+    if (!['APPROVED', 'PARTIAL_APPROVED', 'READY_FOR_PICKUP'].includes(order.status) || (status === 'READY_FOR_PICKUP' && order.status === 'READY_FOR_PICKUP')) {
+      return res.status(409).json({ error: `Sipariş durumu ${order.status}; bu işlem yapılamaz.` });
+    }
+    if (dryRun(req)) return res.json(out(req, { ok: true, status }));
+    const updated = status === 'COMPLETED' ? await markDelivered(req.tenant, order) : await markReadyForPickup(req.tenant, order);
+    return res.json({ ok: true, status: updated.status });
+  }
   if (!['SHIPPED', 'COMPLETED'].includes(status)) return res.status(400).json({ error: 'status SHIPPED veya COMPLETED olmalıdır (onay/iptal panelden yapılır).' });
   if (!['APPROVED', 'PARTIAL_APPROVED', 'SHIPPED'].includes(order.status)) return res.status(409).json({ error: `Sipariş durumu ${order.status}; bu işlem yapılamaz.` });
 

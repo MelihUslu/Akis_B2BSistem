@@ -29,6 +29,7 @@ export const ORDER_STATUS = {
   APPROVED: { label: 'Onaylandı', className: 'bg-emerald-100 text-emerald-600' },
   PARTIAL_APPROVED: { label: 'Kısmen Onaylandı', className: 'bg-amber-100 text-amber-700' },
   SHIPPED: { label: 'Kargoda', className: 'bg-blue-100 text-blue-600' },
+  READY_FOR_PICKUP: { label: 'Teslim Almaya Hazır', className: 'bg-violet-100 text-violet-700' },
   COMPLETED: { label: 'Teslim Edildi', className: 'bg-green-100 text-green-700' },
   CANCELLED: { label: 'İptal Edildi', className: 'bg-red-100 text-red-600' },
 };

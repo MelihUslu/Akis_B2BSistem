@@ -22,6 +22,7 @@ export const createShipmentForOrder = async (tenant, orderId) => {
   if (!creds) throw new Error('Kargo entegrasyonu bağlı değil (Ayarlar → Kargo).');
   const order = await prisma.order.findUnique({ where: { id: orderId }, include: { company: true } });
   if (!order) throw new Error('Sipariş bulunamadı.');
+  if (order.deliveryMethod === 'PICKUP') throw new Error('Gel-Al siparişi için kargo gönderisi oluşturulmaz.');
   if (!['APPROVED', 'PARTIAL_APPROVED'].includes(order.status)) throw new Error('Gönderi, onaylanmış ve henüz kargolanmamış siparişler için oluşturulabilir.');
   if (order.shipmentKey && order.shipmentStatus !== 'CANCELLED') throw new Error('Bu sipariş için gönderi zaten oluşturulmuş.');
   const a = order.shippingAddress;

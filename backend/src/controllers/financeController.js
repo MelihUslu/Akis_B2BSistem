@@ -74,7 +74,7 @@ const buildStatement = async (companyId) => {
       include: { user: { select: { name: true } } }
     }),
     prisma.order.findFirst({
-      where: { companyId, dueDate: { not: null }, status: { in: ['APPROVED', 'PARTIAL_APPROVED', 'SHIPPED', 'COMPLETED'] } },
+      where: { companyId, dueDate: { not: null }, status: { in: ['APPROVED', 'PARTIAL_APPROVED', 'SHIPPED', 'READY_FOR_PICKUP', 'COMPLETED'] } },
       orderBy: { dueDate: 'asc' },
       select: { id: true, dueDate: true, totalAmount: true }
     })
@@ -219,7 +219,7 @@ export const getFinanceSummary = async (req, res) => {
       prisma.company.groupBy({ by: ['currency'], where: { kind: 'SUPPLIER', currentBalance: { gt: 0 } }, _sum: { currentBalance: true }, _count: { _all: true } }),
       prisma.company.findMany({ where: debtorWhere, select: { ...companySelect, currentBalance: true, riskLimit: true, phone: true }, orderBy: { currentBalance: 'asc' }, take: 100 }),
       prisma.order.findMany({
-        where: { dueDate: { not: null, lte: horizon }, status: { in: ['APPROVED', 'PARTIAL_APPROVED', 'SHIPPED', 'COMPLETED'] }, company: debtorWhere },
+        where: { dueDate: { not: null, lte: horizon }, status: { in: ['APPROVED', 'PARTIAL_APPROVED', 'SHIPPED', 'READY_FOR_PICKUP', 'COMPLETED'] }, company: debtorWhere },
         select: { id: true, dueDate: true, totalAmount: true, company: { select: companySelect } },
         orderBy: { dueDate: 'asc' },
         take: 50

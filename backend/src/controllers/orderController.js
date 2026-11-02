@@ -1,12 +1,12 @@
 import prisma from '../utils/prisma.js';
 import { quoteCart, availableCredit, round2, computeTotals } from '../services/pricingService.js';
-import { getSettingsMap, num } from '../services/settingsService.js';
+import { getSettingsMap, num, portalSettings } from '../services/settingsService.js';
 import { notifyCompany, notifyAdmins, notifyRestocked, safeNotify } from '../services/notificationService.js';
 import { emitEvent } from '../services/webhookService.js';
 import { autoInvoice, invoiceCreds } from '../services/invoiceService.js';
 import { cargoCreds } from '../services/cargoService.js';
 import { adjustStock, availableStock, defaultWarehouse } from '../services/stockService.js';
-import { orderEvent, markShipped, markDelivered } from '../services/orderShippingService.js';
+import { orderEvent, markShipped, markDelivered, markReadyForPickup } from '../services/orderShippingService.js';
 import { resolveShippingAddress } from './addressController.js';
 import xlsx from 'xlsx';
 import { currentTenantId } from '../utils/prisma.js';
@@ -96,7 +96,7 @@ const orderWhere = (req) => {
   };
 };
 
-const STATUS_TR = { PENDING: 'Onay Bekliyor', APPROVED: 'Onaylandı', PARTIAL_APPROVED: 'Kısmen Onaylandı', SHIPPED: 'Kargoda', COMPLETED: 'Teslim Edildi', CANCELLED: 'İptal' };
+const STATUS_TR = { PENDING: 'Onay Bekliyor', APPROVED: 'Onaylandı', PARTIAL_APPROVED: 'Kısmen Onaylandı', SHIPPED: 'Kargoda', READY_FOR_PICKUP: 'Teslim Almaya Hazır', COMPLETED: 'Teslim Edildi', CANCELLED: 'İptal' };
 
 // Excel: her satır bir sipariş kalemi
 export const exportOrders = async (req, res) => {
@@ -119,6 +119,8 @@ export const exportOrders = async (req, res) => {
       'Kupon': o.couponCode || '',
       'Sipariş Toplamı (KDV dahil)': o.totalAmount,
       'Ödeme': o.paymentMethod === 'WIRE_TRANSFER' ? 'Havale/EFT' : 'Cari',
+      'Teslimat': o.deliveryMethod === 'PICKUP' ? 'Gel-Al' : 'Kargo',
+      'Teslim Alma Zamanı': o.pickupAt ? o.pickupAt.toLocaleString('tr-TR') : '',
       'Kargo': o.cargoCompany || '',
       'Takip No': o.trackingNumber || ''
     })));
@@ -176,7 +178,7 @@ export class OrderError extends Error {}
  * Siparişi kalemleriyle birlikte oluşturur; kupon varsa kullanım sayısını eşzamanlılığa dayanıklı şekilde artırır.
  * lines: [{ productId, quantity, unitPrice, vatRate, variantLabel }] · totals: computeTotals çıktısı
  */
-export const createOrderRecord = async ({ company, userId, paymentMethod, lines, totals, coupon, shippingAddress, fxRates }) => {
+export const createOrderRecord = async ({ company, userId, paymentMethod, lines, totals, coupon, shippingAddress, fxRates, pickupAt }) => {
   // Dövizli cariye borç yazılırken kullanılacak kurlar (fiyatlamada kullanılanlar; verilmezse güncel)
   const rates = fxRates || (await getExchangeRates()).rates || {};
   return prisma.$transaction(async (tx) => {
@@ -199,6 +201,7 @@ export const createOrderRecord = async ({ company, userId, paymentMethod, lines,
         paymentMethod,
         fxRates: rates,
         shippingAddress: shippingAddress || undefined,
+        ...(pickupAt && { deliveryMethod: 'PICKUP', pickupAt }),
         status: 'PENDING',
         ...(coupon && { couponCode: coupon.code, couponType: coupon.type, couponValue: coupon.value })
       }
@@ -248,8 +251,17 @@ export const createOrder = async (req, res) => {
       }
     }
 
-    const ship = await resolveShippingAddress(company, req.body.addressId);
-    if (ship.error) return res.status(400).json({ message: ship.error });
+    // Gel-Al: teslimat adresi yerine bayinin seçtiği teslim alma zamanı (kargo ücreti yok; stok ve ödeme kuralları aynı)
+    let ship = { address: null };
+    let pickupAt = null;
+    if (req.body.deliveryMethod === 'PICKUP') {
+      const check = pickupTimeError(req.body.pickupAt, portalSettings(await getSettingsMap(), req.tenant).pickup);
+      if (check.error) return res.status(400).json({ message: check.error });
+      pickupAt = check.at;
+    } else {
+      ship = await resolveShippingAddress(company, req.body.addressId);
+      if (ship.error) return res.status(400).json({ message: ship.error });
+    }
 
     const order = await createOrderRecord({
       company,
@@ -259,13 +271,14 @@ export const createOrder = async (req, res) => {
       totals: quote,
       coupon: quote.couponRecord,
       shippingAddress: ship.address,
-      fxRates: quote.rates
+      fxRates: quote.rates,
+      pickupAt
     });
 
     safeNotify(notifyAdmins({
       type: 'ORDER',
       title: 'Yeni sipariş',
-      message: `${company.name} ₺${quote.total.toLocaleString('tr-TR')} tutarında sipariş verdi (#AK-${order.id}).`,
+      message: `${company.name} ₺${quote.total.toLocaleString('tr-TR')} tutarında sipariş verdi (#AK-${order.id})${pickupAt ? `; Gel-Al, teslim alma: ${pickupAt.toLocaleString('tr-TR', { timeZone: 'Europe/Istanbul', dateStyle: 'short', timeStyle: 'short' })}` : ''}.`,
       link: '/admin/orders'
     }));
 
@@ -275,6 +288,20 @@ export const createOrder = async (req, res) => {
     console.error('Order creation error:', error);
     res.status(400).json({ message: 'Sipariş oluşturulamadı.' });
   }
+};
+
+const MAX_PICKUP_DAYS = 60;
+// Gel-Al zamanı: ayar açık olmalı, en erken "pickup_lead_hours" saat sonrası, en geç 60 gün içinde
+export const pickupTimeError = (value, pickup) => {
+  if (!pickup.enabled) return { error: 'Gel-Al teslimat şu an kullanılamıyor.' };
+  const at = new Date(value);
+  if (!value || Number.isNaN(at.getTime())) return { error: 'Gel-Al için teslim alma tarih ve saatini seçin.' };
+  const earliest = Date.now() + pickup.leadHours * 3600e3 - 5 * 60e3; // form doldurulurken geçen süre için 5 dk tolerans
+  if (at.getTime() < earliest) {
+    return { error: pickup.leadHours > 0 ? `Teslim alma zamanı en erken ${pickup.leadHours} saat sonrası olabilir.` : 'Teslim alma zamanı geçmiş bir an olamaz.' };
+  }
+  if (at.getTime() > Date.now() + MAX_PICKUP_DAYS * 864e5) return { error: `Teslim alma zamanı en geç ${MAX_PICKUP_DAYS} gün sonrası olabilir.` };
+  return { at };
 };
 
 class ApprovalError extends Error {}
@@ -433,6 +460,7 @@ export const shipOrder = async (req, res) => {
 
     const existing = await prisma.order.findUnique({ where: { id: parseInt(id) } });
     if (!existing) return res.status(404).json({ message: 'Sipariş bulunamadı.' });
+    if (existing.deliveryMethod === 'PICKUP') return res.status(400).json({ message: 'Gel-Al siparişi kargoya verilmez; "Teslim almaya hazır" olarak işaretleyin.' });
     if (!['APPROVED', 'PARTIAL_APPROVED', 'SHIPPED'].includes(existing.status)) {
       return res.status(400).json({ message: 'Sadece onaylanmış siparişler kargoya verilebilir.' });
     }
@@ -448,12 +476,32 @@ export const completeOrder = async (req, res) => {
   try {
     const existing = await prisma.order.findUnique({ where: { id: parseInt(req.params.id) } });
     if (!existing) return res.status(404).json({ message: 'Sipariş bulunamadı.' });
-    if (existing.status !== 'SHIPPED') {
+    if (existing.deliveryMethod === 'PICKUP') {
+      if (!['APPROVED', 'PARTIAL_APPROVED', 'READY_FOR_PICKUP'].includes(existing.status)) {
+        return res.status(400).json({ message: 'Sadece onaylanmış Gel-Al siparişleri teslim edildi olarak işaretlenebilir.' });
+      }
+    } else if (existing.status !== 'SHIPPED') {
       return res.status(400).json({ message: 'Sadece kargodaki siparişler teslim edildi olarak işaretlenebilir.' });
     }
 
     const order = await markDelivered(req.tenant, existing);
     res.json({ message: 'Sipariş tamamlandı.', order });
+  } catch (error) {
+    res.status(400).json({ message: 'Sipariş güncellenemedi.' });
+  }
+};
+
+// Gel-Al: sipariş hazırlandı, bayi gelip teslim alabilir
+export const readyOrder = async (req, res) => {
+  try {
+    const existing = await prisma.order.findUnique({ where: { id: parseInt(req.params.id) } });
+    if (!existing) return res.status(404).json({ message: 'Sipariş bulunamadı.' });
+    if (existing.deliveryMethod !== 'PICKUP') return res.status(400).json({ message: 'Bu sipariş Gel-Al değil.' });
+    if (!['APPROVED', 'PARTIAL_APPROVED'].includes(existing.status)) {
+      return res.status(400).json({ message: 'Sadece onaylanmış siparişler teslim almaya hazır yapılabilir.' });
+    }
+    const order = await markReadyForPickup(req.tenant, existing);
+    res.json({ message: 'Sipariş teslim almaya hazır; bayiye bildirim gönderildi.', order });
   } catch (error) {
     res.status(400).json({ message: 'Sipariş güncellenemedi.' });
   }

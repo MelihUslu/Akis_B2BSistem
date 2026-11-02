@@ -302,7 +302,10 @@ model Order {
   approvedAt     DateTime?
   shippedAt      DateTime?
   dueDate        DateTime? // Ödeme vadesi (onay tarihi + bayi vadesi)
-  status         String    @default("PENDING") // PENDING, PARTIAL_APPROVED, APPROVED, SHIPPED, COMPLETED, CANCELLED
+  status         String    @default("PENDING") // PENDING, PARTIAL_APPROVED, APPROVED, SHIPPED, READY_FOR_PICKUP (Gel-Al), COMPLETED, CANCELLED
+  deliveryMethod String    @default("SHIPPING") // SHIPPING (kargo / teslimat adresi), PICKUP (Gel-Al: bayi depodan teslim alır)
+  pickupAt       DateTime? // Gel-Al: bayinin seçtiği teslim alma zamanı
+  readyAt        DateTime? // Gel-Al: "Teslim almaya hazır" yapıldığı an
   trackingNumber String? // Kargo Takip No
   cargoCompany   String? // YURTICI, ARAS, MNG, PTT, UPS, SURAT, DHL, DIGER
   exportedAt     DateTime? // ERP'ye aktarıldığı an (Entegrasyon API)

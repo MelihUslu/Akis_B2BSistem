@@ -28,7 +28,7 @@ const DAY = 24 * 60 * 60 * 1000;
 const TR_OFFSET = 3 * 60 * 60 * 1000; // Türkiye UTC+3 (yaz saati yok)
 const r2 = (n) => Math.round(Number((n * 100).toPrecision(15))) / 100;
 const KEY = 'periodic_report';
-const SOLD = ['APPROVED', 'PARTIAL_APPROVED', 'SHIPPED', 'COMPLETED']; // satış sayılan siparişler (satış raporuyla aynı)
+const SOLD = ['APPROVED', 'PARTIAL_APPROVED', 'SHIPPED', 'READY_FOR_PICKUP', 'COMPLETED']; // satış sayılan siparişler (satış raporuyla aynı)
 
 export const STATUS = {
   LOST: 'Kaybedildi', AT_RISK: 'Risk altında', DECLINING: 'Düşüşte', NEW: 'Yeni', ACTIVE: 'Aktif', NEVER: 'Hiç sipariş vermedi'
