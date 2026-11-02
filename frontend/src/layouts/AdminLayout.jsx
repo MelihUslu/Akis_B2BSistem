@@ -32,6 +32,7 @@ const SupportPage = lazy(() => import('../pages/admin/SupportPage'));
 const AccountPage = lazy(() => import('../pages/admin/AccountPage'));
 const ReportsPage = lazy(() => import('../pages/admin/ReportsPage'));
 const LeadManagement = lazy(() => import('../pages/admin/LeadManagement'));
+const WhatsAppPage = lazy(() => import('../pages/admin/WhatsAppPage'));
 
 // Yetkisi olmayan sayfaya doğrudan girilirse (perm: tek yetki ya da yetkilerden biri)
 const Guard = ({ perm, children }) => {
@@ -124,6 +125,7 @@ const AdminLayout = () => {
               <Route path="quotes" element={<Guard perm="QUOTES"><QuoteManagement /></Guard>} />
               <Route path="quotes/new" element={<Guard perm="QUOTES"><QuoteEditor /></Guard>} />
               <Route path="quotes/:id" element={<Guard perm="QUOTES"><QuoteEditor /></Guard>} />
+              <Route path="whatsapp" element={<Guard perm={['MESSAGES', 'SETTINGS']}><WhatsAppPage /></Guard>} />
               <Route path="leads" element={<Guard perm="LEADS"><LeadManagement /></Guard>} />
               <Route path="coupons" element={<Guard perm="CATALOG"><CouponManagement /></Guard>} />
               <Route path="reports" element={<Guard perm={['ORDERS', 'FINANCE']}><ReportsPage /></Guard>} />

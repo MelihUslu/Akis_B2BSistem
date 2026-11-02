@@ -38,6 +38,8 @@ import partnerRoutes from './routes/partnerRoutes.js';
 import statementLinkRoutes from './routes/statementLinkRoutes.js';
 import teamRoutes from './routes/teamRoutes.js';
 import customerLeadRoutes from './routes/customerLeadRoutes.js';
+import whatsappRoutes from './routes/whatsappRoutes.js';
+import { verifyWebhook, receiveWebhook } from './controllers/whatsappController.js';
 import { submitLeadForm, getPublicForm } from './controllers/customerLeadController.js';
 import { integrationAdminRoutes, integrationApiRoutes } from './routes/integrationRoutes.js';
 import { globalSearch } from './controllers/searchController.js';
@@ -66,7 +68,8 @@ app.use(cors({
   allowedHeaders: ['Content-Type', 'Authorization', 'X-Tenant', 'X-Tenant-Host', 'X-Lang']
 }));
 app.use(requestMetrics); // Platform → İzleme: uç bazında istek sayısı, süre, hata oranı
-app.use(express.json({ limit: '1mb' }));
+// WhatsApp webhook imzası ham gövde üzerinden doğrulanır
+app.use(express.json({ limit: '1mb', verify: (req, res, buf) => { if (req.originalUrl.startsWith('/api/whatsapp/webhook/')) req.rawBody = buf; } }));
 app.use(langMiddleware);
 // Yüklenen dosyalar: görseller tarayıcıda gösterilir, diğer destek ekleri (PDF, Excel…) indirilir
 // Gizli dosyalar (cari belgeleri) doğrudan sunulmaz; yetkili uç üzerinden indirilir
@@ -82,6 +85,9 @@ app.use('/uploads', express.static('uploads', {
 // Kiracıdan bağımsız uçlar
 app.use('/api/public', publicRoutes);
 app.use('/api/platform', platformRoutes);
+// WhatsApp (Meta) webhook: firma adresteki anahtardan bulunur, istek imzası doğrulanır
+app.get('/api/whatsapp/webhook/:key', verifyWebhook);
+app.post('/api/whatsapp/webhook/:key', receiveWebhook);
 // API dokümanı (herkese açık; gizli bilgi içermez)
 app.get('/api/v1/openapi.json', (req, res) => res.json(openApiSpec()));
 // ERP / entegratör API'si (API anahtarı ile, firma anahtardan belirlenir)
@@ -118,6 +124,7 @@ tenantApi.use('/addresses', addressRoutes);
 tenantApi.use('/cargo-settings', cargoRoutes);
 tenantApi.use('/warehouses', warehouseRoutes);
 tenantApi.use('/customer-leads', customerLeadRoutes);
+tenantApi.use('/whatsapp', whatsappRoutes);
 tenantApi.get('/search', verifyToken, checkRole(['ADMIN']), globalSearch);
 tenantApi.post('/dealer-applications', rateLimit({ windowMs: 60 * 60 * 1000, max: 5, message: 'Çok fazla başvuru denemesi. Lütfen daha sonra tekrar deneyin.' }), applyAsDealer);
 // Reklamdan gelen kişinin doldurduğu talep formu (oturum gerektirmez)

@@ -731,6 +731,9 @@ model Tenant {
   PartnerDocument        PartnerDocument[]
   StatementRequest       StatementRequest[]
   customerLeads          CustomerLead[]
+  whatsappChannel        WhatsappChannel?
+  waConversations        WaConversation[]
+  waMessages             WaMessage[]
 }
 
 // Kiracının platforma yaptığı abonelik ödemeleri (iyzico veya manuel)
@@ -1337,4 +1340,65 @@ model CustomerLead {
 
   @@index([tenantId, createdAt])
   @@index([tenantId, phone])
+}
+
+// Firmanın WhatsApp Business (Cloud API) bağlantısı. Gizli bilgiler şifreli saklanır (secretBox).
+model WhatsappChannel {
+  id              Int       @id @default(autoincrement())
+  tenantId        Int       @unique
+  tenant          Tenant    @relation(fields: [tenantId], references: [id])
+  phoneNumberId   String    @unique // Meta'daki telefon numarası kimliği (gelen mesaj bu kimlikle eşleşir)
+  wabaId          String    @default("")
+  displayPhone    String    @default("")
+  verifiedName    String    @default("")
+  accessTokenEnc  String
+  appSecretEnc    String // Meta'dan gelen isteklerin imzasını doğrulamak için
+  webhookKey      String    @unique // Firmaya özel webhook adresi: /api/whatsapp/webhook/<webhookKey>
+  verifyToken     String // Meta webhook doğrulama anahtarı
+  aiEnabled       Boolean   @default(true)
+  knowledge       String    @default("") // Yapay zekânın kullanacağı firma bilgileri (kargo, ödeme, saatler…)
+  handoffMessage  String    @default("")
+  lastWebhookAt   DateTime?
+  lastError       String    @default("")
+  createdAt       DateTime  @default(now())
+  updatedAt       DateTime  @updatedAt
+}
+
+// WhatsApp konuşması (müşteri numarası başına bir tane)
+model WaConversation {
+  id             Int          @id @default(autoincrement())
+  tenantId       Int
+  tenant         Tenant       @relation(fields: [tenantId], references: [id])
+  waId           String // Müşterinin WhatsApp numarası (90532…)
+  name           String       @default("") // WhatsApp profil adı
+  status         String       @default("BOT") // BOT (yapay zekâ cevaplar), HUMAN (ekip devraldı), CLOSED
+  needsHuman     Boolean      @default(false) // Ekip yanıtı bekleniyor
+  unread         Int          @default(0)
+  lastMessageAt  DateTime     @default(now())
+  lastInboundAt  DateTime? // 24 saatlik serbest mesaj penceresi buna göre
+  lastPreview    String       @default("")
+  customerLeadId Int?
+  createdAt      DateTime     @default(now())
+  messages       WaMessage[]
+
+  @@unique([tenantId, waId])
+  @@index([tenantId, lastMessageAt])
+}
+
+model WaMessage {
+  id             Int            @id @default(autoincrement())
+  tenantId       Int
+  tenant         Tenant         @relation(fields: [tenantId], references: [id])
+  conversationId Int
+  conversation   WaConversation @relation(fields: [conversationId], references: [id], onDelete: Cascade)
+  direction      String // IN, OUT
+  author         String // CUSTOMER, AI, AGENT, SYSTEM
+  body           String
+  waMessageId    String?        @unique
+  status         String         @default("") // sent, delivered, read, failed
+  error          String         @default("")
+  agentId        Int?
+  createdAt      DateTime       @default(now())
+
+  @@index([conversationId, createdAt])
 }

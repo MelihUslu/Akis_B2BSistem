@@ -5,7 +5,7 @@ import { useTenant } from '../context/TenantContext';
 import TenantBrand from './TenantBrand';
 import { can } from '../utils/permissions';
 import { 
-  LayoutDashboard, Package, ShoppingCart, CreditCard, BarChart3, Settings, LogOut, Box, UserCheck, ChevronLeft, ChevronRight, RotateCcw, Crown, FileSignature, TicketPercent, X, BookUser, Inbox
+  LayoutDashboard, Package, ShoppingCart, CreditCard, BarChart3, Settings, LogOut, Box, UserCheck, ChevronLeft, ChevronRight, RotateCcw, Crown, FileSignature, TicketPercent, X, BookUser, Inbox, MessageCircle
 } from 'lucide-react';
 
 // Menü altındaki abonelik kutusu yalnızca dikkat gereken durumlarda görünür (abonelik normalse gösterilmez)
@@ -37,6 +37,7 @@ const Sidebar = ({ mobile = false, onNavigate }) => {
     { name: 'Ürün Yönetimi', path: '/admin/products', icon: Package, perm: 'CATALOG' },
     { name: 'Bayi Yönetimi', path: '/admin/dealers', icon: UserCheck, perm: 'DEALERS' },
     { name: 'Cari Hesaplar', path: '/admin/partners', icon: BookUser, perm: ['FINANCE', 'DEALERS'] },
+    { name: 'WhatsApp', path: '/admin/whatsapp', icon: MessageCircle, perm: ['MESSAGES', 'SETTINGS'] },
     { name: 'Müşteri Adayları', path: '/admin/leads', icon: Inbox, perm: 'LEADS' },
     { name: 'Siparişler', path: '/admin/orders', icon: ShoppingCart, perm: 'ORDERS' },
     { name: 'Teklifler', path: '/admin/quotes', icon: FileSignature, perm: 'QUOTES' },

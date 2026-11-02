@@ -8,6 +8,7 @@ export const PERMISSION_LABELS = {
   DEALERS: 'Bayiler',
   FINANCE: 'Finans',
   LEADS: 'Müşteri adayları',
+  MESSAGES: 'WhatsApp',
   SETTINGS: 'Ayarlar',
 };
 

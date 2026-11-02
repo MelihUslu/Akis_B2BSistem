@@ -8,6 +8,8 @@ import assert from 'node:assert/strict';
 import { execSync } from 'child_process';
 import { startParasutMock } from './parasutMock.js';
 import { startYurticiMock } from './yurticiMock.js';
+import { startWhatsappMock } from './whatsappMock.js';
+import crypto from 'crypto';
 
 const DB = process.env.TEST_DATABASE_URL;
 const skip = !DB && 'TEST_DATABASE_URL tanımlı değil';
@@ -608,4 +610,81 @@ test('talep formu panelden özelleştirilir: alanlar, ek sorular, yanıtlar Exce
   const sheet = xlsx.read(Buffer.from(await xlsxRes.arrayBuffer()));
   const header = xlsx.utils.sheet_to_json(sheet.Sheets[sheet.SheetNames[0]], { header: 1 })[0];
   assert.ok(header.includes('Kaç koli?') && header.includes('İşletme türü'));
+});
+
+test('WhatsApp: bağlantı, imzalı webhook, yapay zekâ cevabı, ekibe devretme, ekip yanıtı ve 24 saat kuralı', { skip }, async () => {
+  const wa = await startWhatsappMock();
+  const env = { AI_PROVIDER: process.env.AI_PROVIDER, WHATSAPP_GRAPH_URL: process.env.WHATSAPP_GRAPH_URL, WHATSAPP_REPLY_DELAY_MS: process.env.WHATSAPP_REPLY_DELAY_MS };
+  Object.assign(process.env, { AI_PROVIDER: 'mock', WHATSAPP_GRAPH_URL: wa.url, WHATSAPP_REPLY_DELAY_MS: '0' });
+  const A = { tenant: 'itest-a', token: tenants['itest-a'].token };
+  const B = { tenant: 'itest-b', token: tenants['itest-b'].token };
+  const wait = async (fn, ms = 4000) => { const end = Date.now() + ms; for (;;) { const v = await fn(); if (v || Date.now() > end) return v; await new Promise((r) => setTimeout(r, 50)); } };
+  try {
+    const bad = await api('/whatsapp/channel', { ...A, method: 'PUT', body: { phoneNumberId: '1234567890', accessToken: 'wrong', appSecret: 'app-secret' } });
+    assert.equal(bad.status, 400);
+    assert.match(bad.data.message, /token/i);
+    const ok = await api('/whatsapp/channel', { ...A, method: 'PUT', body: { phoneNumberId: '1234567890', accessToken: 'good-token', appSecret: 'app-secret' } });
+    assert.equal(ok.status, 200);
+    assert.equal(ok.data.channel.displayPhone, '+90 555 000 00 00');
+    assert.equal((await api('/whatsapp/channel', { ...B, method: 'PUT', body: { phoneNumberId: '1234567890', accessToken: 'good-token', appSecret: 'x' } })).status, 409, 'numara başka firmaya bağlanamaz');
+    await api('/whatsapp/channel', { ...A, method: 'PATCH', body: { knowledge: 'Kargo: 2000 TL üzeri ücretsiz.' } });
+
+    const key = ok.data.channel.webhookUrl.split('/').pop();
+    const hook = `${base}/api/whatsapp/webhook/${key}`;
+    assert.equal((await fetch(`${hook}?hub.mode=subscribe&hub.verify_token=yanlis&hub.challenge=42`)).status, 403);
+    assert.equal(await (await fetch(`${hook}?hub.mode=subscribe&hub.verify_token=${ok.data.channel.verifyToken}&hub.challenge=42`)).text(), '42');
+
+    const post = (payload, secret = 'app-secret') => {
+      const raw = JSON.stringify(payload);
+      const sig = `sha256=${crypto.createHmac('sha256', secret).update(raw).digest('hex')}`;
+      return fetch(hook, { method: 'POST', headers: { 'Content-Type': 'application/json', 'X-Hub-Signature-256': sig }, body: raw });
+    };
+    const inbound = (id, text) => ({ entry: [{ changes: [{ value: { metadata: { phone_number_id: '1234567890' }, contacts: [{ wa_id: '905321112233', profile: { name: 'Ayşe' } }], messages: [{ id, from: '905321112233', timestamp: String(Math.floor(Date.now() / 1000)), type: 'text', text: { body: text } }] } }] }] });
+
+    assert.equal((await post(inbound('wamid.IN1', 'merhaba'), 'yanlis-anahtar')).status, 401, 'imzasız istek reddedilir');
+    assert.equal((await post(inbound('wamid.IN1', 'Merhaba, Ürün itest-a fiyatı nedir?'))).status, 200);
+    await post(inbound('wamid.IN1', 'Merhaba, Ürün itest-a fiyatı nedir?')); // Meta aynı mesajı tekrar gönderir
+
+    const convs = await wait(async () => { const r = await api('/whatsapp/conversations', A); return r.data.items.length && r.data; });
+    const id = convs.items[0].id;
+    const thread = await wait(async () => { const r = await api(`/whatsapp/conversations/${id}`, A); return r.data.messages.some((m) => m.author === 'AI') && r.data; });
+    assert.equal(thread.messages.filter((m) => m.author === 'CUSTOMER').length, 1, 'tekrar gelen mesaj bir kez yazılır');
+    const ai = thread.messages.find((m) => m.author === 'AI');
+    assert.match(ai.body, /Ürün itest-a/, 'katalogdan ürün bulunur');
+    assert.equal(ai.status, 'sent');
+    assert.equal(wa.sent[0].to, '905321112233');
+    assert.equal(thread.lead.status, 'NEW', 'yazan kişi müşteri adaylarına düşer');
+    assert.equal((await api('/customer-leads?source=WHATSAPP&q=5321112233', A)).data.total, 1);
+
+    // Durum bildirimi
+    await post({ entry: [{ changes: [{ value: { metadata: { phone_number_id: '1234567890' }, statuses: [{ id: 'wamid.OUT1', status: 'read' }] } }] }] });
+    await wait(async () => (await api(`/whatsapp/conversations/${id}`, A)).data.messages.find((m) => m.waMessageId === 'wamid.OUT1')?.status === 'read');
+
+    // İnsan isteyince ekibe devredilir
+    await post(inbound('wamid.IN2', 'Bir yetkiliyle görüşmek istiyorum'));
+    const waiting = await wait(async () => { const r = await api('/whatsapp/conversations?filter=waiting', A); return r.data.items.length && r.data; });
+    assert.equal(waiting.items[0].status, 'HUMAN');
+    const sentBefore = wa.sent.length;
+    await post(inbound('wamid.IN3', 'Orada mısınız?'));
+    await new Promise((r) => setTimeout(r, 300));
+    assert.equal(wa.sent.length, sentBefore, 'ekipteki konuşmaya yapay zekâ cevap vermez');
+
+    const reply = await api(`/whatsapp/conversations/${id}/messages`, { ...A, method: 'POST', body: { text: 'Merhaba, ben Mehmet. Yardımcı olayım.' } });
+    assert.equal(reply.status, 201);
+    assert.equal(wa.sent.at(-1).text.body, 'Merhaba, ben Mehmet. Yardımcı olayım.');
+    assert.equal((await api('/whatsapp/conversations?filter=waiting', A)).data.items.length, 0);
+
+    // Başka firma göremez
+    assert.equal((await api(`/whatsapp/conversations/${id}`, B)).status, 404, 'başka firmanın konuşması görünmez');
+    // 24 saat geçince serbest mesaj gönderilemez
+    await runAsPlatform(() => prisma.waConversation.update({ where: { id }, data: { lastInboundAt: new Date(Date.now() - 25 * 3600e3) } }));
+    assert.equal((await api(`/whatsapp/conversations/${id}/messages`, { ...A, method: 'POST', body: { text: 'Selam' } })).status, 400);
+
+    const preview = await api('/whatsapp/preview', { ...A, method: 'POST', body: { question: 'Ürün itest-a var mı?' } });
+    assert.equal(preview.status, 200);
+    assert.match(preview.data.reply, /stokta/);
+  } finally {
+    wa.server.close();
+    for (const [k, v] of Object.entries(env)) { if (v === undefined) delete process.env[k]; else process.env[k] = v; }
+  }
 });
