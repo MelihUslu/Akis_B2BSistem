@@ -1,12 +1,52 @@
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
+import api from '../services/api';
 import { NavLink, useLocation, useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import { useTenant } from '../context/TenantContext';
 import TenantBrand from './TenantBrand';
 import { can } from '../utils/permissions';
 import { 
-  LayoutDashboard, Package, ShoppingCart, CreditCard, BarChart3, Settings, LogOut, Box, UserCheck, ChevronLeft, ChevronRight, RotateCcw, Crown, FileSignature, TicketPercent, X, BookUser, Inbox, MessageCircle
+  LayoutDashboard, Package, ShoppingCart, CreditCard, BarChart3, Settings, LogOut, UserCheck, ChevronLeft, ChevronRight, RotateCcw, Crown, FileSignature, TicketPercent, X, BookUser, Inbox, MessageCircle, ChevronDown, Tags, Briefcase, Users, Wallet, FolderTree
 } from 'lucide-react';
+
+// Menü: tek bağlantılar ve açılır gruplar. perm: tek yetki ya da yetkilerden biri yeterli
+const MENU = [
+  { name: 'Ana Sayfa', path: '/admin', icon: LayoutDashboard },
+  { key: 'catalog', name: 'Katalog', icon: Tags, items: [
+    { name: 'Ürün Yönetimi', path: '/admin/products', icon: Package, perm: 'CATALOG' },
+    { name: 'Kategoriler', path: '/admin/categories', icon: FolderTree, perm: 'CATALOG' },
+    { name: 'Kampanyalar', path: '/admin/coupons', icon: TicketPercent, perm: 'CATALOG' },
+  ] },
+  { key: 'sales', name: 'Satış', icon: Briefcase, items: [
+    { name: 'Siparişler', path: '/admin/orders', badge: 'orders', icon: ShoppingCart, perm: 'ORDERS' },
+    { name: 'Teklifler', path: '/admin/quotes', badge: 'quotes', icon: FileSignature, perm: 'QUOTES' },
+    { name: 'İade / RMA', path: '/admin/returns', badge: 'returns', icon: RotateCcw, perm: 'ORDERS' },
+  ] },
+  { key: 'customers', name: 'Müşteriler', icon: Users, items: [
+    { name: 'Bayi Yönetimi', path: '/admin/dealers', badge: 'dealers', icon: UserCheck, perm: 'DEALERS' },
+    { name: 'Müşteri Adayları', path: '/admin/leads', badge: 'leads', icon: Inbox, perm: 'LEADS' },
+    { name: 'WhatsApp', path: '/admin/whatsapp', badge: 'whatsapp', icon: MessageCircle, perm: ['MESSAGES', 'SETTINGS'] },
+  ] },
+  { key: 'finance', name: 'Finans', icon: Wallet, items: [
+    { name: 'Cari Hesaplar', path: '/admin/partners', icon: BookUser, perm: ['FINANCE', 'DEALERS'] },
+    { name: 'Finans & Prim', path: '/admin/finance', icon: CreditCard, perm: 'FINANCE' },
+    { name: 'Raporlar', path: '/admin/reports', icon: BarChart3, perm: ['ORDERS', 'FINANCE'] },
+  ] },
+  { name: 'Abonelik', path: '/admin/subscription', icon: Crown, perm: 'SETTINGS' },
+];
+
+// Rozet: ilgilenilmesi gereken iş sayısı (bekleyen sipariş, ekip bekleyen WhatsApp…); dakikada bir ve sayfa değişince yenilenir
+const COUNTS_MS = 60000;
+const Badge = ({ n, dot }) => (n > 0
+  ? (dot
+    ? <span className="absolute top-2 right-2 h-2.5 w-2.5 rounded-full bg-rose-500 ring-2 ring-[#0f172a]" />
+    : <span className="ml-auto h-5 min-w-5 px-1.5 rounded-full bg-rose-500 text-white text-[10px] font-black flex items-center justify-center">{n > 99 ? '99+' : n}</span>)
+  : null);
+
+// Açık bırakılan gruplar tarayıcıda hatırlanır
+const OPEN_KEY = 'akis_menu_open';
+const readOpen = () => { try { return JSON.parse(localStorage.getItem(OPEN_KEY) || '[]'); } catch { return []; } };
+const saveOpen = (list) => { try { localStorage.setItem(OPEN_KEY, JSON.stringify(list)); } catch { /* gizli sekme */ } };
 
 // Menü altındaki abonelik kutusu yalnızca dikkat gereken durumlarda görünür (abonelik normalse gösterilmez)
 const PLAN_BOX = {
@@ -31,22 +71,46 @@ const Sidebar = ({ mobile = false, onNavigate }) => {
     navigate('/login');
   };
 
-  const menuItems = [
-    { name: 'Ana Sayfa', path: '/admin', icon: LayoutDashboard },
-    { name: 'Kategoriler', path: '/admin/categories', icon: Box, perm: 'CATALOG' },
-    { name: 'Ürün Yönetimi', path: '/admin/products', icon: Package, perm: 'CATALOG' },
-    { name: 'Bayi Yönetimi', path: '/admin/dealers', icon: UserCheck, perm: 'DEALERS' },
-    { name: 'Cari Hesaplar', path: '/admin/partners', icon: BookUser, perm: ['FINANCE', 'DEALERS'] },
-    { name: 'WhatsApp', path: '/admin/whatsapp', icon: MessageCircle, perm: ['MESSAGES', 'SETTINGS'] },
-    { name: 'Müşteri Adayları', path: '/admin/leads', icon: Inbox, perm: 'LEADS' },
-    { name: 'Siparişler', path: '/admin/orders', icon: ShoppingCart, perm: 'ORDERS' },
-    { name: 'Teklifler', path: '/admin/quotes', icon: FileSignature, perm: 'QUOTES' },
-    { name: 'İade / RMA', path: '/admin/returns', icon: RotateCcw, perm: 'ORDERS' },
-    { name: 'Kampanyalar', path: '/admin/coupons', icon: TicketPercent, perm: 'CATALOG' },
-    { name: 'Finans & Prim', path: '/admin/finance', icon: CreditCard, perm: 'FINANCE' },
-    { name: 'Raporlar', path: '/admin/reports', icon: BarChart3, perm: ['ORDERS', 'FINANCE'] },
-    { name: 'Abonelik', path: '/admin/subscription', icon: Crown, perm: 'SETTINGS' },
-  ].filter(item => !item.perm || [].concat(item.perm).some((p) => can(user, p)));
+  const [openGroups, setOpenGroups] = useState(readOpen);
+  const [counts, setCounts] = useState({});
+  useEffect(() => {
+    const load = () => api.get('/dashboard/menu-counts').then((r) => setCounts(r.data)).catch(() => {});
+    load();
+    const t = setInterval(load, COUNTS_MS);
+    return () => clearInterval(t);
+  }, [location.pathname]);
+  const countOf = (item) => (item.badge ? counts[item.badge] || 0 : 0);
+  const allowed = (item) => !item.perm || [].concat(item.perm).some((p) => can(user, p));
+  const menu = MENU
+    .map((m) => (m.items ? { ...m, items: m.items.filter(allowed) } : m))
+    .filter((m) => (m.items ? m.items.length > 0 : allowed(m)));
+  const isActivePath = (path) => (path === '/admin' ? location.pathname === '/admin' : location.pathname.startsWith(path));
+  const toggleGroup = (key) => {
+    const next = openGroups.includes(key) ? openGroups.filter((k) => k !== key) : [...openGroups, key];
+    setOpenGroups(next);
+    saveOpen(next);
+  };
+
+  const link = (item, child = false) => (
+    <NavLink
+      key={item.path}
+      to={item.path}
+      end={item.path === '/admin'}
+      onClick={onNavigate}
+      title={isCollapsed ? item.name : ''}
+      className={({ isActive }) => `
+        relative flex items-center rounded-2xl transition-all duration-300 group
+        ${isCollapsed ? 'justify-center p-3.5' : child ? 'pl-4 pr-4 py-2.5' : 'px-5 py-3.5'}
+        ${isActive
+          ? 'bg-indigo-600/10 text-indigo-600 border-l-2 border-indigo-500'
+          : 'text-gray-400 hover:text-white hover:bg-white/5'}
+      `}
+    >
+      <item.icon className={`transition-all duration-700 ${isCollapsed ? 'h-7 w-7' : child ? 'h-4 w-4 mr-3.5' : 'h-5 w-5 mr-4'} ${isActivePath(item.path) ? 'text-indigo-600' : 'text-gray-500 group-hover:text-gray-300'}`} />
+      {!isCollapsed && <span className={`${child ? 'text-[13px]' : 'text-sm'} font-bold whitespace-nowrap`}>{item.name}</span>}
+      <Badge n={countOf(item)} dot={isCollapsed} />
+    </NavLink>
+  );
 
   return (
     <aside className={`
@@ -75,25 +139,29 @@ const Sidebar = ({ mobile = false, onNavigate }) => {
 
       {/* Main Menu */}
       <nav className="flex-1 min-h-0 overflow-y-auto custom-scrollbar px-4 space-y-1.5">
-        {menuItems.map((item) => (
-          <NavLink
-            key={item.path}
-            to={item.path}
-            end={item.path === '/admin'}
-            onClick={onNavigate}
-            title={isCollapsed ? item.name : ''}
-            className={({ isActive }) => `
-              flex items-center rounded-2xl transition-all duration-300 group
-              ${isCollapsed ? 'justify-center p-3.5' : 'px-5 py-3.5'}
-              ${isActive 
-                ? 'bg-indigo-600/10 text-indigo-600 border-l-2 border-indigo-500' 
-                : 'text-gray-400 hover:text-white hover:bg-white/5'}
-            `}
-          >
-            <item.icon className={`transition-all duration-700 ${isCollapsed ? 'h-7 w-7' : 'h-5 w-5 mr-4'} ${location.pathname === item.path ? 'text-indigo-600' : 'text-gray-500 group-hover:text-gray-300'}`} />
-            {!isCollapsed && <span className="text-sm font-bold whitespace-nowrap">{item.name}</span>}
-          </NavLink>
-        ))}
+        {menu.map((m) => {
+          if (!m.items) return link(m);
+          // Daraltılmış menüde gruplar ince çizgiyle ayrılır, alt bağlantılar ikon olarak görünür
+          if (isCollapsed) return <div key={m.key} className="pt-2 mt-2 border-t border-white/5 space-y-1.5">{m.items.map((i) => link(i))}</div>;
+          const hasActive = m.items.some((i) => isActivePath(i.path));
+          const open = hasActive || openGroups.includes(m.key);
+          return (
+            <div key={m.key}>
+              <button type="button" onClick={() => toggleGroup(m.key)} aria-expanded={open}
+                className={`w-full flex items-center px-5 py-3.5 rounded-2xl transition-colors group ${hasActive ? 'text-white' : 'text-gray-400 hover:text-white hover:bg-white/5'}`}>
+                <m.icon className={`h-5 w-5 mr-4 ${hasActive ? 'text-indigo-500' : 'text-gray-500 group-hover:text-gray-300'}`} />
+                <span className="text-sm font-bold whitespace-nowrap flex-1 text-left">{m.name}</span>
+                {!open && <span className="mr-2"><Badge n={m.items.reduce((sum, i) => sum + countOf(i), 0)} /></span>}
+                <ChevronDown className={`h-4 w-4 text-gray-500 transition-transform duration-300 ${open ? 'rotate-180' : ''}`} />
+              </button>
+              <div className={`grid transition-[grid-template-rows] duration-300 ${open ? 'grid-rows-[1fr]' : 'grid-rows-[0fr]'}`}>
+                <div className="overflow-hidden" inert={!open}>
+                  <div className="ml-7 pl-3 border-l border-white/10 space-y-1 py-1">{m.items.map((i) => link(i, true))}</div>
+                </div>
+              </div>
+            </div>
+          );
+        })}
       </nav>
 
       {/* Abonelik uyarısı (deneme / süre doldu / ödeme bekleniyor; menü açıkken) */}

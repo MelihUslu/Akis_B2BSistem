@@ -1,5 +1,6 @@
 import prisma from '../utils/prisma.js';
 import { round2 } from '../services/pricingService.js';
+import { hasPermission } from '../services/permissions.js';
 
 const REVENUE_STATUSES = ['APPROVED', 'PARTIAL_APPROVED', 'SHIPPED', 'COMPLETED'];
 const DAY = 24 * 60 * 60 * 1000;
@@ -94,5 +95,29 @@ export const getDashboard = async (req, res) => {
   } catch (error) {
     console.error('Dashboard error:', error);
     res.status(500).json({ message: 'Panel verileri getirilemedi.' });
+  }
+};
+
+/**
+ * Menü rozetleri: ilgilenilmesi gereken iş sayıları. Kullanıcı yalnızca yetkili olduğu bölümlerin sayısını alır.
+ */
+export const getMenuCounts = async (req, res) => {
+  try {
+    const u = req.user;
+    const jobs = {
+      orders: hasPermission(u, 'ORDERS') && (() => prisma.order.count({ where: { status: 'PENDING' } })),
+      returns: hasPermission(u, 'ORDERS') && (() => prisma.returnRequest.count({ where: { status: 'PENDING' } })),
+      quotes: (hasPermission(u, 'QUOTES') || hasPermission(u, 'QUOTE_APPROVAL')) && (() => prisma.quoteRequest.count({
+        where: { status: { in: [...(hasPermission(u, 'QUOTES') ? ['PENDING'] : []), ...(hasPermission(u, 'QUOTE_APPROVAL') ? ['PENDING_APPROVAL'] : [])] } }
+      })),
+      dealers: hasPermission(u, 'DEALERS') && (() => prisma.company.count({ where: { status: 'PENDING', kind: 'DEALER' } })),
+      leads: hasPermission(u, 'LEADS') && (() => prisma.customerLead.count({ where: { status: 'NEW' } })),
+      whatsapp: hasPermission(u, 'MESSAGES') && (() => prisma.waConversation.count({ where: { needsHuman: true, status: { not: 'CLOSED' } } }))
+    };
+    const entries = await Promise.all(Object.entries(jobs).filter(([, fn]) => fn).map(async ([k, fn]) => [k, await fn()]));
+    res.json(Object.fromEntries(entries));
+  } catch (error) {
+    console.error('getMenuCounts error:', error);
+    res.status(500).json({ message: 'Sayılar getirilemedi.' });
   }
 };
