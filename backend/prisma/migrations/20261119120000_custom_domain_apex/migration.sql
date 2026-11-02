@@ -1,0 +1,1 @@
+ALTER TABLE "Tenant" ADD COLUMN "customDomainApex" BOOLEAN NOT NULL DEFAULT false;

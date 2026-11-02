@@ -14,15 +14,19 @@ const loadTenant = async (slug) => {
   return tenant;
 };
 
-// Özel alan adı (b2b.firmasi.com) -> firma. Yalnızca doğrulanmış alan adları eşleşir.
+// Özel alan adı (b2b.firmasi.com ya da firmasi.com + www) -> firma. Yalnızca doğrulanmış alan adları eşleşir.
 const hostCache = new Map(); // host -> { tenant|null, at }
 export const loadTenantByHost = async (host) => {
   host = String(host || '').trim().toLowerCase().replace(/:\d+$/, '');
   if (!host) return null;
   const hit = hostCache.get(host);
   if (hit && Date.now() - hit.at < CACHE_MS) return hit.tenant;
+  // www.firma.com → alan adının tamamı bağlanmış firma (Caddy www'yi ana adrese yönlendirir; sertifika için de gerekir)
+  const where = host.startsWith('www.')
+    ? { OR: [{ customDomain: host }, { customDomain: host.slice(4), customDomainApex: true }] }
+    : { customDomain: host };
   const tenant = await runAsPlatform(() => prisma.tenant.findFirst({
-    where: { customDomain: host, customDomainVerifiedAt: { not: null } }, include: { plan: true }
+    where: { ...where, customDomainVerifiedAt: { not: null } }, include: { plan: true }
   }));
   hostCache.set(host, { tenant, at: Date.now() });
   return tenant;

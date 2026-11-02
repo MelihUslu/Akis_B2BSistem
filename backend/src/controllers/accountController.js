@@ -116,36 +116,87 @@ export const closeTicket = async (req, res) => {
 // ─── Özel alan adı ───────────────────────────────────────────────────────────
 
 const DOMAIN_RE = /^(?=.{4,253}$)([a-z0-9](?:[a-z0-9-]{0,61}[a-z0-9])?\.)+[a-z]{2,}$/;
+// İki parçalı uzantılar: akishirdavat.com.tr de "alan adının tamamı" sayılır
+const SECOND_LEVEL = new Set(['com.tr', 'net.tr', 'org.tr', 'gen.tr', 'web.tr', 'biz.tr', 'info.tr', 'tv.tr', 'bel.tr', 'av.tr', 'dr.tr', 'co.uk', 'org.uk', 'com.de', 'com.cy']);
+export const isApexDomain = (domain) => {
+  const parts = domain.split('.');
+  return parts.length === 2 || (parts.length === 3 && SECOND_LEVEL.has(parts.slice(1).join('.')));
+};
 
-const domainView = (t) => ({
-  domain: t.customDomain,
-  verified: Boolean(t.customDomainVerifiedAt),
-  verifiedAt: t.customDomainVerifiedAt,
-  txtName: t.customDomain ? `_akisb2b.${t.customDomain}` : null,
-  txtValue: t.customDomainToken,
-  cnameTarget: CUSTOM_DOMAIN_TARGET(),
-  allowed: Boolean(t.plan?.allowCustomDomain)
-});
+// Alan adının tamamı (A kaydı) için sunucu IP'si: CUSTOM_DOMAIN_IP, yoksa CNAME hedefinin IP'leri
+const resolver = new dns.Resolver({ timeout: 2500, tries: 1 });
+const serverIps = async () => {
+  const fixed = String(process.env.CUSTOM_DOMAIN_IP || '').split(',').map((s) => s.trim()).filter(Boolean);
+  if (fixed.length) return fixed;
+  try { return await resolver.resolve4(CUSTOM_DOMAIN_TARGET()); } catch { return []; }
+};
+
+// DNS'in sunucuya yönlenip yönlenmediği (doğrulanmış alan adı için bilgi amaçlı)
+const checkRouting = async (domain, ips) => {
+  if (!ips.length) return null;
+  const pointsHere = async (host) => {
+    try { return (await resolver.resolve4(host)).some((ip) => ips.includes(ip)); } catch { return false; }
+  };
+  return pointsHere(domain);
+};
+
+const domainView = async (t, { routing = false } = {}) => {
+  const apex = Boolean(t.customDomain && t.customDomainApex);
+  const ips = apex || (routing && t.customDomainVerifiedAt) ? await serverIps() : [];
+  const records = [];
+  if (t.customDomain) {
+    if (apex) {
+      records.push({ type: 'A', host: '@', name: t.customDomain, value: ips[0] || null });
+      records.push({ type: 'CNAME', host: 'www', name: `www.${t.customDomain}`, value: CUSTOM_DOMAIN_TARGET() });
+    } else {
+      records.push({ type: 'CNAME', host: t.customDomain.split('.')[0], name: t.customDomain, value: CUSTOM_DOMAIN_TARGET() });
+    }
+    if (!t.customDomainVerifiedAt) records.push({ type: 'TXT', host: apex ? '_akisb2b' : `_akisb2b.${t.customDomain.split('.')[0]}`, name: `_akisb2b.${t.customDomain}`, value: t.customDomainToken });
+  }
+  return {
+    domain: t.customDomain,
+    mode: apex ? 'root' : 'subdomain',
+    verified: Boolean(t.customDomainVerifiedAt),
+    verifiedAt: t.customDomainVerifiedAt,
+    records,
+    txtName: t.customDomain ? `_akisb2b.${t.customDomain}` : null,
+    txtValue: t.customDomainToken,
+    cnameTarget: CUSTOM_DOMAIN_TARGET(),
+    // true: sunucuya yönleniyor · false: henüz yönlenmiyor · null: kontrol edilmedi
+    routed: routing && t.customDomainVerifiedAt ? await checkRouting(t.customDomain, ips) : null,
+    allowed: Boolean(t.plan?.allowCustomDomain)
+  };
+};
 
 export const getDomain = async (req, res) => {
   const tenant = await prisma.tenant.findUnique({ where: { id: req.tenant.id }, include: { plan: true } });
-  res.json(domainView(tenant));
+  res.json(await domainView(tenant, { routing: true }));
 };
 
 export const setDomain = async (req, res) => {
   const tenant = await prisma.tenant.findUnique({ where: { id: req.tenant.id }, include: { plan: true } });
   if (!tenant.plan.allowCustomDomain) return res.status(403).json({ message: `Özel alan adı ${tenant.plan.name} paketinde yok. Paketinizi yükseltin.` });
   const domain = String(req.body.domain || '').trim().toLowerCase().replace(/^https?:\/\//, '').replace(/\/.*$/, '');
-  if (!DOMAIN_RE.test(domain)) return res.status(400).json({ message: 'Geçerli bir alan adı girin (örn. b2b.firmaniz.com).' });
+  const apex = req.body.mode === 'root';
+  if (!DOMAIN_RE.test(domain)) return res.status(400).json({ message: `Geçerli bir alan adı girin (örn. ${apex ? 'firmaniz.com' : 'b2b.firmaniz.com'}).` });
   if (domain === ROOT_DOMAIN || domain.endsWith(`.${ROOT_DOMAIN}`)) return res.status(400).json({ message: 'Platformun kendi alan adı kullanılamaz.' });
+  if (apex && !isApexDomain(domain)) {
+    return res.status(400).json({ message: `${domain} bir alt alan adı. Alan adının tamamı için başında ek olmadan yazın (örn. firmaniz.com) ya da "Alt alan adı" seçeneğini kullanın.` });
+  }
+  if (!apex && isApexDomain(domain)) {
+    return res.status(400).json({ message: `${domain} alan adının tamamı. Başına b2b. gibi bir ek yazın ya da "Alan adının tamamı" seçeneğini kullanın.` });
+  }
+  if (!apex && domain.startsWith('www.')) {
+    return res.status(400).json({ message: 'www ile başlayan adres için "Alan adının tamamı" seçeneğini kullanın; www adresi kendiliğinden yönlenir.' });
+  }
   try {
     const updated = await prisma.tenant.update({
       where: { id: tenant.id },
-      data: { customDomain: domain, customDomainToken: `akisb2b-verify=${crypto.randomBytes(12).toString('hex')}`, customDomainVerifiedAt: null },
+      data: { customDomain: domain, customDomainApex: apex, customDomainToken: `akisb2b-verify=${crypto.randomBytes(12).toString('hex')}`, customDomainVerifiedAt: null },
       include: { plan: true }
     });
     invalidateTenantCache();
-    res.json({ message: 'Alan adı kaydedildi. DNS kayıtlarını ekleyip "Doğrula"ya basın.', ...domainView(updated) });
+    res.json({ message: 'Alan adı kaydedildi. DNS kayıtlarını ekleyip "Doğrula"ya basın.', ...(await domainView(updated)) });
   } catch (error) {
     if (error.code === 'P2002') return res.status(400).json({ message: 'Bu alan adı başka bir firmada kullanılıyor.' });
     throw error;
@@ -167,13 +218,17 @@ export const verifyDomain = async (req, res) => {
   }
   const updated = await prisma.tenant.update({ where: { id: tenant.id }, data: { customDomainVerifiedAt: new Date() }, include: { plan: true } });
   invalidateTenantCache();
-  res.json({ message: `${tenant.customDomain} doğrulandı. CNAME kaydı ${CUSTOM_DOMAIN_TARGET()} adresine yönlendiğinde portalınız bu adreste açılır.`, ...domainView(updated) });
+  const view = await domainView(updated, { routing: true });
+  const message = view.routed === false
+    ? `${tenant.customDomain} doğrulandı ama ${tenant.customDomainApex ? 'A' : 'CNAME'} kaydı henüz sunucumuza yönlenmiyor. Kayıt yayıldığında portalınız bu adreste açılır.`
+    : `${tenant.customDomain} doğrulandı. Portalınız https://${tenant.customDomain} adresinde açılır.`;
+  res.json({ message, ...view });
 };
 
 export const removeDomain = async (req, res) => {
-  const updated = await prisma.tenant.update({ where: { id: req.tenant.id }, data: { customDomain: null, customDomainToken: null, customDomainVerifiedAt: null }, include: { plan: true } });
+  const updated = await prisma.tenant.update({ where: { id: req.tenant.id }, data: { customDomain: null, customDomainApex: false, customDomainToken: null, customDomainVerifiedAt: null }, include: { plan: true } });
   invalidateTenantCache();
-  res.json({ message: 'Özel alan adı kaldırıldı.', ...domainView(updated) });
+  res.json({ message: 'Özel alan adı kaldırıldı.', ...(await domainView(updated)) });
 };
 
 // ─── Veri dışa aktarma ve hesap kapatma (KVKK) ───────────────────────────────

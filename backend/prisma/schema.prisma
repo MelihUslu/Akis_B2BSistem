@@ -689,6 +689,7 @@ model Tenant {
   customDomain           String?           @unique
   customDomainToken      String?
   customDomainVerifiedAt DateTime?
+  customDomainApex       Boolean           @default(false) // true: alan adının tamamı (firma.com + www), false: alt alan adı (b2b.firma.com)
   // Hesap kapatma (KVKK): kapatma talebinden 30 gün sonra kalıcı silinebilir
   closedAt               DateTime?
   deletionScheduledAt    DateTime?

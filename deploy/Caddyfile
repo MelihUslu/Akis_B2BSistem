@@ -19,6 +19,11 @@ https:// {
 		on_demand
 	}
 	encode zstd gzip
+
+	# www.firma.com → firma.com (alan adının tamamı bağlanan firmalar ve kök alan adı)
+	@www header_regexp www Host ^www\.(.+)$
+	redir @www https://{re.www.1}{uri} permanent
+
 	root * /srv
 
 	# Service worker ve index.html önbelleğe alınmaz (yeni sürüm hemen gelsin); derlenmiş dosyalar uzun süre önbellekte

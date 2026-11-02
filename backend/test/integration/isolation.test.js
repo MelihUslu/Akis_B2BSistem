@@ -720,7 +720,7 @@ test('dönemsel müşteri raporu: kayıp / risk algoritması, cari özet, zamanl
   ] }));
   await runAsPlatform(() => prisma.company.update({ where: { id: fresh.id }, data: { currentBalance: -1800 } }));
 
-  const iso = (d) => d.toISOString().slice(0, 10);
+  const iso = (d) => new Date(d.getTime() + 3 * 3600e3).toISOString().slice(0, 10); // rapor tarihleri Türkiye saatiyle (UTC+3)
   const live = await api(`/reports/periodic/live?from=${iso(ago(6))}&to=${iso(new Date())}`, A);
   assert.equal(live.status, 200);
   const by = Object.fromEntries(live.data.customers.map((c) => [c.name, c]));
@@ -767,4 +767,59 @@ test('dönemsel müşteri raporu: kayıp / risk algoritması, cari özet, zamanl
   const book = xlsx.read(Buffer.from(await xlsxRes.arrayBuffer()));
   assert.deepEqual(book.SheetNames, ['Özet', 'Aranacaklar', 'Müşteri durumu', 'En çok alanlar', 'Açık alacaklar']);
   assert.equal((await api(`/reports/periodic/${first[0].id}`, { tenant: 'itest-b', token: tenants['itest-b'].token })).status, 404, 'başka firma göremez');
+});
+
+test('özel alan adı: alt alan adı ya da alan adının tamamı (A + www), www eşleşmesi ve sertifika izni', { skip }, async () => {
+  const a = { tenant: 'itest-a', token: tenants['itest-a'].token };
+  const { loadTenantByHost, invalidateTenantCache } = await import('../../src/middlewares/tenantMiddleware.js');
+  process.env.CUSTOM_DOMAIN_IP = '203.0.113.10';
+  const plan = await runAsPlatform(() => prisma.plan.update({ where: { code: 'ITEST' }, data: { allowCustomDomain: true } }));
+  try {
+    // Seçenek ile adres uyuşmazsa açıklayıcı hata
+    let res = await api('/account/domain', { ...a, method: 'PUT', body: { domain: 'itest-akis.com', mode: 'subdomain' } });
+    assert.equal(res.status, 400);
+    res = await api('/account/domain', { ...a, method: 'PUT', body: { domain: 'b2b.itest-akis.com', mode: 'root' } });
+    assert.equal(res.status, 400);
+    res = await api('/account/domain', { ...a, method: 'PUT', body: { domain: 'www.itest-akis.com', mode: 'subdomain' } });
+    assert.equal(res.status, 400);
+
+    // Alt alan adı: CNAME + TXT
+    res = await api('/account/domain', { ...a, method: 'PUT', body: { domain: 'b2b.itest-akis.com', mode: 'subdomain' } });
+    assert.equal(res.status, 200);
+    assert.equal(res.data.mode, 'subdomain');
+    assert.deepEqual(res.data.records.map((r) => [r.type, r.host]), [['CNAME', 'b2b'], ['TXT', '_akisb2b.b2b']]);
+
+    // Alan adının tamamı (.com.tr dahil): A @ → sunucu IP'si, www CNAME, TXT
+    res = await api('/account/domain', { ...a, method: 'PUT', body: { domain: 'https://itest-akis.com.tr/', mode: 'root' } });
+    assert.equal(res.status, 200);
+    assert.equal(res.data.domain, 'itest-akis.com.tr');
+    assert.equal(res.data.mode, 'root');
+    assert.deepEqual(res.data.records.map((r) => [r.type, r.host, r.type === 'A' ? r.value : null]),
+      [['A', '@', '203.0.113.10'], ['CNAME', 'www', null], ['TXT', '_akisb2b', null]]);
+
+    // Doğrulanmadan sertifika verilmez; doğrulanınca ana adres ve www aynı firmaya çıkar
+    invalidateTenantCache();
+    assert.equal((await fetch(`${base}/api/public/domain-check?domain=www.itest-akis.com.tr`)).status, 404);
+    await runAsPlatform(() => prisma.tenant.update({ where: { id: tenants['itest-a'].id }, data: { customDomainVerifiedAt: new Date() } }));
+    invalidateTenantCache();
+    assert.equal((await loadTenantByHost('itest-akis.com.tr'))?.id, tenants['itest-a'].id);
+    assert.equal((await loadTenantByHost('www.itest-akis.com.tr'))?.id, tenants['itest-a'].id);
+    assert.equal((await fetch(`${base}/api/public/domain-check?domain=www.itest-akis.com.tr`)).status, 200);
+    res = await api('/account/domain', a);
+    assert.equal(res.data.verified, true);
+    assert.ok(!res.data.records.some((r) => r.type === 'TXT'));
+
+    // Alt alan adı modunda www eşleşmez
+    await api('/account/domain', { ...a, method: 'PUT', body: { domain: 'b2b.itest-akis.com', mode: 'subdomain' } });
+    await runAsPlatform(() => prisma.tenant.update({ where: { id: tenants['itest-a'].id }, data: { customDomainVerifiedAt: new Date() } }));
+    invalidateTenantCache();
+    assert.equal(await loadTenantByHost('www.b2b.itest-akis.com'), null);
+
+    res = await api('/account/domain', { ...a, method: 'DELETE' });
+    assert.equal(res.data.domain, null);
+    assert.equal(res.data.mode, 'subdomain');
+  } finally {
+    await runAsPlatform(() => prisma.plan.update({ where: { id: plan.id }, data: { allowCustomDomain: false } }));
+    delete process.env.CUSTOM_DOMAIN_IP;
+  }
 });

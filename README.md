@@ -177,6 +177,7 @@ Firma, Ayarlar → Entegrasyon'dan API anahtarı üretir. `/api/v1` uçları ile
 | `SMTP_*`, `MAIL_FROM` | | E-posta. Boşsa içerik konsola yazılır |
 | `REDIS_URL` | | İstek sınırlayıcı için Redis |
 | `CUSTOM_DOMAIN_TARGET` | | Özel alan adlarının CNAME hedefi (varsayılan `custom.ROOT_DOMAIN`) |
+| `CUSTOM_DOMAIN_IP` | | Alan adının tamamını (`firma.com`) bağlayan firmaların A kaydı için sunucu IP'si (boşsa CNAME hedefinin IP'si) |
 | `AUTO_PURGE_CLOSED` | | Kapatılan hesapların 30 gün sonra otomatik silinmesi |
 | `PARASUT_*`, `SUBSCRIPTION_VAT_RATE` | | Platformun abonelik faturaları (Paraşüt) |
 | `TZ` | | Tarih filtreleri ve raporların saat dilimi (varsayılan `Europe/Istanbul`) |
