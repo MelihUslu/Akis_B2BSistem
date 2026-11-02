@@ -30,8 +30,8 @@ const MENU = [
   { key: 'finance', name: 'Finans', icon: Wallet, items: [
     { name: 'Cari Hesaplar', path: '/admin/partners', icon: BookUser, perm: ['FINANCE', 'DEALERS'] },
     { name: 'Finans & Prim', path: '/admin/finance', icon: CreditCard, perm: 'FINANCE' },
-    { name: 'Raporlar', path: '/admin/reports', icon: BarChart3, perm: ['ORDERS', 'FINANCE'] },
   ] },
+  { name: 'Raporlar', path: '/admin/reports', icon: BarChart3, perm: ['ORDERS', 'FINANCE'] },
   { name: 'Abonelik', path: '/admin/subscription', icon: Crown, perm: 'SETTINGS' },
 ];
 

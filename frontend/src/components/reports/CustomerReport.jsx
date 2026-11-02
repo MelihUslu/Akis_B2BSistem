@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useState } from 'react';
-import { useSearchParams } from 'react-router-dom';
+import { Link, useSearchParams } from 'react-router-dom';
 import {
-  FileSpreadsheet, Users, TrendingUp, UserPlus, UserX, Wallet, AlertTriangle, Phone, MessageCircle, Settings2, CalendarClock, Search, Save, ChevronDown, Info
+  FileSpreadsheet, Users, TrendingUp, UserPlus, UserX, Wallet, AlertTriangle, Phone, MessageCircle, Settings2, CalendarClock, Search, Save, ChevronDown, Info, ChevronLeft, ChevronRight, X, Lightbulb, BookUser
 } from 'lucide-react';
 import api, { errorMessage } from '../../services/api';
 import useAlert from '../../hooks/useAlert';
@@ -9,14 +9,17 @@ import { useAuth } from '../../context/AuthContext';
 import { can } from '../../utils/permissions';
 import { downloadFile } from '../../utils/download';
 import { formatTRY, formatDate } from '../../utils/format';
+import { ResponsiveContainer, BarChart, Bar, AreaChart, Area, XAxis, YAxis, Tooltip, CartesianGrid, Cell } from 'recharts';
 
+// Durum renkleri (iyi → kötü sırasıyla; yan yana gelenler renk körlüğü dahil ayırt edilebilir, doğrulayıcıyla kontrol edildi).
+// Renk tek başına anlam taşımaz: her yerde etiket ve sayıyla birlikte gösterilir.
 const STATUS = {
-  AT_RISK: { label: 'Risk altında', cls: 'bg-amber-100 text-amber-800', dot: 'bg-amber-500' },
-  DECLINING: { label: 'Düşüşte', cls: 'bg-orange-100 text-orange-800', dot: 'bg-orange-500' },
-  LOST: { label: 'Kaybedildi', cls: 'bg-rose-100 text-rose-700', dot: 'bg-rose-500' },
-  NEVER: { label: 'Hiç sipariş vermedi', cls: 'bg-gray-200 text-gray-600', dot: 'bg-gray-400' },
-  NEW: { label: 'Yeni', cls: 'bg-sky-100 text-sky-700', dot: 'bg-sky-500' },
-  ACTIVE: { label: 'Aktif', cls: 'bg-emerald-100 text-emerald-700', dot: 'bg-emerald-500' },
+  ACTIVE: { label: 'Aktif', cls: 'bg-emerald-100 text-emerald-800', color: '#0ca30c' },
+  NEW: { label: 'Yeni', cls: 'bg-blue-100 text-blue-800', color: '#3b82f6' },
+  AT_RISK: { label: 'Risk altında', cls: 'bg-amber-100 text-amber-900', color: '#fab219' },
+  DECLINING: { label: 'Düşüşte', cls: 'bg-orange-100 text-orange-800', color: '#ea580c' },
+  LOST: { label: 'Kaybedildi', cls: 'bg-rose-100 text-rose-800', color: '#9f1239' },
+  NEVER: { label: 'Hiç sipariş vermedi', cls: 'bg-gray-200 text-gray-700', color: '#a8a29e' },
 };
 const WEEKDAYS = ['Pazartesi', 'Salı', 'Çarşamba', 'Perşembe', 'Cuma', 'Cumartesi', 'Pazar'];
 const PERIOD = { WEEKLY: 'Haftalık', MONTHLY: 'Aylık', CUSTOM: 'Anlık' };
@@ -33,6 +36,116 @@ const intl = (p) => { const d = String(p || '').replace(/\D/g, ''); return d.len
 const pct = (now, prev) => (prev ? Math.round(((now - prev) / prev) * 100) : null);
 const Pill = ({ s }) => <span className={`inline-flex px-2 py-0.5 rounded-md text-[11px] font-black whitespace-nowrap ${STATUS[s]?.cls}`}>{STATUS[s]?.label}</span>;
 
+// Tek parça → bütün: uzun bölümlü çubuk, bölümler arasında 2px boşluk, sığan bölümde sayı içeride
+const StatusBar = ({ counts, total, active, onPick }) => (
+  <div className="flex h-11 gap-0.5 rounded-xl overflow-hidden" role="img" aria-label={Object.keys(STATUS).map((k) => `${STATUS[k].label} ${counts[k] || 0}`).join(', ')}>
+    {Object.entries(STATUS).map(([k, st]) => {
+      const n = counts[k] || 0;
+      if (!n) return null;
+      const w = (n / Math.max(1, total)) * 100;
+      return (
+        <button key={k} type="button" onClick={() => onPick(k)} title={`${st.label}: ${n}`} style={{ width: `${w}%`, background: st.color }}
+          className={`h-full min-w-1 flex items-center justify-center text-xs font-black transition-opacity ${active && active !== k ? 'opacity-30' : ''} ${k === 'AT_RISK' || k === 'NEVER' ? 'text-gray-900' : 'text-white'}`}>
+          {w >= 6 && n}
+        </button>
+      );
+    })}
+  </div>
+);
+
+const ChartTip = ({ active, payload, money }) => {
+  if (!active || !payload?.length) return null;
+  const p = payload[0].payload;
+  return (
+    <div className="rounded-xl bg-white shadow-lg ring-1 ring-black/5 px-3 py-2 text-xs">
+      <p className="font-bold text-gray-500">{formatDate(p.from)} – {formatDate(p.to)}</p>
+      <p className="mt-0.5 font-black text-gray-900 tabular-nums">{money ? formatTRY(p.revenue) : `${p.customers} müşteri`}</p>
+      <p className="text-gray-500">{money ? `${p.orders} sipariş` : `${p.orders} sipariş · ${formatTRY(p.revenue)}`}</p>
+    </div>
+  );
+};
+
+// Eğilim: iki ayrı grafik (tek eksen), son nokta raporun dönemi
+const TrendCharts = ({ trend }) => {
+  const last = trend.points.length - 1;
+  const unit = trend.unit === 'week' ? 'hafta' : 'ay';
+  const axis = { tickLine: false, axisLine: false, tick: { fontSize: 11, fill: '#6b7280' } };
+  return (
+    <div className="grid gap-6 lg:grid-cols-2">
+      <div className="card-premium p-4 md:p-5">
+        <p className="text-sm font-black text-gray-900">Sipariş veren müşteri</p>
+        <p className="text-xs text-gray-500">Son {trend.points.length} {unit}; koyu çubuk bu rapor dönemi</p>
+        <div className="h-48 mt-3">
+          <ResponsiveContainer width="100%" height="100%">
+            <BarChart data={trend.points} margin={{ top: 8, right: 4, left: -16, bottom: 0 }} barCategoryGap="28%">
+              <CartesianGrid vertical={false} stroke="#eef0f3" />
+              <XAxis dataKey="label" {...axis} />
+              <YAxis allowDecimals={false} {...axis} width={40} />
+              <Tooltip cursor={{ fill: 'rgba(99,102,241,0.06)' }} content={<ChartTip />} />
+              <Bar dataKey="customers" radius={[4, 4, 0, 0]}>
+                {trend.points.map((p, i) => <Cell key={p.label} fill={i === last ? '#4f46e5' : '#c7d2fe'} />)}
+              </Bar>
+            </BarChart>
+          </ResponsiveContainer>
+        </div>
+      </div>
+      <div className="card-premium p-4 md:p-5">
+        <p className="text-sm font-black text-gray-900">Ciro</p>
+        <p className="text-xs text-gray-500">KDV hariç, onaylanan siparişler</p>
+        <div className="h-48 mt-3">
+          <ResponsiveContainer width="100%" height="100%">
+            <AreaChart data={trend.points} margin={{ top: 8, right: 8, left: 4, bottom: 0 }}>
+              <defs>
+                <linearGradient id="revFill" x1="0" y1="0" x2="0" y2="1"><stop offset="0%" stopColor="#4f46e5" stopOpacity={0.22} /><stop offset="100%" stopColor="#4f46e5" stopOpacity={0} /></linearGradient>
+              </defs>
+              <CartesianGrid vertical={false} stroke="#eef0f3" />
+              <XAxis dataKey="label" {...axis} />
+              <YAxis {...axis} width={56} tickFormatter={(v) => (v >= 1e6 ? `${(v / 1e6).toLocaleString('tr-TR', { maximumFractionDigits: 1 })} Mn` : v >= 1e3 ? `${Math.round(v / 1e3)} B` : v)} />
+              <Tooltip cursor={{ stroke: '#9ca3af', strokeDasharray: '3 3' }} content={<ChartTip money />} />
+              <Area type="monotone" dataKey="revenue" stroke="#4f46e5" strokeWidth={2} fill="url(#revFill)" dot={{ r: 3, fill: '#4f46e5', stroke: '#fff', strokeWidth: 2 }} activeDot={{ r: 5, stroke: '#fff', strokeWidth: 2 }} />
+            </AreaChart>
+          </ResponsiveContainer>
+        </div>
+      </div>
+    </div>
+  );
+};
+
+// Gecikme göstergesi: geçen süre / olağan aralık. 1,5 kat çizgisi risk, 3 kat çizgisi kayıp sınırı
+const Overdue = ({ x }) => {
+  if (x.status === 'DECLINING' && x.prev90 > 0) {
+    const drop = Math.round((1 - x.rev90 / x.prev90) * 100);
+    return (
+      <div className="w-36">
+        <div className="flex justify-between text-[11px] font-bold text-gray-500"><span>Son 90 gün</span><span className="text-orange-700">▼ %{drop}</span></div>
+        <div className="mt-1 h-2 rounded-full bg-gray-100"><div className="h-2 rounded-full" style={{ width: `${Math.max(4, 100 - drop)}%`, background: STATUS.DECLINING.color }} /></div>
+      </div>
+    );
+  }
+  const base = x.typicalDays || 30;
+  const ratio = x.daysSince != null ? x.daysSince / base : 0;
+  const scale = 4; // 4 kat = çubuğun sonu
+  return (
+    <div className="w-36">
+      <div className="flex justify-between text-[11px] font-bold text-gray-500"><span>{x.daysSince} / ~{base} gün</span><span className="text-gray-900">{ratio.toLocaleString('tr-TR', { maximumFractionDigits: 1 })}×</span></div>
+      <div className="relative mt-1 h-2 rounded-full bg-gray-100">
+        <div className="h-2 rounded-full" style={{ width: `${Math.min(100, (ratio / scale) * 100)}%`, background: STATUS[x.status]?.color }} />
+        <span className="absolute top-[-2px] h-3 w-px bg-gray-400" style={{ left: `${(1.5 / scale) * 100}%` }} title="Risk sınırı (1,5×)" />
+        <span className="absolute top-[-2px] h-3 w-px bg-gray-600" style={{ left: `${(3 / scale) * 100}%` }} title="Kayıp sınırı (3×)" />
+      </div>
+    </div>
+  );
+};
+
+const Change = ({ now, prev }) => {
+  if (!prev && !now) return <span className="text-gray-300">—</span>;
+  if (!prev) return <span className="text-[11px] font-black text-blue-700">yeni</span>;
+  const d = Math.round(((now - prev) / prev) * 100);
+  return <span className={`text-[11px] font-black ${d < 0 ? 'text-rose-700' : 'text-emerald-700'}`}>{d < 0 ? '▼' : '▲'} %{Math.abs(d)}</span>;
+};
+
+const initials = (name) => name.split(/\s+/).slice(0, 2).map((w) => w[0]).join('').toLocaleUpperCase('tr-TR');
+
 const Kpi = ({ icon: Icon, label, value, delta, sub, tone }) => (
   <div className="card-premium p-4">
     <div className="flex items-center justify-between gap-2">
@@ -40,7 +153,7 @@ const Kpi = ({ icon: Icon, label, value, delta, sub, tone }) => (
       {delta != null && <span className={`text-[11px] font-black px-1.5 py-0.5 rounded-md ${delta >= 0 ? 'bg-emerald-50 text-emerald-700' : 'bg-rose-50 text-rose-700'}`}>{delta >= 0 ? '+' : ''}{delta}%</span>}
     </div>
     <p className="text-[11px] font-black text-gray-400 uppercase tracking-widest mt-3">{label}</p>
-    <p className="text-2xl font-black text-gray-900 mt-0.5 tabular-nums truncate">{value}</p>
+    <p className="text-lg sm:text-2xl font-black text-gray-900 mt-0.5 tabular-nums break-words leading-tight">{value}</p>
     {sub && <p className="text-xs text-gray-500 mt-0.5 truncate">{sub}</p>}
   </div>
 );
@@ -127,6 +240,108 @@ const ScheduleSettings = ({ canEdit, showAlert }) => {
   );
 };
 
+// Sayfalama: 1 … 4 5 6 … 12 biçiminde, sayfa başına kayıt seçilebilir
+const Pager = ({ page, pages, total, size, onPage, onSize }) => {
+  const nums = [...new Set([1, page - 1, page, page + 1, pages])].filter((n) => n >= 1 && n <= pages).sort((a, b) => a - b);
+  const btn = 'h-9 min-w-9 px-2.5 rounded-xl text-xs font-black flex items-center justify-center';
+  return (
+    <div className="p-3 md:px-5 border-t border-gray-100 flex flex-wrap items-center justify-between gap-3">
+      <p className="text-xs font-semibold text-gray-500">{(page - 1) * size + 1}–{Math.min(page * size, total)} / {total} müşteri</p>
+      <div className="flex items-center gap-1">
+        <button type="button" disabled={page <= 1} onClick={() => onPage(page - 1)} className={`${btn} bg-white ring-1 ring-gray-200 disabled:opacity-40`} aria-label="Önceki sayfa"><ChevronLeft className="h-4 w-4" /></button>
+        {nums.map((n, i) => (
+          <span key={n} className="flex items-center gap-1">
+            {i > 0 && n - nums[i - 1] > 1 && <span className="px-1 text-gray-400">…</span>}
+            <button type="button" onClick={() => onPage(n)} aria-current={n === page ? 'page' : undefined} className={`${btn} ${n === page ? 'bg-slate-800 text-white' : 'bg-white ring-1 ring-gray-200 text-gray-700 hover:bg-gray-50'}`}>{n}</button>
+          </span>
+        ))}
+        <button type="button" disabled={page >= pages} onClick={() => onPage(page + 1)} className={`${btn} bg-white ring-1 ring-gray-200 disabled:opacity-40`} aria-label="Sonraki sayfa"><ChevronRight className="h-4 w-4" /></button>
+      </div>
+      <select value={size} onChange={(e) => onSize(Number(e.target.value))} className="h-9 px-2 rounded-xl bg-white ring-1 ring-gray-200 text-xs font-bold text-gray-600 outline-none" aria-label="Sayfa başına">
+        {[25, 50, 100].map((n) => <option key={n} value={n}>Sayfa başına {n}</option>)}
+      </select>
+    </div>
+  );
+};
+
+// Duruma göre ne yapılmalı
+const ADVICE = {
+  AT_RISK: 'Alışkanlığının dışına çıktı. Kayba dönüşmeden arayın; stok, fiyat ya da teslimatla ilgili bir sorun yaşayıp yaşamadığını sorun.',
+  DECLINING: 'Hâlâ alıyor ama alımını azalttı; başka tedarikçiye kayıyor olabilir. Arayıp nedenini öğrenin, kampanya ya da özel fiyat önerin.',
+  LOST: 'Uzun süredir sipariş vermiyor. Geri kazanmak için arayın, neden bıraktığını öğrenin; uygun bir teklifle geri dönün.',
+  NEVER: 'Hesabı açık ama hiç sipariş vermedi. Portala girişte ya da sipariş vermede zorlanıyor olabilir; kısa bir tanıtım araması yapın.',
+  NEW: 'İlk siparişini verdi. Memnuniyetini sorun, ikinci siparişi teşvik edin; düzenli müşteriye dönüşmesi bu dönemde belirlenir.',
+  ACTIVE: 'Düzenli sipariş veriyor. İlişkiyi koruyun; ek ürün ya da üst segment önerisi için uygun bir müşteri.',
+};
+
+const Stat = ({ label, value, sub }) => (
+  <div className="rounded-2xl bg-gray-50 px-4 py-3">
+    <p className="text-[10px] font-black text-gray-400 uppercase tracking-widest">{label}</p>
+    <p className="mt-0.5 text-base font-black text-gray-900 tabular-nums">{value}</p>
+    {sub && <p className="text-[11px] text-gray-500">{sub}</p>}
+  </div>
+);
+
+// Müşteri ayrıntısı: durumu, nedeni, önerilen adım ve sayılarla geçmişi
+const CustomerDetail = ({ x, range, canPartner, onClose }) => {
+  const st = STATUS[x.status];
+  const since = x.daysSince == null ? '—' : x.daysSince >= 60 ? `${Math.floor(x.daysSince / 30)} ay ${x.daysSince % 30} gün` : `${x.daysSince} gün`;
+  const change = x.prev90 ? Math.round(((x.rev90 - x.prev90) / x.prev90) * 100) : null;
+  useEffect(() => {
+    const onKey = (e) => e.key === 'Escape' && onClose();
+    window.addEventListener('keydown', onKey);
+    return () => window.removeEventListener('keydown', onKey);
+  }, [onClose]);
+  return (
+    <div className="fixed inset-0 z-50 flex items-center justify-center p-3 md:p-4">
+      <div className="modal-backdrop" onClick={onClose} />
+      <div className="modal-panel w-full max-w-xl max-h-[92vh] flex flex-col" role="dialog" aria-modal="true" aria-label={x.name}>
+        <div className="p-5 md:p-6 border-b border-gray-100 flex items-start gap-4">
+          <span className="h-12 w-12 shrink-0 rounded-full flex items-center justify-center text-sm font-black text-white" style={{ background: st?.color }}>{initials(x.name)}</span>
+          <div className="min-w-0 flex-1">
+            <h3 className="text-lg font-black text-gray-900 leading-tight">{x.name}</h3>
+            <p className="text-xs text-gray-500 mt-0.5">{[x.kind === 'DEALER' ? 'Bayi' : 'Müşteri', x.contact, x.owner && `Sorumlu: ${x.owner}`].filter(Boolean).join(' · ')}</p>
+            <div className="mt-2"><Pill s={x.status} /></div>
+          </div>
+          <button type="button" onClick={onClose} className="modal-close" aria-label="Kapat"><X className="h-5 w-5" /></button>
+        </div>
+
+        <div className="p-5 md:p-6 space-y-5 overflow-y-auto">
+          {/* Durum ve öneri */}
+          <div className="rounded-2xl p-4 border" style={{ borderColor: `${st?.color}55`, background: `${st?.color}12` }}>
+            <p className="text-sm font-black text-gray-900">{st?.label}: {x.reason}</p>
+            <p className="mt-2 text-sm text-gray-700 flex gap-2"><Lightbulb className="h-4 w-4 shrink-0 mt-0.5 text-gray-500" /> {ADVICE[x.status]}</p>
+          </div>
+
+          {x.lastOrderAt && (
+            <div>
+              <p className="text-[11px] font-black text-gray-400 uppercase tracking-widest mb-2">{x.status === 'DECLINING' ? 'Alım değişimi' : 'Alışkanlığından sapma'}</p>
+              <div className="[&>div]:w-full"><Overdue x={x} /></div>
+              {x.status !== 'DECLINING' && <p className="mt-1.5 text-[11px] text-gray-500">Çizgiler: 1,5 kat risk sınırı, 3 kat kayıp sınırı.</p>}
+            </div>
+          )}
+
+          <div className="grid grid-cols-2 gap-2">
+            <Stat label="Son sipariş" value={x.lastOrderAt ? formatDate(x.lastOrderAt) : 'Hiç yok'} sub={x.lastOrderAt ? `${since} önce` : null} />
+            <Stat label="Olağan aralık" value={x.typicalDays ? `~${x.typicalDays} gün` : '—'} sub={x.typicalDays ? 'son 12 ayın ortancası' : 'yeterli geçmiş yok'} />
+            <Stat label="Son 12 ay" value={formatTRY(x.revenue12m)} sub={`${x.orders12m} sipariş`} />
+            <Stat label="Rapor dönemi" value={x.periodRevenue ? formatTRY(x.periodRevenue) : '—'} sub={x.periodOrders ? `${x.periodOrders} sipariş` : 'sipariş yok'} />
+            <Stat label="Son 90 gün" value={formatTRY(x.rev90)} sub={change == null ? 'önceki 90 günde alım yok' : `önceki 90 güne göre ${change >= 0 ? '+' : ''}%${change}`} />
+            <Stat label="Açık alacak" value={x.receivableTRY ? formatTRY(x.receivableTRY) : 'Yok'} sub={x.overLimit ? 'risk limiti aşıldı' : null} />
+          </div>
+          {range && <p className="text-[11px] text-gray-400">Değerler {formatDate(range.from)} – {formatDate(range.to)} raporuna göre; tutarlar TL, KDV hariç.</p>}
+        </div>
+
+        <div className="p-4 md:p-5 border-t border-gray-100 flex flex-wrap gap-2">
+          {x.phone && <a href={`tel:+${intl(x.phone)}`} className="h-11 px-4 rounded-xl bg-indigo-600 text-white text-sm font-black flex items-center gap-2 hover:bg-indigo-700"><Phone className="h-4 w-4" /> Ara · {x.phone}</a>}
+          {x.phone && <a href={`https://wa.me/${intl(x.phone)}`} target="_blank" rel="noreferrer" className="h-11 px-4 rounded-xl bg-emerald-50 text-emerald-700 text-sm font-black flex items-center gap-2 hover:bg-emerald-100"><MessageCircle className="h-4 w-4" /> WhatsApp</a>}
+          {canPartner && <Link to={`/admin/partners?id=${x.id}`} className="h-11 px-4 rounded-xl bg-white ring-1 ring-gray-200 text-sm font-black text-gray-700 flex items-center gap-2 hover:bg-gray-50 ml-auto"><BookUser className="h-4 w-4" /> Cari kartını aç</Link>}
+        </div>
+      </div>
+    </div>
+  );
+};
+
 /**
  * Müşteri takip raporu: kayıtlı (haftalık / aylık) raporlar ya da seçilen dönem için anlık rapor.
  * Özet, öncelikli aranacaklar listesi, cari durumu, en çok alanlar ve tüm müşterilerin durumu; Excel'e indirilir.
@@ -139,9 +354,15 @@ const CustomerReport = () => {
   const [live, setLive] = useState(savedId ? null : 'lastWeek');
   const [report, setReport] = useState(null);
   const [loading, setLoading] = useState(true);
-  const [filter, setFilter] = useState('');
-  const [q, setQ] = useState('');
+  const [filter, setFilterState] = useState('');
+  const [q, setQState] = useState('');
+  const [page, setPage] = useState(1);
+  const [pageSize, setPageSize] = useState(25);
+  const [detail, setDetail] = useState(null);
   const { alertElement, showAlert } = useAlert();
+  // Filtre ya da arama değişince ilk sayfaya dönülür
+  const setFilter = (v) => { setFilterState(v); setPage(1); };
+  const setQ = (v) => { setQState(v); setPage(1); };
 
   useEffect(() => { api.get('/reports/periodic').then((r) => setSaved(r.data)).catch(() => {}); }, []);
 
@@ -156,8 +377,8 @@ const CustomerReport = () => {
     return () => { cancelled = true; };
   }, [key]); // eslint-disable-line react-hooks/exhaustive-deps
 
-  const chooseLive = (id) => { setLoading(true); setLive(id); setParams({}); };
-  const chooseSaved = (id) => { if (!id) return chooseLive('lastWeek'); setLoading(true); setLive(null); setParams({ rapor: String(id) }); };
+  const chooseLive = (id) => { setLoading(true); setLive(id); setPage(1); setParams({}); };
+  const chooseSaved = (id) => { if (!id) return chooseLive('lastWeek'); setLoading(true); setLive(null); setPage(1); setParams({ rapor: String(id) }); };
   const exportExcel = () => (savedId
     ? downloadFile(`/reports/periodic/${savedId}/export`, {}, 'musteri-raporu.xlsx')
     : downloadFile('/reports/periodic/live/export', { from: liveRange[0], to: liveRange[1] }, 'musteri-raporu.xlsx'))
@@ -168,6 +389,10 @@ const CustomerReport = () => {
     return (report?.customers || []).filter((c) => (!filter || c.status === filter) && (!term || c.name.toLocaleLowerCase('tr-TR').includes(term)));
   }, [report, filter, q]);
 
+  const pages = Math.max(1, Math.ceil(customers.length / pageSize));
+  const current = Math.min(page, pages);
+  const pageRows = customers.slice((current - 1) * pageSize, current * pageSize);
+
   const s = report?.summary;
   const c = report?.cari;
   const risky = report ? (report.statusCounts.AT_RISK || 0) + (report.statusCounts.DECLINING || 0) : 0;
@@ -175,6 +400,7 @@ const CustomerReport = () => {
   return (
     <div className="space-y-6">
       {alertElement}
+      {detail && <CustomerDetail x={detail} range={report?.range} canPartner={can(user, 'FINANCE') || can(user, 'DEALERS')} onClose={() => setDetail(null)} />}
       <ScheduleSettings canEdit={can(user, 'SETTINGS')} showAlert={showAlert} />
 
       {/* Rapor seçimi */}
@@ -214,17 +440,17 @@ const CustomerReport = () => {
               <p className="text-sm font-black text-gray-900">Müşteri durumu <span className="font-medium text-gray-400">· {s.activeAccounts} aktif hesap</span></p>
               <p className="text-xs text-gray-500 flex items-center gap-1.5"><Info className="h-3.5 w-3.5" /> Her müşterinin kendi sipariş sıklığına göre değerlendirilir · kayıp eşiği {report.lostDays} gün</p>
             </div>
-            <div className="flex h-3 rounded-full overflow-hidden bg-gray-100">
-              {Object.keys(STATUS).map((k) => (report.statusCounts[k] ? <span key={k} className={STATUS[k].dot} style={{ width: `${(report.statusCounts[k] / Math.max(1, s.activeAccounts)) * 100}%` }} title={`${STATUS[k].label}: ${report.statusCounts[k]}`} /> : null))}
-            </div>
+            <StatusBar counts={report.statusCounts} total={s.activeAccounts} active={filter} onPick={(k) => setFilter(filter === k ? '' : k)} />
             <div className="mt-3 flex flex-wrap gap-2">
               {Object.entries(STATUS).map(([k, st]) => (
                 <button key={k} type="button" onClick={() => setFilter(filter === k ? '' : k)} className={`h-8 px-3 rounded-lg text-xs font-bold flex items-center gap-2 ${filter === k ? 'bg-gray-900 text-white' : 'bg-gray-50 text-gray-700 hover:bg-gray-100'}`}>
-                  <span className={`h-2 w-2 rounded-full ${st.dot}`} /> {st.label} <b>{report.statusCounts[k] || 0}</b>
+                  <span className="h-2.5 w-2.5 rounded-sm" style={{ background: st.color }} /> {st.label} <b>{report.statusCounts[k] || 0}</b>
                 </button>
               ))}
             </div>
           </div>
+
+          {report.trend && <TrendCharts trend={report.trend} />}
 
           {/* Aranacaklar */}
           <div className="card-premium overflow-hidden">
@@ -235,17 +461,23 @@ const CustomerReport = () => {
               </div>
             </div>
             <div className="overflow-x-auto">
-              <table className="w-full min-w-[52rem] text-sm">
-                <thead className="list-head"><tr className="text-left text-[10px] font-black text-gray-500 uppercase tracking-[0.15em]"><th className="px-5 py-3">#</th><th className="px-5 py-3">Müşteri</th><th className="px-5 py-3">Neden</th><th className="px-5 py-3">Son sipariş</th><th className="px-5 py-3 text-right">Son 12 ay</th><th className="px-5 py-3" /></tr></thead>
+              <table className="w-full min-w-[62rem] text-sm">
+                <thead className="list-head"><tr className="text-left text-[10px] font-black text-gray-500 uppercase tracking-[0.15em]"><th className="px-5 py-3">#</th><th className="px-5 py-3">Müşteri</th><th className="px-5 py-3">Neden</th><th className="px-5 py-3">Gecikme</th><th className="px-5 py-3">Son sipariş</th><th className="px-5 py-3 text-right">Son 12 ay</th><th className="px-5 py-3" /></tr></thead>
                 <tbody className="divide-y divide-gray-100/70">
                   {report.callList.map((x, i) => (
-                    <tr key={x.id} className="align-top hover:bg-slate-50/70">
+                    <tr key={x.id} className="align-top hover:bg-slate-50/70 cursor-pointer" onClick={() => setDetail(x)}>
                       <td className="px-5 py-3 font-black text-gray-400">{i + 1}</td>
-                      <td className="px-5 py-3 min-w-[12rem]"><p className="font-black text-gray-900">{x.name}</p><p className="text-xs text-gray-500">{[x.contact, x.owner && `Sorumlu: ${x.owner}`].filter(Boolean).join(' · ')}</p></td>
-                      <td className="px-5 py-3"><Pill s={x.status} /><p className="mt-1 text-xs text-gray-600 max-w-md">{x.reason}</p></td>
+                      <td className="px-5 py-3 min-w-[13rem]">
+                        <div className="flex items-start gap-3">
+                          <span className="h-9 w-9 shrink-0 rounded-full flex items-center justify-center text-xs font-black text-white" style={{ background: STATUS[x.status]?.color }}>{initials(x.name)}</span>
+                          <div><p className="font-black text-gray-900">{x.name}</p><p className="text-xs text-gray-500">{[x.contact, x.owner && `Sorumlu: ${x.owner}`].filter(Boolean).join(' · ')}</p></div>
+                        </div>
+                      </td>
+                      <td className="px-5 py-3"><Pill s={x.status} /><p className="mt-1 text-xs text-gray-600 max-w-sm">{x.reason}</p></td>
+                      <td className="px-5 py-3 pt-4"><Overdue x={x} /></td>
                       <td className="px-5 py-3 whitespace-nowrap text-xs text-gray-600">{x.lastOrderAt ? formatDate(x.lastOrderAt) : '—'}{x.daysSince != null && <span className="block font-black text-gray-900">{x.daysSince} gün önce</span>}</td>
                       <td className="px-5 py-3 text-right font-bold tabular-nums whitespace-nowrap">{formatTRY(x.revenue12m)}{x.receivableTRY > 0 && <span className="block text-[11px] font-semibold text-amber-700">açık: {formatTRY(x.receivableTRY)}</span>}</td>
-                      <td className="px-5 py-3 whitespace-nowrap text-right">
+                      <td className="px-5 py-3 whitespace-nowrap text-right" onClick={(e) => e.stopPropagation()}>
                         {x.phone && <>
                           <a href={`tel:+${intl(x.phone)}`} className="inline-flex p-2 rounded-lg text-indigo-600 hover:bg-indigo-50" title={`Ara: ${x.phone}`}><Phone className="h-4 w-4" /></a>
                           <a href={`https://wa.me/${intl(x.phone)}`} target="_blank" rel="noreferrer" className="inline-flex p-2 rounded-lg text-emerald-600 hover:bg-emerald-50" title="WhatsApp'tan yaz"><MessageCircle className="h-4 w-4" /></a>
@@ -253,7 +485,7 @@ const CustomerReport = () => {
                       </td>
                     </tr>
                   ))}
-                  {report.callList.length === 0 && <tr><td colSpan={6} className="text-center py-10 text-gray-400 font-bold">Aranması gereken müşteri yok; herkes alışkanlığına uygun sipariş veriyor.</td></tr>}
+                  {report.callList.length === 0 && <tr><td colSpan={7} className="text-center py-10 text-gray-400 font-bold">Aranması gereken müşteri yok; herkes alışkanlığına uygun sipariş veriyor.</td></tr>}
                 </tbody>
               </table>
             </div>
@@ -308,26 +540,26 @@ const CustomerReport = () => {
                 <input className="premium-input !h-10 !pl-9" value={q} onChange={(e) => setQ(e.target.value)} placeholder="Müşteri ara…" />
               </div>
             </div>
-            <div className="overflow-x-auto max-h-[36rem] overflow-y-auto">
+            <div className="overflow-x-auto">
               <table className="w-full min-w-[56rem] text-sm">
-                <thead className="list-head sticky top-0 z-10"><tr className="text-left text-[10px] font-black text-gray-500 uppercase tracking-[0.15em]"><th className="px-5 py-3">Müşteri</th><th className="px-5 py-3">Durum</th><th className="px-5 py-3">Son sipariş</th><th className="px-5 py-3">Olağan aralık</th><th className="px-5 py-3 text-right">Dönem</th><th className="px-5 py-3 text-right">Son 90 gün</th><th className="px-5 py-3 text-right">Önceki 90 gün</th></tr></thead>
+                <thead className="list-head"><tr className="text-left text-[10px] font-black text-gray-500 uppercase tracking-[0.15em]"><th className="px-5 py-3">Müşteri</th><th className="px-5 py-3">Durum</th><th className="px-5 py-3">Son sipariş</th><th className="px-5 py-3">Olağan aralık</th><th className="px-5 py-3 text-right">Dönem</th><th className="px-5 py-3 text-right">Son 90 gün</th><th className="px-5 py-3 text-right">Değişim</th></tr></thead>
                 <tbody className="divide-y divide-gray-100/70">
-                  {customers.slice(0, 500).map((x) => (
-                    <tr key={x.id} className="hover:bg-slate-50/70">
-                      <td className="px-5 py-2.5"><p className="font-bold text-gray-900">{x.name}</p><p className="text-[11px] text-gray-400 max-w-xs truncate" title={x.reason}>{x.reason}</p></td>
+                  {pageRows.map((x) => (
+                    <tr key={x.id} className="hover:bg-slate-50/70 cursor-pointer" onClick={() => setDetail(x)}>
+                      <td className="px-5 py-2.5"><p className="font-bold text-gray-900 hover:text-indigo-700">{x.name}</p><p className="text-[11px] text-gray-400 max-w-xs truncate" title={x.reason}>{x.reason}</p></td>
                       <td className="px-5 py-2.5"><Pill s={x.status} /></td>
                       <td className="px-5 py-2.5 whitespace-nowrap text-xs text-gray-600">{x.lastOrderAt ? <>{formatDate(x.lastOrderAt)} <b className="text-gray-900">· {x.daysSince >= 60 ? `${Math.floor(x.daysSince / 30)} ay` : `${x.daysSince} gün`}</b></> : '—'}</td>
                       <td className="px-5 py-2.5 text-xs text-gray-600">{x.typicalDays ? `~${x.typicalDays} gün` : '—'}</td>
                       <td className="px-5 py-2.5 text-right tabular-nums">{x.periodRevenue ? formatTRY(x.periodRevenue) : '—'}</td>
                       <td className="px-5 py-2.5 text-right tabular-nums">{formatTRY(x.rev90)}</td>
-                      <td className="px-5 py-2.5 text-right tabular-nums text-gray-500">{formatTRY(x.prev90)}</td>
+                      <td className="px-5 py-2.5 text-right"><Change now={x.rev90} prev={x.prev90} /><span className="block text-[10px] text-gray-400 tabular-nums">önceki {formatTRY(x.prev90)}</span></td>
                     </tr>
                   ))}
                   {customers.length === 0 && <tr><td colSpan={7} className="text-center py-10 text-gray-400 font-bold">Müşteri bulunamadı.</td></tr>}
                 </tbody>
               </table>
             </div>
-            {customers.length > 500 && <p className="p-3 text-center text-xs text-gray-500">İlk 500 müşteri gösteriliyor; tamamı Excel'de.</p>}
+            {customers.length > 0 && <Pager page={current} pages={pages} total={customers.length} size={pageSize} onPage={setPage} onSize={(n) => { setPageSize(n); setPage(1); }} />}
           </div>
         </div>
       )}

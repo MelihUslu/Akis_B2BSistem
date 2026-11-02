@@ -738,6 +738,9 @@ test('dönemsel müşteri raporu: kayıp / risk algoritması, cari özet, zamanl
   assert.equal(live.data.cari.collectionRate, 40);
   assert.ok(live.data.cari.receivable >= 1800);
   assert.ok(live.data.summary.customers >= 2);
+  assert.equal(live.data.trend.unit, 'week');
+  assert.equal(live.data.trend.points.length, 8);
+  assert.ok(live.data.trend.points.at(-1).customers >= 2, 'son haftada sipariş veren müşteriler');
 
   // Zamanlanmış üretim: ayar kaydedilir, zamanı gelen rapor bir kez üretilir, yöneticiye bildirim gider
   const set = await api('/reports/periodic/settings', { ...A, method: 'PUT', body: { weekly: { enabled: true, weekday: 1, hour: 9 }, monthly: { enabled: false }, lostDays: 45 } });

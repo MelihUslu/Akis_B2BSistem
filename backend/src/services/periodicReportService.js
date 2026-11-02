@@ -28,6 +28,7 @@ const DAY = 24 * 60 * 60 * 1000;
 const TR_OFFSET = 3 * 60 * 60 * 1000; // Türkiye UTC+3 (yaz saati yok)
 const r2 = (n) => Math.round(Number((n * 100).toPrecision(15))) / 100;
 const KEY = 'periodic_report';
+const SOLD = ['APPROVED', 'PARTIAL_APPROVED', 'SHIPPED', 'COMPLETED']; // satış sayılan siparişler (satış raporuyla aynı)
 
 export const STATUS = {
   LOST: 'Kaybedildi', AT_RISK: 'Risk altında', DECLINING: 'Düşüşte', NEW: 'Yeni', ACTIVE: 'Aktif', NEVER: 'Hiç sipariş vermedi'
@@ -106,7 +107,7 @@ export const buildCustomerReport = async ({ from, to, period = 'CUSTOM', lostDay
         owner: { select: { name: true } }, plasiyer: { select: { name: true } }, contacts: { select: { name: true, phone: true }, take: 1 }
       }
     }),
-    prisma.order.findMany({ where: { status: { not: 'CANCELLED' }, createdAt: { gte: since, lte: ref } }, select: { companyId: true, createdAt: true, subtotal: true, discountAmount: true } }),
+    prisma.order.findMany({ where: { status: { not: 'CANCELLED' }, createdAt: { gte: since, lte: ref } }, select: { companyId: true, createdAt: true, subtotal: true, discountAmount: true, status: true } }),
     prisma.order.groupBy({ by: ['companyId'], where: { status: { not: 'CANCELLED' }, createdAt: { lte: ref } }, _min: { createdAt: true }, _max: { createdAt: true } }),
     prisma.financialTransaction.findMany({
       where: { date: { gte: from, lte: to }, company: { kind: { in: ['DEALER', 'CUSTOMER'] } } },
@@ -179,6 +180,29 @@ export const buildCustomerReport = async ({ from, to, period = 'CUSTOM', lostDay
     };
   });
 
+  // Eğilim: haftalık dönemde son 8 hafta, daha uzun dönemde son 6 takvim ayı (satış sayılan siparişler)
+  const weekly = len <= 10 * DAY;
+  const buckets = [];
+  if (weekly) {
+    const end = trParts(new Date(ref.getTime()));
+    const endDay = trMidnight(end.y, end.m, end.d + 1);
+    for (let i = 7; i >= 0; i--) buckets.push({ from: new Date(endDay.getTime() - (i + 1) * 7 * DAY), to: new Date(endDay.getTime() - i * 7 * DAY - 1) });
+  } else {
+    const e = trParts(ref);
+    for (let i = 5; i >= 0; i--) buckets.push({ from: trMidnight(e.y, e.m - i, 1), to: new Date(trMidnight(e.y, e.m - i + 1, 1).getTime() - 1) });
+  }
+  const sold = orders.filter((o) => SOLD.includes(o.status));
+  const trend = buckets.map((b) => {
+    const inB = sold.filter((o) => o.createdAt >= b.from && o.createdAt <= b.to);
+    return {
+      from: b.from, to: b.to,
+      label: weekly ? fmt(b.from).slice(0, 5) : new Date(b.from.getTime() + TR_OFFSET).toLocaleDateString('tr-TR', { month: 'short', year: '2-digit', timeZone: 'UTC' }),
+      customers: new Set(inB.map((o) => o.companyId)).size,
+      orders: inB.length,
+      revenue: r2(inB.reduce((sum, o) => sum + Math.max(0, (o.subtotal || 0) - (o.discountAmount || 0)), 0))
+    };
+  });
+
   const statusCounts = Object.fromEntries(Object.keys(STATUS).map((k) => [k, customers.filter((c) => c.status === k).length]));
   const callList = customers.filter((c) => c.score > 0).sort((a, b) => b.score - a.score).slice(0, 50);
 
@@ -211,6 +235,7 @@ export const buildCustomerReport = async ({ from, to, period = 'CUSTOM', lostDay
       overLimit: customers.filter((c) => c.overLimit).length
     },
     statusCounts,
+    trend: { unit: weekly ? 'week' : 'month', points: trend },
     callList,
     topCustomers: sales.dealers.slice(0, 10).map((d) => ({ id: d.id, name: d.name, orders: d.orders, revenue: d.revenue, share: d.share })),
     topDebtors: customers.filter((c) => c.receivableTRY > 0).sort((a, b) => b.receivableTRY - a.receivableTRY).slice(0, 15)
