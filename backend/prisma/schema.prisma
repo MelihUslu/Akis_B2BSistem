@@ -730,6 +730,7 @@ model Tenant {
   PartnerNote            PartnerNote[]
   PartnerDocument        PartnerDocument[]
   StatementRequest       StatementRequest[]
+  customerLeads          CustomerLead[]
 }
 
 // Kiracının platforma yaptığı abonelik ödemeleri (iyzico veya manuel)
@@ -1311,4 +1312,28 @@ model ChatMessage {
   createdAt DateTime    @default(now())
 
   @@index([sessionId, id])
+}
+
+// Firmanın müşteri adayı: Instagram / WhatsApp reklamından yazan, talep formunu dolduran ya da elle eklenen kişi
+model CustomerLead {
+  id          Int      @id @default(autoincrement())
+  tenantId    Int
+  tenant      Tenant   @relation(fields: [tenantId], references: [id])
+  name        String
+  phone       String   @default("")
+  email       String   @default("")
+  city        String   @default("")
+  source      String   @default("OTHER") // INSTAGRAM, WHATSAPP, FACEBOOK, FORM, PHONE, OTHER
+  campaign    String   @default("") // Reklam / kampanya adı
+  request     String   @default("") // Ne istedi (ürün, adet, mesaj)
+  status      String   @default("NEW") // NEW, CONTACTED, ORDERED, LOST
+  note        String   @default("")
+  viaForm     Boolean  @default(false) // Kişi talep formunu kendisi doldurdu
+  utm         Json?
+  createdById Int?
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  @@index([tenantId, createdAt])
+  @@index([tenantId, phone])
 }

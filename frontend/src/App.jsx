@@ -11,6 +11,7 @@ import { I18nProvider } from './i18n';
 const Login = lazy(() => import('./pages/Login'));
 const VerifyEmail = lazy(() => import('./pages/VerifyEmail'));
 const DealerApplication = lazy(() => import('./pages/DealerApplication'));
+const LeadForm = lazy(() => import('./pages/LeadForm'));
 const Impersonate = lazy(() => import('./pages/Impersonate'));
 const LoginHandoff = lazy(() => import('./pages/LoginHandoff'));
 const ForgotPassword = lazy(() => import('./pages/ForgotPassword'));
@@ -60,6 +61,8 @@ const AppRoutes = () => {
       <Route path="/developer" element={<ApiDocs />} />
       <Route path="/forgot-password" element={<ForgotPassword />} />
       <Route path="/reset-password" element={<ResetPassword />} />
+      {/* Reklamdan gelen kişinin dolduracağı talep formu (Instagram bio, WhatsApp mesajı) */}
+      <Route path="/talep" element={<LeadForm />} />
       <Route path="/basvuru" element={user ? <Navigate to="/" replace /> : <DealerApplication />} />
       <Route path="/print/order/:id" element={<ProtectedRoute allowedRoles={['ADMIN', 'BAYI']}><PrintOrder /></ProtectedRoute>} />
       <Route path="/print/quote/:id" element={<ProtectedRoute allowedRoles={['ADMIN', 'BAYI']}><PrintQuote /></ProtectedRoute>} />

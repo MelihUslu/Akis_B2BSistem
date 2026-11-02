@@ -518,3 +518,47 @@ test('ortak giriş (/giris): şifre doğrulanır, portala tek kullanımlık ve y
   assert.equal(again.status, 401, 'kod ikinci kez kullanılamaz');
   assert.equal((await api('/auth/handoff', { tenant: 'itest-a', method: 'POST', body: { code: 'sahte' } })).status, 401);
 });
+
+test('müşteri adayları: talep formu, elle ekleme, filtre, firma ayrımı ve Excel', { skip }, async () => {
+  const A = { tenant: 'itest-a', token: tenants['itest-a'].token };
+  const B = { tenant: 'itest-b', token: tenants['itest-b'].token };
+
+  const noConsent = await api('/lead-form', { tenant: 'itest-a', method: 'POST', body: { name: 'Ayşe', phone: '0532 111 22 33' } });
+  assert.equal(noConsent.status, 400);
+  const form = await api('/lead-form', { tenant: 'itest-a', method: 'POST', body: { name: 'Ayşe Yılmaz', phone: '+90 532 111 22 33', request: '10 koli deterjan', k: 'instagram', campaign: 'Kasım reklamı', kvkkConsent: true } });
+  assert.equal(form.status, 201);
+  // Aynı numara 24 saat içinde tekrar yazarsa talep aynı kayda eklenir
+  await api('/lead-form', { tenant: 'itest-a', method: 'POST', body: { name: 'Ayşe Yılmaz', phone: '05321112233', request: '5 koli daha', kvkkConsent: true } });
+
+  const manual = await api('/customer-leads', { ...A, method: 'POST', body: { name: '@mehmet_insaat', phone: '5441234567', source: 'WHATSAPP', request: 'Fiyat listesi istedi' } });
+  assert.equal(manual.status, 201);
+  assert.equal(manual.data.lead.phone, '05441234567');
+
+  const list = await api('/customer-leads', A);
+  assert.equal(list.status, 200);
+  assert.equal(list.data.total, 2);
+  const ayse = list.data.items.find((l) => l.name === 'Ayşe Yılmaz');
+  assert.equal(ayse.phone, '05321112233');
+  assert.equal(ayse.source, 'INSTAGRAM');
+  assert.equal(ayse.campaign, 'Kasım reklamı');
+  assert.match(ayse.request, /10 koli deterjan[\s\S]*5 koli daha/);
+  assert.deepEqual(list.data.campaigns, ['Kasım reklamı']);
+
+  const upd = await api(`/customer-leads/${ayse.id}`, { ...A, method: 'PATCH', body: { status: 'ORDERED', note: 'Siparişi alındı' } });
+  assert.equal(upd.data.lead.status, 'ORDERED');
+  const filtered = await api('/customer-leads?status=ORDERED', A);
+  assert.equal(filtered.data.total, 1);
+  assert.equal(filtered.data.counts.NEW, 1, 'sekme sayıları durum filtresinden bağımsız');
+  assert.equal((await api('/customer-leads?q=532 111', A)).data.items[0].name, 'Ayşe Yılmaz', 'telefonla arama');
+
+  // Başka firma göremez, değiştiremez
+  assert.equal((await api('/customer-leads', B)).data.total, 0);
+  assert.equal((await api(`/customer-leads/${ayse.id}`, { ...B, method: 'PATCH', body: { status: 'LOST' } })).status, 404);
+
+  const xlsx = await fetch(`${base}/api/customer-leads/export`, { headers: { 'X-Tenant': 'itest-a', Authorization: `Bearer ${A.token}` } });
+  assert.equal(xlsx.status, 200);
+  assert.match(xlsx.headers.get('content-type'), /spreadsheetml/);
+
+  assert.equal((await api(`/customer-leads/${ayse.id}`, { ...A, method: 'DELETE' })).status, 200);
+  assert.equal((await api('/customer-leads', A)).data.total, 1);
+});

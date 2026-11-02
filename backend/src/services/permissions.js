@@ -7,6 +7,7 @@ export const PERMISSIONS = {
   QUOTE_APPROVAL: 'Sınırı aşan teklifleri onaylama',
   DEALERS: 'Bayiler, bayi kullanıcıları, başvurular',
   FINANCE: 'Cari hesaplar, tahsilatlar, prim',
+  LEADS: 'Müşteri adayları (Instagram, WhatsApp, talep formu) ve Excel',
   SETTINGS: 'Ayarlar, ekip, entegrasyon, sanal POS, abonelik'
 };
 

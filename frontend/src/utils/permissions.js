@@ -7,6 +7,7 @@ export const PERMISSION_LABELS = {
   QUOTE_APPROVAL: 'Teklif onayı',
   DEALERS: 'Bayiler',
   FINANCE: 'Finans',
+  LEADS: 'Müşteri adayları',
   SETTINGS: 'Ayarlar',
 };
 

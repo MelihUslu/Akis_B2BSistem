@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Bell, CheckCheck, Package, Wallet, RotateCcw, ShoppingCart, Info } from 'lucide-react';
+import { Bell, CheckCheck, Package, Wallet, RotateCcw, ShoppingCart, Info, Inbox } from 'lucide-react';
 import api from '../services/api';
 import { formatDate } from '../utils/format';
 import { t } from '../i18n';
@@ -14,6 +14,7 @@ const TYPE_ICON = {
   PAYMENT: Wallet,
   STOCK: Package,
   RETURN: RotateCcw,
+  LEAD: Inbox,
 };
 
 const browserNotificationsSupported = () => typeof window !== 'undefined' && 'Notification' in window;
