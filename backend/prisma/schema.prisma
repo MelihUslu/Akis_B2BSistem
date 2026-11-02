@@ -734,6 +734,7 @@ model Tenant {
   whatsappChannel        WhatsappChannel?
   waConversations        WaConversation[]
   waMessages             WaMessage[]
+  periodicReports        PeriodicReport[]
 }
 
 // Kiracının platforma yaptığı abonelik ödemeleri (iyzico veya manuel)
@@ -1401,4 +1402,19 @@ model WaMessage {
   createdAt      DateTime       @default(now())
 
   @@index([conversationId, createdAt])
+}
+
+// Zamanlanmış dönemsel rapor (haftalık / aylık): oluşturulduğu andaki sonuç saklanır, panelden açılır ve indirilir
+model PeriodicReport {
+  id        Int      @id @default(autoincrement())
+  tenantId  Int
+  tenant    Tenant   @relation(fields: [tenantId], references: [id])
+  period    String // WEEKLY, MONTHLY
+  from      DateTime
+  to        DateTime
+  data      Json
+  createdAt DateTime @default(now())
+
+  @@unique([tenantId, period, from])
+  @@index([tenantId, createdAt])
 }

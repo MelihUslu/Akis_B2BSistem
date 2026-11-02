@@ -688,3 +688,80 @@ test('WhatsApp: bağlantı, imzalı webhook, yapay zekâ cevabı, ekibe devretme
     for (const [k, v] of Object.entries(env)) { if (v === undefined) delete process.env[k]; else process.env[k] = v; }
   }
 });
+
+test('menü rozetleri: yetkili bölümlerin bekleyen iş sayıları', { skip }, async () => {
+  const res = await api('/dashboard/menu-counts', { tenant: 'itest-a', token: tenants['itest-a'].token });
+  assert.equal(res.status, 200);
+  for (const k of ['orders', 'returns', 'quotes', 'dealers', 'leads', 'whatsapp']) assert.equal(typeof res.data[k], 'number', k);
+  assert.equal(res.data.whatsapp, 0, 'ekibin yanıtladığı konuşma beklemiyor');
+});
+
+test('dönemsel müşteri raporu: kayıp / risk algoritması, cari özet, zamanlanmış üretim ve bildirim', { skip }, async () => {
+  const A = { tenant: 'itest-a', token: tenants['itest-a'].token };
+  const tenantId = tenants['itest-a'].id;
+  const DAYMS = 864e5;
+  const ago = (d) => new Date(Date.now() - d * DAYMS);
+  const admin = await runAsPlatform(() => prisma.user.findFirst({ where: { tenantId, email: 'admin@itest-a.test' } }));
+  const company = (name, createdDaysAgo = 400) => runAsPlatform(() => prisma.company.create({ data: { tenantId, name, kind: 'DEALER', status: 'ACTIVE', phone: '0532 000 00 00', createdAt: ago(createdDaysAgo) } }));
+  const order = (companyId, daysAgo, amount = 1000) => runAsPlatform(() => prisma.order.create({ data: { tenantId, userId: admin.id, companyId, subtotal: amount, totalAmount: amount * 1.2, status: 'COMPLETED', createdAt: ago(daysAgo) } }));
+
+  const regular = await company('Rapor Düzenli Bayi'); // haftada bir alıyordu, 25 gündür almıyor → risk altında
+  for (let d = 25; d <= 95; d += 7) await order(regular.id, d, 5000);
+  const lost = await company('Rapor Kayıp Bayi'); // 100 gündür almıyor → kaybedildi
+  await order(lost.id, 100); await order(lost.id, 130);
+  await company('Rapor Hiç Almayan', 30); // hiç sipariş yok
+  const fresh = await company('Rapor Yeni Bayi', 5); // ilk siparişi bu hafta
+  await order(fresh.id, 2, 2500);
+  const steady = await company('Rapor Aktif Bayi'); // 3 günde bir
+  for (let d = 1; d <= 60; d += 3) await order(steady.id, d, 800);
+  await runAsPlatform(() => prisma.financialTransaction.createMany({ data: [
+    { tenantId, companyId: fresh.id, type: 'DEBT', amount: 3000, source: 'ORDER', date: ago(2) },
+    { tenantId, companyId: fresh.id, type: 'CREDIT', amount: 1200, source: 'PAYMENT', date: ago(1) }
+  ] }));
+  await runAsPlatform(() => prisma.company.update({ where: { id: fresh.id }, data: { currentBalance: -1800 } }));
+
+  const iso = (d) => d.toISOString().slice(0, 10);
+  const live = await api(`/reports/periodic/live?from=${iso(ago(6))}&to=${iso(new Date())}`, A);
+  assert.equal(live.status, 200);
+  const by = Object.fromEntries(live.data.customers.map((c) => [c.name, c]));
+  assert.equal(by['Rapor Düzenli Bayi'].status, 'AT_RISK');
+  assert.match(by['Rapor Düzenli Bayi'].reason, /7 günde bir.*25 gündür/);
+  assert.equal(by['Rapor Kayıp Bayi'].status, 'LOST');
+  assert.match(by['Rapor Kayıp Bayi'].reason, /3 aydır/);
+  assert.equal(by['Rapor Hiç Almayan'].status, 'NEVER');
+  assert.equal(by['Rapor Yeni Bayi'].status, 'NEW');
+  assert.equal(by['Rapor Aktif Bayi'].status, 'ACTIVE');
+  assert.equal(live.data.callList[0].name, 'Rapor Düzenli Bayi', 'en değerli ve en çok gecikmiş müşteri en üstte');
+  assert.ok(!live.data.callList.some((c) => c.name === 'Rapor Aktif Bayi'));
+  assert.equal(live.data.cari.debt, 3000);
+  assert.equal(live.data.cari.collected, 1200);
+  assert.equal(live.data.cari.collectionRate, 40);
+  assert.ok(live.data.cari.receivable >= 1800);
+  assert.ok(live.data.summary.customers >= 2);
+
+  // Zamanlanmış üretim: ayar kaydedilir, zamanı gelen rapor bir kez üretilir, yöneticiye bildirim gider
+  const set = await api('/reports/periodic/settings', { ...A, method: 'PUT', body: { weekly: { enabled: true, weekday: 1, hour: 9 }, monthly: { enabled: false }, lostDays: 45 } });
+  assert.equal(set.status, 200);
+  assert.equal(set.data.settings.monthly.enabled, false);
+  const { runPeriodicReports } = await import('../../src/services/periodicReportService.js');
+  const { runWithTenant } = await import('../../src/utils/prisma.js');
+  const monday10 = new Date('2026-11-02T07:00:00Z'); // Pazartesi 10:00 (TR)
+  const first = await runWithTenant(tenantId, () => runPeriodicReports(monday10));
+  assert.equal(first.length, 1);
+  assert.equal(first[0].period, 'WEEKLY');
+  assert.equal((await runWithTenant(tenantId, () => runPeriodicReports(monday10))).length, 0, 'aynı dönem ikinci kez üretilmez');
+  await new Promise((r) => setTimeout(r, 200));
+  const notes = await runAsPlatform(() => prisma.notification.findMany({ where: { userId: admin.id, type: 'REPORT' } }));
+  assert.equal(notes.length, 1);
+  assert.equal(notes[0].link, `/admin/reports?rapor=${first[0].id}`);
+
+  const list = await api('/reports/periodic', A);
+  assert.equal(list.data[0].id, first[0].id);
+  const saved = await api(`/reports/periodic/${first[0].id}`, A);
+  assert.equal(saved.data.lostDays, 45);
+  const xlsxRes = await fetch(`${base}/api/reports/periodic/${first[0].id}/export`, { headers: { 'X-Tenant': 'itest-a', Authorization: `Bearer ${A.token}` } });
+  const { default: xlsx } = await import('xlsx');
+  const book = xlsx.read(Buffer.from(await xlsxRes.arrayBuffer()));
+  assert.deepEqual(book.SheetNames, ['Özet', 'Aranacaklar', 'Müşteri durumu', 'En çok alanlar', 'Açık alacaklar']);
+  assert.equal((await api(`/reports/periodic/${first[0].id}`, { tenant: 'itest-b', token: tenants['itest-b'].token })).status, 404, 'başka firma göremez');
+});

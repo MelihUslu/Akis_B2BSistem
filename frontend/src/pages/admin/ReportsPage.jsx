@@ -1,11 +1,13 @@
 import { useEffect, useState } from 'react';
-import { BarChart3, FileSpreadsheet, TrendingUp, ShoppingCart, Users, Package, Percent, Layers, PackageX, CalendarRange, Info } from 'lucide-react';
+import { useSearchParams } from 'react-router-dom';
+import { BarChart3, UserSearch, FileSpreadsheet, TrendingUp, ShoppingCart, Users, Package, Percent, Layers, PackageX, CalendarRange, Info } from 'lucide-react';
 import { ResponsiveContainer, AreaChart, Area, XAxis, YAxis, Tooltip, CartesianGrid } from 'recharts';
 import api, { errorMessage } from '../../services/api';
 import useAlert from '../../hooks/useAlert';
 import FilterTabs from '../../components/shared/FilterTabs';
 import { downloadFile } from '../../utils/download';
 import { formatTRY, formatDate } from '../../utils/format';
+import CustomerReport from '../../components/reports/CustomerReport';
 
 const iso = (d) => d.toLocaleDateString('sv-SE'); // yerel tarih, YYYY-MM-DD
 const PRESETS = [
@@ -46,7 +48,8 @@ const Table = ({ head, children, empty }) => (
 const zebra = (i) => (i % 2 ? 'bg-slate-50/70' : 'bg-white');
 
 // Satış raporları: ciro trendi, ürün / bayi / kategori kırılımı ve satılmayan ürünler
-const ReportsPage = () => {
+// Satış raporu sekmesi: tarih aralığına göre ciro, kâr, ürün / bayi / kategori kırılımı
+const SalesReport = () => {
   const [preset, setPreset] = useState('30');
   const [range, setRange] = useState(() => PRESETS[1].range());
   const [tab, setTab] = useState('products');
@@ -72,19 +75,6 @@ const ReportsPage = () => {
   return (
     <div className="space-y-6">
       {alertElement}
-      <div className="flex flex-col md:flex-row justify-between md:items-center gap-4">
-        <div className="flex items-center gap-4">
-          <div className="bg-gradient-to-br from-violet-500 to-violet-700 p-3.5 rounded-2xl shadow-lg shadow-violet-500/25 shrink-0"><BarChart3 className="h-6 w-6 text-white" /></div>
-          <div>
-            <h1 className="text-3xl font-black text-gray-900 tracking-tight">Raporlar</h1>
-            <p className="text-gray-500 text-sm mt-1">Onaylanan siparişlere göre satış, kâr ve bayi performansı (KDV hariç).</p>
-          </div>
-        </div>
-        <button onClick={exportExcel} disabled={!report} className="flex items-center h-11 px-4 rounded-2xl bg-white border border-gray-100 shadow-sm text-xs font-bold text-gray-600 hover:text-emerald-700 hover:border-emerald-200 shrink-0 disabled:opacity-50">
-          <FileSpreadsheet className="h-4 w-4 mr-1.5" /> Excel'e Aktar
-        </button>
-      </div>
-
       {/* Tarih aralığı */}
       <div className="flex flex-wrap items-center gap-2">
         {PRESETS.map((p) => (
@@ -97,6 +87,9 @@ const ReportsPage = () => {
           <span className="text-gray-300">–</span>
           <input type="date" className="bg-transparent outline-none text-xs font-semibold text-gray-700" value={range[1]} min={range[0]} onChange={(e) => { setPreset('custom'); setRange([range[0], e.target.value]); }} />
         </div>
+        <button onClick={exportExcel} disabled={!report} className="md:ml-auto flex items-center h-10 px-4 rounded-xl bg-white ring-1 ring-gray-100 text-xs font-bold text-gray-600 hover:text-emerald-700 hover:ring-emerald-200 shrink-0 disabled:opacity-50">
+          <FileSpreadsheet className="h-4 w-4 mr-1.5" /> Excel'e Aktar
+        </button>
       </div>
 
       {/* Özet */}
@@ -206,6 +199,35 @@ const ReportsPage = () => {
           </>
         )}
       </div>
+    </div>
+  );
+};
+
+/**
+ * Raporlar: müşteri takip raporu (haftalık / aylık, kayıp ve risk analizi) ve satış raporu.
+ * Bildirimden gelen bağlantı (?rapor=ID) müşteri takibi sekmesinde o raporu açar.
+ */
+const ReportsPage = () => {
+  const [params, setParams] = useSearchParams();
+  const tab = params.get('sekme') === 'satis' ? 'sales' : 'customers';
+  const setTab = (t) => setParams(t === 'sales' ? { sekme: 'satis' } : {});
+  return (
+    <div className="space-y-6">
+      <div className="flex flex-col md:flex-row justify-between md:items-center gap-4">
+        <div className="flex items-center gap-4">
+          <div className="bg-gradient-to-br from-violet-500 to-violet-700 p-3.5 rounded-2xl shadow-lg shadow-violet-500/25 shrink-0"><BarChart3 className="h-6 w-6 text-white" /></div>
+          <div>
+            <h1 className="text-3xl font-black text-gray-900 tracking-tight">Raporlar</h1>
+            <p className="text-gray-500 text-sm mt-1">{tab === 'sales' ? 'Onaylanan siparişlere göre satış, kâr ve bayi performansı (KDV hariç).' : 'Haftalık ve aylık müşteri takibi: kim sipariş verdi, kim kayba gidiyor, kimi aramalısınız.'}</p>
+          </div>
+        </div>
+        <div className="inline-flex p-1 rounded-2xl bg-white ring-1 ring-gray-100 shadow-sm shrink-0">
+          {[['customers', 'Müşteri takibi', UserSearch], ['sales', 'Satış raporu', TrendingUp]].map(([k, l, Icon]) => (
+            <button key={k} type="button" onClick={() => setTab(k)} className={`h-10 px-4 rounded-xl text-sm font-black flex items-center gap-2 ${tab === k ? 'bg-slate-800 text-white' : 'text-gray-600 hover:text-gray-900'}`}><Icon className="h-4 w-4" /> {l}</button>
+          ))}
+        </div>
+      </div>
+      {tab === 'sales' ? <SalesReport /> : <CustomerReport />}
     </div>
   );
 };

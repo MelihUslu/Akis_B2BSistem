@@ -57,9 +57,10 @@ export const notifyCompany = async (companyId, payload) => {
 // Yöneticilere bildirim: personel yalnızca ilgili yetkisi varsa alır (sipariş → Siparişler yetkisi gibi)
 export const notifyAdmins = async (payload) => {
   const admins = await prisma.user.findMany({ where: { role: 'ADMIN', isActive: true }, select: { id: true, isOwner: true, permissions: true } });
-  const needed = TYPE_PERMISSION[payload.type];
-  const allowed = admins.filter((u) => !needed || u.isOwner || (Array.isArray(u.permissions) && u.permissions.includes(needed)));
-  await Promise.all(allowed.map(u => create(u.id, payload)));
+  // anyPermission: yetkilerden biri yeterli (örn. rapor: sipariş ya da finans)
+  const needed = payload.anyPermission || [TYPE_PERMISSION[payload.type]].filter(Boolean);
+  const allowed = admins.filter((u) => !needed.length || u.isOwner || (Array.isArray(u.permissions) && needed.some((p) => u.permissions.includes(p))));
+  await Promise.all(allowed.map(u => create(u.id, { ...payload, dedupeKey: payload.dedupeKey && `${payload.dedupeKey}:u${u.id}` })));
 };
 
 // Bildirim hataları asıl işlemi bozmasın
@@ -169,6 +170,8 @@ export const runScheduledJobs = async () => {
       await runDueDateReminders();
       await runPartnerReminders();
       await runTrialReminders(tenant);
+      // Haftalık / aylık müşteri takip raporu (zamanı geldiyse)
+      await import('./periodicReportService.js').then((m) => m.runPeriodicReports());
     }).catch(err => console.error(`[Zamanlanmış İş] ${tenant.slug}:`, err.message));
   }
   if (process.env.AUTO_PURGE_CLOSED === 'true') await purgeExpiredClosedTenants(tenants);

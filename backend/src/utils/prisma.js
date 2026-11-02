@@ -25,7 +25,7 @@ const TENANT_MODELS = new Set([
   'ProductOption', 'ProductOptionValue', 'ProductVariantValue', 'SpecialPrice', 'Coupon', 'QuoteRequest',
   'QuoteRequestItem', 'Favorite', 'OrderTemplate', 'ApiKey', 'Webhook', 'SupportTicket', 'SupportMessage', 'Invoice', 'DeliveryAddress', 'Warehouse', 'WarehouseStock', 'WebhookDelivery', 'PushSubscription',
   'QuoteRevision', 'ProductCompatibility', 'CompanyContact',
-  'PartnerNote', 'PartnerDocument', 'StatementRequest', 'CustomerLead', 'WhatsappChannel', 'WaConversation', 'WaMessage'
+  'PartnerNote', 'PartnerDocument', 'StatementRequest', 'CustomerLead', 'WhatsappChannel', 'WaConversation', 'WaMessage', 'PeriodicReport'
 ]);
 
 const WHERE_OPERATIONS = new Set([

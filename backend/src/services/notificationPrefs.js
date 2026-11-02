@@ -7,6 +7,7 @@ export const NOTIFICATION_TYPES = {
   QUOTE: { label: 'Teklifler', admin: 'Onay bekleyen teklifler, müşteri yanıtları', dealer: 'Size gönderilen teklifler' },
   RETURN: { label: 'İadeler', admin: 'Yeni iade talepleri', dealer: 'İade talebinizin sonucu' },
   STOCK: { label: 'Stok', admin: 'Kritik stok', dealer: '“Gelince haber ver” dediğiniz ürünler' },
+  REPORT: { label: 'Dönemsel raporlar', admin: 'Haftalık / aylık müşteri takip raporu hazır olunca', dealer: null },
   MESSAGE: { label: 'WhatsApp mesajları', admin: 'Yapay zekânın ekibe devrettiği konuşmalar', dealer: null },
   LEAD: { label: 'Müşteri adayları', admin: 'Talep formunu dolduran yeni kişiler', dealer: null },
   REMINDER: { label: 'Hatırlatmalar', admin: 'Cari görüşme notlarındaki hatırlatmalar', dealer: null },
@@ -15,7 +16,7 @@ export const NOTIFICATION_TYPES = {
 
 // Varsayılan e-posta tercihleri (kullanıcı değiştirmediyse)
 const DEFAULTS = {
-  ADMIN: { MESSAGE: true, REMINDER: true, QUOTE: true, ORDER: true, PAYMENT: true, RETURN: true, STOCK: false, SYSTEM: true },
+  ADMIN: { REPORT: true, MESSAGE: true, REMINDER: true, QUOTE: true, ORDER: true, PAYMENT: true, RETURN: true, STOCK: false, SYSTEM: true },
   BAYI: { QUOTE: true, ORDER: true, PAYMENT: true, PAYMENT_DUE: true, CREDIT: false, RETURN: true, STOCK: true, SYSTEM: false }
 };
 
