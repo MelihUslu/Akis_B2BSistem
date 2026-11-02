@@ -1,6 +1,7 @@
 import prisma from '../utils/prisma.js';
 import { notifyAdmins, safeNotify } from '../services/notificationService.js';
 import { sendWorkbook } from './partnerController.js';
+import { randomBytes } from 'node:crypto';
 
 /**
  * Müşteri adayları: Instagram / WhatsApp reklamından yazan kişiler.
@@ -135,17 +136,122 @@ export const deleteLead = async (req, res) => {
 export const exportLeads = async (req, res) => {
   try {
     const rows = await withCreators(await prisma.customerLead.findMany({ where: listWhere(req.query), orderBy: { createdAt: 'desc' }, take: 50000 }));
+    // Formdaki ek sorular ayrı sütun olur (Talep'ten sonra, ilk görüldüğü sırayla)
+    const extra = [...new Set(rows.flatMap((l) => (Array.isArray(l.answers) ? l.answers.map((a) => a.label) : [])))];
     sendWorkbook(res, rows.map((l) => ({
       'Tarih': l.createdAt.toLocaleString('tr-TR', { timeZone: 'Europe/Istanbul' }),
       'Ad Soyad': l.name, 'Telefon': l.phone, 'E-posta': l.email, 'Şehir': l.city,
       'Kaynak': SOURCES[l.source] || l.source, 'Kampanya / Reklam': l.campaign, 'Talep': l.request,
+      ...Object.fromEntries(extra.map((label) => [label, (Array.isArray(l.answers) ? l.answers.find((x) => x.label === label)?.value : '') || ''])),
       'Durum': STATUSES[l.status] || l.status, 'Not': l.note,
       'Kaydeden': l.viaForm ? 'Talep formu' : l.createdByName
-    })), 'Müşteri Adayları', `musteri-adaylari-${new Date().toISOString().slice(0, 10)}.xlsx`, [17, 24, 15, 24, 14, 12, 22, 50, 13, 40, 16]);
+    })), 'Müşteri Adayları', `musteri-adaylari-${new Date().toISOString().slice(0, 10)}.xlsx`, [17, 24, 15, 24, 14, 12, 22, 50, ...extra.map(() => 20), 13, 40, 16]);
   } catch (error) {
     console.error('exportLeads error:', error);
     res.status(500).json({ message: 'Excel oluşturulamadı.' });
   }
+};
+
+// ─── Talep formu ayarları (firma panelden düzenler; Setting tablosunda "lead_form" anahtarıyla JSON) ─────────
+
+const FORM_KEY = 'lead_form';
+const FIELD_TYPES = ['text', 'textarea', 'number', 'select'];
+const MAX_CUSTOM = 12;
+
+// Hazır alanlar: ad ve telefon her zaman açık ve zorunlu; diğerleri gizlenebilir / zorunlu yapılabilir
+const BUILTIN = {
+  name: { label: 'Ad Soyad', type: 'text', locked: true },
+  phone: { label: 'Telefon', type: 'tel', locked: true, placeholder: '05xx xxx xx xx' },
+  email: { label: 'E-posta', type: 'email' },
+  city: { label: 'Şehir', type: 'text' },
+  request: { label: 'Ne istiyorsunuz?', type: 'textarea', placeholder: 'Ürün, adet, sorunuz…' }
+};
+
+export const DEFAULT_FORM = {
+  title: 'Bilgilerinizi bırakın, sizi arayalım',
+  description: 'Fiyat, stok ve sipariş için ekibimiz en kısa sürede size dönecek.',
+  buttonText: 'Beni arayın',
+  successMessage: 'Talebiniz alındı. En kısa sürede sizi arayacağız.',
+  fields: [
+    { key: 'name', enabled: true, required: true, label: BUILTIN.name.label, placeholder: '' },
+    { key: 'phone', enabled: true, required: true, label: BUILTIN.phone.label, placeholder: BUILTIN.phone.placeholder },
+    { key: 'email', enabled: false, required: false, label: BUILTIN.email.label, placeholder: '' },
+    { key: 'city', enabled: true, required: false, label: BUILTIN.city.label, placeholder: '' },
+    { key: 'request', enabled: true, required: false, label: BUILTIN.request.label, placeholder: BUILTIN.request.placeholder }
+  ]
+};
+
+// Gelen ayarı temizler: bilinmeyen alanlar atılır, hazır alanlar eksikse eklenir, ad/telefon kilitli kalır
+export const normalizeForm = (raw) => {
+  const r = raw && typeof raw === 'object' ? raw : {};
+  const text = (v, def, max) => (str(v, max) || def);
+  const seen = new Set();
+  const fields = [];
+  let customCount = 0;
+  for (const f of Array.isArray(r.fields) ? r.fields : []) {
+    if (!f || typeof f !== 'object') continue;
+    if (BUILTIN[f.key]) {
+      if (seen.has(f.key)) continue;
+      seen.add(f.key);
+      const b = BUILTIN[f.key];
+      fields.push({
+        key: f.key, enabled: b.locked ? true : Boolean(f.enabled), required: b.locked ? true : Boolean(f.required) && Boolean(f.enabled),
+        label: text(f.label, b.label, 80), placeholder: str(f.placeholder, 120)
+      });
+    } else if (customCount < MAX_CUSTOM) {
+      const label = str(f.label, 80);
+      if (!label) continue;
+      const key = /^c_[a-z0-9]{6,12}$/.test(f.key) && !seen.has(f.key) ? f.key : `c_${randomBytes(4).toString('hex')}`;
+      const type = FIELD_TYPES.includes(f.type) ? f.type : 'text';
+      const options = type === 'select'
+        ? [...new Set((Array.isArray(f.options) ? f.options : String(f.options || '').split(',')).map((o) => str(o, 60)).filter(Boolean))].slice(0, 30)
+        : [];
+      if (type === 'select' && options.length < 2) continue;
+      seen.add(key);
+      customCount += 1;
+      fields.push({ key, custom: true, type, enabled: f.enabled !== false, required: Boolean(f.required), label, placeholder: str(f.placeholder, 120), options });
+    }
+  }
+  for (const d of DEFAULT_FORM.fields) if (!seen.has(d.key)) fields.push({ ...d });
+  return {
+    title: text(r.title, DEFAULT_FORM.title, 120),
+    description: str(r.description ?? DEFAULT_FORM.description, 400),
+    buttonText: text(r.buttonText, DEFAULT_FORM.buttonText, 40),
+    successMessage: text(r.successMessage, DEFAULT_FORM.successMessage, 300),
+    fields
+  };
+};
+
+const loadForm = async () => {
+  const row = await prisma.setting.findFirst({ where: { key: FORM_KEY } });
+  try { return normalizeForm(row ? JSON.parse(row.value) : DEFAULT_FORM); } catch { return normalizeForm(DEFAULT_FORM); }
+};
+
+// Formda gösterilecek hâli (hazır alanların türü eklenir)
+const publicForm = (form) => ({
+  ...form,
+  fields: form.fields.filter((f) => f.enabled).map((f) => ({ ...f, type: f.custom ? f.type : BUILTIN[f.key].type }))
+});
+
+export const getFormConfig = async (req, res) => {
+  res.json({ form: await loadForm(), defaults: normalizeForm(DEFAULT_FORM), maxCustom: MAX_CUSTOM });
+};
+
+export const saveFormConfig = async (req, res) => {
+  try {
+    const form = normalizeForm(req.body);
+    const value = JSON.stringify(form);
+    await prisma.setting.upsert({ where: { tenantId_key: { tenantId: req.tenant.id, key: FORM_KEY } }, update: { value }, create: { key: FORM_KEY, value } });
+    res.json({ form, message: 'Form kaydedildi.' });
+  } catch (error) {
+    console.error('saveFormConfig error:', error);
+    res.status(500).json({ message: 'Form kaydedilemedi.' });
+  }
+};
+
+// Herkese açık: formun başlığı ve görünen alanları
+export const getPublicForm = async (req, res) => {
+  res.json(publicForm(await loadForm()));
 };
 
 const FORM_SOURCES = { instagram: 'INSTAGRAM', ig: 'INSTAGRAM', whatsapp: 'WHATSAPP', wa: 'WHATSAPP', facebook: 'FACEBOOK', fb: 'FACEBOOK' };
@@ -159,18 +265,39 @@ const UTM_KEYS = ['utm_source', 'utm_medium', 'utm_campaign', 'utm_content', 'ut
 export const submitLeadForm = async (req, res) => {
   try {
     const b = req.body || {};
-    if (b.website) return res.status(201).json({ message: 'Talebiniz alındı.' }); // bot tuzağı
+    const form = await loadForm();
+    if (b.website) return res.status(201).json({ message: form.successMessage }); // bot tuzağı
+    const fields = form.fields.filter((f) => f.enabled);
+    const missing = fields.find((f) => f.required && !str(b[f.key], 2000));
+    if (missing) return res.status(400).json({ message: `"${missing.label}" alanını doldurun.` });
+
     const name = str(b.name, 120);
     const phone = normalizePhone(b.phone).slice(0, 20);
-    if (!name) return res.status(400).json({ message: 'Adınızı yazın.' });
     if (!validPhone(phone)) return res.status(400).json({ message: 'Geçerli bir telefon numarası yazın.' });
+    const on = (key) => fields.some((f) => f.key === key);
+    const email = on('email') ? str(b.email, 120).toLowerCase() : '';
+    if (email && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) return res.status(400).json({ message: 'Geçerli bir e-posta yazın.' });
     if (!b.kvkkConsent) return res.status(400).json({ message: 'Kişisel verilerin işlenmesine onay vermeniz gerekiyor.' });
+
+    // Ek sorular gönderildiği hâliyle (etiketiyle) saklanır; seçenek listesi dışındaki değer kabul edilmez
+    const answers = [];
+    for (const f of fields.filter((x) => x.custom)) {
+      let value = str(b[f.key], f.type === 'textarea' ? 2000 : 300);
+      if (!value) continue;
+      if (f.type === 'select' && !f.options.includes(value)) return res.status(400).json({ message: `"${f.label}" için listeden seçim yapın.` });
+      if (f.type === 'number') {
+        const n = Number(value.replace(',', '.'));
+        if (!Number.isFinite(n)) return res.status(400).json({ message: `"${f.label}" bir sayı olmalı.` });
+        value = String(n);
+      }
+      answers.push({ label: f.label, value });
+    }
 
     const utm = Object.fromEntries(UTM_KEYS.map((k) => [k, str(b.utm?.[k], 100)]).filter(([, v]) => v));
     const source = FORM_SOURCES[String(b.k || utm.utm_source || '').toLowerCase()] || 'FORM';
     const campaign = str(b.campaign || utm.utm_campaign, 100);
-    const request = str(b.request, 2000);
-    const city = str(b.city, 60);
+    const request = on('request') ? str(b.request, 2000) : '';
+    const city = on('city') ? str(b.city, 60) : '';
 
     const recent = await prisma.customerLead.findFirst({
       where: { phone, viaForm: true, createdAt: { gte: new Date(Date.now() - 24 * 60 * 60 * 1000) } },
@@ -178,16 +305,24 @@ export const submitLeadForm = async (req, res) => {
     });
     if (recent) {
       const merged = [recent.request, request].filter(Boolean).join('\n— ');
-      await prisma.customerLead.update({ where: { id: recent.id }, data: { request: merged.slice(0, 4000), name, ...(city && { city }), status: recent.status === 'LOST' ? 'NEW' : recent.status } });
+      const prev = Array.isArray(recent.answers) ? recent.answers : [];
+      await prisma.customerLead.update({
+        where: { id: recent.id },
+        data: {
+          request: merged.slice(0, 4000), name, ...(city && { city }), ...(email && { email }),
+          ...(answers.length && { answers: [...prev.filter((a) => !answers.some((n) => n.label === a.label)), ...answers] }),
+          status: recent.status === 'LOST' ? 'NEW' : recent.status
+        }
+      });
     } else {
-      await prisma.customerLead.create({ data: { name, phone, city, request, source, campaign, viaForm: true, utm: Object.keys(utm).length ? utm : undefined } });
+      await prisma.customerLead.create({ data: { name, phone, email, city, request, source, campaign, viaForm: true, answers: answers.length ? answers : undefined, utm: Object.keys(utm).length ? utm : undefined } });
       safeNotify(notifyAdmins({
         type: 'LEAD', title: 'Yeni müşteri adayı',
         message: `${name} (${phone}) ${SOURCES[source] === 'Talep formu' ? 'talep formunu doldurdu' : `${SOURCES[source]} üzerinden talep bıraktı`}.`,
         link: '/admin/leads'
       }));
     }
-    res.status(201).json({ message: 'Talebiniz alındı. En kısa sürede sizi arayacağız.' });
+    res.status(201).json({ message: form.successMessage });
   } catch (error) {
     console.error('submitLeadForm error:', error);
     res.status(400).json({ message: 'Talebiniz gönderilemedi. Lütfen tekrar deneyin.' });

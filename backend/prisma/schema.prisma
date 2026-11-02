@@ -1329,6 +1329,7 @@ model CustomerLead {
   status      String   @default("NEW") // NEW, CONTACTED, ORDERED, LOST
   note        String   @default("")
   viaForm     Boolean  @default(false) // Kişi talep formunu kendisi doldurdu
+  answers     Json? // Formdaki ek soruların yanıtları: [{ label, value }] (soru sonradan değişse de gönderildiği hâliyle)
   utm         Json?
   createdById Int?
   createdAt   DateTime @default(now())

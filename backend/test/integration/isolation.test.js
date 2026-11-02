@@ -562,3 +562,50 @@ test('müşteri adayları: talep formu, elle ekleme, filtre, firma ayrımı ve E
   assert.equal((await api(`/customer-leads/${ayse.id}`, { ...A, method: 'DELETE' })).status, 200);
   assert.equal((await api('/customer-leads', A)).data.total, 1);
 });
+
+test('talep formu panelden özelleştirilir: alanlar, ek sorular, yanıtlar Excel sütunu olur', { skip }, async () => {
+  const A = { tenant: 'itest-a', token: tenants['itest-a'].token };
+  const def = await api('/lead-form', { tenant: 'itest-a' });
+  assert.deepEqual(def.data.fields.map((f) => f.key), ['name', 'phone', 'city', 'request'], 'varsayılan alanlar');
+
+  const saved = await api('/customer-leads/form', { ...A, method: 'PUT', body: {
+    title: 'Toptan fiyat alın', buttonText: 'Gönder',
+    fields: [
+      { key: 'name', enabled: false, required: false, label: 'Adınız' }, // ad kapatılamaz
+      { key: 'phone', enabled: true, required: true, label: 'Cep telefonu' },
+      { key: 'email', enabled: true, required: true, label: 'E-posta' },
+      { key: 'city', enabled: false },
+      { label: 'Kaç koli?', type: 'number', required: true },
+      { label: 'İşletme türü', type: 'select', options: 'Market, Toptancı, Otel', required: false },
+      { label: 'Tek seçenekli liste', type: 'select', options: 'Tek' } // geçersiz, atılır
+    ]
+  } });
+  assert.equal(saved.status, 200);
+  const keys = saved.data.form.fields.map((f) => f.key);
+  assert.equal(saved.data.form.fields.find((f) => f.key === 'name').enabled, true);
+  assert.equal(saved.data.form.fields.filter((f) => f.custom).length, 2);
+  assert.ok(keys.includes('request'), 'listede olmayan hazır alan geri eklenir');
+
+  const pub = await api('/lead-form', { tenant: 'itest-a' });
+  assert.equal(pub.data.title, 'Toptan fiyat alın');
+  assert.ok(!pub.data.fields.some((f) => f.key === 'city'), 'kapalı alan formda görünmez');
+  const [qty, kind] = pub.data.fields.filter((f) => f.custom);
+
+  const person = { name: 'Ali Veli', phone: '0533 222 33 44', email: 'ali@ornek.com', kvkkConsent: true };
+  assert.equal((await api('/lead-form', { tenant: 'itest-a', method: 'POST', body: person })).status, 400, 'zorunlu ek soru boş');
+  assert.equal((await api('/lead-form', { tenant: 'itest-a', method: 'POST', body: { ...person, [qty.key]: '5', [kind.key]: 'Kafe' } })).status, 400, 'liste dışı seçim');
+  assert.equal((await api('/lead-form', { tenant: 'itest-a', method: 'POST', body: { ...person, email: '', [qty.key]: '5' } })).status, 400, 'zorunlu e-posta');
+  const ok = await api('/lead-form', { tenant: 'itest-a', method: 'POST', body: { ...person, city: 'Gizli', [qty.key]: '12', [kind.key]: 'Otel' } });
+  assert.equal(ok.status, 201);
+
+  const lead = (await api('/customer-leads?q=Ali Veli', A)).data.items[0];
+  assert.equal(lead.email, 'ali@ornek.com');
+  assert.equal(lead.city, '', 'kapalı alanın değeri kaydedilmez');
+  assert.deepEqual(lead.answers, [{ label: 'Kaç koli?', value: '12' }, { label: 'İşletme türü', value: 'Otel' }]);
+
+  const xlsxRes = await fetch(`${base}/api/customer-leads/export`, { headers: { 'X-Tenant': 'itest-a', Authorization: `Bearer ${A.token}` } });
+  const { default: xlsx } = await import('xlsx');
+  const sheet = xlsx.read(Buffer.from(await xlsxRes.arrayBuffer()));
+  const header = xlsx.utils.sheet_to_json(sheet.Sheets[sheet.SheetNames[0]], { header: 1 })[0];
+  assert.ok(header.includes('Kaç koli?') && header.includes('İşletme türü'));
+});

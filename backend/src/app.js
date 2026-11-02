@@ -38,7 +38,7 @@ import partnerRoutes from './routes/partnerRoutes.js';
 import statementLinkRoutes from './routes/statementLinkRoutes.js';
 import teamRoutes from './routes/teamRoutes.js';
 import customerLeadRoutes from './routes/customerLeadRoutes.js';
-import { submitLeadForm } from './controllers/customerLeadController.js';
+import { submitLeadForm, getPublicForm } from './controllers/customerLeadController.js';
 import { integrationAdminRoutes, integrationApiRoutes } from './routes/integrationRoutes.js';
 import { globalSearch } from './controllers/searchController.js';
 import { applyAsDealer } from './controllers/companyController.js';
@@ -121,6 +121,7 @@ tenantApi.use('/customer-leads', customerLeadRoutes);
 tenantApi.get('/search', verifyToken, checkRole(['ADMIN']), globalSearch);
 tenantApi.post('/dealer-applications', rateLimit({ windowMs: 60 * 60 * 1000, max: 5, message: 'Çok fazla başvuru denemesi. Lütfen daha sonra tekrar deneyin.' }), applyAsDealer);
 // Reklamdan gelen kişinin doldurduğu talep formu (oturum gerektirmez)
+tenantApi.get('/lead-form', getPublicForm);
 tenantApi.post('/lead-form', rateLimit({ windowMs: 60 * 60 * 1000, max: 10, message: 'Çok fazla deneme. Lütfen daha sonra tekrar deneyin.' }), submitLeadForm);
 app.use('/api', tenantApi);
 

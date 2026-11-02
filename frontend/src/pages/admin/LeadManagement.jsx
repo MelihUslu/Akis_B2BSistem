@@ -1,9 +1,11 @@
 import { useCallback, useEffect, useState } from 'react';
-import { Inbox, Plus, Save, X, Trash2, FileSpreadsheet, Search, Phone, MessageCircle, Link2, Copy, Check, ChevronLeft, ChevronRight, ExternalLink } from 'lucide-react';
+import { Inbox, Plus, Save, X, Trash2, FileSpreadsheet, Search, Phone, MessageCircle, Link2, Copy, Check, ChevronLeft, ChevronRight, ExternalLink, SlidersHorizontal } from 'lucide-react';
 import api, { errorMessage } from '../../services/api';
 import useAlert from '../../hooks/useAlert';
 import { formatDate } from '../../utils/format';
 import { downloadFile } from '../../utils/download';
+import { useTenant } from '../../context/TenantContext';
+import LeadFormEditor from '../../components/leads/LeadFormEditor';
 
 const SOURCES = {
   INSTAGRAM: { label: 'Instagram', cls: 'bg-pink-50 text-pink-700' },
@@ -28,10 +30,11 @@ const intl = (phone) => {
   if (d.length === 11 && d.startsWith('0')) return `90${d.slice(1)}`;
   return d;
 };
+const answersOf = (l) => (Array.isArray(l.answers) ? l.answers : []);
 const prettyPhone = (p) => (/^0\d{10}$/.test(p) ? `${p.slice(0, 4)} ${p.slice(4, 7)} ${p.slice(7, 9)} ${p.slice(9)}` : p);
 
 // Talep formu bağlantıları: Instagram bio'ya, WhatsApp karşılama mesajına, reklamın bağlantısına konur
-const FormLinks = () => {
+const FormLinks = ({ onEdit }) => {
   const [campaign, setCampaign] = useState('');
   const [copied, setCopied] = useState('');
   const base = `${window.location.origin}/talep`;
@@ -62,6 +65,7 @@ const FormLinks = () => {
           </div>
         </div>
         <div className="md:w-64 shrink-0">
+          <button type="button" onClick={onEdit} className="mb-3 w-full h-10 rounded-xl bg-gray-900 text-white text-xs font-black flex items-center justify-center gap-2 hover:bg-black"><SlidersHorizontal className="h-4 w-4" /> Formdaki soruları düzenle</button>
           <label className="premium-label">Kampanya / reklam adı (isteğe bağlı)</label>
           <input className="premium-input" value={campaign} onChange={(e) => setCampaign(e.target.value)} placeholder="Örn: Kasım indirimi" />
         </div>
@@ -99,6 +103,8 @@ const LeadManagement = () => {
   const [editing, setEditing] = useState(null);
   const [saving, setSaving] = useState(false);
   const [showLinks, setShowLinks] = useState(false);
+  const [formEditor, setFormEditor] = useState(false);
+  const { tenant } = useTenant();
   const { alertElement, showAlert, confirm } = useAlert();
 
   const params = Object.fromEntries(Object.entries({ ...filter, page }).filter(([, v]) => v));
@@ -152,6 +158,7 @@ const LeadManagement = () => {
   return (
     <div className="space-y-6">
       {alertElement}
+      {formEditor && <LeadFormEditor companyName={tenant?.name} onClose={() => setFormEditor(false)} onSaved={(message) => showAlert({ type: 'success', title: 'Talep formu', message })} />}
       {editing && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
           <div className="modal-backdrop" onClick={() => setEditing(null)} />
@@ -162,6 +169,13 @@ const LeadManagement = () => {
             </div>
             <div className="p-6 space-y-4 overflow-y-auto">
               {editing.viaForm && <p className="text-xs font-bold text-indigo-700 bg-indigo-50 rounded-xl px-3 py-2">Bu kişi talep formunu kendisi doldurdu · {formatDate(editing.createdAt, true)}</p>}
+              {answersOf(editing).length > 0 && (
+                <dl className="rounded-xl border border-gray-100 divide-y divide-gray-100 text-sm">
+                  {answersOf(editing).map((a) => (
+                    <div key={a.label} className="flex gap-3 px-3 py-2"><dt className="w-2/5 shrink-0 font-bold text-gray-500">{a.label}</dt><dd className="text-gray-900 whitespace-pre-line break-words min-w-0">{a.value}</dd></div>
+                  ))}
+                </dl>
+              )}
               <div className="grid grid-cols-2 gap-4">
                 <div className="col-span-2"><label className="premium-label">Ad Soyad / kullanıcı adı</label><input required autoFocus className="premium-input" value={editing.name} onChange={set('name')} placeholder="Ayşe Yılmaz ya da @ayse.yilmaz" /></div>
                 <div><label className="premium-label">Telefon</label><input className="premium-input" inputMode="tel" value={editing.phone} onChange={set('phone')} placeholder="05xx xxx xx xx" /></div>
@@ -201,12 +215,13 @@ const LeadManagement = () => {
         </div>
         <div className="flex flex-wrap gap-2 shrink-0">
           <button onClick={() => setShowLinks(!showLinks)} className={`flex items-center px-4 h-11 rounded-xl text-sm font-black ${showLinks ? 'bg-indigo-600 text-white' : 'text-indigo-700 bg-indigo-50 hover:bg-indigo-100'}`}><Link2 className="h-4 w-4 mr-2" /> Form bağlantısı</button>
+          <button onClick={() => setFormEditor(true)} className="flex items-center px-4 h-11 rounded-xl text-sm font-black text-gray-700 bg-white border border-gray-200 hover:border-gray-300"><SlidersHorizontal className="h-4 w-4 mr-2" /> Formu düzenle</button>
           <button onClick={exportExcel} className="flex items-center px-4 h-11 rounded-xl text-sm font-black text-emerald-700 bg-emerald-50 hover:bg-emerald-100"><FileSpreadsheet className="h-4 w-4 mr-2" /> Excel'e Aktar</button>
           <button onClick={() => setEditing({ ...EMPTY })} className="btn-gradient"><Plus className="h-4 w-4 mr-2" /> Kişi Ekle</button>
         </div>
       </div>
 
-      {showLinks && <FormLinks />}
+      {showLinks && <FormLinks onEdit={() => setFormEditor(true)} />}
 
       {/* Durum sekmeleri */}
       <div className="flex gap-2 overflow-x-auto pb-1">
@@ -260,6 +275,7 @@ const LeadManagement = () => {
                 </td>
                 <td className="px-5 py-4 min-w-[14rem] max-w-md">
                   <p className="text-gray-700 line-clamp-2 whitespace-pre-line">{l.request || <span className="text-gray-300">—</span>}</p>
+                  {answersOf(l).length > 0 && <p className="mt-1 text-xs text-gray-500 line-clamp-2">{answersOf(l).map((a) => <span key={a.label} className="mr-3"><b className="font-bold text-gray-600">{a.label}:</b> {a.value}</span>)}</p>}
                   {l.note && <p className="mt-1 text-[11px] text-gray-400 line-clamp-1">Not: {l.note}</p>}
                 </td>
                 <td className="px-5 py-4" onClick={(e) => e.stopPropagation()}>
