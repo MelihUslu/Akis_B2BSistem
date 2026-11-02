@@ -4,9 +4,9 @@ import api, { errorMessage } from '../../services/api';
 import Modal from '../shared/Modal';
 import { Field, Segmented, Toggle } from '../form/FormKit';
 import { PAYMENT_METHODS, transactionTypes } from '../../utils/partner';
-import { formatMoney } from '../../utils/format';
+import { formatMoney, localDate } from '../../utils/format';
 
-const today = () => new Date().toISOString().slice(0, 10);
+const today = () => localDate();
 const cancelBtn = (onClose) => <button type="button" onClick={onClose} className="px-4 h-11 rounded-xl text-sm font-black text-gray-600 bg-gray-100 hover:bg-gray-200">Vazgeç</button>;
 
 /**

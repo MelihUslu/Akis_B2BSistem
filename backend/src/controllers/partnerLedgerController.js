@@ -5,6 +5,7 @@ import {
   recordPayment, reverseTransaction, listTransactions, agingReport, PAYMENT_METHODS, SOURCES, AGING_BUCKETS
 } from '../services/partnerLedgerService.js';
 import { fail, loadPartner, sendWorkbook } from './partnerController.js';
+import { localDay } from '../utils/dates.js';
 
 /**
  * Cari defteri uçları (Finans yetkisi): tahsilat / ödeme, hareket listesi ve Excel, ters kayıt, yaşlandırma.
@@ -72,7 +73,7 @@ export const exportTransactions = async (req, res) => {
       'Giren': t.createdByName || ''
     }));
     if (!req.query.from) data.unshift({ 'Tarih': '', 'Kaynak': '', 'Açıklama': 'Açılış bakiyesi', 'Borç': '', 'Alacak': '', 'Bakiye': openingBalance, 'Bakiye Durumu': '', 'Not': '', 'Giren': '' });
-    sendWorkbook(res, data, 'Hareketler', `cari-hareketler-${company.id}-${new Date().toISOString().slice(0, 10)}.xlsx`, [12, 14, 60, 14, 14, 14, 12, 10, 10, 14, 16, 18]);
+    sendWorkbook(res, data, 'Hareketler', `cari-hareketler-${company.id}-${localDay()}.xlsx`, [12, 14, 60, 14, 14, 14, 12, 10, 10, 14, 16, 18]);
   } catch (error) {
     fail(res, error, 'Excel oluşturulamadı.');
   }
@@ -104,7 +105,7 @@ export const getAging = async (req, res) => {
         data.push({ 'Cari': `TOPLAM (${cur === 'TRY' ? 'TL' : cur})`, 'Para Birimi': cur === 'TRY' ? 'TL' : cur, ...Object.fromEntries(AGING_BUCKETS.map((b) => [b.label, t[b.key]])), 'Toplam Borç': t.total });
       }
       data.push({ 'Cari': 'GENEL TOPLAM (güncel kurla TL)', 'Para Birimi': 'TL', ...Object.fromEntries(AGING_BUCKETS.map((b) => [b.label, report.totals[b.key]])), 'Toplam Borç': report.totals.total });
-      return sendWorkbook(res, data, 'Yaşlandırma', `borc-yaslandirma-${new Date().toISOString().slice(0, 10)}.xlsx`, [34, 14, 10, 16, 10, 16, 12, 12, 12, 12, 18, 14]);
+      return sendWorkbook(res, data, 'Yaşlandırma', `borc-yaslandirma-${localDay()}.xlsx`, [34, 14, 10, 16, 10, 16, 12, 12, 12, 12, 18, 14]);
     }
     res.json(report);
   } catch (error) {

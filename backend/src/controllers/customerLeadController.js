@@ -2,6 +2,7 @@ import prisma from '../utils/prisma.js';
 import { notifyAdmins, safeNotify } from '../services/notificationService.js';
 import { sendWorkbook } from './partnerController.js';
 import { randomBytes } from 'node:crypto';
+import { localDay } from '../utils/dates.js';
 
 /**
  * Müşteri adayları: Instagram / WhatsApp reklamından yazan kişiler.
@@ -145,7 +146,7 @@ export const exportLeads = async (req, res) => {
       ...Object.fromEntries(extra.map((label) => [label, (Array.isArray(l.answers) ? l.answers.find((x) => x.label === label)?.value : '') || ''])),
       'Durum': STATUSES[l.status] || l.status, 'Not': l.note,
       'Kaydeden': l.viaForm ? 'Talep formu' : l.createdByName
-    })), 'Müşteri Adayları', `musteri-adaylari-${new Date().toISOString().slice(0, 10)}.xlsx`, [17, 24, 15, 24, 14, 12, 22, 50, ...extra.map(() => 20), 13, 40, 16]);
+    })), 'Müşteri Adayları', `musteri-adaylari-${localDay()}.xlsx`, [17, 24, 15, 24, 14, 12, 22, 50, ...extra.map(() => 20), 13, 40, 16]);
   } catch (error) {
     console.error('exportLeads error:', error);
     res.status(500).json({ message: 'Excel oluşturulamadı.' });

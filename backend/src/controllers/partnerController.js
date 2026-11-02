@@ -9,6 +9,7 @@ import { sendCredentialsMail } from '../services/mailService.js';
 import { partnerSummary, LedgerError } from '../services/partnerLedgerService.js';
 import { round2 } from '../services/pricingService.js';
 import { normalizeCurrency, assertCurrencyChangeAllowed, CurrencyError, postEntry, currentRate } from '../services/accountPosting.js';
+import { localDay } from '../utils/dates.js';
 
 /**
  * Cari Hesaplar: bayiler, portal dışı müşteriler ve tedarikçiler tek listede.
@@ -322,7 +323,7 @@ export const exportPartners = async (req, res) => {
       'Bakiye': round2(c.currentBalance), 'Bakiye Durumu': c.currentBalance < 0 ? 'Borçlu' : c.currentBalance > 0 ? 'Alacaklı' : '',
       'Etiketler': c.tags.join(', '), 'Sorumlu': c.owner?.name || '', 'Yetkili Adı': c.contacts[0]?.name || c.authorizedPerson || '',
       'Yetkili Telefon': c.contacts[0]?.phone || '', 'Yetkili E-posta': c.contacts[0]?.email || '', 'Durum': c.status === 'PASSIVE' ? 'Pasif' : 'Aktif'
-    })), 'Cariler', `cariler-${new Date().toISOString().slice(0, 10)}.xlsx`, [10, 14, 34, 16, 14, 16, 26, 34, 10, 12, 14, 12, 20, 16, 22, 16, 26, 8]);
+    })), 'Cariler', `cariler-${localDay()}.xlsx`, [10, 14, 34, 16, 14, 16, 26, 34, 10, 12, 14, 12, 20, 16, 22, 16, 26, 8]);
   } catch (error) {
     fail(res, error, 'Excel oluşturulamadı.');
   }

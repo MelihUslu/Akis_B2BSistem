@@ -1,4 +1,5 @@
 import { basePrisma as db } from '../utils/prisma.js';
+import { localDay } from '../utils/dates.js';
 
 /**
  * Tanıtım sitesi ayarları (platform düzeyi; Platform → Geliştirici → Site ve Chatbot).
@@ -51,7 +52,7 @@ export const saveSiteSettings = async (patch) => {
   for (const group of Object.keys(SITE_DEFAULTS)) {
     if (!patch?.[group]) continue;
     const value = clean(group, patch[group]);
-    if (group === 'legal') value.updatedAt = new Date().toISOString().slice(0, 10);
+    if (group === 'legal') value.updatedAt = localDay();
     await db.siteSetting.upsert({ where: { key: group }, create: { key: group, value }, update: { value } });
   }
   cache = null;

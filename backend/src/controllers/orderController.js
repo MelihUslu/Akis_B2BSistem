@@ -12,6 +12,7 @@ import xlsx from 'xlsx';
 import { currentTenantId } from '../utils/prisma.js';
 import { postEntry, orderRate } from '../services/accountPosting.js';
 import { getExchangeRates } from '../services/exchangeRateService.js';
+import { localDay } from '../utils/dates.js';
 
 // Webhook için siparişin özet hali
 
@@ -127,7 +128,7 @@ export const exportOrders = async (req, res) => {
     const wb = xlsx.utils.book_new();
     xlsx.utils.book_append_sheet(wb, xlsx.utils.json_to_sheet(rows), 'Siparişler');
     res.setHeader('Content-Type', 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet');
-    res.setHeader('Content-Disposition', `attachment; filename="siparisler-${new Date().toISOString().slice(0, 10)}.xlsx"`);
+    res.setHeader('Content-Disposition', `attachment; filename="siparisler-${localDay()}.xlsx"`);
     res.send(xlsx.write(wb, { type: 'buffer', bookType: 'xlsx' }));
   } catch (error) {
     console.error('exportOrders error:', error);

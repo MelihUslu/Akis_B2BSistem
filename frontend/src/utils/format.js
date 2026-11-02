@@ -50,3 +50,10 @@ export const normalizeQty = (value, product) => {
   if (step > 1 && qty % step !== 0) qty = Math.ceil(qty / step) * step;
   return qty;
 };
+
+// Tarayıcının yerel takvim günü 'YYYY-MM-DD' (date input'ları için). toISOString() UTC günü verir;
+// Türkiye'de gece 00:00–03:00 arası bir önceki güne düşer.
+export const localDate = (d = new Date()) => {
+  const x = new Date(d);
+  return new Date(x.getTime() - x.getTimezoneOffset() * 60000).toISOString().slice(0, 10);
+};

@@ -1,4 +1,5 @@
 import { redisReady } from '../../utils/redis.js';
+import { localDay } from '../../utils/dates.js';
 
 /**
  * Yapay zekâ sağlayıcısı (yalnızca sunucu tarafında; anahtar istemciye hiç gönderilmez).
@@ -72,7 +73,7 @@ const memoryCounts = new Map();
 export const consumeAiQuota = async (tenantId) => {
   const limit = parseInt(process.env.AI_DAILY_LIMIT ?? '200', 10);
   if (!Number.isFinite(limit) || limit <= 0) return;
-  const key = `ai:${tenantId}:${new Date().toISOString().slice(0, 10)}`;
+  const key = `ai:${tenantId}:${localDay()}`; // günlük kota Türkiye gününe göre
   let count;
   const redis = redisReady();
   if (redis) {

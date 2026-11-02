@@ -1,3 +1,4 @@
+import { localDate } from './format';
 // Teklif durumları. Personel ve müşteri farklı adlar görür (müşteri için taslak/onay aşaması "hazırlanıyor"dur).
 export const QUOTE_STATUS = {
   PENDING: { label: 'Fiyat Bekleniyor', className: 'bg-orange-100 text-orange-600' },
@@ -23,7 +24,7 @@ export const MATCH_STATUS = {
 
 export const RESPONSE_LABEL = { ACCEPTED: 'Kabul etti', REJECTED: 'Reddetti', REVISION_REQUESTED: 'Revizyon istedi' };
 
-export const addDays = (days) => new Date(Date.now() + days * 24 * 60 * 60 * 1000).toISOString().slice(0, 10);
+export const addDays = (days) => localDate(new Date(Date.now() + days * 24 * 60 * 60 * 1000));
 
 // Editördeki kalemlerin React anahtarı (sunucuya gönderilmez)
 let seq = 0;

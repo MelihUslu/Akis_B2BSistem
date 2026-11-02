@@ -48,6 +48,7 @@ export const activeAnnouncements = async (req, res) => {
 // ─── Destek talepleri (firma → platform) ─────────────────────────────────────
 
 import { SLA_HOURS, dueDate, cleanAttachments, buildContext } from '../services/supportService.js';
+import { localDay } from '../utils/dates.js';
 
 const TICKET_CATEGORIES = ['TECHNICAL', 'BILLING', 'FEATURE', 'USAGE', 'OTHER'];
 
@@ -236,7 +237,7 @@ export const removeDomain = async (req, res) => {
 export const exportData = async (req, res) => {
   const { buffer, tenant } = await exportTenantWorkbook(req.tenant.id);
   res.setHeader('Content-Type', 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet');
-  res.setHeader('Content-Disposition', `attachment; filename="${tenant.slug}-tum-veriler-${new Date().toISOString().slice(0, 10)}.xlsx"`);
+  res.setHeader('Content-Disposition', `attachment; filename="${tenant.slug}-tum-veriler-${localDay()}.xlsx"`);
   res.send(buffer);
 };
 

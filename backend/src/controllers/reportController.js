@@ -1,6 +1,7 @@
 import prisma from '../utils/prisma.js';
 import { parseRange, buildSalesReport, reportWorkbook } from '../services/reportService.js';
 import { buildCustomerReport, customerReportWorkbook, loadSettings, saveSettings, DEFAULT_SETTINGS } from '../services/periodicReportService.js';
+import { localDay } from '../utils/dates.js';
 
 export const salesReport = async (req, res) => {
   try {
@@ -14,7 +15,7 @@ export const exportSalesReport = async (req, res) => {
   try {
     const range = parseRange(req.query);
     const buffer = reportWorkbook(await buildSalesReport(range));
-    const name = `satis-raporu-${range.from.toISOString().slice(0, 10)}_${range.to.toISOString().slice(0, 10)}.xlsx`;
+    const name = `satis-raporu-${localDay(range.from)}_${localDay(range.to)}.xlsx`;
     res.setHeader('Content-Type', 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet');
     res.setHeader('Content-Disposition', `attachment; filename="${name}"`);
     res.send(buffer);
@@ -30,7 +31,7 @@ const sendXlsx = (res, buffer, name) => {
   res.setHeader('Content-Disposition', `attachment; filename="${name}"`);
   res.send(buffer);
 };
-const fileName = (r) => `musteri-raporu-${new Date(r.range.from).toISOString().slice(0, 10)}_${new Date(r.range.to).toISOString().slice(0, 10)}.xlsx`;
+const fileName = (r) => `musteri-raporu-${localDay(r.range.from)}_${localDay(r.range.to)}.xlsx`;
 
 export const getPeriodicSettings = async (req, res) => {
   res.json({ settings: await loadSettings(), defaults: DEFAULT_SETTINGS });

@@ -3,12 +3,12 @@ import { Link, useParams } from 'react-router-dom';
 import { ArrowLeft, ExternalLink, Save, Wallet, KeyRound, Ban, PlayCircle, UserCog, Download, Trash2, RotateCcw, Globe } from 'lucide-react';
 import { platformApi, errorMessage } from '../../services/api';
 import useAlert from '../../hooks/useAlert';
-import { formatDate, formatTRY } from '../../utils/format';
+import { formatDate, formatTRY, localDate } from '../../utils/format';
 import { StatusPill, TENANT_STATUS, limitLabel } from './shared';
 import { downloadFile } from '../../utils/download';
 import AuditLogTable from '../../components/shared/AuditLogTable';
 
-const toInputDate = (d) => (d ? new Date(d).toISOString().slice(0, 10) : '');
+const toInputDate = (d) => (d ? localDate(d) : '');
 
 const PlatformTenantDetail = () => {
   const { id } = useParams();

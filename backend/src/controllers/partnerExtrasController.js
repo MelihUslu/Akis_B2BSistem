@@ -149,7 +149,8 @@ export const viewStatementLink = async (req, res) => {
   const link = await findLink(req.params.token);
   if (!link) return res.status(404).json({ message: 'Ekstre bulunamadı veya bağlantı geçersiz.' });
   if (link.expiresAt < new Date()) return res.status(410).json({ message: 'Bu ekstre bağlantısının süresi doldu. Güncel ekstre için firmayla iletişime geçin.' });
-  const { rows, openingBalance } = await listTransactions(link.company, { to: link.periodEnd.toISOString().slice(0, 10) });
+  // Kesim, bağlantının oluşturulduğu an: gün bazlı "to" filtresi gece 00:00–03:00 arasında son hareketleri dışarıda bırakıyordu
+  const { rows, openingBalance } = await listTransactions(link.company);
   const t = req.tenant;
   res.json({
     seller: { name: t.name, address: t.address, taxOffice: t.taxOffice, taxNumber: t.taxNumber, phone: t.phone, email: t.contactEmail, logoUrl: t.logoUrl },

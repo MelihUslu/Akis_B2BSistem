@@ -1,6 +1,7 @@
 import xlsx from 'xlsx';
 import prisma from '../utils/prisma.js';
 import { getExchangeRates, toTRY } from './exchangeRateService.js';
+import { localDay, localMonth } from '../utils/dates.js';
 
 // Satış sayılan sipariş durumları (bekleyen ve iptal edilenler hariç)
 const SOLD = ['APPROVED', 'PARTIAL_APPROVED', 'SHIPPED', 'READY_FOR_PICKUP', 'COMPLETED'];
@@ -52,7 +53,7 @@ export const buildSalesReport = async ({ from, to }) => {
   for (const o of orders) {
     const gross = o.items.reduce((s, i) => s + i.price * i.quantity, 0);
     const ratio = gross > 0 ? Math.max(0, gross - (o.discountAmount || 0)) / gross : 1;
-    const key = monthly ? o.createdAt.toISOString().slice(0, 7) : o.createdAt.toISOString().slice(0, 10);
+    const key = monthly ? localMonth(o.createdAt) : localDay(o.createdAt); // Türkiye günü (UTC değil)
     const t = trend.get(key) || { period: key, revenue: 0, orders: 0 };
     t.orders += 1;
 

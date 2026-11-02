@@ -5,6 +5,7 @@ import { notifyAdmins, notifyCompany, safeNotify } from '../services/notificatio
 import { postEntry, rateOrCurrent, CurrencyError } from '../services/accountPosting.js';
 import { formatMoney } from '../services/money.js';
 import { getExchangeRates } from '../services/exchangeRateService.js';
+import { localDay } from '../utils/dates.js';
 
 export const createTransaction = async (req, res) => {
   try {
@@ -196,7 +197,7 @@ export const exportStatement = async (req, res) => {
     xlsx.utils.book_append_sheet(wb, ws, 'Ekstre');
     const safeName = statement.company.name.replace(/[^\w\-ğüşöçıİĞÜŞÖÇ ]/g, '').slice(0, 40).trim().replace(/\s+/g, '-');
     res.setHeader('Content-Type', 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet');
-    res.setHeader('Content-Disposition', `attachment; filename*=UTF-8''${encodeURIComponent(`ekstre-${safeName}-${new Date().toISOString().slice(0, 10)}.xlsx`)}`);
+    res.setHeader('Content-Disposition', `attachment; filename*=UTF-8''${encodeURIComponent(`ekstre-${safeName}-${localDay()}.xlsx`)}`);
     res.send(xlsx.write(wb, { type: 'buffer', bookType: 'xlsx' }));
   } catch (error) {
     res.status(500).json({ message: 'Ekstre Excel\'i oluşturulamadı.' });
