@@ -1,7 +1,7 @@
 import { useEffect, useRef, useState } from 'react';
 import { useSearchParams } from 'react-router-dom';
 import {
-  Crown, Check, CreditCard, AlertTriangle, X, Loader2, Landmark, Copy, ShieldCheck, Receipt, RefreshCcw, Clock, Phone, Mail, MessageCircle, ChevronDown, Sparkles, Pencil
+  Crown, Check, CreditCard, AlertTriangle, X, Loader2, Landmark, Copy, ShieldCheck, Receipt, RefreshCcw, Clock, Phone, Mail, MessageCircle, Sparkles, Pencil, Users, Package, UserCog, FileText
 } from 'lucide-react';
 import api, { errorMessage } from '../../services/api';
 import useAlert from '../../hooks/useAlert';
@@ -13,6 +13,7 @@ const priceOf = (p, cycle) => (cycle === 'YEARLY' ? p.priceYearly : p.priceMonth
 const yearlySaving = (p) => (p.priceMonthly > 0 && p.priceYearly > 0 ? Math.round((1 - p.priceYearly / (p.priceMonthly * 12)) * 100) : 0);
 const daysUntil = (d) => Math.ceil((new Date(d) - Date.now()) / 864e5);
 const STATUS_TEXT = { TRIAL: 'Deneme', ACTIVE: 'Aktif', PAST_DUE: 'Ödeme bekleniyor', SUSPENDED: 'Askıda', CANCELLED: 'İptal edildi' };
+const STATUS_TONE = { TRIAL: 'bg-amber-100 text-amber-800', ACTIVE: 'bg-emerald-100 text-emerald-800', PAST_DUE: 'bg-red-100 text-red-700', SUSPENDED: 'bg-red-100 text-red-700', CANCELLED: 'bg-gray-200 text-gray-700' };
 const PROFILE_KEYS = ['fullName', 'identityNumber', 'gsmNumber', 'city', 'address'];
 
 const CopyRow = ({ label, value, mono }) => {
@@ -216,9 +217,8 @@ const Checkout = ({ plan, cycle, data, onClose, onDone }) => {
 
 const AdminSubscriptionPage = () => {
   const [data, setData] = useState(null);
-  const [cycle, setCycle] = useState('YEARLY');
+  const [cycle, setCycle] = useState('MONTHLY');
   const [buying, setBuying] = useState(null);
-  const [details, setDetails] = useState(false);
   const [params, setParams] = useSearchParams();
   const { alertElement, showAlert, confirm } = useAlert();
   const { refresh: refreshTenant } = useTenant();
@@ -247,6 +247,7 @@ const AdminSubscriptionPage = () => {
   const left = endDate ? daysUntil(endDate) : null;
   const paidActive = tenant.status === 'ACTIVE' && access.active;
   const maxSaving = Math.max(0, ...plans.map(yearlySaving));
+  const planName = (code) => plans.find((x) => x.code === code)?.name || (code === plan.code ? plan.name : code);
   const featuredCode = paidActive ? plan.code : (plans[Math.min(1, plans.length - 1)]?.code);
 
   const cancelRenewal = async () => {
@@ -370,51 +371,105 @@ const AdminSubscriptionPage = () => {
         </div>
       </section>
 
-      {/* Kullanım ve ödemeler (ikincil) */}
-      <section className="card-premium">
-        <button onClick={() => setDetails(!details)} className="w-full flex items-center justify-between p-5 text-left">
-          <span className="text-sm font-black text-gray-900">Kullanım ve ödeme geçmişi</span>
-          <ChevronDown className={`h-4 w-4 text-gray-400 transition-transform ${details ? 'rotate-180' : ''}`} />
-        </button>
-        {details && (
-          <div className="grid gap-6 md:grid-cols-2 px-5 pb-5">
-            <div className="space-y-4">
-              {[['Bayi', usage.dealers, plan.maxDealers], ['Ürün', usage.products, plan.maxProducts], ['Yönetici', usage.admins, plan.maxAdmins]].map(([label, used, max]) => {
-                const pct = max < 0 ? 0 : Math.min(100, (used / Math.max(max, 1)) * 100);
-                return (
-                  <div key={label}>
-                    <div className="flex justify-between text-xs font-bold mb-1.5"><span className="text-gray-600">{label}</span><span className={pct >= 90 ? 'text-red-600' : 'text-gray-900'}>{used} / {limitText(max)}</span></div>
-                    <div className="h-2 rounded-full bg-gray-100 overflow-hidden"><div className={`h-full rounded-full ${pct >= 90 ? 'bg-red-500' : pct >= 70 ? 'bg-amber-500' : 'bg-indigo-500'}`} style={{ width: `${max < 0 ? 4 : pct}%` }} /></div>
+      {/* Mevcut abonelik ve ödeme geçmişi */}
+      <section className="grid gap-6 lg:grid-cols-5">
+        <div className="card-premium p-6 lg:col-span-2 flex flex-col">
+          <div className="flex items-start justify-between gap-3">
+            <div>
+              <p className="text-[10px] font-black text-gray-400 uppercase tracking-widest">Mevcut aboneliğiniz</p>
+              <h3 className="mt-1 text-2xl font-black text-gray-900">{plan.name}</h3>
+            </div>
+            <span className={`shrink-0 rounded-full px-2.5 py-1 text-[11px] font-black ${STATUS_TONE[tenant.status] || 'bg-gray-100 text-gray-600'}`}>{STATUS_TEXT[tenant.status]}</span>
+          </div>
+
+          <dl className="mt-4 grid grid-cols-2 gap-3">
+            <div className="rounded-2xl bg-gray-50 px-3 py-2.5">
+              <dt className="text-[10px] font-black text-gray-400 uppercase tracking-widest">{tenant.status === 'TRIAL' ? 'Deneme bitişi' : tenant.cancelAtPeriodEnd || !tenant.hasIyzicoSubscription ? 'Bitiş' : 'Yenileme'}</dt>
+              <dd className="mt-0.5 text-sm font-black text-gray-900">{endDate ? formatDate(endDate) : '—'}{left != null && left >= 0 && <span className="ml-1 text-[11px] font-bold text-gray-400">({left} gün)</span>}</dd>
+            </div>
+            <div className="rounded-2xl bg-gray-50 px-3 py-2.5">
+              <dt className="text-[10px] font-black text-gray-400 uppercase tracking-widest">Ödeme</dt>
+              <dd className="mt-0.5 text-sm font-black text-gray-900">{tenant.status === 'TRIAL' ? 'Ücretsiz deneme' : `${tenant.billingCycle === 'YEARLY' ? 'Yıllık' : 'Aylık'} · ${tenant.hasIyzicoSubscription ? 'kart' : 'havale / elle'}`}</dd>
+            </div>
+          </dl>
+          <p className="mt-3 text-xs text-gray-500 flex items-center gap-1.5">
+            <RefreshCcw className="h-3.5 w-3.5 shrink-0" />
+            {tenant.status === 'TRIAL' ? 'Deneme bitmeden paket seçerseniz kesinti olmaz.'
+              : tenant.hasIyzicoSubscription && !tenant.cancelAtPeriodEnd ? 'Kartınızdan otomatik yenilenir.'
+                : 'Otomatik yenilenmez; bitişten önce hatırlatırız.'}
+          </p>
+
+          <div className="mt-6 space-y-4 flex-1">
+            <p className="text-[10px] font-black text-gray-400 uppercase tracking-widest">Kullanım</p>
+            {[['Bayi', Users, usage.dealers, plan.maxDealers], ['Ürün', Package, usage.products, plan.maxProducts], ['Yönetici', UserCog, usage.admins, plan.maxAdmins]].map(([label, Icon, used, max]) => {
+              const unlimited = max < 0;
+              const pct = unlimited ? 0 : Math.min(100, (used / Math.max(max, 1)) * 100);
+              const tone = pct >= 90 ? 'bg-red-500' : pct >= 70 ? 'bg-amber-500' : 'bg-indigo-500';
+              return (
+                <div key={label} className="flex items-center gap-3">
+                  <span className="h-9 w-9 shrink-0 rounded-xl bg-indigo-50 text-indigo-600 flex items-center justify-center"><Icon className="h-4 w-4" /></span>
+                  <div className="flex-1 min-w-0">
+                    <div className="flex items-baseline justify-between gap-2 text-xs">
+                      <span className="font-bold text-gray-700">{label}</span>
+                      <span className="tabular-nums"><b className="text-gray-900">{used.toLocaleString('tr-TR')}</b> <span className="text-gray-400">/ {limitText(max)}</span></span>
+                    </div>
+                    <div className="mt-1.5 h-1.5 rounded-full bg-gray-100 overflow-hidden">
+                      {!unlimited && <div className={`h-full rounded-full ${tone}`} style={{ width: `${Math.max(pct, 2)}%` }} />}
+                    </div>
+                    <p className={`mt-1 text-[11px] font-semibold ${pct >= 90 ? 'text-red-600' : 'text-gray-400'}`}>
+                      {unlimited ? 'Sınırsız' : max - used > 0 ? `${(max - used).toLocaleString('tr-TR')} hakkınız kaldı` : 'Sınıra ulaştınız; üst pakete geçin'}
+                    </p>
                   </div>
+                </div>
+              );
+            })}
+          </div>
+
+          {tenant.hasIyzicoSubscription && !tenant.cancelAtPeriodEnd && (
+            <button onClick={cancelRenewal} className="mt-5 self-start text-xs font-bold text-gray-400 hover:text-red-600">Otomatik yenilemeyi durdur</button>
+          )}
+        </div>
+
+        <div className="card-premium lg:col-span-3 flex flex-col">
+          <div className="flex items-center justify-between px-6 pt-6 pb-3">
+            <h3 className="text-sm font-black text-gray-900 flex items-center gap-2"><Receipt className="h-4 w-4 text-indigo-500" /> Ödeme geçmişi</h3>
+            {payments.length > 0 && <span className="text-[11px] font-bold text-gray-400">{payments.length} kayıt</span>}
+          </div>
+          {payments.length === 0 ? (
+            <div className="flex-1 flex flex-col items-center justify-center text-center px-6 pb-8 pt-4">
+              <span className="h-12 w-12 rounded-2xl bg-gray-50 flex items-center justify-center"><Receipt className="h-6 w-6 text-gray-300" /></span>
+              <p className="mt-3 text-sm font-bold text-gray-600">Henüz ödeme yok</p>
+              <p className="mt-1 text-xs text-gray-400 max-w-xs">İlk ödemenizden sonra ödemeleriniz ve faturalarınız burada listelenir.</p>
+            </div>
+          ) : (
+            <ul className="divide-y divide-gray-50 max-h-[26rem] overflow-y-auto px-2 pb-2">
+              {payments.map((p) => {
+                const ok = p.status === 'SUCCESS';
+                const method = p.method === 'IYZICO' ? 'Kart' : p.reference?.startsWith('transfer:') ? 'Havale' : 'Elle kayıt';
+                return (
+                  <li key={p.id} className="flex items-center gap-3 px-4 py-3 rounded-xl hover:bg-gray-50/70">
+                    <span className={`h-9 w-9 shrink-0 rounded-xl flex items-center justify-center ${ok ? 'bg-emerald-50 text-emerald-600' : 'bg-red-50 text-red-600'}`}>
+                      {ok ? <Check className="h-4 w-4" /> : <X className="h-4 w-4" />}
+                    </span>
+                    <div className="flex-1 min-w-0">
+                      <p className="text-sm font-bold text-gray-900 truncate">{planName(p.planCode)} · {p.billingCycle === 'YEARLY' ? 'Yıllık' : 'Aylık'}</p>
+                      <p className="text-[11px] text-gray-400 truncate">
+                        {formatDate(p.createdAt)} · {method}{ok && p.periodEnd && ` · ${formatDate(p.periodStart)} – ${formatDate(p.periodEnd)}`}
+                      </p>
+                    </div>
+                    <div className="text-right shrink-0">
+                      <p className={`text-sm font-black tabular-nums ${ok ? 'text-gray-900' : 'text-red-600'}`}>{ok ? formatTRY(p.amount) : 'Başarısız'}</p>
+                      {p.invoiceStatus === 'ISSUED' ? (
+                        <button onClick={() => api.get(`/billing/payments/${p.id}/invoice`).then((r) => window.open(r.data.url, '_blank', 'noopener')).catch(() => showAlert({ type: 'error', title: 'Fatura', message: 'Fatura açılamadı.' }))}
+                          className="mt-0.5 inline-flex items-center gap-1 text-[11px] font-bold text-indigo-600 hover:underline"><FileText className="h-3 w-3" /> Fatura</button>
+                      ) : ok && p.invoiceStatus === 'PENDING' ? <p className="mt-0.5 text-[11px] font-semibold text-gray-400">Fatura hazırlanıyor</p> : null}
+                    </div>
+                  </li>
                 );
               })}
-              {tenant.hasIyzicoSubscription && !tenant.cancelAtPeriodEnd && (
-                <button onClick={cancelRenewal} className="text-xs font-bold text-gray-400 hover:text-red-600">Otomatik yenilemeyi durdur</button>
-              )}
-            </div>
-            <div>
-              {payments.length === 0 ? <p className="text-sm text-gray-400 py-4">Henüz ödeme yok.</p> : (
-                <ul className="divide-y divide-gray-50 max-h-64 overflow-y-auto">
-                  {payments.map((p) => (
-                    <li key={p.id} className="flex justify-between py-2.5">
-                      <div>
-                        <p className="text-xs font-bold text-gray-800">{p.planCode} · {p.billingCycle === 'YEARLY' ? 'Yıllık' : 'Aylık'}</p>
-                        <p className="text-[11px] text-gray-400">{formatDate(p.createdAt)}</p>
-                      </div>
-                      <div className="text-right">
-                        <span className={`text-xs font-black ${p.status === 'SUCCESS' ? 'text-emerald-600' : 'text-red-500'}`}>{p.status === 'SUCCESS' ? formatTRY(p.amount) : 'Başarısız'}</span>
-                        {p.invoiceStatus === 'ISSUED' && (
-                          <button onClick={() => api.get(`/billing/payments/${p.id}/invoice`).then((r) => window.open(r.data.url, '_blank', 'noopener')).catch(() => {})}
-                            className="block ml-auto text-[11px] font-bold text-indigo-600 hover:underline">Fatura{p.invoiceNumber ? ` ${p.invoiceNumber}` : ''} ↗</button>
-                        )}
-                      </div>
-                    </li>
-                  ))}
-                </ul>
-              )}
-            </div>
-          </div>
-        )}
+            </ul>
+          )}
+        </div>
       </section>
     </div>
   );
