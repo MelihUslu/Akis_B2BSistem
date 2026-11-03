@@ -41,6 +41,45 @@ WRITE_OK=1 TENANT=yuktest RATE=3 DURATION=2m DEALER_EMAIL=… DEALER_PASSWORD=�
 - `DOCKER_NETWORK`: yerelde k6'yı backend'le aynı Docker ağında çalıştırır (ör. `DOCKER_NETWORK=akis_b2bsistem_default BASE_URL=http://backend:5001`). Docker Desktop'ın port yönlendirmesinden gelen ara sıra bağlantı zaman aşımlarını ölçümden ayırır.
 - Giriş ucunda 15 dakikada 20 deneme sınırı vardır. Testler her sanal kullanıcı için ayrı giriş yapmaz; başta bir kez giriş yapıp oturumu paylaşır.
 
+## Büyük ölçekli testler (1000+ kullanıcı, gerçekçi veri)
+
+Geliştirme veritabanında birkaç ürün olduğu için sonuçlar fazla iyimser çıkar. Büyük testler **ayrı bir veritabanında** (`akis_load`) ve **ayrı bir backend kopyasında** çalışır; geliştirme verinize dokunulmaz.
+
+```bash
+# 1) Yük testi backend'i (kod sizinkiyle aynı; veritabanı akis_load, nodemon yok)
+mkdir -p loadtest/.data && openssl rand -hex 24 > loadtest/.data/secret
+NM=$(docker inspect akis_b2bsistem-backend-1 --format '{{range .Mounts}}{{if eq .Destination "/app/node_modules"}}{{.Name}}{{end}}{{end}}')
+docker run -d --name akis_loadtest_backend --network akis_b2bsistem_default \
+  -v "$PWD/backend:/app" -v "$NM:/app/node_modules:ro" -v "$PWD/loadtest:/loadtest" -w /app \
+  -e DATABASE_URL=postgresql://akis:akis_dev_password@db:5432/akis_load -e JWT_SECRET="$(cat loadtest/.data/secret)" \
+  -e PORT=5001 -e TZ=Europe/Istanbul -e ROOT_DOMAIN=localhost \
+  -e WEB_CONCURRENCY=4 -e DB_POOL_SIZE=15 -e REDIS_URL=redis://redis:6379/5 \
+  akis_b2bsistem-backend node src/server.js
+# WEB_CONCURRENCY=4: 4 işçi süreç (canlıya yakın). Tek süreci ölçmek için bu satırı çıkarın.
+# REDIS_URL'deki /5: geliştirme Redis'inde ayrı veritabanı (geliştirme verisine karışmaz).
+
+# 2) Veritabanını sıfırla ve gerçekçi veri üret (1000 yönetici, 1000 bayi, 5000 ürün, 60.000 sipariş; ~15 sn)
+./loadtest/seed/reset.sh
+docker exec -w /app akis_loadtest_backend node /loadtest/seed/seed.mjs     # ADMINS= DEALERS= PRODUCTS= ORDERS= ile değiştirilebilir
+
+# 3) Testler (k6 backend'le aynı Docker ağında)
+export DOCKER_NETWORK=akis_b2bsistem_default BASE_URL=http://akis_loadtest_backend:5001 TENANT=yuktest
+./loadtest/monitor.sh loadtest/results/izleme.csv &      # CPU / bellek / DB bağlantısı (5 sn'de bir)
+./loadtest/run.sh scale                                  # 1000 yönetici + 1000 bayi (ADMINS= DEALERS= RAMP= HOLD=)
+./loadtest/run.sh breakpoint                             # istek hızı artar, %95 > 2 sn ya da hata > %5 olunca durur (MAX_RPS=)
+./loadtest/run.sh soak                                   # 300 kullanıcı, 20 dk (USERS= DURATION=)
+WRITE_OK=1 ./loadtest/run.sh concurrency                 # eşzamanlı sipariş + onay yarışı (VERİ YAZAR, yalnızca akis_load)
+kill %1                                                  # izlemeyi durdur
+```
+
+Oturum anahtarları `seed.mjs` tarafından `loadtest/.data/tokens.json` dosyasına yazılır (git'e girmez); her sanal kullanıcı farklı bir hesapla girer.
+
+**Eşzamanlılık testinden sonra stok kontrolü** (hiçbir ürün eksiye düşmemeli):
+
+```bash
+docker exec akis_b2bsistem-db-1 psql -U akis -d akis_load -c 'select id, sku, stock from "Product" where id in (1,2,3,4,5) order by id'
+```
+
 ## Sonuçlar
 
 - **Ekrandaki özet:** kontroller (✓ / ✗), istek süreleri (ortalama, %90, %95) ve hata oranı.
