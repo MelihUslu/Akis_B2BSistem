@@ -739,6 +739,8 @@ model Tenant {
   waConversations        WaConversation[]
   waMessages             WaMessage[]
   periodicReports        PeriodicReport[]
+  cashEntries            CashEntry[]
+  cashRecurrings         CashRecurring[]
 }
 
 // Kiracının platforma yaptığı abonelik ödemeleri (iyzico veya manuel)
@@ -1421,4 +1423,51 @@ model PeriodicReport {
 
   @@unique([tenantId, period, from])
   @@index([tenantId, createdAt])
+}
+
+// Gelir-gider: cariye bağlı olmayan giderler (kira, maaş, fatura…) ve satış dışı gelirler. Tutar TL, KDV dahil.
+model CashEntry {
+  id            Int      @id @default(autoincrement())
+  tenantId      Int
+  tenant        Tenant   @relation(fields: [tenantId], references: [id])
+  type          String // IN: gelir, OUT: gider
+  category      String
+  amount        Float
+  date          DateTime
+  method        String? // CASH, BANK, CARD
+  vatRate       Float    @default(0) // Tutarın içindeki KDV oranı (%)
+  description   String?
+  // Fiş / fatura (uploads/private/cash, yalnızca yetkiyle indirilir)
+  fileName      String?
+  storedName    String?
+  mimeType      String?
+  recurringId   Int? // Düzenli gider/gelirden otomatik oluştuysa
+  recurring     CashRecurring? @relation(fields: [recurringId], references: [id], onDelete: SetNull)
+  createdByName String?
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+
+  @@index([tenantId, date])
+}
+
+// Düzenli gelir / gider (kira, maaş…): her ay seçilen günde otomatik kayıt oluşur
+model CashRecurring {
+  id            Int         @id @default(autoincrement())
+  tenantId      Int
+  tenant        Tenant      @relation(fields: [tenantId], references: [id])
+  type          String // IN, OUT
+  category      String
+  amount        Float
+  vatRate       Float       @default(0)
+  method        String?
+  description   String?
+  dayOfMonth    Int // 1–28
+  isActive      Boolean     @default(true)
+  lastRunMonth  String? // 'YYYY-MM': bu ayın kaydı oluşturuldu
+  createdByName String?
+  createdAt     DateTime    @default(now())
+  updatedAt     DateTime    @updatedAt
+  entries       CashEntry[]
+
+  @@index([tenantId])
 }

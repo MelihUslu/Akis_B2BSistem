@@ -9,7 +9,7 @@ import prisma, { runAsPlatform } from '../utils/prisma.js';
  */
 export const exportTenantWorkbook = (tenantId) => runAsPlatform(async () => {
   const w = { tenantId };
-  const [tenant, users, companies, categories, products, orders, items, transactions, payments, quotes, returns, coupons, specials] = await Promise.all([
+  const [tenant, users, companies, categories, products, orders, items, transactions, payments, quotes, returns, coupons, specials, cash] = await Promise.all([
     prisma.tenant.findUnique({ where: { id: tenantId }, include: { plan: true } }),
     prisma.user.findMany({ where: w, select: { id: true, name: true, email: true, role: true, companyId: true, isOwner: true, isActive: true, createdAt: true, lastLoginAt: true } }),
     prisma.company.findMany({ where: w }),
@@ -22,7 +22,8 @@ export const exportTenantWorkbook = (tenantId) => runAsPlatform(async () => {
     prisma.quoteRequest.findMany({ where: w, include: { items: true } }),
     prisma.returnRequest.findMany({ where: w }),
     prisma.coupon.findMany({ where: w }),
-    prisma.specialPrice.findMany({ where: w })
+    prisma.specialPrice.findMany({ where: w }),
+    prisma.cashEntry.findMany({ where: w })
   ]);
 
   const flat = (rows) => rows.map(r => Object.fromEntries(Object.entries(r).map(([k, v]) => [k, v instanceof Date ? v.toISOString() : (v && typeof v === 'object' ? JSON.stringify(v) : v)])));
@@ -42,6 +43,7 @@ export const exportTenantWorkbook = (tenantId) => runAsPlatform(async () => {
   sheet('İadeler', returns);
   sheet('Kuponlar', coupons);
   sheet('Özel Fiyatlar', specials);
+  sheet('Gelir-Gider', cash);
   return { buffer: xlsx.write(wb, { type: 'buffer', bookType: 'xlsx' }), tenant };
 });
 
@@ -50,7 +52,7 @@ export const exportTenantWorkbook = (tenantId) => runAsPlatform(async () => {
  */
 // ─── Yüklenen dosyalar ───────────────────────────────────────────────────────
 // private/partners: cari belgeleri (dosya adı t{kiracı}- ile başlar)
-const UPLOAD_DIRS = ['images', 'support', 'private/partners'];
+const UPLOAD_DIRS = ['images', 'support', 'private/partners', 'private/cash'];
 const SAFE_NAME = /^[A-Za-z0-9._-]+$/;
 
 // "…/uploads/images/abc.png" → { dir: 'images', name: 'abc.png' }
@@ -142,6 +144,8 @@ const purgeTenantRecords = (tenantId) => runAsPlatform(() => prisma.$transaction
   await tx.waConversation.deleteMany(w);
   await tx.whatsappChannel.deleteMany(w);
   await tx.periodicReport.deleteMany(w);
+  await tx.cashEntry.deleteMany(w);
+  await tx.cashRecurring.deleteMany(w);
   await tx.warehouseStock.deleteMany(w);
   await tx.orderItem.deleteMany(w);
   await tx.order.deleteMany(w);

@@ -31,6 +31,7 @@ const CouponManagement = lazy(() => import('../pages/admin/CouponManagement'));
 const SupportPage = lazy(() => import('../pages/admin/SupportPage'));
 const AccountPage = lazy(() => import('../pages/admin/AccountPage'));
 const ReportsPage = lazy(() => import('../pages/admin/ReportsPage'));
+const CashPage = lazy(() => import('../pages/admin/CashPage'));
 const LeadManagement = lazy(() => import('../pages/admin/LeadManagement'));
 const WhatsAppPage = lazy(() => import('../pages/admin/WhatsAppPage'));
 
@@ -51,7 +52,7 @@ const Guard = ({ perm, children }) => {
 const PAGE_NAMES = {
   '/admin': 'Ana Sayfa', '/admin/products': 'Ürün Yönetimi', '/admin/categories': 'Kategoriler', '/admin/dealers': 'Bayi Yönetimi', '/admin/partners': 'Cari Hesaplar',
   '/admin/orders': 'Siparişler', '/admin/quotes': 'Teklifler', '/admin/returns': 'İade / RMA', '/admin/coupons': 'Kampanyalar',
-  '/admin/finance': 'Finans & Prim', '/admin/reports': 'Raporlar', '/admin/subscription': 'Abonelik', '/admin/settings': 'Ayarlar', '/admin/account': 'Hesabım'
+  '/admin/finance': 'Finans & Prim', '/admin/cash': 'Gelir-Gider', '/admin/reports': 'Raporlar', '/admin/subscription': 'Abonelik', '/admin/settings': 'Ayarlar', '/admin/account': 'Hesabım'
 };
 const useRememberLastPage = () => {
   const location = useLocation();
@@ -129,6 +130,7 @@ const AdminLayout = () => {
               <Route path="leads" element={<Guard perm="LEADS"><LeadManagement /></Guard>} />
               <Route path="coupons" element={<Guard perm="CATALOG"><CouponManagement /></Guard>} />
               <Route path="reports" element={<Guard perm={['ORDERS', 'FINANCE']}><ReportsPage /></Guard>} />
+              <Route path="cash" element={<Guard perm="FINANCE"><CashPage /></Guard>} />
               <Route path="support" element={<SupportPage />} />
               <Route path="account" element={<AccountPage />} />
             </Routes>

@@ -936,3 +936,125 @@ test('stokta olmayan ürün için teklif talebi (ayarla) ve Gel-Al sipariş: zam
     }
   }
 });
+
+test('gelir-gider: kayıt, KDV, aylık/yıllık özet ve karşılaştırma, bütçe, düzenli kayıt, belge, firma ayrımı, Excel', { skip }, async () => {
+  const A = { tenant: 'itest-a', token: tenants['itest-a'].token };
+  const B = { tenant: 'itest-b', token: tenants['itest-b'].token };
+  const tenantId = tenants['itest-a'].id;
+  const month = '2026-03';
+  const add = (body, who = A) => api('/cash', { ...who, method: 'POST', body });
+
+  // Doğrulama
+  assert.equal((await add({ type: 'OUT', category: 'Kira', amount: 0, date: '2026-03-05' })).status, 400);
+  assert.equal((await add({ type: 'X', category: 'Kira', amount: 10 })).status, 400);
+  assert.equal((await add({ type: 'OUT', category: '', amount: 10 })).status, 400);
+  assert.equal((await add({ type: 'OUT', category: 'Tedarikçi ödemeleri', amount: 10 })).status, 400); // caride otomatik
+
+  const rent = await add({ type: 'OUT', category: 'Kira', amount: '15.000,50', vatRate: 20, date: '2026-03-01', method: 'BANK', description: 'Mart kirası' });
+  assert.equal(rent.status, 201, rent.data?.message);
+  assert.equal(rent.data.entry.amount, 15000.5);
+  await add({ type: 'OUT', category: 'Maaş / SGK', amount: 40000, date: '2026-03-31', method: 'BANK' });
+  await add({ type: 'OUT', category: 'Yakıt / araç', amount: 2500, vatRate: 20, date: '2026-02-20' }); // önceki ay
+  await add({ type: 'IN', category: 'Hurda / ikinci el satış', amount: 3000, vatRate: 20, date: '2026-03-15', method: 'CASH' });
+  await add({ type: 'OUT', category: 'Kira', amount: 999, date: '2026-03-10' }, B); // başka firma
+
+  // Carilerden tahsilat ve tedarikçi ödemesi özete otomatik girer (cari kayıtları değişmez)
+  const companyId = await runAsPlatform(async () => (await prisma.company.create({ data: { tenantId, name: 'Kasa Bayi', status: 'ACTIVE' } })).id);
+  await runAsPlatform(() => prisma.payment.createMany({ data: [
+    { tenantId, companyId, amount: 20000, method: 'WIRE_TRANSFER', direction: 'IN', paymentDate: new Date(2026, 2, 12, 10) },
+    { tenantId, companyId, amount: 100, currency: 'USD', rate: 40, method: 'WIRE_TRANSFER', direction: 'OUT', paymentDate: new Date(2026, 2, 13, 10) },
+    { tenantId, companyId, amount: 5000, method: 'POS', direction: 'IN', status: 'FAILED', paymentDate: new Date(2026, 2, 14, 10) }
+  ] }));
+  const balanceBefore = (await runAsPlatform(() => prisma.company.findUnique({ where: { id: companyId } }))).currentBalance;
+
+  // Bütçe: Kira 10.000 (aşıldı), Reklam 5.000 (harcama yok)
+  assert.equal((await api('/cash/budgets', { ...A, method: 'PUT', body: { budgets: { Kira: '10000', Reklam: 5000, Boş: '' } } })).status, 200);
+
+  let res = await api(`/cash?month=${month}`, A);
+  assert.equal(res.status, 200);
+  assert.equal(res.data.period, 'month');
+  assert.equal(res.data.entries.length, 3);
+  const s = res.data.summary;
+  assert.deepEqual({ ...s, vat: undefined }, { income: 23000, expense: 59000.5, net: -36000.5, collections: 20000, otherIncome: 3000, supplierPayments: 4000, expenses: 55000.5, vat: undefined });
+  assert.deepEqual(s.vat, { input: 2500.08, output: 500 });
+  assert.equal(res.data.previous.expense, 2500); // Şubat
+  assert.equal(res.data.previous.partial, false); // biten ay: önceki ayın tamamıyla
+  assert.equal((await api('/cash', A)).data.previous.partial, true); // süren ay: önceki ayın aynı günlerine kadar
+  const cat = Object.fromEntries(res.data.categories.map((c) => [c.category, c]));
+  assert.equal(cat.Kira.budget, 10000);
+  assert.equal(cat.Reklam.amount, 0);
+  assert.equal(cat['Tedarikçi ödemeleri'].amount, 4000);
+  assert.equal(res.data.trend.length, 12);
+  assert.equal(res.data.trend.at(-1).key, month);
+  assert.equal(res.data.flow.length, 31);
+  assert.equal(res.data.flow.at(-1).cumulative, -36000.5); // 31 Mart Türkiye günü Mart'ta kalır
+  assert.ok(!res.data.entries.some((e) => e.amount === 999));
+  assert.equal((await runAsPlatform(() => prisma.company.findUnique({ where: { id: companyId } }))).currentBalance, balanceBefore);
+
+  // Yıllık görünüm: bütçe ×12, 12 ay
+  res = await api('/cash?period=year&year=2026', A);
+  assert.equal(res.data.period, 'year');
+  assert.equal(res.data.flow.length, 12);
+  assert.equal(res.data.summary.expenses, 57500.5);
+  assert.equal(res.data.categories.find((c) => c.category === 'Kira').budget, 120000);
+
+  // Belge: yükle, indir, başka firma göremez, kaldır
+  const id = rent.data.entry.id;
+  const fd = new FormData();
+  fd.append('file', new Blob([Buffer.from('%PDF-1.4 fis')], { type: 'application/pdf' }), 'kira-fisi.pdf');
+  const up = await fetch(`${base}/api/cash/${id}/file`, { method: 'POST', headers: { 'X-Tenant': 'itest-a', Authorization: `Bearer ${A.token}` }, body: fd });
+  assert.equal(up.status, 201);
+  const bad = new FormData();
+  bad.append('file', new Blob(['<script>'], { type: 'text/html' }), 'x.html');
+  assert.equal((await fetch(`${base}/api/cash/${id}/file`, { method: 'POST', headers: { 'X-Tenant': 'itest-a', Authorization: `Bearer ${A.token}` }, body: bad })).status, 400);
+  const dl = await fetch(`${base}/api/cash/${id}/file`, { headers: { 'X-Tenant': 'itest-a', Authorization: `Bearer ${A.token}` } });
+  assert.equal(dl.status, 200);
+  assert.match(await dl.text(), /%PDF/);
+  assert.equal((await fetch(`${base}/api/cash/${id}/file`, { headers: { 'X-Tenant': 'itest-b', Authorization: `Bearer ${B.token}` } })).status, 404);
+  assert.equal((await api(`/cash?month=${month}`, A)).data.entries.find((e) => e.id === id).hasFile, true);
+  assert.equal((await api(`/cash/${id}/file`, { ...A, method: 'DELETE' })).status, 200);
+
+  // Güncelle / sil: başka firma dokunamaz
+  assert.equal((await api(`/cash/${id}`, { ...B, method: 'PUT', body: { type: 'OUT', category: 'Kira', amount: 1 } })).status, 404);
+  assert.equal((await api(`/cash/${id}`, { ...B, method: 'DELETE' })).status, 404);
+  assert.equal((await api(`/cash/${id}`, { ...A, method: 'PUT', body: { type: 'OUT', category: 'Kira', amount: 16000, date: '2026-03-01' } })).status, 200);
+  assert.equal((await api(`/cash?month=${month}`, A)).data.summary.expenses, 56000);
+
+  // Düzenli kayıt: günü geçtiyse bu ayınki hemen oluşur; tekrar çalışmada çift kayıt olmaz
+  const { runRecurringCash } = await import('../../src/controllers/cashController.js');
+  const { runWithTenant } = await import('../../src/utils/prisma.js');
+  assert.equal((await api('/cash/recurring', { ...A, method: 'POST', body: { type: 'OUT', category: 'İnternet', amount: 500, dayOfMonth: 31 } })).status, 400);
+  const rule = await api('/cash/recurring', { ...A, method: 'POST', body: { type: 'OUT', category: 'İnternet', amount: 500, vatRate: 20, dayOfMonth: 1 } });
+  assert.equal(rule.status, 201, rule.data?.message);
+  const ruleEntries = () => runAsPlatform(() => prisma.cashEntry.count({ where: { recurringId: rule.data.recurring.id } }));
+  assert.equal(await ruleEntries(), 1);
+  await runWithTenant(tenantId, () => runRecurringCash());
+  assert.equal(await ruleEntries(), 1);
+  // Gelecek ay: yeni kayıt
+  const nextMonth = new Date(); nextMonth.setMonth(nextMonth.getMonth() + 1, 2);
+  await runWithTenant(tenantId, () => runRecurringCash(nextMonth));
+  assert.equal(await ruleEntries(), 2);
+  // Durdurulan kural kayıt üretmez; listede görünür
+  assert.equal((await api(`/cash/recurring/${rule.data.recurring.id}`, { ...A, method: 'PUT', body: { isActive: false } })).status, 200);
+  const later = new Date(); later.setMonth(later.getMonth() + 2, 2);
+  await runWithTenant(tenantId, () => runRecurringCash(later));
+  assert.equal(await ruleEntries(), 2);
+  assert.ok((await api(`/cash?month=${month}`, A)).data.recurring.some((r) => r.id === rule.data.recurring.id && !r.isActive));
+  assert.equal((await api(`/cash/recurring/${rule.data.recurring.id}`, { ...B, method: 'DELETE' })).status, 404);
+  // "Her ay tekrarla" ile eklenen kayıt kural oluşturur, aynı ay için ikinci kayıt üretmez
+  const rep = await add({ type: 'OUT', category: 'Muhasebe', amount: 3000, date: localToday(), repeat: true });
+  assert.ok(rep.data.entry.recurringId);
+  await runWithTenant(tenantId, () => runRecurringCash());
+  assert.equal(await runAsPlatform(() => prisma.cashEntry.count({ where: { recurringId: rep.data.entry.recurringId } })), 1);
+  assert.equal((await api(`/cash/recurring/${rule.data.recurring.id}`, { ...A, method: 'DELETE' })).status, 200);
+  assert.equal(await runAsPlatform(() => prisma.cashEntry.count({ where: { tenantId, category: 'İnternet' } })), 2); // geçmiş kayıtlar kalır
+
+  const xl = await fetch(`${base}/api/cash/export?month=${month}`, { headers: { 'X-Tenant': 'itest-a', Authorization: `Bearer ${A.token}` } });
+  assert.equal(xl.status, 200);
+  assert.match(xl.headers.get('content-disposition'), /gelir-gider-2026-03\.xlsx/);
+
+  assert.equal((await api(`/cash/${id}`, { ...A, method: 'DELETE' })).status, 200);
+  assert.equal((await api('/cash?month=2026-13', A)).status, 400);
+});
+
+const localToday = () => new Date().toLocaleDateString('sv-SE', { timeZone: 'Europe/Istanbul' });
