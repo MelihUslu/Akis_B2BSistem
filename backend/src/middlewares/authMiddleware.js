@@ -1,6 +1,7 @@
 import jwt from 'jsonwebtoken';
 import { sessionRevoked } from '../services/passwordResetService.js';
 import prisma from '../utils/prisma.js';
+import { cached } from '../utils/cache.js';
 import { JWT_SECRET } from '../config.js';
 import { tenantAccess, ACCESS_MESSAGES } from './tenantMiddleware.js';
 import { hasPermission } from '../services/permissions.js';
@@ -31,10 +32,12 @@ export const verifyToken = async (req, res, next) => {
 
   try {
     // Askıya alınan bayi veya silinen kullanıcı, token süresi dolmadan da sistemden çıkarılır
-    const user = await prisma.user.findUnique({
+    // 10 sn önbellek (her istekte veritabanına gidilmez); kullanıcıya yazma ve firma durumu değişikliği önbelleği
+    // anında temizler (utils/prisma.js), pasife alınan kullanıcı / askıya alınan bayi beklemeden çıkarılır
+    const user = await cached(`authuser:${req.tenant.id}:${decoded.id}`, 10_000, () => prisma.user.findUnique({
       where: { id: decoded.id },
       select: { id: true, name: true, email: true, role: true, companyId: true, isOwner: true, permissions: true, isActive: true, passwordChangedAt: true, company: { select: { status: true } } }
-    });
+    }));
 
     if (!user) {
       return res.status(401).json({ message: 'Kullanıcı bulunamadı.' });

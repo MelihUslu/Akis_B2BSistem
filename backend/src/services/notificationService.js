@@ -1,13 +1,13 @@
 import prisma, { runWithTenant, runAsPlatform } from '../utils/prisma.js';
 import { getSettingsMap, num } from './settingsService.js';
 import { tenantAccess } from '../middlewares/tenantMiddleware.js';
-import { sendTrialEndingMail, sendNotificationMail } from './mailService.js';
+import { sendTrialEndingMail, sendNotificationMail, smtpConfigured } from './mailService.js';
 import { wantsEmail, TYPE_PERMISSION } from './notificationPrefs.js';
 import { currentTenantId } from '../utils/prisma.js';
 import { withJobLock } from '../utils/redis.js';
 import { trackJob, cleanupMonitoring, startMetricsFlush } from './monitoring.js';
 import { sendDailyDigestIfDue } from './monitoringReport.js';
-import { pushToUser } from './pushService.js';
+import { pushToUsers } from './pushService.js';
 
 // E-posta için firma bilgisi (ad, portal adresi); kısa süreli önbellek
 const tenantCache = new Map();
@@ -19,48 +19,78 @@ const tenantForMail = async (tenantId) => {
   return tenant;
 };
 
-// Kullanıcı bu türü e-postayla almak istiyorsa bildirimi e-postayla da gönderir (asıl işlemi bekletmez)
-const mailIfWanted = (userId, notification) => {
+const USER_FIELDS = { id: true, email: true, name: true, role: true, isActive: true, notificationPrefs: true };
+
+// E-posta ve push arka planda: yalnızca isteyen ve aktif kullanıcılara, sırayla (asıl işlemi ve veritabanı havuzunu bekletmez)
+const fanOut = (created, usersById) => {
   const tenantId = currentTenantId();
-  if (!tenantId) return;
-  prisma.user.findUnique({ where: { id: userId }, select: { email: true, name: true, role: true, isActive: true, notificationPrefs: true } })
-    .then(async (user) => {
-      if (!user?.isActive || !wantsEmail(user, notification.type)) return;
-      await sendNotificationMail({ to: user.email, name: user.name, tenant: await tenantForMail(tenantId), notification });
-    })
-    .catch((err) => console.error('[Bildirim e-postası]', err.message));
+  if (!tenantId || !created.length) return;
+  (async () => {
+    const mailTo = created.filter((n) => {
+      const u = usersById.get(n.userId);
+      return u?.email && u.isActive !== false && wantsEmail(u, n.type);
+    });
+    if (mailTo.length) {
+      if (!smtpConfigured()) {
+        if (process.env.NODE_ENV !== 'production') console.log(`[MAIL - SMTP tanımlı değil] ${mailTo.length} alıcıya bildirim e-postası: ${mailTo[0].title}`);
+      } else {
+        const tenant = await tenantForMail(tenantId);
+        for (const n of mailTo) {
+          const u = usersById.get(n.userId);
+          await sendNotificationMail({ to: u.email, name: u.name, tenant, notification: n }).catch((err) => console.error('[Bildirim e-postası]', err.message));
+        }
+      }
+    }
+    await pushToUsers(created);
+  })().catch((err) => console.error('[Bildirim dağıtımı]', err.message));
 };
 
-const create = async (userId, { type, title, message, link, dedupeKey }) => {
-  if (dedupeKey) {
-    const exists = await prisma.notification.findUnique({ where: { dedupeKey } });
-    if (exists) return null;
+/**
+ * Bildirimleri toplu oluşturur: tekrar kontrolü tek sorguda, kayıt tek sorguda (createManyAndReturn).
+ * targets: [{ id, email, name, role, isActive, notificationPrefs, dedupeKey }]. Oluşan bildirimleri döndürür.
+ * (Eskiden alıcı başına 4–5 sorgu çalışıyordu; 1000 yöneticili firmada her sipariş binlerce sorgu üretiyordu.)
+ */
+const deliver = async (targets, { type, title, message, link }) => {
+  if (!targets.length) return [];
+  const keys = targets.map((t) => t.dedupeKey).filter(Boolean);
+  let fresh = targets;
+  if (keys.length) {
+    const seen = new Set((await prisma.notification.findMany({ where: { dedupeKey: { in: keys } }, select: { dedupeKey: true } })).map((n) => n.dedupeKey));
+    fresh = targets.filter((t) => !t.dedupeKey || !seen.has(t.dedupeKey));
   }
-  try {
-    const notification = await prisma.notification.create({ data: { userId, type, title, message, link, dedupeKey } });
-    mailIfWanted(userId, notification);
-    pushToUser(userId, notification).catch((err) => console.error('[Push]', err.message));
-    return notification;
-  } catch (error) {
-    if (error.code === 'P2002') return null; // Aynı dedupeKey eşzamanlı oluşturulduysa yok say
-    throw error;
-  }
+  if (!fresh.length) return [];
+  // skipDuplicates: aynı dedupeKey eşzamanlı oluşturulduysa sessizce atlanır
+  const created = await prisma.notification.createManyAndReturn({
+    data: fresh.map((t) => ({ userId: t.id, type, title, message, link, dedupeKey: t.dedupeKey || null })),
+    skipDuplicates: true
+  });
+  fanOut(created, new Map(fresh.map((t) => [t.id, t])));
+  return created;
+};
+
+const create = async (userId, payload) => {
+  const user = await prisma.user.findUnique({ where: { id: userId }, select: USER_FIELDS });
+  if (!user) return null;
+  const [notification] = await deliver([{ ...user, dedupeKey: payload.dedupeKey || null }], payload);
+  return notification || null;
 };
 
 export const notifyUser = (userId, payload) => create(userId, payload);
 
+const withKeys = (users, dedupeKey) => users.map((u) => ({ ...u, dedupeKey: dedupeKey ? `${dedupeKey}:u${u.id}` : null }));
+
 export const notifyCompany = async (companyId, payload) => {
-  const users = await prisma.user.findMany({ where: { companyId, role: 'BAYI' }, select: { id: true } });
-  await Promise.all(users.map(u => create(u.id, payload.dedupeKey ? { ...payload, dedupeKey: `${payload.dedupeKey}:u${u.id}` } : payload)));
+  const users = await prisma.user.findMany({ where: { companyId, role: 'BAYI' }, select: USER_FIELDS });
+  await deliver(withKeys(users, payload.dedupeKey), payload);
 };
 
 // Yöneticilere bildirim: personel yalnızca ilgili yetkisi varsa alır (sipariş → Siparişler yetkisi gibi)
 export const notifyAdmins = async (payload) => {
-  const admins = await prisma.user.findMany({ where: { role: 'ADMIN', isActive: true }, select: { id: true, isOwner: true, permissions: true } });
+  const admins = await prisma.user.findMany({ where: { role: 'ADMIN', isActive: true }, select: { ...USER_FIELDS, isOwner: true, permissions: true } });
   // anyPermission: yetkilerden biri yeterli (örn. rapor: sipariş ya da finans)
   const needed = payload.anyPermission || [TYPE_PERMISSION[payload.type]].filter(Boolean);
   const allowed = admins.filter((u) => !needed.length || u.isOwner || (Array.isArray(u.permissions) && needed.some((p) => u.permissions.includes(p))));
-  await Promise.all(allowed.map(u => create(u.id, { ...payload, dedupeKey: payload.dedupeKey && `${payload.dedupeKey}:u${u.id}` })));
+  await deliver(withKeys(allowed, payload.dedupeKey), payload);
 };
 
 // Bildirim hataları asıl işlemi bozmasın

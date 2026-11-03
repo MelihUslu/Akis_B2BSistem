@@ -36,3 +36,41 @@ export const withJobLock = async (name, ttlMs, fn) => {
     await r.eval("if redis.call('get', KEYS[1]) == ARGV[1] then return redis.call('del', KEYS[1]) else return 0 end", 1, key, token).catch(() => {});
   }
 };
+
+/**
+ * Kısa süreli kilit (birden fazla süreç / sunucu arasında). Alınırsa serbest bırakma fonksiyonu, alınamazsa null döner.
+ * Redis yoksa süreç içi kilit kullanılır (tek süreçte doğru çalışır).
+ */
+const localLocks = new Set();
+export const tryLock = async (key, ttlMs) => {
+  const r = redisReady();
+  if (!r) {
+    if (localLocks.has(key)) return null;
+    localLocks.add(key);
+    const timer = setTimeout(() => localLocks.delete(key), ttlMs);
+    timer.unref?.();
+    return async () => { clearTimeout(timer); localLocks.delete(key); };
+  }
+  const token = `${process.pid}:${Date.now()}:${Math.random().toString(36).slice(2)}`;
+  const got = await r.set(`lock:${key}`, token, 'PX', ttlMs, 'NX').catch(() => null);
+  if (got !== 'OK') return null;
+  return async () => {
+    await r.eval("if redis.call('get', KEYS[1]) == ARGV[1] then return redis.call('del', KEYS[1]) else return 0 end", 1, `lock:${key}`, token).catch(() => {});
+  };
+};
+
+/** Bir anahtarı bir kez "kullanıldı" olarak işaretler (tek kullanımlık kodlar). İlk seferde true, sonra false. */
+const localOnce = new Map(); // key -> son geçerlilik (ms)
+export const markOnce = async (key, ttlMs) => {
+  const r = redisReady();
+  if (r) {
+    const got = await r.set(`once:${key}`, '1', 'PX', ttlMs, 'NX').catch(() => undefined);
+    if (got !== undefined) return got === 'OK';
+  }
+  const now = Date.now();
+  for (const [k, exp] of localOnce) if (exp < now) localOnce.delete(k);
+  if (localOnce.has(key)) return false;
+  localOnce.set(key, now + ttlMs);
+  return true;
+};
+

@@ -49,3 +49,27 @@ export const pushToUser = async (userId, notification) => {
   }));
   return sent;
 };
+
+// Toplu push: birden çok bildirimin alıcılarının abonelikleri tek sorguda okunur, gönderim sınırlı eşzamanlılıkla yapılır
+export const pushToUsers = async (notifications, { concurrency = 20 } = {}) => {
+  if (!pushEnabled || !notifications.length) return 0;
+  const subs = await prisma.pushSubscription.findMany({ where: { userId: { in: [...new Set(notifications.map((n) => n.userId))] } } });
+  if (!subs.length) return 0;
+  const byUser = new Map();
+  for (const s of subs) byUser.set(s.userId, [...(byUser.get(s.userId) || []), s]);
+  const jobs = notifications.flatMap((n) => (byUser.get(n.userId) || []).map((s) => ({ s, payload: JSON.stringify({ title: n.title, body: n.message, url: n.link || '/', tag: `n${n.id}` }) })));
+  let sent = 0;
+  for (let i = 0; i < jobs.length; i += concurrency) {
+    await Promise.all(jobs.slice(i, i + concurrency).map(async ({ s, payload }) => {
+      try {
+        await webpush.sendNotification({ endpoint: s.endpoint, keys: { p256dh: s.p256dh, auth: s.auth } }, payload, { TTL: 24 * 3600 });
+        sent++;
+      } catch (err) {
+        if (err.statusCode === 404 || err.statusCode === 410) await prisma.pushSubscription.delete({ where: { id: s.id } }).catch(() => {});
+        else console.error('[Push]', err.statusCode || '', err.message);
+      }
+    }));
+  }
+  return sent;
+};
+

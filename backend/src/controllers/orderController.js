@@ -5,7 +5,7 @@ import { notifyCompany, notifyAdmins, notifyRestocked, safeNotify } from '../ser
 import { emitEvent } from '../services/webhookService.js';
 import { autoInvoice, invoiceCreds } from '../services/invoiceService.js';
 import { cargoCreds } from '../services/cargoService.js';
-import { adjustStock, availableStock, defaultWarehouse } from '../services/stockService.js';
+import { adjustStock, availableStock, defaultWarehouse, StockError } from '../services/stockService.js';
 import { orderEvent, markShipped, markDelivered, markReadyForPickup } from '../services/orderShippingService.js';
 import { resolveShippingAddress } from './addressController.js';
 import xlsx from 'xlsx';
@@ -324,6 +324,9 @@ export const partialApproveOrder = async (req, res) => {
     const restockedIds = [];
 
     const result = await prisma.$transaction(async (tx) => {
+      // Sipariş satırı kilitlenir: aynı siparişin iki onayı (iki yönetici ya da çift tıklama) sırayla işlenir;
+      // ikincisi birincinin sonucunu (düşülmüş stok, yazılmış borç) görür, stok ve cari iki kez işlenmez.
+      await tx.$queryRaw`SELECT id FROM "Order" WHERE id = ${orderId} AND "tenantId" = ${currentTenantId()} FOR UPDATE`;
       const order = await tx.order.findUnique({
         where: { id: orderId },
         include: { items: { include: { product: true } }, company: true }
@@ -356,13 +359,18 @@ export const partialApproveOrder = async (req, res) => {
         throw new ApprovalError(`Yetersiz stok: ${shortages.join(', ')}. Bu kalemleri iptal edin veya stok girin.`);
       }
 
-      // 2. Kalemleri güncelle, stokları işle
-      for (const item of order.items) {
+      // 2. Kalemleri güncelle, stokları işle. Ürün id sırasıyla: farklı siparişlerin eşzamanlı onayları
+      // ürün satırlarını aynı sırada kilitler, birbirini beklerken kilitlenmez (deadlock olmaz).
+      for (const item of [...order.items].sort((a, b) => a.productId - b.productId || a.id - b.id)) {
         const status = statusById.get(item.id);
         if (!status) continue;
 
         if (status === 'APPROVED' && !item.isStockDeducted) {
-          const usedWarehouse = await adjustStock(tx, item.productId, -item.quantity, warehouseId);
+          // Koşullu düşüş: üstteki kontrolden sonra başka bir onay stoğu harcadıysa burada yakalanır
+          const usedWarehouse = await adjustStock(tx, item.productId, -item.quantity, warehouseId).catch((e) => {
+            if (e instanceof StockError) throw new ApprovalError(`Yetersiz stok: ${item.product.name} (stok: ${e.available}, istenen: ${item.quantity}). Bu kalemi iptal edin veya stok girin.`);
+            throw e;
+          });
           await tx.orderItem.update({ where: { id: item.id }, data: { status, isStockDeducted: true, stockWarehouseId: usedWarehouse } });
         } else if (status === 'CANCELLED' && item.isStockDeducted) {
           await adjustStock(tx, item.productId, item.quantity, item.stockWarehouseId);
@@ -385,6 +393,11 @@ export const partialApproveOrder = async (req, res) => {
       // 4. Cari entegrasyon: daha önce borç yazılan tutarla (TL) fark kadar işlem yapılır.
       // Dövizli cariye siparişin oluştuğu andaki kurla çevrilerek yazılır.
       const diff = round2(totalAmount - order.debitedAmount);
+      // Aynı kararın tekrarı (iki yönetici aynı anda onayladı, çift tıklama): bildirim / webhook / fatura yeniden tetiklenmez
+      const changed = newStatus !== order.status || diff !== 0 || order.items.some((it) => {
+        const s = statusById.get(it.id);
+        return s && (s !== it.status || (s === 'APPROVED') !== it.isStockDeducted);
+      });
       if (diff !== 0) {
         await postEntry(tx, {
           company: order.company,
@@ -428,10 +441,11 @@ export const partialApproveOrder = async (req, res) => {
         await tx.plasiyerPoint.deleteMany({ where: { orderId } });
       }
 
-      return { updatedOrder, companyId: order.companyId };
-    });
+      return { updatedOrder, companyId: order.companyId, changed };
+    }, { maxWait: 10000, timeout: 30000 }); // kilit beklenirken varsayılan 5 sn'lik işlem süresi yetmeyebilir
 
-    const { updatedOrder, companyId } = result;
+    const { updatedOrder, companyId, changed } = result;
+    if (!changed) return res.json({ message: 'Sipariş zaten bu durumda, değişiklik yapılmadı.', updatedOrder });
     const statusText = { APPROVED: 'onaylandı', PARTIAL_APPROVED: 'kısmen onaylandı', CANCELLED: 'iptal edildi' }[updatedOrder.status];
     safeNotify(notifyCompany(companyId, {
       type: 'ORDER',

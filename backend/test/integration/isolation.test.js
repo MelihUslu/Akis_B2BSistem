@@ -1189,3 +1189,120 @@ test('abonelik: havale bildirimi, fatura bilgisi hatırlanır, platform onayı a
     await runAsPlatform(() => prisma.plan.update({ where: { code: 'ITEST' }, data: { isPublic: false, priceMonthly: 0, priceYearly: 0 } }));
   }
 });
+
+test('eşzamanlılık: aynı anda onaylar stoğu eksiye düşürmez, aynı sipariş / iade iki kez işlenmez (çift borç / alacak yok)', { skip }, async () => {
+  const tenant = 'itest-b';
+  const admin = { tenant, token: tenants[tenant].token };
+  const tenantId = tenants[tenant].id;
+  const bcrypt = (await import('bcrypt')).default;
+  const { companyId, scarce, plenty } = await runAsPlatform(async () => {
+    const c = await prisma.company.create({ data: { tenantId, name: 'Yarış Bayi', status: 'ACTIVE', riskLimit: 1e7 } });
+    await prisma.user.create({ data: { tenantId, companyId: c.id, email: 'yaris@itest-b.test', password: await bcrypt.hash('Test12345', 4), name: 'Yarış', role: 'BAYI', isOwner: true, emailVerifiedAt: new Date() } });
+    const category = await prisma.category.findFirst({ where: { tenantId } });
+    const s1 = await prisma.product.create({ data: { tenantId, name: 'Az Stoklu', sku: 'YR-AZ', price: 100, stock: 10, categoryId: category.id } });
+    const s2 = await prisma.product.create({ data: { tenantId, name: 'Bol Stoklu', sku: 'YR-BOL', price: 50, stock: 50, categoryId: category.id } });
+    return { companyId: c.id, scarce: s1.id, plenty: s2.id };
+  });
+  // Firmada depo tanımlıysa (çoklu depo testi) stok depoya da yazılır
+  const { setStock } = await import('../../src/services/stockService.js');
+  const { runWithTenant } = await import('../../src/utils/prisma.js');
+  await runWithTenant(tenantId, () => prisma.$transaction(async (tx) => { await setStock(tx, scarce, 10); await setStock(tx, plenty, 50); }));
+  const login = await api('/auth/login', { tenant, method: 'POST', body: { email: 'yaris@itest-b.test', password: 'Test12345' } });
+  const dealer = { tenant, token: login.data.token };
+  const order = async (productId, quantity) => {
+    const r = await api('/orders', { ...dealer, method: 'POST', body: { items: [{ productId, quantity }], paymentMethod: 'WIRE_TRANSFER' } });
+    assert.equal(r.status, 201, r.data?.message);
+    return runAsPlatform(() => prisma.order.findUnique({ where: { id: r.data.id }, include: { items: true } }));
+  };
+  const approve = (o) => api(`/orders/${o.id}/partial-approve`, { ...admin, method: 'PATCH', body: { itemStatuses: o.items.map((i) => ({ itemId: i.id, status: 'APPROVED' })) } });
+  const stockOf = async (id) => (await runAsPlatform(() => prisma.product.findUnique({ where: { id } }))).stock;
+
+  // 1) 10 stoklu üründen 3'er adetlik 6 sipariş aynı anda onaylanır: en fazla 3'ü geçer, stok eksiye düşmez
+  const scarceOrders = [];
+  for (let i = 0; i < 6; i++) scarceOrders.push(await order(scarce, 3));
+  const results = await Promise.all(scarceOrders.map(approve));
+  const ok = results.filter((r) => r.status === 200).length;
+  assert.ok(results.every((r) => r.status === 200 || (r.status === 400 && /Yetersiz stok/.test(r.data.message))), JSON.stringify(results.map((r) => [r.status, r.data?.message])));
+  assert.equal(ok, 3);
+  assert.equal(await stockOf(scarce), 10 - ok * 3);
+
+  // 2) Aynı sipariş 5 kez aynı anda onaylanır: stok bir kez düşer, cariye tek borç yazılır
+  const balanceBefore = (await runAsPlatform(() => prisma.company.findUnique({ where: { id: companyId } }))).currentBalance;
+  const single = await order(plenty, 2);
+  const again = await Promise.all(Array.from({ length: 5 }, () => approve(single)));
+  assert.ok(again.every((r) => r.status === 200), JSON.stringify(again.map((r) => r.data?.message)));
+  assert.equal(await stockOf(plenty), 48);
+  const debts = await runAsPlatform(() => prisma.financialTransaction.findMany({ where: { orderId: single.id, type: 'DEBT' } }));
+  assert.equal(debts.length, 1);
+  assert.equal(debts[0].amount, 120); // 2 × 50 + %20 KDV
+  const balanceAfter = (await runAsPlatform(() => prisma.company.findUnique({ where: { id: companyId } }))).currentBalance;
+  assert.equal(Math.round((balanceBefore - balanceAfter) * 100) / 100, 120);
+  // Bayiye tek "onaylandı" bildirimi gider (tekrarlanan onaylar bildirim üretmez)
+  const countNotes = () => runAsPlatform(() => prisma.notification.count({ where: { link: `/bayi/orders/${single.id}`, title: { startsWith: 'Siparişiniz' } } }));
+  for (let i = 0; i < 20 && (await countNotes()) === 0; i++) await new Promise((r) => setTimeout(r, 100)); // bildirim arka planda yazılır
+  await new Promise((r) => setTimeout(r, 300));
+  assert.equal(await countNotes(), 1);
+
+  // 3) Aynı iade talebi aynı anda iki kez onaylanır: tek alacak, stok bir kez iade edilir
+  assert.equal((await api(`/orders/${single.id}/ship`, { ...admin, method: 'PATCH', body: { trackingNumber: 'YR123', cargoCompany: 'ARAS' } })).status, 200);
+  const ret = await api('/returns', { ...dealer, method: 'POST', body: { orderItemId: single.items[0].id, quantity: 1, type: 'RETURN', reason: 'Kutusu hasarlı geldi, iade ediyorum.' } });
+  assert.equal(ret.status, 201, ret.data?.message);
+  const retId = ret.data.id || ret.data.request?.id || ret.data.returnRequest?.id;
+  const decisions = await Promise.all([1, 2].map(() => api(`/returns/${retId}`, { ...admin, method: 'PATCH', body: { status: 'APPROVED', restock: true } })));
+  assert.deepEqual(decisions.map((r) => r.status).sort(), [200, 409]);
+  const credits = await runAsPlatform(() => prisma.financialTransaction.findMany({ where: { orderId: single.id, type: 'CREDIT', source: 'RETURN' } }));
+  assert.equal(credits.length, 1);
+  assert.equal(await stockOf(plenty), 49);
+});
+
+test('bildirim: çok yöneticiye toplu teslim, yetki süzgeci, tekrar önleme (dedupeKey) ve firma ayrımı', { skip }, async () => {
+  const tenantId = tenants['itest-b'].id;
+  const { notifyAdmins } = await import('../../src/services/notificationService.js');
+  const { runWithTenant } = await import('../../src/utils/prisma.js');
+  await runAsPlatform(() => prisma.user.createMany({ data: Array.from({ length: 120 }, (_, i) => ({
+    tenantId, email: `toplu${i}@itest-b.test`, password: 'x', name: `Toplu ${i}`, role: 'ADMIN', permissions: i % 3 === 0 ? ['CATALOG'] : ['ORDERS'], emailVerifiedAt: new Date()
+  })) }));
+  const eligible = await runAsPlatform(async () => (await prisma.user.findMany({ where: { tenantId, role: 'ADMIN', isActive: true }, select: { isOwner: true, permissions: true } }))
+    .filter((u) => u.isOwner || (Array.isArray(u.permissions) && u.permissions.includes('ORDERS'))).length);
+  const payload = { type: 'ORDER', title: 'Toplu deneme', message: 'x', link: '/admin/orders', dedupeKey: `toplu:${Date.now()}` };
+  await runWithTenant(tenantId, () => notifyAdmins(payload));
+  await runWithTenant(tenantId, () => notifyAdmins(payload)); // aynı anahtar: ikinci kez oluşmaz
+  await Promise.all([1, 2, 3].map(() => runWithTenant(tenantId, () => notifyAdmins(payload)))); // eşzamanlı tekrar da oluşmaz
+  const notes = await runAsPlatform(() => prisma.notification.findMany({ where: { title: 'Toplu deneme' }, select: { tenantId: true, userId: true } }));
+  assert.equal(notes.length, eligible);
+  assert.equal(new Set(notes.map((n) => n.userId)).size, eligible);
+  assert.ok(notes.every((n) => n.tenantId === tenantId));
+  // Yetkisi olmayan (yalnızca CATALOG) personel almaz
+  const catalogOnly = await runAsPlatform(() => prisma.user.findMany({ where: { tenantId, email: { startsWith: 'toplu' }, permissions: { equals: ['CATALOG'] } }, select: { id: true } }));
+  assert.ok(catalogOnly.length > 0 && catalogOnly.every((u) => !notes.some((n) => n.userId === u.id)));
+});
+
+test('oturum önbelleği: pasife alınan kullanıcı ve askıya alınan bayi önbellek süresini beklemeden çıkarılır', { skip }, async () => {
+  const tenant = 'itest-b';
+  const tenantId = tenants[tenant].id;
+  const bcrypt = (await import('bcrypt')).default;
+  const { companyId, userId } = await runAsPlatform(async () => {
+    const c = await prisma.company.create({ data: { tenantId, name: 'Önbellek Bayi', status: 'ACTIVE' } });
+    const u = await prisma.user.create({ data: { tenantId, companyId: c.id, email: 'onbellek@itest-b.test', password: await bcrypt.hash('Test12345', 4), name: 'Önbellek', role: 'BAYI', isOwner: true, emailVerifiedAt: new Date() } });
+    return { companyId: c.id, userId: u.id };
+  });
+  const login = await api('/auth/login', { tenant, method: 'POST', body: { email: 'onbellek@itest-b.test', password: 'Test12345' } });
+  const dealer = { tenant, token: login.data.token };
+  assert.equal((await api('/orders', dealer)).status, 200);
+  assert.equal((await api('/orders', dealer)).status, 200); // önbellekten
+
+  // Firma askıya alınır → hemen 401
+  await runAsPlatform(() => prisma.company.update({ where: { id: companyId }, data: { status: 'PASSIVE' } }));
+  assert.equal((await api('/orders', dealer)).status, 401);
+  await runAsPlatform(() => prisma.company.update({ where: { id: companyId }, data: { status: 'ACTIVE' } }));
+  assert.equal((await api('/orders', dealer)).status, 200);
+
+  // Firma bakiyesi değişikliği (durum değil) önbelleği boşa temizlemez ama doğru çalışmaya devam eder
+  await runAsPlatform(() => prisma.company.update({ where: { id: companyId }, data: { currentBalance: -10 } }));
+  assert.equal((await api('/orders', dealer)).status, 200);
+
+  // Kullanıcı pasife alınır (firma bağlamında, uygulamanın kendi yazmasıyla) → hemen 401
+  const { runWithTenant } = await import('../../src/utils/prisma.js');
+  await runWithTenant(tenantId, async () => await prisma.user.update({ where: { id: userId }, data: { isActive: false } }));
+  assert.equal((await api('/orders', dealer)).status, 401);
+});

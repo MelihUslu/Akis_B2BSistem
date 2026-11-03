@@ -193,7 +193,7 @@ export const listUsers = async (req, res) => {
 // Ortak giriş sayfasından (/giris) gelen tek kullanımlık kodla oturum açma
 export const handoffLogin = async (req, res) => {
   try {
-    const uid = consumeHandoff(req.body?.code, req.tenant.id);
+    const uid = await consumeHandoff(req.body?.code, req.tenant.id);
     const user = await prisma.user.findFirst({ where: { id: uid }, include: { company: true } });
     if (!user) return res.status(401).json({ message: 'Kullanıcı bulunamadı.' });
     return await finishLogin(req, res, user);

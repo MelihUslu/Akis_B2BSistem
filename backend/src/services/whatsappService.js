@@ -7,6 +7,7 @@ import { getSettingsMap } from './settingsService.js';
 import { notifyAdmins, safeNotify } from './notificationService.js';
 import { normalizePhone } from '../controllers/customerLeadController.js';
 import { tenantPortalUrl } from '../config.js';
+import { tryLock } from '../utils/redis.js';
 
 /**
  * WhatsApp Business (Meta Cloud API) entegrasyonu.
@@ -159,7 +160,7 @@ const receive = async (channel, m, profileName) => {
     }
   });
   await ensureLead(conv, body);
-  if (!waitsForTeam) return scheduleReply(channel.tenantId, conv.id);
+  if (!waitsForTeam) return scheduleReply(channel.tenantId, conv.id, at);
   // Bildirim yalnızca konuşma ekip beklemeye geçtiğinde gider (her mesajda değil)
   if (!wasWaiting) notifyTeam(conv, `${conv.name || `+${conv.waId}`} WhatsApp'tan yazdı: “${preview(body)}”`);
 };
@@ -180,20 +181,25 @@ const notifyTeam = (conv, message) => {
 
 // ─── Yapay zekâ cevabı ─────────────────────────────────────────────────────
 
-// Art arda gelen mesajlar tek cevapta toplanır: son mesajdan sonra kısa bekleme
+// Art arda gelen mesajlar tek cevapta toplanır: son mesajdan sonra kısa bekleme.
+// Birden fazla süreçte de doğru çalışır: bekleme bitince konuşmada daha yeni gelen mesaj varsa (başka süreçte de alınmış
+// olabilir) bu bekleme bir şey yapmaz, cevabı en son mesajın beklemesi verir; aynı konuşmayı tek süreç cevaplar (kilit).
 const timers = new Map();
-const running = new Set();
-export const scheduleReply = (tenantId, conversationId) => {
+export const scheduleReply = (tenantId, conversationId, inboundAt = null) => {
   clearTimeout(timers.get(conversationId));
   timers.set(conversationId, setTimeout(() => {
     timers.delete(conversationId);
-    runWithTenant(tenantId, () => replyNow(conversationId)).catch((err) => console.error('[WhatsApp] Cevap üretilemedi:', err.message));
+    runWithTenant(tenantId, () => replyNow(conversationId, inboundAt)).catch((err) => console.error('[WhatsApp] Cevap üretilemedi:', err.message));
   }, REPLY_DELAY()));
 };
 
-const replyNow = async (conversationId) => {
-  if (running.has(conversationId)) { running.add(`again:${conversationId}`); return; }
-  running.add(conversationId);
+const replyNow = async (conversationId, inboundAt = null) => {
+  const release = await tryLock(`wa-reply:${conversationId}`, 2 * 60 * 1000);
+  if (!release) {
+    // Bu konuşma şu an cevaplanıyor: biraz sonra tekrar bakılır (o sırada gelen mesaj cevapsız kalmaz)
+    setTimeout(() => replyNow(conversationId, inboundAt).catch((err) => console.error('[WhatsApp] Cevap üretilemedi:', err.message)), REPLY_DELAY() || 500);
+    return;
+  }
   try {
     const channel = await prisma.whatsappChannel.findFirst();
     const conv = await prisma.waConversation.findFirst({ where: { id: conversationId } });
@@ -202,6 +208,7 @@ const replyNow = async (conversationId) => {
     history.reverse();
     const last = history[history.length - 1];
     if (!last || last.direction !== 'IN') return; // bu arada ekip ya da yapay zekâ yanıtlamış
+    if (inboundAt && last.createdAt > inboundAt) return; // daha yeni mesaj geldi: cevabı onun beklemesi verir
 
     let out;
     try {
@@ -244,11 +251,7 @@ const replyNow = async (conversationId) => {
         : `${conv.name || `+${conv.waId}`}: ${out.handoffReason || 'yapay zekâ konuşmayı ekibe devretti'}.`);
     }
   } finally {
-    running.delete(conversationId);
-    if (running.has(`again:${conversationId}`)) {
-      running.delete(`again:${conversationId}`);
-      replyNow(conversationId).catch(() => {});
-    }
+    await release();
   }
 };
 

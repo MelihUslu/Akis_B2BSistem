@@ -179,6 +179,8 @@ Firma, Ayarlar → Entegrasyon'dan API anahtarı üretir. `/api/v1` uçları ile
 | `SMTP_*`, `MAIL_FROM` | | E-posta. Boşsa içerik konsola yazılır |
 | `REDIS_URL` | | İstek sınırlayıcı için Redis |
 | `CUSTOM_DOMAIN_TARGET` | | Özel alan adlarının CNAME hedefi (varsayılan `custom.ROOT_DOMAIN`) |
+| `WEB_CONCURRENCY` | | İşçi süreç sayısı (varsayılan 1). Çekirdek sayısı kadar verilebilir; zamanlanmış işler yalnızca ilk süreçte çalışır. Birden fazlaysa `REDIS_URL` önerilir |
+| `DB_POOL_SIZE`, `DB_POOL_TIMEOUT` | | Süreç başına veritabanı bağlantı havuzu ve bekleme süresi (sn). Toplam = süreç × havuz, PostgreSQL `max_connections` altında kalmalı |
 | `CUSTOM_DOMAIN_IP` | | Alan adının tamamını (`firma.com`) bağlayan firmaların A kaydı için sunucu IP'si (boşsa CNAME hedefinin IP'si) |
 | `AUTO_PURGE_CLOSED` | | Kapatılan hesapların 30 gün sonra otomatik silinmesi |
 | `PARASUT_*`, `SUBSCRIPTION_VAT_RATE` | | Platformun abonelik faturaları (Paraşüt) |

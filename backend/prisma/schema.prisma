@@ -284,6 +284,7 @@ model Product {
 
   @@unique([tenantId, sku])
   @@index([tenantId])
+  @@index([parentId])
 }
 
 model Order {
@@ -336,6 +337,9 @@ model Order {
   quoteRequest     QuoteRequest?
 
   @@index([tenantId])
+  @@index([tenantId, createdAt])
+  @@index([tenantId, status])
+  @@index([companyId, createdAt])
 }
 
 // Firmanın depoları. Depo tanımlıysa ürün stoku depo bazında tutulur; Product.stock tüm depoların toplamıdır.
@@ -433,6 +437,8 @@ model OrderItem {
   returnRequests ReturnRequest[]
 
   @@index([tenantId])
+  @@index([orderId])
+  @@index([productId])
 }
 
 model Payment {
@@ -799,6 +805,7 @@ model ProductOptionValue {
   variants ProductVariantValue[]
 
   @@index([tenantId])
+  @@index([optionId])
 }
 
 // Bir varyantın (alt ürün) her özellik için seçtiği değer

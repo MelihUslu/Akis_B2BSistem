@@ -1,6 +1,7 @@
 import { AsyncLocalStorage } from 'node:async_hooks';
 import pkg from '@prisma/client';
 const { PrismaClient } = pkg;
+import { invalidate } from './cache.js';
 
 /**
  * Çok kiracılı (multi-tenant) veri izolasyonu.
@@ -19,6 +20,21 @@ export const runWithTenant = (tenantId, fn) => tenantStorage.run({ tenantId }, f
 export const runAsPlatform = (fn) => tenantStorage.run({ platform: true }, async () => await fn());
 export const currentTenantId = () => tenantStorage.getStore()?.tenantId ?? null;
 
+/**
+ * Veritabanı bağlantı havuzu (süreç başına). Varsayılan Prisma: çekirdek × 2 + 1.
+ * DB_POOL_SIZE / DB_POOL_TIMEOUT (sn) ile ayarlanır; birden fazla süreç (WEB_CONCURRENCY) çalışıyorsa
+ * toplam = süreç × havuz, PostgreSQL max_connections'ı (varsayılan 100) aşmamalı.
+ */
+function poolOptions() {
+  const size = parseInt(process.env.DB_POOL_SIZE);
+  const timeout = parseInt(process.env.DB_POOL_TIMEOUT);
+  if (!(size > 0) && !(timeout > 0)) return undefined;
+  const url = new URL(process.env.DATABASE_URL);
+  if (size > 0) url.searchParams.set('connection_limit', String(size));
+  if (timeout > 0) url.searchParams.set('pool_timeout', String(timeout));
+  return { datasources: { db: { url: url.toString() } } };
+}
+
 const TENANT_MODELS = new Set([
   'User', 'Company', 'Category', 'Product', 'Order', 'OrderItem', 'Payment', 'FinancialTransaction',
   'PlasiyerPoint', 'Setting', 'Reconciliation', 'ReturnRequest', 'Notification', 'StockAlert', 'SubscriptionPayment',
@@ -33,7 +49,20 @@ const WHERE_OPERATIONS = new Set([
   'count', 'aggregate', 'groupBy', 'update', 'updateMany', 'delete', 'deleteMany', 'upsert'
 ]);
 
-export const basePrisma = new PrismaClient();
+// Oturum kontrolü önbelleği (authMiddleware): kullanıcıya her yazmada ve firma durumu değişince temizlenir,
+// böylece pasife alınan kullanıcı / askıya alınan bayi önbellek süresini beklemeden çıkarılır
+const WRITE_OPERATIONS = new Set(['create', 'createMany', 'createManyAndReturn', 'update', 'updateMany', 'upsert', 'delete', 'deleteMany']);
+const touchesAuth = (model, operation, args) => {
+  if (!WRITE_OPERATIONS.has(operation)) return false;
+  if (model === 'User') return true;
+  if (model !== 'Company') return false;
+  return operation.startsWith('delete') || 'status' in (args?.data || {}) || 'status' in (args?.update || {});
+};
+const afterWrite = (model, operation, args, tenantId) => {
+  if (touchesAuth(model, operation, args)) invalidate(tenantId ? `authuser:${tenantId}:` : 'authuser:');
+};
+
+export const basePrisma = new PrismaClient(poolOptions());
 
 const prisma = basePrisma.$extends({
   query: {
@@ -42,7 +71,11 @@ const prisma = basePrisma.$extends({
         if (!TENANT_MODELS.has(model)) return query(args);
 
         const store = tenantStorage.getStore();
-        if (store?.platform) return query(args);
+        if (store?.platform) {
+          const result = await query(args);
+          afterWrite(model, operation, args, null);
+          return result;
+        }
 
         const tenantId = store?.tenantId;
         if (!tenantId) {
@@ -52,11 +85,13 @@ const prisma = basePrisma.$extends({
         const scoped = { ...args };
         if (WHERE_OPERATIONS.has(operation)) scoped.where = { ...(args.where || {}), tenantId };
         if (operation === 'create') scoped.data = { ...args.data, tenantId };
-        if (operation === 'createMany') {
+        if (operation === 'createMany' || operation === 'createManyAndReturn') {
           scoped.data = (Array.isArray(args.data) ? args.data : [args.data]).map(d => ({ ...d, tenantId }));
         }
         if (operation === 'upsert') scoped.create = { ...args.create, tenantId };
-        return query(scoped);
+        const result = await query(scoped);
+        afterWrite(model, operation, args, tenantId);
+        return result;
       }
     }
   }

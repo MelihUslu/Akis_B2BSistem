@@ -2,6 +2,8 @@ import prisma from '../utils/prisma.js';
 import { parseRange, buildSalesReport, reportWorkbook } from '../services/reportService.js';
 import { buildCustomerReport, customerReportWorkbook, loadSettings, saveSettings, DEFAULT_SETTINGS } from '../services/periodicReportService.js';
 import { localDay } from '../utils/dates.js';
+import { cached } from '../utils/cache.js';
+import { currentTenantId } from '../utils/prisma.js';
 
 export const salesReport = async (req, res) => {
   try {
@@ -68,10 +70,12 @@ export const exportPeriodicReport = async (req, res) => {
 };
 
 // Seçilen tarih aralığı için anlık rapor (kaydedilmez)
+// Firma + aralık başına 60 sn önbellek: aynı anda açan yöneticiler tek hesabı bekler
 const liveReport = async (query) => {
   const range = parseRange(query);
   const settings = await loadSettings();
-  return buildCustomerReport({ ...range, period: 'CUSTOM', lostDays: settings.lostDays });
+  return cached(`customer-report:${currentTenantId()}:${range.from.getTime()}:${range.to.getTime()}:${settings.lostDays}`, 60_000,
+    () => buildCustomerReport({ ...range, period: 'CUSTOM', lostDays: settings.lostDays }));
 };
 
 export const livePeriodicReport = async (req, res) => {

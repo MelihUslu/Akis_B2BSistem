@@ -6,6 +6,7 @@ import { localDay, localMonth } from '../utils/dates.js';
 import { CASH_DOC_DIR, CASH_DOC_TYPES } from '../middlewares/upload.js';
 import { getExchangeRates } from '../services/exchangeRateService.js';
 import { notifyAdmins, safeNotify } from '../services/notificationService.js';
+import { loadOpenMoves } from '../services/partnerLedgerService.js';
 
 /**
  * Gelir-gider: elle girilen giderler (kira, maaş, fatura…) ve satış dışı gelirler.
@@ -439,19 +440,9 @@ const openItems = async (side) => {
     select: { id: true, name: true, currentBalance: true, paymentTermDays: true, currency: true }
   });
   if (!companies.length) return [];
-  const ids = companies.map((c) => c.id);
-  const [moves, reversed] = await Promise.all([
-    prisma.financialTransaction.findMany({
-      where: { companyId: { in: ids }, type: receivable ? 'DEBT' : 'CREDIT', source: { notIn: ['REVERSAL', 'PAYMENT'] } },
-      orderBy: [{ date: 'desc' }, { id: 'desc' }],
-      select: { id: true, companyId: true, amount: true, date: true, order: { select: { dueDate: true } } }
-    }),
-    prisma.financialTransaction.findMany({ where: { companyId: { in: ids }, reversalOfId: { not: null } }, select: { reversalOfId: true } })
-  ]);
-  const skip = new Set(reversed.map((r) => r.reversalOfId));
+  const moves = await loadOpenMoves(companies.map((c) => c.id), { type: receivable ? 'DEBT' : 'CREDIT', excludeSources: ['REVERSAL', 'PAYMENT'] });
   const byCompany = new Map();
   for (const t of moves) {
-    if (skip.has(t.id)) continue;
     if (!byCompany.has(t.companyId)) byCompany.set(t.companyId, []);
     byCompany.get(t.companyId).push(t);
   }

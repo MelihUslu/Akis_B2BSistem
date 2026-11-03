@@ -1,4 +1,4 @@
-import prisma from '../utils/prisma.js';
+import prisma, { currentTenantId } from '../utils/prisma.js';
 import { round2 } from './pricingService.js';
 import { postEntry, rateOrCurrent, normalizeCurrency, CURRENCY_LABEL } from './accountPosting.js';
 import { getExchangeRates } from './exchangeRateService.js';
@@ -193,6 +193,27 @@ export const agingFor = (company, debts, now = new Date()) => {
   return { ...out, total, oldestOverdueDays: oldest, overdue };
 };
 
+/**
+ * Carilerin açık kalem hesabı için hareketler (en yeniden eskiye), sipariş vadesiyle birlikte, ters kaydedilenler hariç.
+ * Tek düz SQL sorgusu: cari ve sipariş kimlikleri dizi parametresiyle gider, PostgreSQL'in 32.767 parametre sınırına
+ * takılmaz (iç içe yüklemede büyük firmada yaşlandırma raporu açılmıyordu).
+ * Dönen yapı: [{ id, companyId, amount, date, order: { dueDate } | null }]
+ */
+export const loadOpenMoves = async (companyIds, { type, excludeSources = ['REVERSAL'] }) => {
+  if (!companyIds.length) return [];
+  const tenantId = currentTenantId();
+  if (!tenantId) throw new Error('[Tenant] Cari hareketleri kiracı bağlamı olmadan okunamaz.');
+  const rows = await prisma.$queryRaw`
+    SELECT ft.id, ft."companyId", ft.amount, ft.date, o."dueDate"
+    FROM "FinancialTransaction" ft
+    LEFT JOIN "Order" o ON o.id = ft."orderId"
+    WHERE ft."tenantId" = ${tenantId} AND ft."companyId" = ANY(${companyIds}) AND ft.type = ${type}
+      AND NOT (ft.source = ANY(${excludeSources}))
+      AND NOT EXISTS (SELECT 1 FROM "FinancialTransaction" r WHERE r."tenantId" = ${tenantId} AND r."reversalOfId" = ft.id)
+    ORDER BY ft.date DESC, ft.id DESC`;
+  return rows.map((r) => ({ id: r.id, companyId: r.companyId, amount: r.amount, date: r.date, order: r.dueDate ? { dueDate: r.dueDate } : null }));
+};
+
 export const agingReport = async ({ kinds = ['DEALER', 'CUSTOMER'], companyId } = {}) => {
   const companies = await prisma.company.findMany({
     where: { kind: { in: kinds }, currentBalance: { lt: 0 }, ...(companyId && { id: companyId }) },
@@ -201,18 +222,9 @@ export const agingReport = async ({ kinds = ['DEALER', 'CUSTOMER'], companyId } 
   });
   // Borç hareketleri tek sorguda (cari başına alt sorgu yerine); ters kaydedilenler ayrıca çıkarılır
   const ids = companies.map((c) => c.id);
-  const [debts, reversed] = ids.length ? await Promise.all([
-    prisma.financialTransaction.findMany({
-      where: { companyId: { in: ids }, type: 'DEBT', source: { not: 'REVERSAL' } },
-      orderBy: [{ date: 'desc' }, { id: 'desc' }],
-      select: { id: true, companyId: true, amount: true, date: true, order: { select: { dueDate: true } } }
-    }),
-    prisma.financialTransaction.findMany({ where: { companyId: { in: ids }, reversalOfId: { not: null } }, select: { reversalOfId: true } })
-  ]) : [[], []];
-  const reversedIds = new Set(reversed.map((r) => r.reversalOfId));
+  const debts = await loadOpenMoves(ids, { type: 'DEBT' });
   const byCompany = new Map();
   for (const d of debts) {
-    if (reversedIds.has(d.id)) continue;
     if (!byCompany.has(d.companyId)) byCompany.set(d.companyId, []);
     byCompany.get(d.companyId).push(d);
   }

@@ -1,5 +1,5 @@
 import prisma from '../utils/prisma.js';
-import { adjustStock } from '../services/stockService.js';
+import { adjustStock, StockError } from '../services/stockService.js';
 
 const clean = (b) => ({
   name: String(b.name || '').trim().slice(0, 60),
@@ -99,6 +99,7 @@ export const transferStock = async (req, res) => {
     });
     res.json({ message: `${quantity} adet transfer edildi.` });
   } catch (error) {
+    if (error instanceof StockError) return res.status(400).json({ message: `Çıkış deposunda yeterli stok yok (mevcut: ${error.available}).` });
     res.status(400).json({ message: error.message });
   }
 };

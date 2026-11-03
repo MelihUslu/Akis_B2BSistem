@@ -1,5 +1,6 @@
 import xlsx from 'xlsx';
-import prisma from '../utils/prisma.js';
+import prisma, { currentTenantId } from '../utils/prisma.js';
+import { cached } from '../utils/cache.js';
 import { getExchangeRates, toTRY } from './exchangeRateService.js';
 import { localDay, localMonth } from '../utils/dates.js';
 
@@ -16,26 +17,62 @@ export const parseRange = (query) => {
   return { from, to };
 };
 
+const chunked = async (ids, size, fn) => {
+  const out = [];
+  for (let i = 0; i < ids.length; i += size) out.push(...(await fn(ids.slice(i, i + size))));
+  return out;
+};
+
+/**
+ * Raporun ham verisi. Kalemler tek düz SQL sorgusuyla gelir (sipariş + kalem); ürün ve bayi bilgileri yalnızca
+ * geçenler için ayrıca okunur. Eskiden siparişler iç içe (kalem → ürün → kategori) yükleniyordu: büyük aralıkta
+ * PostgreSQL parametre sınırı (32.767) aşılıp rapor açılmıyordu ve her şey JavaScript'te birleştirildiği için yavaştı.
+ */
+const loadSalesRows = async ({ from, to }) => {
+  const tenantId = currentTenantId();
+  if (!tenantId) throw new Error('[Tenant] Satış raporu kiracı bağlamı olmadan çağrıldı.');
+  // LEFT JOIN: tüm kalemleri iptal edilmiş ama satış sayılan sipariş de sipariş sayısına girer (eski davranış)
+  const rows = await prisma.$queryRaw`
+    SELECT o.id AS "orderId", o."createdAt", o."discountAmount", o."companyId", i."productId", i.quantity, i.price
+    FROM "Order" o
+    LEFT JOIN "OrderItem" i ON i."orderId" = o.id AND i.status <> 'CANCELLED'
+    WHERE o."tenantId" = ${tenantId} AND o.status = ANY(${SOLD}) AND o."createdAt" >= ${from} AND o."createdAt" <= ${to}
+    ORDER BY o.id`;
+  const productIds = [...new Set(rows.map((r) => r.productId).filter(Boolean))];
+  const companyIds = [...new Set(rows.map((r) => r.companyId))];
+  const [products, companies] = await Promise.all([
+    chunked(productIds, 10000, (ids) => prisma.product.findMany({
+      where: { id: { in: ids } },
+      select: { id: true, name: true, sku: true, unit: true, costPrice: true, currency: true, parentId: true, category: { select: { id: true, name: true } }, parent: { select: { id: true, name: true, sku: true, category: { select: { id: true, name: true } } } } }
+    })),
+    chunked(companyIds, 10000, (ids) => prisma.company.findMany({ where: { id: { in: ids } }, select: { id: true, name: true, dealerGroup: true } }))
+  ]);
+  const productById = new Map(products.map((p) => [p.id, p]));
+  const companyById = new Map(companies.map((c) => [c.id, c]));
+  // Siparişlere grupla (eski yapı: { id, createdAt, discountAmount, companyId, company, items: [{ quantity, price, product }] })
+  const orders = [];
+  let last = null;
+  for (const r of rows) {
+    if (!last || last.id !== r.orderId) {
+      last = { id: r.orderId, createdAt: r.createdAt, discountAmount: r.discountAmount, companyId: r.companyId, company: companyById.get(r.companyId), items: [] };
+      orders.push(last);
+    }
+    if (r.productId && productById.has(r.productId)) last.items.push({ quantity: r.quantity, price: r.price, productId: r.productId, product: productById.get(r.productId) });
+  }
+  return orders;
+};
+
 /**
  * Tarih aralığındaki satış raporu (tutarlar TL, KDV hariç; kupon indirimi sipariş bazında orantılı düşülür).
  * Maliyet, ürünün güncel maliyet fiyatı ve bugünkü kurla hesaplanır (yaklaşık kâr).
+ * Sonuç firma + aralık başına 60 sn önbellekte tutulur; aynı anda açan yöneticiler tek hesabı bekler.
  */
-export const buildSalesReport = async ({ from, to }) => {
+export const buildSalesReport = ({ from, to }) =>
+  cached(`sales:${currentTenantId()}:${from.getTime()}:${to.getTime()}`, 60_000, () => computeSalesReport({ from, to }));
+
+const computeSalesReport = async ({ from, to }) => {
   const [orders, rates, activeProducts] = await Promise.all([
-    prisma.order.findMany({
-      where: { status: { in: SOLD }, createdAt: { gte: from, lte: to } },
-      select: {
-        id: true, createdAt: true, discountAmount: true, companyId: true,
-        company: { select: { name: true, dealerGroup: true } },
-        items: {
-          where: { status: { not: 'CANCELLED' } },
-          select: {
-            quantity: true, price: true, productId: true,
-            product: { select: { id: true, name: true, sku: true, unit: true, costPrice: true, currency: true, parentId: true, category: { select: { id: true, name: true } }, parent: { select: { id: true, name: true, sku: true, category: { select: { id: true, name: true } } } } } }
-          }
-        }
-      }
-    }),
+    loadSalesRows({ from, to }),
     getExchangeRates().then((r) => r.rates).catch(() => ({})),
     prisma.product.findMany({ where: { isActive: true, parentId: null }, select: { id: true, name: true, sku: true, stock: true, createdAt: true, category: { select: { name: true } } } })
   ]);

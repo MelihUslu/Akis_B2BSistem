@@ -23,19 +23,52 @@ const targetWarehouse = async (tx, warehouseId) => {
   return defaultWarehouse(tx);
 };
 
-/** Stoğu artırır / azaltır (delta). Kullanılan deponun id'sini döndürür (depo yoksa null). */
+/** Stok yetmediği için düşülemedi (eşzamanlı onay / transfer). */
+export class StockError extends Error {
+  constructor(productId, quantity, available) {
+    super(`Yetersiz stok (ürün #${productId}: istenen ${quantity}, mevcut ${available ?? 0}).`);
+    this.productId = productId;
+    this.quantity = quantity;
+    this.available = available ?? 0;
+  }
+}
+
+/**
+ * Stoğu artırır / azaltır (delta). Kullanılan deponun id'sini döndürür (depo yoksa null).
+ * Azaltma koşulludur: "stok >= miktar" değilse hiç düşülmez ve StockError atılır. Koşul UPDATE içinde
+ * değerlendirildiği için (satır kilitlenir) aynı anda gelen iki onay aynı stoğu ikisi birden harcayamaz.
+ * Depolu firmada önce ürün satırı güncellenir (kilit sırası hep ürün → depo), böylece eşzamanlı transferler
+ * birbirini kilitlemez. Birden fazla ürün işlenecekse çağıran taraf ürün id sırasıyla çağırmalıdır.
+ */
 export const adjustStock = async (tx, productId, delta, warehouseId = null) => {
+  const qty = Math.abs(delta);
   const w = await targetWarehouse(tx, warehouseId);
   if (!w) {
-    await tx.product.update({ where: { id: productId }, data: { stock: { increment: delta } } });
+    if (delta >= 0) {
+      await tx.product.update({ where: { id: productId }, data: { stock: { increment: qty } } });
+      return null;
+    }
+    const res = await tx.product.updateMany({ where: { id: productId, stock: { gte: qty } }, data: { stock: { decrement: qty } } });
+    if (res.count === 0) {
+      const p = await tx.product.findUnique({ where: { id: productId }, select: { stock: true } });
+      throw new StockError(productId, qty, p?.stock);
+    }
     return null;
   }
-  await tx.warehouseStock.upsert({
-    where: { warehouseId_productId: { warehouseId: w.id, productId } },
-    create: { warehouseId: w.id, productId, quantity: delta },
-    update: { quantity: { increment: delta } }
-  });
-  await syncTotal(tx, productId);
+  await tx.product.update({ where: { id: productId }, data: { stock: { increment: delta } } });
+  if (delta >= 0) {
+    await tx.warehouseStock.upsert({
+      where: { warehouseId_productId: { warehouseId: w.id, productId } },
+      create: { warehouseId: w.id, productId, quantity: qty },
+      update: { quantity: { increment: qty } }
+    });
+    return w.id;
+  }
+  const res = await tx.warehouseStock.updateMany({ where: { warehouseId: w.id, productId, quantity: { gte: qty } }, data: { quantity: { decrement: qty } } });
+  if (res.count === 0) {
+    const row = await tx.warehouseStock.findUnique({ where: { warehouseId_productId: { warehouseId: w.id, productId } } });
+    throw new StockError(productId, qty, row?.quantity);
+  }
   return w.id;
 };
 

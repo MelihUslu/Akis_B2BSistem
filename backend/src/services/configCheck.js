@@ -51,6 +51,9 @@ export const checkConfig = () => {
 
   const vapid = env('VAPID_PUBLIC_KEY') && env('VAPID_PRIVATE_KEY');
   add('VAPID', 'Telefon / masaüstü bildirimi (VAPID)', vapid, vapid ? null : 'push bildirimleri kapalı');
+  const workers = parseInt(env('WEB_CONCURRENCY')) || 1;
+  if (workers > 1 && !env('REDIS_URL')) warnings.push(`WEB_CONCURRENCY=${workers} ama REDIS_URL yok: istek sınırı, yapay zekâ kotası, tek kullanımlık giriş kodu ve WhatsApp cevap kilidi süreç başına ayrı tutulur. Birden çok süreçte Redis kullanın.`);
+  if (workers > 1 && parseInt(env('DB_POOL_SIZE')) * workers > 90) warnings.push(`Toplam veritabanı bağlantısı ${workers} × ${env('DB_POOL_SIZE')} = ${workers * parseInt(env('DB_POOL_SIZE'))}; PostgreSQL max_connections (varsayılan 100) aşılabilir.`);
   if (!vapid) warnings.push('VAPID anahtarları yok: telefona / masaüstüne anlık bildirim gönderilemez (npx web-push generate-vapid-keys).');
 
   const aiProvider = (env('AI_PROVIDER') || 'anthropic').toLowerCase();

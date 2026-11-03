@@ -22,6 +22,9 @@ const getTransporter = async () => {
   return transporterPromise;
 };
 
+// SMTP tanımlı mı? (toplu bildirimde tanımlı değilse her alıcı için ayrı ayrı günlüğe yazılmaz)
+export const smtpConfigured = () => Boolean(process.env.SMTP_HOST);
+
 export const sendMail = async ({ to, subject, html, fromName }) => {
   const transporter = await getTransporter();
 

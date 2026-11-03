@@ -92,6 +92,8 @@ export const createReturn = async (req, res) => {
   }
 };
 
+class ReturnConflict extends Error {}
+
 /**
  * Admin kararı. İade onaylanırsa kalem tutarı (KDV dahil) bayinin cari hesabına alacak yazılır.
  * restock=true ise ürün stoğa geri eklenir.
@@ -117,6 +119,9 @@ export const updateReturn = async (req, res) => {
     const firstApproval = existing.status === 'PENDING' && status === 'APPROVED';
 
     const updated = await prisma.$transaction(async (tx) => {
+      // Durum geçişi atomik: aynı talebi aynı anda iki kişi onaylarsa yalnızca biri geçer (çift alacak / çift stok iadesi olmaz)
+      const claimed = await tx.returnRequest.updateMany({ where: { id, status: existing.status }, data: { status, adminNote: adminNote ?? existing.adminNote } });
+      if (claimed.count === 0) throw new ReturnConflict();
       if (firstApproval && existing.type === 'RETURN') {
         // İade tutarı TL; dövizli cariye siparişin kuruyla çevrilir
         const amountTRY = round2(existing.orderItem.price * existing.quantity * (1 + existing.orderItem.vatRate / 100));
@@ -133,7 +138,7 @@ export const updateReturn = async (req, res) => {
       if (firstApproval && (restock === true || restock === 'true')) {
         await adjustStock(tx, existing.productId, existing.quantity, existing.orderItem?.stockWarehouseId);
       }
-      return tx.returnRequest.update({ where: { id }, data: { status, adminNote: adminNote ?? existing.adminNote } });
+      return tx.returnRequest.findUnique({ where: { id } });
     });
 
     if (firstApproval && (restock === true || restock === 'true')) safeNotify(notifyRestocked([existing.productId]));
@@ -148,6 +153,7 @@ export const updateReturn = async (req, res) => {
 
     res.json({ message: `Talep ${statusText}.`, request: updated });
   } catch (error) {
+    if (error instanceof ReturnConflict) return res.status(409).json({ message: 'Talep bu sırada başka biri tarafından güncellendi. Sayfayı yenileyip tekrar bakın.' });
     console.error('updateReturn error:', error);
     res.status(400).json({ message: 'Talep güncellenemedi.' });
   }
