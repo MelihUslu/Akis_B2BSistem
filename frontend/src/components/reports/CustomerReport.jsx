@@ -297,9 +297,9 @@ const CustomerDetail = ({ x, range, canPartner, onClose }) => {
       <div className="modal-backdrop" onClick={onClose} />
       <div className="modal-panel w-full max-w-xl max-h-[92vh] flex flex-col" role="dialog" aria-modal="true" aria-label={x.name}>
         <div className="p-5 md:p-6 border-b border-gray-100 flex items-start gap-4">
-          <span className="h-12 w-12 shrink-0 rounded-full flex items-center justify-center text-sm font-black text-white" style={{ background: st?.color }}>{initials(x.name)}</span>
+          <span className="modal-icon text-sm font-black">{initials(x.name)}</span>
           <div className="min-w-0 flex-1">
-            <h3 className="text-lg font-black text-gray-900 leading-tight">{x.name}</h3>
+            <h3 className="modal-title">{x.name}</h3>
             <p className="text-xs text-gray-500 mt-0.5">{[x.kind === 'DEALER' ? 'Bayi' : 'Müşteri', x.contact, x.owner && `Sorumlu: ${x.owner}`].filter(Boolean).join(' · ')}</p>
             <div className="mt-2"><Pill s={x.status} /></div>
           </div>

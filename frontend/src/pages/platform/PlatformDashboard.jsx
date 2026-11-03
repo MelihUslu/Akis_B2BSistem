@@ -17,14 +17,14 @@ const PlatformDashboard = () => {
   const cards = [
     { title: 'Aylık Tekrarlayan Gelir (MRR)', value: formatTRY(data.mrr), icon: TrendingUp, color: 'bg-indigo-500' },
     { title: 'Bu Ay Tahsilat', value: formatTRY(data.monthRevenue), icon: Wallet, color: 'bg-emerald-500' },
-    { title: 'Aktif Müşteri', value: data.totals.ACTIVE, icon: Building2, color: 'bg-blue-500' },
+    { title: 'Aktif Müşteri', value: data.totals.ACTIVE, icon: Building2, color: 'bg-indigo-500' },
     { title: 'Denemedeki Müşteri', value: data.totals.TRIAL, icon: Clock, color: 'bg-pink-500' },
   ];
 
   return (
     <div className="space-y-10">
       <div className="flex items-center gap-4">
-        <div className="bg-gradient-to-br from-indigo-500 to-indigo-700 p-3.5 rounded-2xl shadow-lg shadow-indigo-500/25 shrink-0"><LayoutDashboard className="h-6 w-6 text-white" /></div>
+        <div className="page-icon"><LayoutDashboard className="h-6 w-6 text-white" /></div>
         <div>
           <h1 className="text-3xl font-black text-gray-900 tracking-tight">Genel Bakış</h1>
           <p className="text-gray-500 text-sm mt-1">Toplam {data.totals.tenants} müşteri · {data.totals.PAST_DUE} ödeme gecikmesi · {data.totals.SUSPENDED} askıda</p>

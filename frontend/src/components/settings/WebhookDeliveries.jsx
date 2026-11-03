@@ -6,7 +6,7 @@ import { formatDate } from '../../utils/format';
 const STATUS = {
   SUCCESS: { label: 'Gönderildi', className: 'bg-emerald-100 text-emerald-700' },
   PENDING: { label: 'Yeniden denenecek', className: 'bg-amber-100 text-amber-700' },
-  SENDING: { label: 'Gönderiliyor', className: 'bg-blue-100 text-blue-700' },
+  SENDING: { label: 'Gönderiliyor', className: 'bg-indigo-100 text-indigo-700' },
   FAILED: { label: 'Başarısız', className: 'bg-red-100 text-red-700' }
 };
 

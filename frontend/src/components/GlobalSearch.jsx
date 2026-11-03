@@ -39,7 +39,7 @@ const GlobalSearch = ({ dark = false }) => {
         onChange={(e) => setQ(e.target.value)}
         onFocus={() => results && setOpen(true)}
         placeholder="Ürün, bayi veya sipariş ara (SKU, vergi no, AK-12)..."
-        className={`w-full h-11 pl-10 pr-4 rounded-xl text-sm font-semibold outline-none transition-all ${dark ? 'bg-white/5 text-white placeholder:text-slate-500' : 'bg-gray-100/80 ring-1 ring-gray-200/70 text-gray-900 placeholder:text-gray-500 placeholder:font-medium hover:bg-gray-100 focus:bg-white focus:ring-2 focus:ring-blue-300 focus:shadow-sm'}`}
+        className={`w-full h-11 pl-10 pr-4 rounded-xl text-sm font-semibold outline-none transition-all ${dark ? 'bg-white/5 text-white placeholder:text-slate-500' : 'bg-gray-100/80 ring-1 ring-gray-200/70 text-gray-900 placeholder:text-gray-500 placeholder:font-medium hover:bg-gray-100 focus:bg-white focus:ring-2 focus:ring-indigo-300 focus:shadow-sm'}`}
       />
       {open && results && (
         <div className="absolute left-0 right-0 mt-2 bg-white rounded-2xl shadow-2xl border border-gray-100 overflow-hidden z-50 max-h-[28rem] overflow-y-auto">

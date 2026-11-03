@@ -45,7 +45,7 @@ const SortableCategoryItem = ({ category, level, zebra, dragDisabled, onEdit, on
 
   return (
     <div ref={setNodeRef} style={style}>
-      <div className={`relative flex items-center gap-3 pl-4 pr-5 py-3 border-b border-gray-100/70 group transition-colors ${isDragging ? 'bg-blue-50 shadow-lg' : zebra ? 'bg-slate-50/80' : 'bg-white'} hover:bg-blue-50/40 hover:shadow-[inset_3px_0_0_0_#3b82f6] ${category.isActive ? '' : 'opacity-60'}`}>
+      <div className={`relative flex items-center gap-3 pl-4 pr-5 py-3 border-b border-gray-100/70 group transition-colors ${isDragging ? 'bg-indigo-50 shadow-lg' : zebra ? 'bg-slate-50/80' : 'bg-white'} hover:bg-indigo-50/40 hover:shadow-[inset_3px_0_0_0_#6366f1] ${category.isActive ? '' : 'opacity-60'}`}>
         <div {...attributes} {...listeners} title={dragDisabled ? 'Arama yaparken sıralama kapalı' : 'Sürükleyerek sırala'}
           className={`p-1 rounded-md text-gray-300 transition-colors ${dragDisabled ? 'opacity-30 cursor-not-allowed' : 'group-hover:text-gray-500 hover:bg-gray-100 cursor-grab active:cursor-grabbing'}`}>
           <GripVertical className="h-4 w-4" />
@@ -60,19 +60,19 @@ const SortableCategoryItem = ({ category, level, zebra, dragDisabled, onEdit, on
 
         <button type="button" onClick={() => hasChildren && onExpand(category.id)} disabled={!hasChildren}
           title={hasChildren ? (isExpanded ? 'Daralt' : 'Alt kategorileri göster') : ''}
-          className={`h-7 w-7 shrink-0 rounded-lg flex items-center justify-center transition-all ${hasChildren ? (isExpanded ? 'bg-blue-600 text-white shadow-sm' : 'bg-white ring-1 ring-gray-200 text-gray-500 hover:text-blue-600 hover:ring-blue-200') : 'text-gray-200'}`}>
+          className={`h-7 w-7 shrink-0 rounded-lg flex items-center justify-center transition-all ${hasChildren ? (isExpanded ? 'bg-indigo-600 text-white shadow-sm' : 'bg-white ring-1 ring-gray-200 text-gray-500 hover:text-indigo-600 hover:ring-indigo-200') : 'text-gray-200'}`}>
           {hasChildren ? <ChevronRight className={`h-4 w-4 transition-transform duration-200 ${isExpanded ? 'rotate-90' : ''}`} /> : <span className="h-1.5 w-1.5 rounded-full bg-gray-200" />}
         </button>
 
-        <div className="h-11 w-11 shrink-0 rounded-xl overflow-hidden ring-1 ring-gray-100 bg-gradient-to-br from-blue-50 to-indigo-100 flex items-center justify-center">
+        <div className="h-11 w-11 shrink-0 rounded-xl overflow-hidden ring-1 ring-gray-100 bg-gradient-to-br from-indigo-50 to-indigo-100 flex items-center justify-center">
           {category.imageUrl ? <img src={category.imageUrl} alt="" loading="lazy" className="w-full h-full object-cover" /> : (
-            <span className="text-sm font-black text-blue-600/70">{category.name.trim().slice(0, 1).toLocaleUpperCase('tr-TR')}</span>
+            <span className="text-sm font-black text-indigo-600/70">{category.name.trim().slice(0, 1).toLocaleUpperCase('tr-TR')}</span>
           )}
         </div>
 
         <div className="min-w-0 flex-1">
           <div className="flex items-center gap-2 flex-wrap">
-            <p className="text-[15px] font-bold text-gray-900 tracking-tight truncate group-hover:text-blue-700 transition-colors">{category.name}</p>
+            <p className="text-[15px] font-bold text-gray-900 tracking-tight truncate group-hover:text-indigo-700 transition-colors">{category.name}</p>
             {!category.isActive && <span className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded-md bg-gray-100 text-gray-500 text-[10px] font-bold"><EyeOff className="h-3 w-3" /> Pasif</span>}
           </div>
           {hasChildren && (
@@ -80,12 +80,12 @@ const SortableCategoryItem = ({ category, level, zebra, dragDisabled, onEdit, on
           )}
         </div>
 
-        <span className={`hidden sm:inline-flex items-center gap-1.5 h-7 px-2.5 rounded-lg text-xs font-bold tabular-nums shrink-0 ${productCount ? 'bg-blue-50 text-blue-700' : 'bg-gray-100 text-gray-400'}`} title="Bu kategorideki ürün sayısı (varyantlar hariç)">
+        <span className={`hidden sm:inline-flex items-center gap-1.5 h-7 px-2.5 rounded-lg text-xs font-bold tabular-nums shrink-0 ${productCount ? 'bg-indigo-50 text-indigo-700' : 'bg-gray-100 text-gray-400'}`} title="Bu kategorideki ürün sayısı (varyantlar hariç)">
           <Package className="h-3.5 w-3.5" /> {productCount} ürün
         </span>
 
         <div className="flex items-center gap-0.5 p-1 rounded-xl bg-white ring-1 ring-gray-100 shadow-sm shrink-0">
-          <button onClick={() => onEdit(category)} title="Düzenle" className="p-1.5 rounded-lg text-gray-400 hover:text-blue-600 hover:bg-blue-50 transition-colors">
+          <button onClick={() => onEdit(category)} title="Düzenle" className="p-1.5 rounded-lg text-gray-400 hover:text-indigo-600 hover:bg-indigo-50 transition-colors">
             <Edit2 className="h-4 w-4" />
           </button>
           <span className="w-px h-4 bg-gray-100" />
@@ -296,7 +296,7 @@ const CategoryManagement = () => {
       {alertElement}
       <div className="flex flex-wrap justify-between items-center gap-4">
         <div className="flex items-center gap-4">
-          <div className="bg-gradient-to-br from-blue-600 to-blue-800 p-3.5 rounded-2xl shadow-lg shadow-blue-500/25">
+          <div className="page-icon">
             <Layers className="h-6 w-6 text-white" />
           </div>
           <div>
@@ -313,7 +313,7 @@ const CategoryManagement = () => {
       {/* Özet */}
       <div className="grid grid-cols-3 gap-3">
         {[
-          { icon: Layers, label: 'Ana kategori', value: categories.length, tone: 'bg-blue-50 text-blue-600' },
+          { icon: Layers, label: 'Ana kategori', value: categories.length, tone: 'bg-indigo-50 text-indigo-600' },
           { icon: FolderTree, label: 'Alt kategori', value: totalChildren, tone: 'bg-violet-50 text-violet-600' },
           { icon: Package, label: 'Kategorili ürün', value: totalProducts, tone: 'bg-emerald-50 text-emerald-600' },
         ].map((st) => (
@@ -332,7 +332,7 @@ const CategoryManagement = () => {
         <div className="relative flex-1 min-w-[14rem]">
           <Search className="absolute left-3.5 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-400" />
           <input value={search} onChange={(e) => setSearch(e.target.value)} placeholder="Kategori ara..."
-            className="w-full h-10 pl-10 pr-9 rounded-xl bg-white border border-gray-100 shadow-sm text-sm font-semibold outline-none focus:bg-white focus:border-blue-300 focus:ring-4 focus:ring-blue-100 placeholder:text-gray-400 placeholder:font-medium" />
+            className="w-full h-10 pl-10 pr-9 rounded-xl bg-white border border-gray-100 shadow-sm text-sm font-semibold outline-none focus:bg-white focus:border-indigo-300 focus:ring-4 focus:ring-indigo-100 placeholder:text-gray-400 placeholder:font-medium" />
           {search && <button onClick={() => setSearch('')} className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-700"><X className="h-4 w-4" /></button>}
         </div>
         {totalChildren > 0 && !term && (
@@ -378,12 +378,12 @@ const CategoryManagement = () => {
           <div className="modal-backdrop" onClick={() => setIsDrawerOpen(false)} />
           <div className="modal-panel w-full max-w-xl max-h-[90vh] flex flex-col">
             <div className="modal-header items-center">
-              <div className="flex items-center gap-3.5 min-w-0">
-                <div className="h-11 w-11 rounded-xl overflow-hidden bg-gradient-to-br from-blue-500 to-blue-700 shadow-lg shadow-blue-500/25 flex items-center justify-center shrink-0">
-                  {formData.imageUrl ? <img src={formData.imageUrl} alt="" className="h-full w-full object-cover" /> : <Layers className="h-5 w-5 text-white" />}
+              <div className="flex items-center gap-3 min-w-0">
+                <div className="modal-icon">
+                  {formData.imageUrl ? <img src={formData.imageUrl} alt="" className="h-full w-full object-cover" /> : <Layers className="h-5 w-5" />}
                 </div>
                 <div className="min-w-0">
-                  <h3 className="modal-title text-xl">{selectedCategory ? 'Kategoriyi Düzenle' : 'Yeni Kategori'}</h3>
+                  <h3 className="modal-title">{selectedCategory ? 'Kategoriyi Düzenle' : 'Yeni Kategori'}</h3>
                   <p className="modal-subtitle truncate">{parentName ? `${parentName} › ` : ''}{formData.name || 'Ad, üst kategori ve görsel'}</p>
                 </div>
               </div>
@@ -426,7 +426,7 @@ const CategoryManagement = () => {
                       </>
                     ) : <ImageIcon className="h-7 w-7 text-gray-300" />}
                   </div>
-                  <label className="flex-1 h-24 rounded-xl border-2 border-dashed border-gray-200 flex flex-col items-center justify-center gap-1 cursor-pointer text-gray-400 hover:border-blue-400 hover:bg-blue-50/50 hover:text-blue-600 transition-all">
+                  <label className="flex-1 h-24 rounded-xl border-2 border-dashed border-gray-200 flex flex-col items-center justify-center gap-1 cursor-pointer text-gray-400 hover:border-indigo-400 hover:bg-indigo-50/50 hover:text-indigo-600 transition-all">
                     <UploadCloud className="h-6 w-6" />
                     <span className="text-xs font-bold">{formData.imageUrl ? 'Görseli değiştir' : 'Görsel yükle'}</span>
                     <input type="file" className="hidden" onChange={handleImageUpload} accept="image/*" />

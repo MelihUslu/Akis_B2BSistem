@@ -61,7 +61,7 @@ const FinanceManagement = () => {
     <div className="space-y-8">
       <div className="flex flex-col md:flex-row justify-between md:items-end gap-4">
         <div className="flex items-center gap-4">
-          <div className="bg-gradient-to-br from-blue-500 to-blue-700 p-3.5 rounded-2xl shadow-lg shadow-blue-500/25 shrink-0"><CreditCard className="h-6 w-6 text-white" /></div>
+          <div className="page-icon"><CreditCard className="h-6 w-6 text-white" /></div>
           <div>
             <h1 className="text-3xl font-black text-gray-900 tracking-tight">Finans ve Prim</h1>
             <p className="text-gray-500 text-sm mt-1">Tahsilat ve vade takibi, plasiyer primleri, mutabakatlar. Cari bakiye, hareket girişi ve ekstre için <Link to="/admin/partners" className="text-indigo-600 font-bold hover:underline">Cari Hesaplar</Link>.</p>

@@ -30,7 +30,7 @@ const WhatsAppPage = () => {
       {alertElement}
       <div className="flex flex-col md:flex-row justify-between md:items-end gap-4">
         <div className="flex items-center gap-4">
-          <div className="bg-gradient-to-br from-emerald-500 to-green-600 p-3.5 rounded-2xl shadow-lg shadow-emerald-500/25 shrink-0"><MessageCircle className="h-6 w-6 text-white" /></div>
+          <div className="page-icon"><MessageCircle className="h-6 w-6 text-white" /></div>
           <div>
             <h1 className="text-3xl font-black text-gray-900 tracking-tight">WhatsApp</h1>
             <p className="text-gray-500 text-sm mt-1">

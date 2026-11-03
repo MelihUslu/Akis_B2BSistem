@@ -153,9 +153,10 @@ const PartnerDrawer = ({ id, meta, onClose, onChanged, showAlert, confirm }) => 
         {!p ? <p className="p-10 text-center text-gray-400">Yükleniyor...</p> : (
           <div className="p-6 space-y-5">
             <div className="flex items-start justify-between gap-3">
-              <div className="min-w-0">
+              <span className="modal-icon"><BookUser className="h-5 w-5" /></span>
+              <div className="min-w-0 flex-1">
                 <div className="flex items-center gap-2"><Badge kind={p.kind} />{p.currency !== 'TRY' && <span className="px-2 py-0.5 rounded-md text-[10px] font-black bg-indigo-50 text-indigo-700">{p.currency} cari</span>}{p.status === 'PASSIVE' && <span className="text-[10px] font-black uppercase text-gray-400">Pasif</span>}</div>
-                <h2 className="text-xl font-black text-gray-900 mt-1 break-words">{p.name}</h2>
+                <h2 className="modal-title mt-1 break-words">{p.name}</h2>
                 {p.externalCode && <p className="text-xs font-mono text-gray-400">Cari {p.externalCode}</p>}
               </div>
               <div className="text-right shrink-0">
@@ -164,7 +165,7 @@ const PartnerDrawer = ({ id, meta, onClose, onChanged, showAlert, confirm }) => 
                 {p.kind === 'CUSTOMER' && p.riskLimit > 0 && <p className="text-[10px] text-gray-400">Limit {formatMoney(p.riskLimit, p.currency)}</p>}
                 {p.paymentTermDays > 0 && <p className="text-[10px] text-gray-400">Vade {p.paymentTermDays} gün</p>}
               </div>
-              <button onClick={onClose} className="p-2 -mr-2 rounded-lg text-gray-400 hover:bg-gray-100"><X className="h-5 w-5" /></button>
+              <button onClick={onClose} className="modal-close" aria-label="Kapat"><X className="h-5 w-5" /></button>
             </div>
 
             <div className="flex flex-wrap gap-2">
@@ -252,7 +253,7 @@ const PartnerManagement = () => {
       {alertElement}
       <div className="flex flex-col xl:flex-row justify-between xl:items-end gap-4">
         <div className="flex items-center gap-4">
-          <div className="bg-gradient-to-br from-teal-500 to-teal-700 p-3.5 rounded-2xl shadow-lg shadow-teal-500/25 shrink-0"><BookUser className="h-6 w-6 text-white" /></div>
+          <div className="page-icon"><BookUser className="h-6 w-6 text-white" /></div>
           <div>
             <h1 className="text-3xl font-black text-gray-900 tracking-tight">Cari Hesaplar</h1>
             <p className="text-gray-500 text-sm mt-1">Bayiler, portal kullanmayan müşteriler ve tedarikçiler: bakiye, tahsilat, hareket, not ve belgeler. Portala giren bayiler <Link to="/admin/dealers" className="text-indigo-600 font-bold hover:underline">Bayi Yönetimi</Link>'nden eklenir.</p>

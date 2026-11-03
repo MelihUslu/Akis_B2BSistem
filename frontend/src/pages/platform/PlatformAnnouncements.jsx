@@ -50,7 +50,7 @@ const PlatformAnnouncements = () => {
     <div className="space-y-8 max-w-5xl">
       {alertElement}
       <div className="flex items-center gap-4">
-        <div className="bg-gradient-to-br from-indigo-500 to-indigo-700 p-3.5 rounded-2xl shadow-lg shadow-indigo-500/25 shrink-0"><Megaphone className="h-6 w-6 text-white" /></div>
+        <div className="page-icon"><Megaphone className="h-6 w-6 text-white" /></div>
         <div>
           <h1 className="text-3xl font-black text-gray-900 tracking-tight">Duyurular</h1>
           <p className="text-gray-500 text-sm mt-1">Bakım, yeni özellik ve fiyat değişikliklerini müşterilerinizin yönetim paneline duyurun.</p>

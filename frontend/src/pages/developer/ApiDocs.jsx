@@ -4,7 +4,7 @@ import { useTenant } from '../../context/TenantContext';
 
 const API = import.meta.env.VITE_API_URL || 'http://localhost:5001/api';
 const METHOD = {
-  get: 'bg-emerald-100 text-emerald-700', post: 'bg-blue-100 text-blue-700',
+  get: 'bg-emerald-100 text-emerald-700', post: 'bg-indigo-100 text-indigo-700',
   put: 'bg-amber-100 text-amber-700', patch: 'bg-violet-100 text-violet-700', delete: 'bg-red-100 text-red-700'
 };
 

@@ -11,6 +11,7 @@ import { formatAddress } from '../../utils/turkey';
 import { formatTRY, formatDate, firstImage, ORDER_STATUS, RETURN_STATUS } from '../../utils/format';
 import { t } from '../../i18n';
 import usePortalSettings from '../../hooks/usePortalSettings';
+import ModalHeader from '../../components/shared/ModalHeader';
 
 // Gel-Al siparişi: planlanan teslim alma zamanı ve adresi
 const PickupCard = ({ order }) => {
@@ -76,13 +77,7 @@ const ReturnForm = ({ item, maxQty, onClose, onCreated }) => {
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
       <div className="modal-backdrop" onClick={onClose} />
       <form onSubmit={submit} className="modal-panel w-full max-w-lg">
-        <div className="modal-header items-center">
-          <div>
-            <h3 className="modal-title">{t('İade / Değişim Talebi')}</h3>
-            <p className="text-xs font-bold text-gray-400 mt-1">{item.product.parent?.name || item.product.name}{item.variantLabel && ` · ${item.variantLabel}`}</p>
-          </div>
-          <button type="button" onClick={onClose} className="modal-close" aria-label={t('Kapat')}><X className="h-5 w-5" /></button>
-        </div>
+        <ModalHeader icon={RotateCcw} title={t('İade / Değişim Talebi')} subtitle={<>{item.product.parent?.name || item.product.name}{item.variantLabel && ` · ${item.variantLabel}`}</>} onClose={onClose} closeLabel={t('Kapat')} />
 
         <div className="p-6 space-y-5">
           <div className="grid grid-cols-2 gap-4">
@@ -132,7 +127,7 @@ const ReturnForm = ({ item, maxQty, onClose, onCreated }) => {
         </div>
 
         <div className="p-6 pt-0 flex gap-3">
-          <button type="button" onClick={onClose} className="flex-1 py-3 border border-gray-200 rounded-xl font-bold text-gray-600 hover:bg-gray-50">{t('Vazgeç')}</button>
+          <button type="button" onClick={onClose} className="btn-secondary flex-1">{t('Vazgeç')}</button>
           <button type="submit" disabled={submitting || uploading} className="flex-1 btn-gradient disabled:opacity-60">{t('Talebi Gönder')}</button>
         </div>
       </form>
@@ -229,11 +224,11 @@ const BayiOrderDetail = () => {
       <div className="card-premium p-5 md:p-8 overflow-x-auto">
         <OrderTimeline order={order} />
         {order.trackingNumber && (
-          <div className="mt-8 flex items-center bg-blue-50 px-5 py-4 rounded-2xl border border-blue-100">
-            <Truck className="h-5 w-5 text-blue-600 mr-3" />
+          <div className="mt-8 flex items-center bg-indigo-50 px-5 py-4 rounded-2xl border border-indigo-100">
+            <Truck className="h-5 w-5 text-indigo-600 mr-3" />
             <div>
-              <p className="text-[10px] font-black text-blue-400 uppercase tracking-widest">{carrierName(order.cargoCompany) || t('Kargo')} · Takip No</p>
-              <p className="text-sm font-black text-blue-700">{order.trackingNumber}</p>
+              <p className="text-[10px] font-black text-indigo-400 uppercase tracking-widest">{carrierName(order.cargoCompany) || t('Kargo')} · Takip No</p>
+              <p className="text-sm font-black text-indigo-700">{order.trackingNumber}</p>
               {trackingUrl(order.cargoCompany, order.trackingNumber) && (
                 <a href={trackingUrl(order.cargoCompany, order.trackingNumber)} target="_blank" rel="noreferrer" className="inline-flex items-center text-xs font-black text-indigo-600 mt-1 hover:underline">{t('Kargom nerede?')} <ExternalLink className="h-3 w-3 ml-1" /></a>
               )}

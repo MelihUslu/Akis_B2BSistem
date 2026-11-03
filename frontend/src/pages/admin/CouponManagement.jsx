@@ -1,8 +1,9 @@
 import { useEffect, useState } from 'react';
-import { TicketPercent, Plus, Trash2, Save, X } from 'lucide-react';
+import { TicketPercent, Plus, Trash2, Save } from 'lucide-react';
 import api, { errorMessage } from '../../services/api';
 import useAlert from '../../hooks/useAlert';
 import { formatTRY, formatDate } from '../../utils/format';
+import ModalHeader from '../../components/shared/ModalHeader';
 
 const EMPTY = { code: '', description: '', type: 'PERCENT', value: '', minSubtotal: '', startsAt: '', endsAt: '', maxUses: '', scope: 'ALL', companyId: '', dealerGroup: 'GOLD', isActive: true };
 
@@ -58,10 +59,7 @@ const CouponManagement = () => {
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
           <div className="modal-backdrop" onClick={() => setEditing(null)} />
           <form onSubmit={save} className="modal-panel w-full max-w-lg max-h-[92vh] flex flex-col">
-            <div className="modal-header items-center">
-              <h3 className="modal-title">{editing.id ? 'Kuponu Düzenle' : 'Yeni Kupon'}</h3>
-              <button type="button" onClick={() => setEditing(null)} className="modal-close" aria-label="Kapat"><X className="h-5 w-5" /></button>
-            </div>
+            <ModalHeader icon={TicketPercent} title={editing.id ? 'Kuponu Düzenle' : 'Yeni Kupon'} onClose={() => setEditing(null)} />
             <div className="p-6 space-y-4 overflow-y-auto">
               <div className="grid grid-cols-2 gap-4">
                 <div><label className="premium-label">Kod</label><input required className="premium-input font-mono uppercase" value={editing.code} onChange={set('code')} placeholder="BAHAR10" /></div>
@@ -91,7 +89,7 @@ const CouponManagement = () => {
               <label className="flex items-center text-sm font-bold text-gray-700"><input type="checkbox" className="mr-2 h-4 w-4" checked={editing.isActive} onChange={set('isActive')} /> Aktif</label>
             </div>
             <div className="p-6 border-t border-gray-100 flex gap-3">
-              <button type="button" onClick={() => setEditing(null)} className="flex-1 py-3 border border-gray-200 rounded-xl font-bold text-gray-600 hover:bg-gray-50">Vazgeç</button>
+              <button type="button" onClick={() => setEditing(null)} className="btn-secondary flex-1">Vazgeç</button>
               <button type="submit" className="flex-1 btn-gradient"><Save className="h-4 w-4 mr-2" /> Kaydet</button>
             </div>
           </form>
@@ -101,7 +99,7 @@ const CouponManagement = () => {
       <div className="flex flex-col md:flex-row justify-between md:items-end gap-4">
         <div>
           <div className="flex items-center gap-4">
-          <div className="bg-gradient-to-br from-pink-500 to-pink-700 p-3.5 rounded-2xl shadow-lg shadow-pink-500/25 shrink-0"><TicketPercent className="h-6 w-6 text-white" /></div>
+          <div className="page-icon"><TicketPercent className="h-6 w-6 text-white" /></div>
           <div>
             <h1 className="text-3xl font-black text-gray-900 tracking-tight">Kampanyalar & Kuponlar</h1>
             <p className="text-gray-500 text-sm mt-1">Bayilerin sipariş özetinde gireceği indirim kodları. Ürüne özel fiyatlar için ürün düzenleme ekranındaki "Özel Fiyatlar" sekmesini kullanın.</p>

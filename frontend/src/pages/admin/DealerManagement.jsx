@@ -122,7 +122,7 @@ const DealerManagement = () => {
       {alertElement}
       <div className="flex flex-col xl:flex-row justify-between items-start xl:items-center gap-6">
         <div className="flex items-center gap-4 shrink-0">
-          <div className="bg-gradient-to-br from-blue-600 to-blue-800 p-3.5 rounded-2xl shadow-lg shadow-blue-500/25">
+          <div className="page-icon">
             <Users className="h-6 w-6 text-white" />
           </div>
           <div>
@@ -133,11 +133,11 @@ const DealerManagement = () => {
 
         <div className="flex flex-wrap md:flex-nowrap items-center gap-3 w-full xl:w-auto">
           <div className="relative flex-1 min-w-[12rem] xl:w-80 group">
-            <Search className="absolute left-4 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-400 group-focus-within:text-blue-600 transition-all" />
+            <Search className="absolute left-4 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-400 group-focus-within:text-indigo-600 transition-all" />
             <input 
               type="text" 
               placeholder="Unvan veya vergi no ara..." 
-              className="w-full h-12 pl-11 pr-4 bg-white border border-gray-100 rounded-2xl text-sm font-semibold focus:ring-4 focus:ring-blue-100 focus:border-blue-200 shadow-sm outline-none transition-all placeholder:text-gray-400 placeholder:font-medium"
+              className="w-full h-12 pl-11 pr-4 bg-white border border-gray-100 rounded-2xl text-sm font-semibold focus:ring-4 focus:ring-indigo-100 focus:border-indigo-200 shadow-sm outline-none transition-all placeholder:text-gray-400 placeholder:font-medium"
               value={search}
               onChange={(e) => setSearch(e.target.value)}
             />
@@ -197,7 +197,7 @@ const DealerManagement = () => {
                   <span className="text-[11px] font-bold text-gray-400 tabular-nums">{(page - 1) * 20 + index + 1}</span>
                 </td>
                 <td className="px-8 py-6">
-                  <div className="font-bold text-gray-900 group-hover:text-blue-700 transition-colors text-[15px] tracking-tight">{dealer.name}</div>
+                  <div className="font-bold text-gray-900 group-hover:text-indigo-700 transition-colors text-[15px] tracking-tight">{dealer.name}</div>
                   <div className="flex items-center gap-2 mt-1.5 flex-wrap">
                     <span className="font-mono text-[10px] font-semibold text-gray-500 bg-gray-100/80 px-1.5 py-0.5 rounded-md">VKN {dealer.taxNumber || '—'}</span>
                     {dealer.externalCode && <span className="font-mono text-[10px] font-semibold text-indigo-600 bg-indigo-50 px-1.5 py-0.5 rounded-md">Cari {dealer.externalCode}</span>}
@@ -239,7 +239,7 @@ const DealerManagement = () => {
                   })()}
                 </td>
                 <td className="px-8 py-6 space-y-2">
-                  <span className="block w-fit px-2 py-0.5 rounded-md bg-blue-50/70 text-blue-700 text-[11px] font-semibold">
+                  <span className="block w-fit px-2 py-0.5 rounded-md bg-indigo-50/70 text-indigo-700 text-[11px] font-semibold">
                     {dealer.dealerGroup}
                   </span>
                   {getStatusBadge(dealer.status)}
@@ -256,7 +256,7 @@ const DealerManagement = () => {
                     <button 
                       onClick={() => { setSelectedDealer(dealer); setFormData({...emptyForm, ...dealer, plasiyerId: dealer.plasiyerId || '', email: dealer.users?.[0]?.email || ''}); setTriedSave(false); setIsDrawerOpen(true); }}
                       title="Düzenle"
-                      className="p-2 rounded-lg text-gray-400 hover:text-blue-600 hover:bg-blue-50 transition-colors"
+                      className="p-2 rounded-lg text-gray-400 hover:text-indigo-600 hover:bg-indigo-50 transition-colors"
                     >
                       <Edit3 className="h-4 w-4" />
                     </button>
@@ -282,7 +282,7 @@ const DealerManagement = () => {
                 <button disabled={page >= pagination.pages} onClick={() => setPage(page + 1)} className="px-3 py-1.5 rounded-lg bg-white border border-gray-100 text-xs font-black disabled:opacity-30">›</button>
               </div>
             )}
-            <div className="text-[11px] font-black text-blue-600 uppercase tracking-widest bg-blue-50 px-4 py-2 rounded-xl">
+            <div className="text-[11px] font-black text-indigo-600 uppercase tracking-widest bg-indigo-50 px-4 py-2 rounded-xl">
               Toplam: {pagination.total}
             </div>
           </div>
@@ -313,7 +313,7 @@ const DealerManagement = () => {
           <div className="modal-backdrop" onClick={() => setIsViewOpen(false)} />
           <div className="modal-panel w-full max-w-4xl max-h-[90vh] flex flex-col">
             {/* Kimlik şeridi */}
-            <div className="relative bg-gradient-to-br from-slate-900 via-slate-800 to-blue-900 px-7 pt-6 pb-7 text-white">
+            <div className="relative bg-gradient-to-br from-gray-900 via-gray-900 to-indigo-950 px-7 pt-6 pb-7 text-white">
               <button onClick={() => setIsViewOpen(false)} className="absolute top-4 right-4 p-2 rounded-xl text-white/60 hover:text-white hover:bg-white/10" aria-label="Kapat"><X className="h-5 w-5" /></button>
               <div className="flex items-center gap-4 pr-10">
                 <div className="h-14 w-14 rounded-2xl bg-white/10 ring-1 ring-white/20 flex items-center justify-center text-lg font-black shrink-0">{initials}</div>
@@ -366,7 +366,7 @@ const DealerManagement = () => {
                       <span className="p-1.5 rounded-lg bg-gray-50 text-gray-400"><r.icon className="h-4 w-4" /></span>
                       <span className="w-20 shrink-0 text-xs font-semibold text-gray-400">{r.label}</span>
                       {r.value ? (
-                        r.href ? <a href={r.href} className="text-sm font-semibold text-blue-700 hover:underline truncate">{r.value}</a>
+                        r.href ? <a href={r.href} className="text-sm font-semibold text-indigo-700 hover:underline truncate">{r.value}</a>
                           : <span className="text-sm font-semibold text-gray-800 truncate">{r.value}</span>
                       ) : <span className="text-sm text-gray-300">—</span>}
                     </div>
@@ -375,7 +375,7 @@ const DealerManagement = () => {
                     <span className="p-1.5 rounded-lg bg-gray-50 text-gray-400"><MapPin className="h-4 w-4" /></span>
                     <span className="w-20 shrink-0 text-xs font-semibold text-gray-400 pt-1">Adres</span>
                     {d.address ? (
-                      <a href={`https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(d.address)}`} target="_blank" rel="noreferrer" className="text-sm font-semibold text-gray-800 hover:text-blue-700 leading-relaxed">{d.address}</a>
+                      <a href={`https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(d.address)}`} target="_blank" rel="noreferrer" className="text-sm font-semibold text-gray-800 hover:text-indigo-700 leading-relaxed">{d.address}</a>
                     ) : <span className="text-sm text-gray-300 pt-1">—</span>}
                   </div>
                 </div>
@@ -385,12 +385,12 @@ const DealerManagement = () => {
                   <div className="rounded-2xl ring-1 ring-gray-100 p-4">
                     <div className="flex items-center justify-between mb-3">
                       <h4 className="text-sm font-black text-gray-900 flex items-center gap-1.5"><Users className="h-4 w-4 text-gray-400" /> Kullanıcılar</h4>
-                      <button onClick={() => { setIsViewOpen(false); setUsersOf(d); }} className="text-xs font-bold text-blue-600 hover:underline">Yönet</button>
+                      <button onClick={() => { setIsViewOpen(false); setUsersOf(d); }} className="text-xs font-bold text-indigo-600 hover:underline">Yönet</button>
                     </div>
                     <div className="space-y-2">
                       {(d.users || []).map((u) => (
                         <div key={u.id} className={`flex items-center gap-2.5 ${u.isActive === false ? 'opacity-50' : ''}`}>
-                          <span className="h-8 w-8 rounded-full bg-blue-50 text-blue-700 text-[11px] font-black flex items-center justify-center shrink-0">{(u.name || u.email).slice(0, 2).toLocaleUpperCase('tr-TR')}</span>
+                          <span className="h-8 w-8 rounded-full bg-indigo-50 text-indigo-700 text-[11px] font-black flex items-center justify-center shrink-0">{(u.name || u.email).slice(0, 2).toLocaleUpperCase('tr-TR')}</span>
                           <div className="min-w-0">
                             <p className="text-xs font-bold text-gray-800 truncate">{u.name}{u.isOwner && <span className="ml-1.5 text-[10px] font-bold text-amber-600">ana kullanıcı</span>}</p>
                             <p className="text-[11px] text-gray-400 truncate">{u.email}</p>
@@ -436,12 +436,12 @@ const DealerManagement = () => {
           <div className="modal-backdrop" onClick={() => setIsDrawerOpen(false)} />
           <div className="modal-panel w-full max-w-3xl max-h-[90vh] flex flex-col">
             <div className="modal-header items-center">
-              <div className="flex items-center gap-3.5 min-w-0">
-                <div className="h-11 w-11 rounded-xl bg-gradient-to-br from-blue-500 to-blue-700 shadow-lg shadow-blue-500/25 flex items-center justify-center text-white font-black text-sm shrink-0">
+              <div className="flex items-center gap-3 min-w-0">
+                <div className="modal-icon font-black text-sm">
                   {formData.name ? formData.name.trim().slice(0, 2).toLocaleUpperCase('tr-TR') : <UserCheck className="h-5 w-5" />}
                 </div>
                 <div className="min-w-0">
-                  <h3 className="modal-title text-xl">{selectedDealer ? 'Bayi Kartını Düzenle' : 'Yeni Bayi'}</h3>
+                  <h3 className="modal-title">{selectedDealer ? 'Bayi Kartını Düzenle' : 'Yeni Bayi'}</h3>
                   <p className="modal-subtitle truncate">{formData.name || 'Firma bilgileri, giriş ve ticari koşullar'}</p>
                 </div>
               </div>

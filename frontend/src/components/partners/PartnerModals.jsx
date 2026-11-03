@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { Printer, Copy, Mail } from 'lucide-react';
+import { Printer, Copy, Mail, CheckCircle2, ArrowDownLeft, ArrowUpRight, Scale, Link2, FileText, UserCheck } from 'lucide-react';
 import api, { errorMessage } from '../../services/api';
 import Modal from '../shared/Modal';
 import { Field, Segmented, Toggle } from '../form/FormKit';
@@ -7,7 +7,7 @@ import { PAYMENT_METHODS, transactionTypes } from '../../utils/partner';
 import { formatMoney, localDate } from '../../utils/format';
 
 const today = () => localDate();
-const cancelBtn = (onClose) => <button type="button" onClick={onClose} className="px-4 h-11 rounded-xl text-sm font-black text-gray-600 bg-gray-100 hover:bg-gray-200">Vazgeç</button>;
+const cancelBtn = (onClose) => <button type="button" onClick={onClose} className="btn-secondary">Vazgeç</button>;
 
 /**
  * Tahsilat (cariden para girişi) veya ödeme (cariye para çıkışı). Kayıttan sonra makbuz yazdırılabilir.
@@ -42,7 +42,7 @@ export const PaymentModal = ({ partner, direction: initial, onClose, onSaved }) 
 
   if (saved) {
     return (
-      <Modal title={inbound ? 'Tahsilat kaydedildi' : 'Ödeme kaydedildi'} onClose={onClose}
+      <Modal icon={CheckCircle2} title={inbound ? 'Tahsilat kaydedildi' : 'Ödeme kaydedildi'} onClose={onClose}
         footer={<>
           {cancelBtn(onClose)}
           <a href={`/print/receipt/${saved.payment.id}`} target="_blank" rel="noreferrer" className="btn-gradient"><Printer className="h-4 w-4 mr-2" /> Makbuzu Yazdır</a>
@@ -53,7 +53,7 @@ export const PaymentModal = ({ partner, direction: initial, onClose, onSaved }) 
   }
 
   return (
-    <Modal as="form" onSubmit={submit} title={`${inbound ? 'Tahsilat al' : 'Ödeme yap'} · ${partner.name}`} onClose={onClose}
+    <Modal as="form" onSubmit={submit} icon={inbound ? ArrowDownLeft : ArrowUpRight} title={`${inbound ? 'Tahsilat al' : 'Ödeme yap'} · ${partner.name}`} onClose={onClose}
       footer={<>{cancelBtn(onClose)}<button disabled={busy} className="btn-gradient disabled:opacity-50">Kaydet</button></>}>
       <Segmented size="sm" value={form.direction} onChange={(direction) => setForm({ ...form, direction })}
         options={[{ value: 'IN', label: 'Tahsilat (para girişi)' }, { value: 'OUT', label: 'Ödeme (para çıkışı)' }]} />
@@ -102,7 +102,7 @@ export const TransactionModal = ({ partner, onClose, onSaved }) => {
     }
   };
   return (
-    <Modal as="form" onSubmit={submit} title={`Borç / alacak kaydı · ${partner.name}`} onClose={onClose} size="max-w-md"
+    <Modal as="form" onSubmit={submit} icon={Scale} title={`Borç / alacak kaydı · ${partner.name}`} onClose={onClose} size="max-w-md"
       footer={<>{cancelBtn(onClose)}<button className="btn-gradient">Kaydet</button></>}>
       <div className="grid grid-cols-2 gap-2">
         {types.map((t) => (
@@ -148,7 +148,7 @@ export const StatementLinkModal = ({ partner, onClose, onSaved }) => {
 
   if (result) {
     return (
-      <Modal title="Ekstre bağlantısı" onClose={onClose} footer={cancelBtn(onClose)}>
+      <Modal icon={Link2} title="Ekstre bağlantısı" onClose={onClose} footer={cancelBtn(onClose)}>
         <p className={`text-sm font-bold ${result.total && result.delivered < result.total ? 'text-amber-700' : 'text-emerald-700'}`}>{result.message}</p>
         <div className="flex gap-2">
           <input readOnly className="premium-input font-mono text-xs" value={result.url} onFocus={(e) => e.target.select()} />
@@ -160,7 +160,7 @@ export const StatementLinkModal = ({ partner, onClose, onSaved }) => {
   }
 
   return (
-    <Modal as="form" onSubmit={submit} title={`Ekstre ve mutabakat isteği · ${partner.name}`} onClose={onClose}
+    <Modal as="form" onSubmit={submit} icon={FileText} title={`Ekstre ve mutabakat isteği · ${partner.name}`} onClose={onClose}
       footer={<>{cancelBtn(onClose)}<button disabled={busy} className="btn-gradient disabled:opacity-50"><Mail className="h-4 w-4 mr-2" /> {form.send ? 'Gönder' : 'Bağlantı oluştur'}</button></>}>
       <label className="flex items-center gap-3 text-sm font-bold text-gray-700"><Toggle checked={form.send} onChange={(send) => setForm({ ...form, send })} /> E-postayla gönder</label>
       {form.send && (
@@ -193,7 +193,7 @@ export const ConvertModal = ({ partner, onClose, onSaved }) => {
     }
   };
   return (
-    <Modal as="form" onSubmit={submit} title={`Bayiye dönüştür · ${partner.name}`} onClose={onClose}
+    <Modal as="form" onSubmit={submit} icon={UserCheck} title={`Bayiye dönüştür · ${partner.name}`} onClose={onClose}
       footer={<>{cancelBtn(onClose)}<button disabled={busy} className="btn-gradient disabled:opacity-50">Bayiye Dönüştür</button></>}>
       <p className="text-xs text-gray-500">Müşteri portala giriş yapabilen bayi olur. Bakiye, hareketler, teklifler ve siparişler aynen korunur. Bayi paket limitinize sayılır; iskonto ve risk ayarlarını sonra Bayi Yönetimi'nden yapabilirsiniz.</p>
       <Field label="Portal giriş e-postası" required><input required type="email" className="premium-input" value={form.email} onChange={(e) => setForm({ ...form, email: e.target.value })} /></Field>

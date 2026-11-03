@@ -31,7 +31,7 @@ const AccountPage = () => {
     <div className="space-y-8 max-w-4xl">
       {alertElement}
       <div className="flex items-center gap-4">
-        <div className="bg-gradient-to-br from-indigo-500 to-indigo-700 p-3.5 rounded-2xl shadow-lg shadow-indigo-500/25 shrink-0"><UserCircle2 className="h-6 w-6 text-white" /></div>
+        <div className="page-icon"><UserCircle2 className="h-6 w-6 text-white" /></div>
         <div>
           <h1 className="text-3xl font-black text-gray-900 tracking-tight">Hesabım</h1>
           <p className="text-gray-500 text-sm mt-1"><UserCircle2 className="h-4 w-4 mr-1" /> {user?.name} · {user?.email}</p>

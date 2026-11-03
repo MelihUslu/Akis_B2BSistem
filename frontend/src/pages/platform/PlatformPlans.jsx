@@ -87,7 +87,7 @@ const PlatformPlans = () => {
       {alertElement}
       <div className="flex justify-between items-end">
         <div className="flex items-center gap-4">
-        <div className="bg-gradient-to-br from-violet-500 to-violet-700 p-3.5 rounded-2xl shadow-lg shadow-violet-500/25 shrink-0"><Layers className="h-6 w-6 text-white" /></div>
+        <div className="page-icon"><Layers className="h-6 w-6 text-white" /></div>
         <div>
           <h1 className="text-3xl font-black text-gray-900 tracking-tight">Paketler</h1>
           <p className="text-gray-500 text-sm mt-1">

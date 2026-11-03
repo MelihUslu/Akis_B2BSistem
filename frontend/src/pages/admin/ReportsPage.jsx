@@ -215,7 +215,7 @@ const ReportsPage = () => {
     <div className="space-y-6">
       <div className="flex flex-col md:flex-row justify-between md:items-center gap-4">
         <div className="flex items-center gap-4">
-          <div className="bg-gradient-to-br from-violet-500 to-violet-700 p-3.5 rounded-2xl shadow-lg shadow-violet-500/25 shrink-0"><BarChart3 className="h-6 w-6 text-white" /></div>
+          <div className="page-icon"><BarChart3 className="h-6 w-6 text-white" /></div>
           <div>
             <h1 className="text-3xl font-black text-gray-900 tracking-tight">Raporlar</h1>
             <p className="text-gray-500 text-sm mt-1">{tab === 'sales' ? 'Onaylanan siparişlere göre satış, kâr ve bayi performansı (KDV hariç).' : 'Haftalık ve aylık müşteri takibi: kim sipariş verdi, kim kayba gidiyor, kimi aramalısınız.'}</p>

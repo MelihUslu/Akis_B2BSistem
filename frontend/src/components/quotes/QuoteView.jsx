@@ -2,25 +2,13 @@ import { useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
 import {
   ArrowLeft, FileSignature, Link2, Copy, RefreshCw, Ban, Mail, FileDown, PenLine, ShoppingCart, ShieldCheck, Undo2,
-  CheckCircle2, AlertTriangle, History, MessageSquareText, Sparkles, X
+  CheckCircle2, AlertTriangle, History, MessageSquareText, Sparkles
 } from 'lucide-react';
 import api, { errorMessage } from '../../services/api';
 import QuoteDocument from './QuoteDocument';
+import Modal from '../shared/Modal';
 import { formatTRY, formatDate } from '../../utils/format';
 import { QUOTE_STATUS, RESPONSE_LABEL } from '../../utils/quote';
-
-const Modal = ({ title, onClose, children }) => (
-  <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
-    <div className="modal-backdrop" onClick={onClose} />
-    <div className="modal-panel w-full max-w-lg max-h-[90vh] flex flex-col">
-      <div className="flex items-center justify-between p-5 border-b border-gray-100">
-        <h3 className="modal-title">{title}</h3>
-        <button onClick={onClose} className="p-1.5 rounded-lg text-gray-400 hover:bg-gray-100"><X className="h-4 w-4" /></button>
-      </div>
-      <div className="p-5 space-y-4 overflow-y-auto">{children}</div>
-    </div>
-  </div>
-);
 
 /**
  * Gönderilmiş / onaydaki / sonuçlanmış teklif. Belge, gönderilen sürümün değişmez kopyasından gösterilir.
@@ -118,7 +106,7 @@ const QuoteView = ({ quote, onReload, showAlert, confirm }) => {
       <div className="flex flex-col lg:flex-row justify-between lg:items-end gap-4">
         <div className="flex items-center gap-4">
           <Link to="/admin/quotes" className="p-2 rounded-xl text-gray-400 hover:text-indigo-600 hover:bg-indigo-50"><ArrowLeft className="h-5 w-5" /></Link>
-          <div className="bg-gradient-to-br from-indigo-500 to-indigo-700 p-3.5 rounded-2xl shadow-lg shadow-indigo-500/25 shrink-0"><FileSignature className="h-6 w-6 text-white" /></div>
+          <div className="page-icon"><FileSignature className="h-6 w-6 text-white" /></div>
           <div className="min-w-0">
             <h1 className="text-2xl md:text-3xl font-black text-gray-900 tracking-tight">{quote.code}{quote.title && <span className="text-gray-400 font-bold text-lg"> · {quote.title}</span>}</h1>
             <div className="flex flex-wrap items-center gap-2 mt-1 text-xs">
@@ -221,7 +209,7 @@ const QuoteView = ({ quote, onReload, showAlert, confirm }) => {
       </div>
 
       {mail && (
-        <Modal title="Teklifi e-postayla gönder" onClose={() => setMail(null)}>
+        <Modal icon={Mail} title="Teklifi e-postayla gönder" onClose={() => setMail(null)}>
           <form onSubmit={sendMail} className="space-y-4">
             <div>
               <label className="premium-label">Alıcılar</label>
@@ -235,7 +223,7 @@ const QuoteView = ({ quote, onReload, showAlert, confirm }) => {
       )}
 
       {convert && (
-        <Modal title="Siparişe dönüştür" onClose={() => setConvert(null)}>
+        <Modal icon={ShoppingCart} title="Siparişe dönüştür" onClose={() => setConvert(null)}>
           <p className="text-xs text-gray-500">Kabul edilen sürümün (Rev. {quote.sentRevision}) fiyatlarıyla sipariş oluşturulur ve sipariş onayına düşer. Güncel katalog fiyatı kullanılmaz.</p>
           <div>
             <label className="premium-label">Ödeme yöntemi</label>

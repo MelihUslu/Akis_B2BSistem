@@ -1,7 +1,8 @@
 import { useState } from 'react';
-import { Smartphone, Share, PlusSquare, X } from 'lucide-react';
+import { Smartphone, Share, PlusSquare } from 'lucide-react';
 import useInstallPrompt from '../hooks/useInstallPrompt';
 import { t } from '../i18n';
+import ModalHeader from './shared/ModalHeader';
 
 // Bayi menüsündeki "Uygulamayı Yükle" kartı. Kurulamıyorsa veya zaten kuruluysa görünmez.
 const InstallAppButton = () => {
@@ -24,10 +25,7 @@ const InstallAppButton = () => {
         <div className="fixed inset-0 z-[60] flex items-center justify-center p-4">
           <div className="modal-backdrop" onClick={() => setIosOpen(false)} />
           <div className="modal-panel w-full max-w-sm">
-            <div className="modal-header">
-              <h3 className="modal-title">{t('iPhone / iPad\'e yükleme')}</h3>
-              <button className="modal-close" onClick={() => setIosOpen(false)}><X className="h-5 w-5" /></button>
-            </div>
+            <ModalHeader icon={Smartphone} title={t('iPhone / iPad\'e yükleme')} onClose={() => setIosOpen(false)} closeLabel={t('Kapat')} />
             <ol className="p-6 space-y-4 text-sm text-gray-700">
               <li className="flex items-center gap-3"><span className="w-8 h-8 rounded-lg bg-indigo-50 text-indigo-600 flex items-center justify-center shrink-0"><Share className="h-4 w-4" /></span>{t('Safari\'de alttaki Paylaş düğmesine dokunun')}</li>
               <li className="flex items-center gap-3"><span className="w-8 h-8 rounded-lg bg-indigo-50 text-indigo-600 flex items-center justify-center shrink-0"><PlusSquare className="h-4 w-4" /></span>{t('"Ana Ekrana Ekle"yi seçin')}</li>

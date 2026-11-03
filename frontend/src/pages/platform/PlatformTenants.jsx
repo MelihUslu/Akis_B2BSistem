@@ -1,11 +1,12 @@
 import { useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
-import { Plus, Search, X, ExternalLink, Building2 } from 'lucide-react';
+import { Plus, Search, ExternalLink, Building2 } from 'lucide-react';
 import { platformApi, errorMessage } from '../../services/api';
 import useAlert from '../../hooks/useAlert';
 import { formatDate } from '../../utils/format';
 import { ROOT_DOMAIN_LABEL } from '../../utils/tenant';
 import { StatusPill, TENANT_STATUS } from './shared';
+import ModalHeader from '../../components/shared/ModalHeader';
 
 const CreateTenantModal = ({ plans, onClose, onCreated }) => {
   const [form, setForm] = useState({ name: '', slug: '', adminName: '', adminEmail: '', phone: '', taxNumber: '', planCode: plans[0]?.code || '', mode: 'TRIAL', trialDays: '', periodMonths: 12 });
@@ -32,10 +33,7 @@ const CreateTenantModal = ({ plans, onClose, onCreated }) => {
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
       <div className="modal-backdrop" onClick={onClose} />
       <form onSubmit={submit} className="modal-panel w-full max-w-xl max-h-[90vh] flex flex-col">
-        <div className="modal-header items-center">
-          <h3 className="modal-title">Yeni Müşteri</h3>
-          <button type="button" onClick={onClose} className="modal-close" aria-label="Kapat"><X className="h-5 w-5" /></button>
-        </div>
+        <ModalHeader icon={Building2} title="Yeni Müşteri" onClose={onClose} />
         <div className="p-6 space-y-4 overflow-y-auto">
           <div className="grid grid-cols-2 gap-4">
             <div className="col-span-2"><label className="premium-label">Firma Adı</label><input required className="premium-input" value={form.name} onChange={set('name')} /></div>
@@ -76,7 +74,7 @@ const CreateTenantModal = ({ plans, onClose, onCreated }) => {
           {error && <p className="text-xs font-bold text-red-600 bg-red-50 p-3 rounded-xl">{error}</p>}
         </div>
         <div className="p-6 border-t border-gray-100 flex gap-3">
-          <button type="button" onClick={onClose} className="flex-1 py-3 border border-gray-200 rounded-xl font-bold text-gray-600 hover:bg-gray-50">Vazgeç</button>
+          <button type="button" onClick={onClose} className="btn-secondary flex-1">Vazgeç</button>
           <button type="submit" disabled={saving} className="flex-1 btn-gradient disabled:opacity-60">{saving ? 'Oluşturuluyor...' : 'Müşteriyi Oluştur'}</button>
         </div>
       </form>
@@ -111,7 +109,7 @@ const PlatformTenants = () => {
       )}
       <div className="flex flex-col md:flex-row justify-between md:items-end gap-4">
         <div className="flex items-center gap-4">
-        <div className="bg-gradient-to-br from-blue-500 to-blue-700 p-3.5 rounded-2xl shadow-lg shadow-blue-500/25 shrink-0"><Building2 className="h-6 w-6 text-white" /></div>
+        <div className="page-icon"><Building2 className="h-6 w-6 text-white" /></div>
         <div>
           <h1 className="text-3xl font-black text-gray-900 tracking-tight">Müşteriler</h1>
           <p className="text-gray-500 text-sm mt-1">{tenants.length} müşteri</p>

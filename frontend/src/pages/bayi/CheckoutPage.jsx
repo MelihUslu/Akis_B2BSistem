@@ -103,7 +103,7 @@ const CheckoutPage = () => {
           {/* Payment Method */}
           <div className="space-y-8">
             <h3 className="text-lg font-black text-gray-900 tracking-tight flex items-center">
-              <CreditCard className="mr-3 h-5 w-5 text-blue-600" /> {t('Ödeme Yöntemi Seçin')}
+              <CreditCard className="mr-3 h-5 w-5 text-indigo-600" /> {t('Ödeme Yöntemi Seçin')}
             </h3>
 
             <div className="space-y-4">
@@ -126,14 +126,14 @@ const CheckoutPage = () => {
                   onClick={() => setPaymentMethod(method.id)}
                   className={`w-full text-left p-6 rounded-[2rem] border-2 transition-all flex items-center space-x-6 ${
                     paymentMethod === method.id
-                      ? 'border-blue-600 bg-blue-50/50 shadow-lg shadow-blue-500/10'
+                      ? 'border-indigo-600 bg-indigo-50/50 shadow-lg shadow-indigo-500/10'
                       : 'border-gray-100 bg-white hover:border-gray-200'
                   }`}
                 >
                   <div
                     className={`p-4 rounded-2xl ${
                       paymentMethod === method.id
-                        ? 'bg-blue-600 text-white'
+                        ? 'bg-indigo-600 text-white'
                         : 'bg-gray-100 text-gray-400'
                     }`}
                   >
@@ -152,7 +152,7 @@ const CheckoutPage = () => {
             {pickup.enabled && (
               <div className="space-y-4">
                 <h3 className="text-lg font-black text-gray-900 tracking-tight flex items-center">
-                  <Truck className="mr-3 h-5 w-5 text-blue-600" /> {t('Teslimat Şekli')}
+                  <Truck className="mr-3 h-5 w-5 text-indigo-600" /> {t('Teslimat Şekli')}
                 </h3>
                 <div className="grid grid-cols-2 gap-3">
                   {[
@@ -160,8 +160,8 @@ const CheckoutPage = () => {
                     { id: 'PICKUP', name: t('Gel-Al'), desc: t('Depodan kendim alırım'), icon: Store },
                   ].map((m) => (
                     <button key={m.id} type="button" onClick={() => setDelivery(m.id)}
-                      className={`text-left p-4 rounded-2xl border-2 transition-all flex items-center gap-3 ${delivery === m.id ? 'border-blue-600 bg-blue-50/50' : 'border-gray-100 bg-white hover:border-gray-200'}`}>
-                      <div className={`p-2.5 rounded-xl shrink-0 ${delivery === m.id ? 'bg-blue-600 text-white' : 'bg-gray-100 text-gray-400'}`}><m.icon className="h-5 w-5" /></div>
+                      className={`text-left p-4 rounded-2xl border-2 transition-all flex items-center gap-3 ${delivery === m.id ? 'border-indigo-600 bg-indigo-50/50' : 'border-gray-100 bg-white hover:border-gray-200'}`}>
+                      <div className={`p-2.5 rounded-xl shrink-0 ${delivery === m.id ? 'bg-indigo-600 text-white' : 'bg-gray-100 text-gray-400'}`}><m.icon className="h-5 w-5" /></div>
                       <div className="min-w-0">
                         <h4 className="font-black text-gray-900 text-sm">{m.name}</h4>
                         <p className="text-[11px] text-gray-400 font-bold">{m.desc}</p>
@@ -177,8 +177,8 @@ const CheckoutPage = () => {
                 <h4 className="text-[10px] font-black text-gray-400 uppercase tracking-widest flex items-center">
                   <Store className="mr-2 h-4 w-4" /> {t('Gel-Al Bilgileri')}
                 </h4>
-                {pickup.address && <p className="text-sm font-bold text-gray-800 flex items-start"><MapPin className="h-4 w-4 mr-2 mt-0.5 text-blue-600 shrink-0" /> {pickup.address}</p>}
-                {pickup.hours && <p className="text-sm font-semibold text-gray-600 flex items-start"><Clock className="h-4 w-4 mr-2 mt-0.5 text-blue-600 shrink-0" /> {pickup.hours}</p>}
+                {pickup.address && <p className="text-sm font-bold text-gray-800 flex items-start"><MapPin className="h-4 w-4 mr-2 mt-0.5 text-indigo-600 shrink-0" /> {pickup.address}</p>}
+                {pickup.hours && <p className="text-sm font-semibold text-gray-600 flex items-start"><Clock className="h-4 w-4 mr-2 mt-0.5 text-indigo-600 shrink-0" /> {pickup.hours}</p>}
                 <div>
                   <label className="premium-label">{t('Teslim alacağınız tarih ve saat')}</label>
                   <input type="datetime-local" className="premium-input !bg-white" value={pickupAt} min={minPickup} max={maxPickup} onChange={(e) => setPickupAt(e.target.value)} />
@@ -259,7 +259,7 @@ const CheckoutPage = () => {
                 </div>
                 <div className="pt-8 border-t border-gray-50 flex justify-between items-end">
                   <div>
-                    <p className="text-[10px] font-black text-blue-600 uppercase tracking-widest">
+                    <p className="text-[10px] font-black text-indigo-600 uppercase tracking-widest">
                       {t('GENEL TOPLAM')}
                     </p>
                     <p className="text-4xl md:text-5xl font-black text-gray-900 tracking-tighter">
@@ -289,7 +289,7 @@ const CheckoutPage = () => {
             <button
               disabled={isSubmitting || blocked}
               onClick={handlePlaceOrder}
-              className="w-full btn-gradient py-6 shadow-2xl shadow-blue-600/30 text-lg group disabled:opacity-60 disabled:cursor-not-allowed"
+              className="w-full btn-gradient py-6 shadow-2xl shadow-indigo-600/30 text-lg group disabled:opacity-60 disabled:cursor-not-allowed"
             >
               {isSubmitting ? (
                 <span className="flex items-center justify-center gap-2">

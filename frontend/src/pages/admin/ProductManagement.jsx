@@ -25,6 +25,7 @@ import { CSS } from '@dnd-kit/utilities';
 import {
   Package, Plus, Search, ChevronRight, FileUp, Edit3, Trash2, Eye, EyeOff, Save, X, ImageIcon, DollarSign, Hash, Layers, Tag, Info, ListTree, BoxSelect, Lock, GripVertical, FileText, ChevronLeft, Type, Barcode, AlignLeft, ShoppingBasket, Shuffle, Banknote, Wallet, Warehouse, Boxes, Star, UploadCloud, Paperclip, PlayCircle, Percent, Link2, PackageOpen
 } from 'lucide-react';
+import ModalHeader from '../../components/shared/ModalHeader';
 
 const BULK_TYPES = [
   { id: 'price', label: 'Toplu Fiyat Güncelleme', columns: 'SKU, Fiyat (veya Price)' },
@@ -62,22 +63,19 @@ const BulkUploadModal = ({ onClose, onDone }) => {
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
       <div className="modal-backdrop" onClick={onClose} />
       <div className="modal-panel w-full max-w-lg">
-        <div className="modal-header items-center">
-          <h3 className="modal-title flex items-center"><FileUp className="h-5 w-5 mr-2 text-blue-600" /> Excel / CSV ile Toplu İşlem</h3>
-          <button onClick={onClose} className="modal-close" aria-label="Kapat"><X className="h-5 w-5" /></button>
-        </div>
+        <ModalHeader icon={FileUp} title="Excel / CSV ile Toplu İşlem" onClose={onClose} />
         <div className="p-6 space-y-5">
           <div className="space-y-2">
             {BULK_TYPES.map(t => (
               <button key={t.id} type="button" onClick={() => { setType(t.id); setResult(null); }}
-                className={`w-full text-left p-4 rounded-2xl border-2 transition-all ${type === t.id ? 'border-blue-600 bg-blue-50/50' : 'border-gray-100 hover:border-gray-200'}`}>
+                className={`w-full text-left p-4 rounded-2xl border-2 transition-all ${type === t.id ? 'border-indigo-600 bg-indigo-50/50' : 'border-gray-100 hover:border-gray-200'}`}>
                 <p className="text-sm font-black text-gray-900">{t.label}</p>
               </button>
             ))}
           </div>
           <p className="text-[11px] font-semibold text-gray-500 bg-gray-50 p-3 rounded-xl">İlk satır başlık olmalı. Sütunlar: <b>{active.columns}</b></p>
           <input type="file" accept=".xlsx,.xls,.csv" onChange={(e) => { setFile(e.target.files[0]); setResult(null); }}
-            className="block w-full text-sm text-gray-600 file:mr-4 file:py-2.5 file:px-4 file:rounded-xl file:border-0 file:text-xs file:font-black file:bg-blue-50 file:text-blue-700 hover:file:bg-blue-100" />
+            className="block w-full text-sm text-gray-600 file:mr-4 file:py-2.5 file:px-4 file:rounded-xl file:border-0 file:text-xs file:font-black file:bg-indigo-50 file:text-indigo-700 hover:file:bg-indigo-100" />
           {error && <p className="text-xs font-bold text-red-600 bg-red-50 p-3 rounded-xl">{error}</p>}
           {result && (
             <div className="text-xs font-bold bg-emerald-50 text-emerald-800 p-4 rounded-xl space-y-1">
@@ -88,7 +86,7 @@ const BulkUploadModal = ({ onClose, onDone }) => {
           )}
         </div>
         <div className="p-6 pt-0 flex gap-3">
-          <button onClick={onClose} className="flex-1 py-3 border border-gray-200 rounded-xl font-bold text-gray-600 hover:bg-gray-50">Kapat</button>
+          <button onClick={onClose} className="btn-secondary flex-1">Kapat</button>
           <button onClick={submit} disabled={!file || uploading} className="flex-1 btn-gradient disabled:opacity-50">{uploading ? 'İşleniyor...' : 'Yükle ve Uygula'}</button>
         </div>
       </div>
@@ -135,7 +133,7 @@ const SortableProductRow = ({ product, settings, onEdit, onView, onDelete }) => 
           </div>
           <div className="min-w-0">
             <div className="flex items-center gap-2 flex-wrap">
-              <span className="font-bold text-gray-900 text-[15px] leading-snug tracking-tight group-hover:text-blue-700 transition-colors">{product.name}</span>
+              <span className="font-bold text-gray-900 text-[15px] leading-snug tracking-tight group-hover:text-indigo-700 transition-colors">{product.name}</span>
               {product.isActive === false && <span className="px-2 py-0.5 rounded-md bg-gray-100 text-gray-500 text-[9px] font-black uppercase tracking-wider">Pasif</span>}
             </div>
             <div className="flex items-center gap-2 mt-1.5 flex-wrap">
@@ -152,7 +150,7 @@ const SortableProductRow = ({ product, settings, onEdit, onView, onDelete }) => 
       </td>
       <td className="px-10 py-6">
         {product.category?.name ? (
-          <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg bg-blue-50/70 text-blue-700 text-xs font-semibold">
+          <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg bg-indigo-50/70 text-indigo-700 text-xs font-semibold">
             <Tag className="h-3 w-3 opacity-60" /> {product.category.name}
           </span>
         ) : <span className="text-xs text-gray-300">—</span>}
@@ -178,7 +176,7 @@ const SortableProductRow = ({ product, settings, onEdit, onView, onDelete }) => 
           <button onClick={() => onView(product)} title="Görüntüle" className="p-2 rounded-lg text-gray-400 hover:text-emerald-600 hover:bg-emerald-50 transition-colors">
             <Eye className="h-4 w-4" />
           </button>
-          <button onClick={() => onEdit(product)} title="Düzenle" className="p-2 rounded-lg text-gray-400 hover:text-blue-600 hover:bg-blue-50 transition-colors">
+          <button onClick={() => onEdit(product)} title="Düzenle" className="p-2 rounded-lg text-gray-400 hover:text-indigo-600 hover:bg-indigo-50 transition-colors">
             <Edit3 className="h-4 w-4" />
           </button>
           <span className="w-px h-5 bg-gray-100" />
@@ -370,7 +368,7 @@ const ProductManagement = () => {
       {isBulkOpen && <BulkUploadModal onClose={() => setIsBulkOpen(false)} onDone={fetchInitialData} />}
       <div className="flex flex-col xl:flex-row justify-between items-start xl:items-center gap-6">
         <div className="flex items-center gap-4 shrink-0">
-          <div className="bg-gradient-to-br from-blue-600 to-blue-800 p-3.5 rounded-2xl shadow-lg shadow-blue-500/25">
+          <div className="page-icon">
             <Package className="h-6 w-6 text-white" />
           </div>
           <div>
@@ -399,11 +397,11 @@ const ProductManagement = () => {
           </div>
 
           <div className="relative flex-1 min-w-[12rem] xl:w-64 group">
-            <Search className="absolute left-4 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-400 group-focus-within:text-blue-600 transition-all" />
+            <Search className="absolute left-4 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-400 group-focus-within:text-indigo-600 transition-all" />
             <input 
               type="text" 
               placeholder="Ürün adı veya SKU ara..." 
-              className="w-full h-12 pl-11 pr-4 bg-white border border-gray-100 rounded-2xl text-sm font-semibold focus:ring-4 focus:ring-blue-100 focus:border-blue-200 shadow-sm outline-none transition-all placeholder:text-gray-400 placeholder:font-medium"
+              className="w-full h-12 pl-11 pr-4 bg-white border border-gray-100 rounded-2xl text-sm font-semibold focus:ring-4 focus:ring-indigo-100 focus:border-indigo-200 shadow-sm outline-none transition-all placeholder:text-gray-400 placeholder:font-medium"
               value={search}
               onChange={(e) => setSearch(e.target.value)}
             />
@@ -411,7 +409,7 @@ const ProductManagement = () => {
           <button
             onClick={() => setIsBulkOpen(true)}
             title="Excel / CSV ile toplu fiyat, stok veya ürün yükle"
-            className="flex items-center h-12 px-4 bg-white border border-gray-100 rounded-2xl text-xs font-bold text-gray-600 shadow-sm hover:border-blue-200 hover:text-blue-600 transition-all whitespace-nowrap shrink-0"
+            className="flex items-center h-12 px-4 bg-white border border-gray-100 rounded-2xl text-xs font-bold text-gray-600 shadow-sm hover:border-indigo-200 hover:text-indigo-600 transition-all whitespace-nowrap shrink-0"
           >
             <FileUp className="mr-2 h-4 w-4" /> Excel ile Toplu
           </button>
@@ -498,7 +496,7 @@ const ProductManagement = () => {
             <Package className="h-4 w-4" />
             <span className="text-[11px] font-black uppercase tracking-widest">Katalog Özeti</span>
           </div>
-          <div className="text-[11px] font-black text-blue-600 uppercase tracking-widest bg-blue-50 px-4 py-2 rounded-xl">
+          <div className="text-[11px] font-black text-indigo-600 uppercase tracking-widest bg-indigo-50 px-4 py-2 rounded-xl">
             Toplam Ürün: {products.length}
           </div>
         </div>
@@ -527,7 +525,7 @@ const ProductManagement = () => {
           <div className="modal-backdrop" onClick={() => setIsViewOpen(false)} />
           <div className="modal-panel w-full max-w-5xl max-h-[90vh] flex flex-col md:flex-row">
             {/* Galeri */}
-            <div className="md:w-[42%] shrink-0 bg-gradient-to-br from-slate-50 to-blue-50/60 p-6 flex flex-col gap-3">
+            <div className="md:w-[42%] shrink-0 bg-gradient-to-br from-slate-50 to-indigo-50/60 p-6 flex flex-col gap-3">
               <div className="relative aspect-square rounded-2xl bg-white ring-1 ring-gray-100 shadow-sm overflow-hidden flex items-center justify-center">
                 {mainImage ? <img src={mainImage} alt={p.name} className="w-full h-full object-contain" /> : <Package className="h-20 w-20 text-gray-200" />}
                 <div className="absolute top-3 left-3 flex gap-1.5">
@@ -539,7 +537,7 @@ const ProductManagement = () => {
                 <div className="flex gap-2 overflow-x-auto pb-1">
                   {images.map((img, i) => (
                     <button key={i} onClick={() => setViewImage(i)}
-                      className={`h-16 w-16 shrink-0 rounded-xl overflow-hidden bg-white transition-all ${i === viewImage ? 'ring-2 ring-blue-500' : 'ring-1 ring-gray-100 opacity-70 hover:opacity-100'}`}>
+                      className={`h-16 w-16 shrink-0 rounded-xl overflow-hidden bg-white transition-all ${i === viewImage ? 'ring-2 ring-indigo-500' : 'ring-1 ring-gray-100 opacity-70 hover:opacity-100'}`}>
                       <img src={img} alt="" className="w-full h-full object-cover" />
                     </button>
                   ))}
@@ -573,10 +571,10 @@ const ProductManagement = () => {
                   </div>
                 </div>
 
-                <div className="rounded-2xl bg-gradient-to-br from-blue-600 to-indigo-700 p-5 text-white shadow-lg shadow-blue-500/20">
-                  <p className="text-[11px] font-bold text-blue-100">Liste fiyatı (KDV hariç)</p>
-                  <p className="text-3xl font-black tracking-tight tabular-nums mt-0.5">{fmt(p.price)} <span className="text-lg text-blue-200">{symbol}</span></p>
-                  <div className="flex flex-wrap gap-x-5 gap-y-1 mt-2 text-xs text-blue-100">
+                <div className="rounded-2xl bg-gradient-to-br from-indigo-600 to-indigo-700 p-5 text-white shadow-lg shadow-indigo-500/20">
+                  <p className="text-[11px] font-bold text-indigo-100">Liste fiyatı (KDV hariç)</p>
+                  <p className="text-3xl font-black tracking-tight tabular-nums mt-0.5">{fmt(p.price)} <span className="text-lg text-indigo-200">{symbol}</span></p>
+                  <div className="flex flex-wrap gap-x-5 gap-y-1 mt-2 text-xs text-indigo-100">
                     <span>KDV dahil <b className="text-white tabular-nums">{fmt(p.price * (1 + p.vatRate / 100))} {symbol}</b></span>
                     {margin !== null && <span>Kâr marjı <b className={margin >= 0 ? 'text-emerald-200' : 'text-red-200'}>%{margin.toFixed(1)}</b></span>}
                     <span className="flex items-center gap-1">{hidden ? <><EyeOff className="h-3.5 w-3.5" /> Bayiye gizli</> : <><Eye className="h-3.5 w-3.5" /> Bayiye açık</>}</span>
@@ -663,12 +661,12 @@ const ProductManagement = () => {
           <div className="modal-backdrop" onClick={() => setIsDrawerOpen(false)} />
           <div className="modal-panel w-full max-w-5xl h-[min(90vh,46rem)] flex flex-col">
             <div className="modal-header items-center">
-              <div className="flex items-center gap-3.5 min-w-0">
-                <div className="h-11 w-11 rounded-xl overflow-hidden shrink-0 bg-gradient-to-br from-blue-500 to-blue-700 shadow-lg shadow-blue-500/25 flex items-center justify-center">
-                  {cover ? <img src={cover} alt="" className="h-full w-full object-cover" /> : <Package className="h-5 w-5 text-white" />}
+              <div className="flex items-center gap-3 min-w-0">
+                <div className="modal-icon">
+                  {cover ? <img src={cover} alt="" className="h-full w-full object-cover" /> : <Package className="h-5 w-5" />}
                 </div>
                 <div className="min-w-0">
-                  <h3 className="modal-title text-xl truncate">{selectedProduct ? 'Ürünü Düzenle' : 'Yeni Ürün'}</h3>
+                  <h3 className="modal-title truncate">{selectedProduct ? 'Ürünü Düzenle' : 'Yeni Ürün'}</h3>
                   <p className="modal-subtitle truncate">{formData.name || 'Ürün adı girilmedi'}{formData.sku ? ` · ${formData.sku}` : ''}</p>
                 </div>
               </div>
@@ -781,7 +779,7 @@ const ProductManagement = () => {
                         {warehouses.map((w) => (
                           <div key={w.id} className="flex items-center gap-3">
                             <span className="w-40 text-sm font-semibold text-gray-700 flex items-center gap-2 truncate">
-                              <span className="font-mono text-[10px] font-black text-blue-700 bg-blue-50 px-1.5 py-0.5 rounded">{w.code}</span> {w.name}
+                              <span className="font-mono text-[10px] font-black text-indigo-700 bg-indigo-50 px-1.5 py-0.5 rounded">{w.code}</span> {w.name}
                             </span>
                             <div className="w-40"><IconInput type="number" icon={Boxes} suffix={formData.unit} value={formData.warehouseStocks?.[w.id] ?? 0}
                               onChange={(e) => setFormData({ ...formData, warehouseStocks: { ...(formData.warehouseStocks || {}), [w.id]: e.target.value } })} /></div>
@@ -829,7 +827,7 @@ const ProductManagement = () => {
                       {formData.images.map((img, i) => (
                         <div key={i} className="relative group aspect-square rounded-xl overflow-hidden ring-1 ring-gray-100 bg-gray-50">
                           <img src={img} alt="" className="w-full h-full object-cover" />
-                          {i === 0 && <span className="absolute top-2 left-2 px-2 py-0.5 rounded-md bg-blue-600 text-white text-[10px] font-bold shadow">Kapak</span>}
+                          {i === 0 && <span className="absolute top-2 left-2 px-2 py-0.5 rounded-md bg-indigo-600 text-white text-[10px] font-bold shadow">Kapak</span>}
                           <div className="absolute inset-x-0 bottom-0 p-2 flex justify-end gap-1 bg-gradient-to-t from-black/50 to-transparent opacity-0 group-hover:opacity-100 transition-opacity">
                             {i > 0 && (
                               <button type="button" title="Kapak yap" onClick={() => setFormData({ ...formData, images: [img, ...formData.images.filter((_, idx) => idx !== i)] })}
@@ -840,7 +838,7 @@ const ProductManagement = () => {
                           </div>
                         </div>
                       ))}
-                      <label className="aspect-square rounded-xl border-2 border-dashed border-gray-200 flex flex-col items-center justify-center gap-1.5 cursor-pointer text-gray-400 hover:border-blue-400 hover:bg-blue-50/50 hover:text-blue-600 transition-all">
+                      <label className="aspect-square rounded-xl border-2 border-dashed border-gray-200 flex flex-col items-center justify-center gap-1.5 cursor-pointer text-gray-400 hover:border-indigo-400 hover:bg-indigo-50/50 hover:text-indigo-600 transition-all">
                         <UploadCloud className="h-7 w-7" />
                         <span className="text-xs font-bold">Görsel yükle</span>
                         <span className="text-[10px]">PNG, JPG, WEBP</span>

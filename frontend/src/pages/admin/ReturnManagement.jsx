@@ -60,9 +60,10 @@ const ReturnManagement = () => {
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
           <div className="modal-backdrop" onClick={() => setDecision(null)} />
           <div className="modal-panel w-full max-w-md p-6 space-y-5">
-            <h3 className="modal-title">
-              #RMA-{decision.request.id} · {{ APPROVED: 'Onayla', REJECTED: 'Reddet', COMPLETED: 'Tamamlandı İşaretle' }[decision.status]}
-            </h3>
+            <div className="flex items-center gap-3">
+              <span className="modal-icon"><RotateCcw className="h-5 w-5" /></span>
+              <h3 className="modal-title">#RMA-{decision.request.id} · {{ APPROVED: 'Onayla', REJECTED: 'Reddet', COMPLETED: 'Tamamlandı İşaretle' }[decision.status]}</h3>
+            </div>
             {decision.status === 'APPROVED' && decision.request.type === 'RETURN' && (
               <p className="text-xs font-bold text-emerald-800 bg-emerald-50 p-3 rounded-xl">
                 Bayinin carisine {formatTRY(decision.request.orderItem.price * decision.request.quantity * (1 + decision.request.orderItem.vatRate / 100))} (KDV dahil) alacak yazılacak.
@@ -79,7 +80,7 @@ const ReturnManagement = () => {
               <textarea className="premium-input h-24 resize-none" placeholder="Örn: Ürünü kargo ile merkeze gönderin." value={decision.adminNote} onChange={(e) => setDecision({ ...decision, adminNote: e.target.value })} />
             </div>
             <div className="flex gap-3">
-              <button onClick={() => setDecision(null)} className="flex-1 py-3 border border-gray-200 rounded-xl font-bold text-gray-600 hover:bg-gray-50">Vazgeç</button>
+              <button onClick={() => setDecision(null)} className="btn-secondary flex-1">Vazgeç</button>
               <button onClick={submitDecision} className={`flex-1 py-3 rounded-xl font-bold text-white ${decision.status === 'REJECTED' ? 'bg-red-500 hover:bg-red-600' : 'bg-emerald-500 hover:bg-emerald-600'}`}>Kaydet</button>
             </div>
           </div>
@@ -89,7 +90,7 @@ const ReturnManagement = () => {
       <div className="flex flex-col md:flex-row justify-between md:items-end gap-4">
         <div>
           <div className="flex items-center gap-4">
-          <div className="bg-gradient-to-br from-orange-500 to-orange-700 p-3.5 rounded-2xl shadow-lg shadow-orange-500/25 shrink-0"><RotateCcw className="h-6 w-6 text-white" /></div>
+          <div className="page-icon"><RotateCcw className="h-6 w-6 text-white" /></div>
           <div>
             <h1 className="text-3xl font-black text-gray-900 tracking-tight">İade / Değişim (RMA) Talepleri</h1>
             <p className="text-gray-500 text-sm mt-1">Bayilerin fotoğraflı iade ve değişim taleplerini inceleyin.</p>

@@ -6,7 +6,7 @@ import { downloadFile } from '../../utils/download';
 
 const ACTION = {
   create: { label: 'Yeni', className: 'bg-emerald-50 text-emerald-700' },
-  update: { label: 'Güncelle', className: 'bg-blue-50 text-blue-700' },
+  update: { label: 'Güncelle', className: 'bg-indigo-50 text-indigo-700' },
   skip: { label: 'Atla', className: 'bg-gray-100 text-gray-500' },
   error: { label: 'Hata', className: 'bg-red-50 text-red-600' },
 };
@@ -42,7 +42,7 @@ const ImportModal = ({ onClose, onDone }) => {
   const actionable = s && s.create + s.update > 0;
 
   return (
-    <Modal title="Excel'den cari aktar" onClose={onClose} size="max-w-3xl"
+    <Modal icon={FileSpreadsheet} title="Excel'den cari aktar" onClose={onClose} size="max-w-3xl"
       footer={<>
         <button type="button" onClick={onClose} className="px-4 h-11 rounded-xl text-sm font-black text-gray-600 bg-gray-100">{result ? 'Kapat' : 'Vazgeç'}</button>
         {!result && (preview
@@ -66,7 +66,7 @@ const ImportModal = ({ onClose, onDone }) => {
       )}
       {shown && (
         <>
-          <div className={`flex items-center gap-2 rounded-xl p-3 text-sm font-bold ${result ? 'bg-emerald-50 text-emerald-700' : 'bg-blue-50 text-blue-700'}`}>
+          <div className={`flex items-center gap-2 rounded-xl p-3 text-sm font-bold ${result ? 'bg-emerald-50 text-emerald-700' : 'bg-indigo-50 text-indigo-700'}`}>
             {result ? <CheckCircle2 className="h-5 w-5" /> : <AlertTriangle className="h-5 w-5" />}
             {result ? 'Aktarım tamamlandı' : 'Önizleme — henüz hiçbir şey kaydedilmedi'}: {s.create} yeni, {s.update} güncelleme, {s.skip} atlandı, {s.error} hatalı satır.
           </div>

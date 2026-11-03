@@ -311,7 +311,7 @@ const PlatformMonitoring = () => {
     <div className="space-y-6">
       <div className="flex flex-wrap items-center justify-between gap-4 lg:pr-14">
         <div className="flex items-center gap-4">
-          <div className="bg-gradient-to-br from-indigo-500 to-indigo-700 p-3.5 rounded-2xl shadow-lg shadow-indigo-500/25 shrink-0"><Gauge className="h-6 w-6 text-white" /></div>
+          <div className="page-icon"><Gauge className="h-6 w-6 text-white" /></div>
           <div>
             <h1 className="text-3xl font-black text-gray-900 tracking-tight">İzleme</h1>
             <p className="text-gray-500 text-sm mt-1">İstekler, arka plan işleri, dış servisler ve ERP API'si. Sorunlarda <code className="text-xs bg-gray-100 px-1.5 py-0.5 rounded">PLATFORM_ALERT_EMAIL</code> adresine uyarı ve her sabah özet gider.</p>

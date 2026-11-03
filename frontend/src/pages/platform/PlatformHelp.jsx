@@ -1,11 +1,12 @@
 import { useEffect, useState } from 'react';
-import { BookOpen, Plus, Pencil, Trash2, X, Search, Eye, ThumbsUp, Type, Tags, Save } from 'lucide-react';
+import { BookOpen, Plus, Pencil, Trash2, Search, Eye, ThumbsUp, Type, Tags, Save } from 'lucide-react';
 import { platformApi, errorMessage } from '../../services/api';
 import useAlert from '../../hooks/useAlert';
 import { formatDate } from '../../utils/format';
 import { TICKET_CATEGORIES } from '../../components/shared/supportMeta';
 import { Field, IconInput, TextArea, Toggle } from '../../components/form/FormKit';
 import ArticleBody from '../../components/support/ArticleBody';
+import ModalHeader from '../../components/shared/ModalHeader';
 
 const EMPTY = { title: '', summary: '', category: 'USAGE', keywords: '', body: '', isPublished: true, sortOrder: 0 };
 
@@ -59,7 +60,7 @@ const PlatformHelp = () => {
       {alertElement}
       <div className="flex justify-between items-center flex-wrap gap-4">
         <div className="flex items-center gap-4">
-          <div className="bg-gradient-to-br from-indigo-500 to-indigo-700 p-3.5 rounded-2xl shadow-lg shadow-indigo-500/25 shrink-0"><BookOpen className="h-6 w-6 text-white" /></div>
+          <div className="page-icon"><BookOpen className="h-6 w-6 text-white" /></div>
           <div>
             <h1 className="text-3xl font-black text-gray-900 tracking-tight">Yardım Merkezi</h1>
             <p className="text-gray-500 text-sm mt-1">Firmalar destek sayfasında bu yazıları arar; talep yazarken uygun yazılar önerilir.</p>
@@ -86,7 +87,7 @@ const PlatformHelp = () => {
           <div className="relative max-w-sm">
             <Search className="absolute left-3.5 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-400" />
             <input value={query} onChange={(e) => setQuery(e.target.value)} placeholder="Başlık veya anahtar kelime ara"
-              className="w-full h-10 pl-10 pr-3 rounded-xl bg-gray-50 border border-transparent text-sm font-semibold outline-none focus:bg-white focus:border-blue-300 focus:ring-4 focus:ring-blue-100" />
+              className="w-full h-10 pl-10 pr-3 rounded-xl bg-gray-50 border border-transparent text-sm font-semibold outline-none focus:bg-white focus:border-indigo-300 focus:ring-4 focus:ring-indigo-100" />
           </div>
         </div>
         <div className="overflow-x-auto">
@@ -101,10 +102,10 @@ const PlatformHelp = () => {
                     const c = TICKET_CATEGORIES[a.category] || TICKET_CATEGORIES.USAGE;
                     const rate = helpfulRate(a);
                     return (
-                      <tr key={a.id} className={`${i % 2 ? 'bg-slate-50/60' : 'bg-white'} hover:bg-blue-50/40`}>
+                      <tr key={a.id} className={`${i % 2 ? 'bg-slate-50/60' : 'bg-white'} hover:bg-indigo-50/40`}>
                         <td className="px-4 py-3 max-w-[28rem]">
                           <button onClick={() => edit(a)} className="text-left block w-full min-w-0">
-                            <span className="font-bold text-gray-900 hover:text-blue-700">{a.title}</span>
+                            <span className="font-bold text-gray-900 hover:text-indigo-700">{a.title}</span>
                             {!a.isPublished && <span className="ml-2 px-1.5 py-0.5 rounded-md bg-gray-200 text-gray-600 text-[10px] font-bold">Taslak</span>}
                             {a.summary && <span className="block text-xs text-gray-500 truncate pr-4">{a.summary}</span>}
                           </button>
@@ -117,7 +118,7 @@ const PlatformHelp = () => {
                         </td>
                         <td className="px-4 py-3 text-xs text-gray-500 whitespace-nowrap">{formatDate(a.updatedAt)}</td>
                         <td className="px-4 py-3 text-right whitespace-nowrap">
-                          <button onClick={() => edit(a)} className="p-2 rounded-lg text-gray-400 hover:text-blue-600 hover:bg-blue-50" title="Düzenle"><Pencil className="h-4 w-4" /></button>
+                          <button onClick={() => edit(a)} className="p-2 rounded-lg text-gray-400 hover:text-indigo-600 hover:bg-indigo-50" title="Düzenle"><Pencil className="h-4 w-4" /></button>
                           <button onClick={() => remove(a)} className="p-2 rounded-lg text-gray-400 hover:text-red-600 hover:bg-red-50" title="Sil"><Trash2 className="h-4 w-4" /></button>
                         </td>
                       </tr>
@@ -132,13 +133,7 @@ const PlatformHelp = () => {
         <div className="fixed inset-0 z-[60] flex items-center justify-center p-4">
           <div className="modal-backdrop" onClick={() => setForm(null)} />
           <form onSubmit={save} className="modal-panel w-full max-w-3xl max-h-[92vh] flex flex-col">
-            <div className="modal-header">
-              <div>
-                <h3 className="modal-title">{form.id ? 'Yazıyı Düzenle' : 'Yeni Yardım Yazısı'}</h3>
-                <p className="modal-subtitle">Adımları "1." ile, maddeleri "-" ile yazın; paragrafları boş satırla ayırın.</p>
-              </div>
-              <button type="button" onClick={() => setForm(null)} className="modal-close" aria-label="Kapat"><X className="h-5 w-5" /></button>
-            </div>
+            <ModalHeader icon={BookOpen} title={form.id ? 'Yazıyı Düzenle' : 'Yeni Yardım Yazısı'} subtitle='Adımları "1." ile, maddeleri "-" ile yazın; paragrafları boş satırla ayırın.' onClose={() => setForm(null)} />
             <div className="p-6 space-y-4 flex-1 min-h-0 overflow-y-auto custom-scrollbar">
               <Field label="Başlık" required error={err(form.title.trim().length < 3) && 'Başlık girin.'}>
                 <IconInput icon={Type} invalid={err(form.title.trim().length < 3)} value={form.title} onChange={set('title')} maxLength={200} placeholder="Örn: Excel ile toplu ürün yükleme" />

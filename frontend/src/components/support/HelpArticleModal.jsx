@@ -33,9 +33,9 @@ const HelpArticleModal = ({ id, client, onClose, onNeedHelp }) => {
       <div className="modal-panel w-full max-w-2xl max-h-[90vh] flex flex-col">
         <div className="modal-header">
           <div className="flex items-start gap-3 min-w-0">
-            <span className={`h-10 w-10 shrink-0 rounded-xl flex items-center justify-center ${cat.tile}`}><cat.icon className="h-5 w-5" /></span>
+            <span className="modal-icon"><cat.icon className="h-5 w-5" /></span>
             <div className="min-w-0">
-              <h3 className="modal-title leading-snug">{article?.title || 'Yükleniyor…'}</h3>
+              <h3 className="modal-title">{article?.title || 'Yükleniyor…'}</h3>
               {article?.summary && <p className="modal-subtitle">{article.summary}</p>}
             </div>
           </div>

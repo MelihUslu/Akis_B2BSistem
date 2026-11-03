@@ -39,7 +39,7 @@ const QuoteManagement = () => {
     <div className="space-y-6">
       <div className="flex flex-col md:flex-row justify-between md:items-end gap-4">
         <div className="flex items-center gap-4">
-          <div className="bg-gradient-to-br from-indigo-500 to-indigo-700 p-3.5 rounded-2xl shadow-lg shadow-indigo-500/25 shrink-0"><FileSignature className="h-6 w-6 text-white" /></div>
+          <div className="page-icon"><FileSignature className="h-6 w-6 text-white" /></div>
           <div>
             <h1 className="text-3xl font-black text-gray-900 tracking-tight">Teklifler</h1>
             <p className="text-gray-500 text-sm mt-1">Müşteriye teklif hazırlayın (isteğe bağlı yapay zekâ ile), onaylatın, gönderin ve kabul edilenleri siparişe dönüştürün.</p>

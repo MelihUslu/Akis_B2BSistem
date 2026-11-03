@@ -1,8 +1,9 @@
 import { useState } from 'react';
-import { X, Plus, Trash2, Star } from 'lucide-react';
+import { Plus, Trash2, Star, BookUser } from 'lucide-react';
 import api, { errorMessage } from '../../services/api';
 import { Field, Segmented } from '../form/FormKit';
 import { PARTNER_KINDS } from '../../utils/partner';
+import ModalHeader from '../shared/ModalHeader';
 
 const emptyContact = () => ({ name: '', title: '', phone: '', email: '', isPrimary: false });
 
@@ -57,10 +58,7 @@ const PartnerForm = ({ partner, initialKind = 'CUSTOMER', quick = false, meta, o
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
       <div className="modal-backdrop" onClick={onClose} />
       <form onSubmit={submit} className="modal-panel w-full max-w-2xl max-h-[90vh] flex flex-col">
-        <div className="flex items-center justify-between p-5 border-b border-gray-100">
-          <h3 className="modal-title">{title}</h3>
-          <button type="button" onClick={onClose} className="p-1.5 rounded-lg text-gray-400 hover:bg-gray-100"><X className="h-4 w-4" /></button>
-        </div>
+        <ModalHeader icon={BookUser} title={title} onClose={onClose} />
         <div className="p-5 space-y-5 overflow-y-auto">
           {dealer && <p className="text-xs font-semibold text-indigo-700 bg-indigo-50 rounded-xl p-3">Bayinin unvan, vergi, risk limiti ve iskonto bilgileri Bayi Yönetimi ekranında düzenlenir. Burada yetkili kişileri, iletişim e-postasını ve iç notu değiştirebilirsiniz.</p>}
           {quick && <p className="text-xs text-gray-500">Portala giriş yapmayan, ara sıra alışveriş yapan müşteriler için. Yalnızca ad / unvan zorunlu; diğer bilgileri sonra Cari Hesaplar'dan tamamlayabilirsiniz.</p>}

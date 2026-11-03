@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { Plus, Minus, Paperclip, X, Repeat, Pencil, Trash2, Pause, Play, ArrowDownLeft, ArrowUpRight, Camera } from 'lucide-react';
+import { Plus, Minus, Paperclip, X, Repeat, Pencil, Trash2, Pause, Play, ArrowDownLeft, ArrowUpRight, Camera, Target } from 'lucide-react';
 import api, { errorMessage } from '../../services/api';
 import Modal from '../shared/Modal';
 import { downloadFile } from '../../utils/download';
@@ -89,7 +89,7 @@ export const EntryModal = ({ initial, suggestions, onClose, onSaved, showAlert }
   };
 
   return (
-    <Modal as="form" onSubmit={submit} onClose={onClose} title={form.id ? 'Kaydı düzenle' : isIn ? 'Gelir ekle' : 'Gider ekle'}
+    <Modal as="form" onSubmit={submit} onClose={onClose} icon={isIn ? ArrowDownLeft : ArrowUpRight} title={form.id ? 'Kaydı düzenle' : isIn ? 'Gelir ekle' : 'Gider ekle'}
       footer={<>
         <button type="button" onClick={onClose} className="btn-secondary">Vazgeç</button>
         <button disabled={saving} className="btn-gradient disabled:opacity-60">{saving ? 'Kaydediliyor...' : 'Kaydet'}</button>
@@ -189,7 +189,7 @@ export const RecurringModal = ({ rules, suggestions, onClose, onChanged, showAle
 
   if (form) {
     return (
-      <Modal as="form" onSubmit={submit} onClose={() => setForm(null)} title={form.id ? 'Düzenli kaydı düzenle' : 'Düzenli kayıt ekle'}
+      <Modal as="form" onSubmit={submit} onClose={() => setForm(null)} icon={Repeat} title={form.id ? 'Düzenli kaydı düzenle' : 'Düzenli kayıt ekle'}
         footer={<>
           <button type="button" onClick={() => setForm(null)} className="btn-secondary">Geri</button>
           <button disabled={saving} className="btn-gradient disabled:opacity-60">{saving ? 'Kaydediliyor...' : 'Kaydet'}</button>
@@ -222,7 +222,7 @@ export const RecurringModal = ({ rules, suggestions, onClose, onChanged, showAle
   }
 
   return (
-    <Modal onClose={onClose} title="Düzenli gelir ve giderler" size="max-w-2xl"
+    <Modal onClose={onClose} icon={Repeat} title="Düzenli gelir ve giderler" size="max-w-2xl"
       footer={<button type="button" onClick={() => setForm({ ...EMPTY_RULE })} className="btn-gradient"><Plus className="h-4 w-4 mr-1.5" /> Düzenli kayıt ekle</button>}>
       <p className="text-sm text-gray-500">Kira, maaş, abonelik gibi her ay tekrar eden kalemler seçtiğiniz gün otomatik kaydedilir.</p>
       {rules.length === 0 ? (
@@ -279,7 +279,7 @@ export const BudgetModal = ({ budgets, categories, spent, onClose, onSaved, show
   };
 
   return (
-    <Modal as="form" onSubmit={submit} onClose={onClose} title="Aylık gider bütçeleri" size="max-w-xl"
+    <Modal as="form" onSubmit={submit} onClose={onClose} icon={Target} title="Aylık gider bütçeleri" size="max-w-xl"
       footer={<>
         <button type="button" onClick={onClose} className="btn-secondary">Vazgeç</button>
         <button disabled={saving} className="btn-gradient disabled:opacity-60">{saving ? 'Kaydediliyor...' : 'Kaydet'}</button>

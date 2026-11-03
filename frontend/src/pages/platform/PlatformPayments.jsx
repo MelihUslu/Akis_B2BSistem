@@ -57,7 +57,7 @@ const PlatformPayments = () => {
     <div className="space-y-8">
       {alertElement}
       <div className="flex items-center gap-4">
-        <div className="bg-gradient-to-br from-emerald-500 to-emerald-700 p-3.5 rounded-2xl shadow-lg shadow-emerald-500/25 shrink-0"><Receipt className="h-6 w-6 text-white" /></div>
+        <div className="page-icon"><Receipt className="h-6 w-6 text-white" /></div>
         <div>
           <h1 className="text-3xl font-black text-gray-900 tracking-tight">Ödemeler</h1>
           <p className="text-gray-500 text-sm mt-1">Son {payments.length} kayıt · Başarılı toplam {formatTRY(total)}</p>
@@ -103,7 +103,7 @@ const PlatformPayments = () => {
                 <td className={`px-6 py-4 text-right font-black ${p.status === 'SUCCESS' ? 'text-emerald-600' : 'text-red-500'}`}>{p.status === 'SUCCESS' ? formatTRY(p.amount) : 'Başarısız'}</td>
                 <td className="px-6 py-4 whitespace-nowrap">
                   {p.invoiceStatus === 'ISSUED' && <button onClick={() => pdf(p)} className="inline-flex items-center gap-1 text-xs font-bold text-indigo-600 hover:underline"><FileText className="h-3.5 w-3.5" /> {p.invoiceNumber || 'PDF'}</button>}
-                  {p.invoiceStatus === 'PENDING' && <span className="text-xs font-bold text-blue-600">Kesiliyor…</span>}
+                  {p.invoiceStatus === 'PENDING' && <span className="text-xs font-bold text-indigo-600">Kesiliyor…</span>}
                   {p.invoiceStatus === 'FAILED' && <button onClick={() => retry(p)} title={p.invoiceError || ''} className="inline-flex items-center gap-1 text-xs font-bold text-red-600 hover:underline"><RefreshCw className="h-3.5 w-3.5" /> Hata · tekrar dene</button>}
                   {!p.invoiceStatus && p.status === 'SUCCESS' && <button onClick={() => retry(p)} className="text-xs font-bold text-gray-400 hover:text-indigo-600">Fatura kes</button>}
                 </td>

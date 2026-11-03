@@ -1,7 +1,8 @@
 import { useEffect, useState } from 'react';
-import { X, Save, Plus, Trash2, ArrowUp, ArrowDown, RotateCcw, Lock } from 'lucide-react';
+import { Save, Plus, Trash2, ArrowUp, ArrowDown, RotateCcw, Lock, ListChecks } from 'lucide-react';
 import api, { errorMessage } from '../../services/api';
 import LeadFormBody from './LeadFormBody';
+import ModalHeader from '../shared/ModalHeader';
 
 const TYPES = { text: 'Kısa metin', textarea: 'Uzun metin', number: 'Sayı', select: 'Seçenek listesi' };
 const BUILTIN_TYPE = { name: 'text', phone: 'tel', email: 'email', city: 'text', request: 'textarea' };
@@ -85,13 +86,7 @@ const LeadFormEditor = ({ onClose, onSaved, companyName }) => {
     <div className="fixed inset-0 z-50 flex items-center justify-center p-2 md:p-4">
       <div className="modal-backdrop" onClick={onClose} />
       <div className="modal-panel w-full max-w-6xl h-[94vh] flex flex-col">
-        <div className="modal-header items-center">
-          <div>
-            <h3 className="modal-title">Talep formunu düzenle</h3>
-            <p className="text-xs text-gray-500 mt-0.5">Reklamdan gelen kişinin dolduracağı formdaki yazıları ve soruları belirleyin.</p>
-          </div>
-          <button type="button" onClick={onClose} className="modal-close" aria-label="Kapat"><X className="h-5 w-5" /></button>
-        </div>
+        <ModalHeader icon={ListChecks} title="Talep formunu düzenle" subtitle="Reklamdan gelen kişinin dolduracağı formdaki yazıları ve soruları belirleyin." onClose={onClose} />
 
         <div className="lg:hidden px-4 pt-3 grid grid-cols-2 gap-1">
           {[['edit', 'Düzenle'], ['preview', 'Önizleme']].map(([k, l]) => (
@@ -173,7 +168,7 @@ const LeadFormEditor = ({ onClose, onSaved, companyName }) => {
           {error && form && <p className="w-full text-xs font-bold text-red-600 bg-red-50 p-3 rounded-xl">{error}</p>}
           <button type="button" onClick={reset} disabled={!defaults} className="flex items-center gap-1.5 px-3 h-11 rounded-xl text-sm font-bold text-gray-500 hover:text-gray-900"><RotateCcw className="h-4 w-4" /> Varsayılana dön</button>
           <div className="flex-1" />
-          <button type="button" onClick={onClose} className="px-5 h-11 border border-gray-200 rounded-xl font-bold text-gray-600 hover:bg-gray-50">Vazgeç</button>
+          <button type="button" onClick={onClose} className="btn-secondary">Vazgeç</button>
           <button type="button" onClick={save} disabled={!form || saving} className="btn-gradient disabled:opacity-60"><Save className="h-4 w-4 mr-2" /> Kaydet</button>
         </div>
       </div>

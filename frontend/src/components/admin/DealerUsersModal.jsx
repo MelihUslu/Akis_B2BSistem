@@ -1,8 +1,9 @@
 import { useEffect, useState } from 'react';
-import { X, UserPlus, KeyRound, Crown } from 'lucide-react';
+import { UserPlus, KeyRound, Crown, Users } from 'lucide-react';
 import api, { errorMessage } from '../../services/api';
 import { formatDate } from '../../utils/format';
 import { t } from '../../i18n';
+import ModalHeader from '../shared/ModalHeader';
 
 /**
  * Bir bayinin kullanıcıları (şube / çalışan hesapları).
@@ -72,7 +73,7 @@ const DealerUsersModal = ({ title, base, isAdmin, onClose, showAlert, confirm, i
           <button type="submit" className="btn-gradient">{t('Ekle')}</button>
         </form>
       ) : (
-        <button onClick={() => setForm({ name: '', email: '' })} className="flex items-center px-4 py-2.5 rounded-xl bg-blue-50 text-blue-700 text-xs font-black hover:bg-blue-100">
+        <button onClick={() => setForm({ name: '', email: '' })} className="flex items-center px-4 py-2.5 rounded-xl bg-indigo-50 text-indigo-700 text-xs font-black hover:bg-indigo-100">
           <UserPlus className="h-4 w-4 mr-1.5" /> {t('Kullanıcı Ekle')}
         </button>
       )}
@@ -86,10 +87,7 @@ const DealerUsersModal = ({ title, base, isAdmin, onClose, showAlert, confirm, i
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
       <div className="modal-backdrop" onClick={onClose} />
       <div className="modal-panel w-full max-w-2xl max-h-[90vh] flex flex-col">
-        <div className="modal-header items-center">
-          <h3 className="modal-title">{title}</h3>
-          <button onClick={onClose} className="modal-close" aria-label={t('Kapat')}><X className="h-5 w-5" /></button>
-        </div>
+        <ModalHeader icon={Users} title={title} onClose={onClose} closeLabel={t('Kapat')} />
         <div className="p-6 overflow-y-auto">{body}</div>
       </div>
     </div>

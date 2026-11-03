@@ -1,7 +1,8 @@
 import { useState } from 'react';
-import { X, FileSignature, Trash2 } from 'lucide-react';
+import { FileSignature, Trash2 } from 'lucide-react';
 import api, { errorMessage } from '../../services/api';
 import { t } from '../../i18n';
+import ModalHeader from '../shared/ModalHeader';
 
 /**
  * Teklif talebi. items: [{ productId, name, variantLabel, sku, quantity, unit }]
@@ -30,13 +31,7 @@ const QuoteRequestModal = ({ items: initialItems, onClose, onDone }) => {
     <div className="fixed inset-0 z-[60] flex items-center justify-center p-4">
       <div className="modal-backdrop" onClick={onClose} />
       <form onSubmit={submit} className="modal-panel w-full max-w-lg max-h-[90vh] flex flex-col">
-        <div className="modal-header items-center">
-          <div>
-            <h3 className="modal-title flex items-center"><FileSignature className="h-5 w-5 mr-2 text-indigo-600" /> {t('Teklif İste')}</h3>
-            <p className="text-xs text-gray-400 font-semibold mt-1">{t('Firma yetkilisi fiyatlandırınca bildirim alırsınız; onaylarsanız sipariş oluşur.')}</p>
-          </div>
-          <button type="button" onClick={onClose} className="modal-close" aria-label={t('Kapat')}><X className="h-5 w-5" /></button>
-        </div>
+        <ModalHeader icon={FileSignature} title={t('Teklif İste')} subtitle={t('Firma yetkilisi fiyatlandırınca bildirim alırsınız; onaylarsanız sipariş oluşur.')} onClose={onClose} closeLabel={t('Kapat')} />
         <div className="p-6 space-y-3 overflow-y-auto">
           {items.map((item, i) => (
             <div key={`${item.productId}-${i}`} className="flex items-center gap-3 bg-gray-50 rounded-2xl p-3">
@@ -60,7 +55,7 @@ const QuoteRequestModal = ({ items: initialItems, onClose, onDone }) => {
           {error && <p className="text-xs font-bold text-red-600 bg-red-50 p-3 rounded-xl">{error}</p>}
         </div>
         <div className="p-6 border-t border-gray-100 flex gap-3">
-          <button type="button" onClick={onClose} className="flex-1 py-3 border border-gray-200 rounded-xl font-bold text-gray-600 hover:bg-gray-50">{t('Vazgeç')}</button>
+          <button type="button" onClick={onClose} className="btn-secondary flex-1">{t('Vazgeç')}</button>
           <button type="submit" disabled={sending} className="flex-1 btn-gradient disabled:opacity-60">{sending ? t('Gönderiliyor...') : t('Talebi Gönder')}</button>
         </div>
       </form>

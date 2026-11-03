@@ -243,7 +243,7 @@ const CashPage = () => {
       {/* Başlık + hızlı ekleme */}
       <div className="flex flex-col sm:flex-row justify-between sm:items-center gap-4">
         <div className="flex items-center gap-4">
-          <div className="bg-gradient-to-br from-emerald-500 to-teal-600 p-3.5 rounded-2xl shadow-lg shadow-emerald-500/25 shrink-0"><Wallet className="h-6 w-6 text-white" /></div>
+          <div className="page-icon"><Wallet className="h-6 w-6 text-white" /></div>
           <div>
             <h1 className="text-3xl font-black text-gray-900 tracking-tight">Gelir-Gider</h1>
             <p className="text-gray-500 text-sm mt-1">Kasaya giren ve çıkan para.</p>

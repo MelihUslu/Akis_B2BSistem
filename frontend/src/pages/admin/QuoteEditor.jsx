@@ -207,7 +207,7 @@ const QuoteForm = ({ meta, companies, quote, onReload, onCompanyAdded, showAlert
       <div className="flex flex-col md:flex-row justify-between md:items-end gap-4">
         <div className="flex items-center gap-4">
           <Link to="/admin/quotes" className="p-2 rounded-xl text-gray-400 hover:text-indigo-600 hover:bg-indigo-50"><ArrowLeft className="h-5 w-5" /></Link>
-          <div className="bg-gradient-to-br from-indigo-500 to-indigo-700 p-3.5 rounded-2xl shadow-lg shadow-indigo-500/25 shrink-0"><FileSignature className="h-6 w-6 text-white" /></div>
+          <div className="page-icon"><FileSignature className="h-6 w-6 text-white" /></div>
           <div>
             <h1 className="text-2xl md:text-3xl font-black text-gray-900 tracking-tight">{quote ? `${quote.code}${quote.revision > 1 ? ` · Revizyon ${quote.revision}` : ''}` : 'Yeni Teklif'}</h1>
             <div className="flex flex-wrap items-center gap-2 mt-1">

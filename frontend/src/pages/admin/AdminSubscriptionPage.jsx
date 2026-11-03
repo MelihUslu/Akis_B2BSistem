@@ -1,12 +1,13 @@
 import { useEffect, useRef, useState } from 'react';
 import { useSearchParams } from 'react-router-dom';
 import {
-  Crown, Check, CreditCard, AlertTriangle, X, Loader2, Landmark, Copy, ShieldCheck, Receipt, RefreshCcw, Clock, Phone, Mail, MessageCircle, Sparkles, Pencil, Users, Package, UserCog, FileText
+  Crown, Check, CreditCard, AlertTriangle, X, Loader2, Landmark, Copy, ShieldCheck, Receipt, RefreshCcw, Clock, Phone, Mail, MessageCircle, Sparkles, Pencil, Users, Package, UserCog, FileText, ShoppingBag
 } from 'lucide-react';
 import api, { errorMessage } from '../../services/api';
 import useAlert from '../../hooks/useAlert';
 import { useTenant } from '../../context/TenantContext';
 import { formatTRY, formatDate } from '../../utils/format';
+import ModalHeader from '../../components/shared/ModalHeader';
 
 const limitText = (n) => (n < 0 ? 'Sınırsız' : n.toLocaleString('tr-TR'));
 const priceOf = (p, cycle) => (cycle === 'YEARLY' ? p.priceYearly : p.priceMonthly);
@@ -96,13 +97,7 @@ const Checkout = ({ plan, cycle, data, onClose, onDone }) => {
     <div className="fixed inset-0 z-50 flex items-center justify-center p-0 sm:p-4">
       <div className="modal-backdrop" onClick={onClose} />
       <div className="modal-panel w-full sm:max-w-lg h-full sm:h-auto sm:max-h-[94vh] rounded-none sm:rounded-[1.75rem] flex flex-col">
-        <div className="flex items-start justify-between gap-3 p-5 border-b border-gray-100">
-          <div>
-            <p className="text-[10px] font-black text-gray-400 uppercase tracking-widest">Satın al</p>
-            <h3 className="text-xl font-black text-gray-900">{plan.name} · {cycle === 'YEARLY' ? 'Yıllık' : 'Aylık'}</h3>
-          </div>
-          <button onClick={onClose} className="p-1.5 rounded-lg text-gray-400 hover:bg-gray-100" aria-label="Kapat"><X className="h-5 w-5" /></button>
-        </div>
+        <ModalHeader icon={ShoppingBag} title={`${plan.name} · ${cycle === 'YEARLY' ? 'Yıllık' : 'Aylık'}`} subtitle="Satın al" onClose={onClose} />
 
         <div className="p-5 space-y-5 overflow-y-auto">
           {/* Sipariş özeti */}
@@ -289,7 +284,7 @@ const AdminSubscriptionPage = () => {
 
       <div className="flex flex-wrap items-center justify-between gap-4">
         <div className="flex items-center gap-4">
-          <div className="bg-gradient-to-br from-amber-500 to-amber-700 p-3.5 rounded-2xl shadow-lg shadow-amber-500/25 shrink-0"><Crown className="h-6 w-6 text-white" /></div>
+          <div className="page-icon"><Crown className="h-6 w-6 text-white" /></div>
           <div>
             <h1 className="text-3xl font-black text-gray-900 tracking-tight">Abonelik</h1>
             <p className="text-gray-500 text-sm mt-1">

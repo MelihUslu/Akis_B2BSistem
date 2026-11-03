@@ -142,14 +142,14 @@ const TicketThread = ({ ticket, side, onReply, onClose, subtitle, quickReplies =
                 </div>
               )}
               <div className={`flex items-end gap-2.5 ${mine ? 'flex-row-reverse' : ''}`}>
-                <span className={`h-8 w-8 shrink-0 rounded-full flex items-center justify-center text-[11px] font-black ${fromSupport ? 'bg-gradient-to-br from-indigo-500 to-violet-600 text-white' : 'bg-blue-100 text-blue-700'}`}>
+                <span className={`h-8 w-8 shrink-0 rounded-full flex items-center justify-center text-[11px] font-black ${fromSupport ? 'bg-gradient-to-br from-indigo-500 to-violet-600 text-white' : 'bg-indigo-100 text-indigo-700'}`}>
                   {fromSupport ? <LifeBuoy className="h-4 w-4" /> : initials(m.authorName)}
                 </span>
                 <div className={`max-w-[75%] ${mine ? 'items-end' : 'items-start'} flex flex-col`}>
                   <span className="text-[11px] font-semibold text-gray-400 mb-1 px-1">
                     {mine ? 'Siz' : m.authorName}{fromSupport && side === 'TENANT' ? ' · Destek ekibi' : ''} · {clock(m.createdAt)}
                   </span>
-                  <div className={`rounded-2xl px-4 py-2.5 text-sm leading-relaxed whitespace-pre-wrap shadow-sm ${mine ? 'bg-blue-600 text-white rounded-br-md' : 'bg-white ring-1 ring-gray-100 text-gray-800 rounded-bl-md'}`}>
+                  <div className={`rounded-2xl px-4 py-2.5 text-sm leading-relaxed whitespace-pre-wrap shadow-sm ${mine ? 'bg-indigo-600 text-white rounded-br-md' : 'bg-white ring-1 ring-gray-100 text-gray-800 rounded-bl-md'}`}>
                     {m.body}
                     <MessageAttachments files={m.attachments} mine={mine} />
                   </div>
@@ -178,7 +178,7 @@ const TicketThread = ({ ticket, side, onReply, onClose, subtitle, quickReplies =
             ))}
           </div>
         )}
-        <div {...att.dropProps} className={`rounded-2xl ring-1 transition-all bg-white ${att.dragging ? 'ring-2 ring-blue-500 bg-blue-50/40' : 'ring-gray-200 focus-within:ring-2 focus-within:ring-blue-400'}`}>
+        <div {...att.dropProps} className={`rounded-2xl ring-1 transition-all bg-white ${att.dragging ? 'ring-2 ring-indigo-500 bg-indigo-50/40' : 'ring-gray-200 focus-within:ring-2 focus-within:ring-indigo-400'}`}>
           <textarea className="w-full h-24 resize-none rounded-2xl px-4 pt-3 text-sm outline-none bg-transparent placeholder:text-gray-400"
             placeholder={att.dragging ? 'Dosyayı bırakın…' : side === 'TENANT' ? 'Mesajınızı yazın… (ekran görüntüsünü Ctrl+V ile yapıştırabilirsiniz)' : 'Firmaya yanıtınızı yazın…'} value={body}
             onChange={(e) => setBody(e.target.value)} onKeyDown={onKeyDown} onPaste={att.onPaste} maxLength={5000} />
@@ -192,7 +192,7 @@ const TicketThread = ({ ticket, side, onReply, onClose, subtitle, quickReplies =
                 className="h-9 px-3 rounded-xl bg-gray-100 text-xs font-bold text-gray-600 hover:bg-gray-200 disabled:opacity-40">Yanıtla ve kapat</button>
             )}
             <button disabled={!canSend} onClick={() => send(false)}
-              className="inline-flex items-center gap-1.5 h-9 px-4 rounded-xl bg-blue-600 text-white text-xs font-bold hover:bg-blue-700 disabled:opacity-40 shadow-sm shadow-blue-500/30">
+              className="inline-flex items-center gap-1.5 h-9 px-4 rounded-xl bg-indigo-600 text-white text-xs font-bold hover:bg-indigo-700 disabled:opacity-40 shadow-sm shadow-indigo-500/30">
               <Send className="h-3.5 w-3.5" /> {sending ? 'Gönderiliyor…' : 'Gönder'}
             </button>
           </div>

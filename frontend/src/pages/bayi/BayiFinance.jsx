@@ -29,10 +29,7 @@ const CardPayModal = ({ suggested, provider, onClose }) => {
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
       <div className="modal-backdrop" onClick={onClose} />
       <form onSubmit={start} className="modal-panel w-full max-w-sm p-6 space-y-4">
-        <div className="flex justify-between items-center">
-          <h3 className="modal-title flex items-center"><CreditCard className="h-5 w-5 mr-2 text-indigo-600" /> {t('Kartla Ödeme')}</h3>
-          <button type="button" onClick={onClose} className="modal-close" aria-label={t('Kapat')}><X className="h-5 w-5" /></button>
-        </div>
+        <ModalHeader icon={CreditCard} title={t('Kartla Ödeme')} onClose={onClose} closeLabel={t('Kapat')} className="!px-0 !pt-0 !pb-4" />
         <div>
           <label className="premium-label">{t('Ödeme Tutarı (₺)')}</label>
           <input required type="number" step="0.01" min="1" className="premium-input text-lg" value={amount} onChange={(e) => setAmount(e.target.value)} />
@@ -47,6 +44,7 @@ const CardPayModal = ({ suggested, provider, onClose }) => {
 import { formatTRY, formatMoney, formatDate } from '../../utils/format';
 import { t } from '../../i18n';
 import PageHeader from '../../components/shared/PageHeader';
+import ModalHeader from '../../components/shared/ModalHeader';
 
 const formatCard = (v) => v.replace(/\D/g, '').slice(0, 16).replace(/(\d{4})(?=\d)/g, '$1 ');
 const formatExpiry = (v) => {
@@ -229,7 +227,7 @@ const BayiFinance = () => {
             {cur !== 'TRY' && <p className="text-[11px] text-gray-400 mt-2">{t('Cari hesabınız {cur} olarak tutulur. Kartla ödemeler TL alınır ve günün kuruyla {cur} olarak işlenir.', { cur })}</p>}
           </div>
           <div className="absolute top-0 right-0 p-6 opacity-10">
-            <Wallet className="h-20 w-20 text-blue-600" />
+            <Wallet className="h-20 w-20 text-indigo-600" />
           </div>
         </div>
 
@@ -238,7 +236,7 @@ const BayiFinance = () => {
           <h2 className="text-3xl font-black text-gray-900">{money(riskLimit)}</h2>
           <div className="mt-4 w-full bg-gray-100 h-2 rounded-full overflow-hidden">
             <div
-              className={`h-full rounded-full transition-all duration-1000 ${usage >= 85 ? 'bg-red-500' : usage >= 70 ? 'bg-amber-500' : 'bg-blue-600'}`}
+              className={`h-full rounded-full transition-all duration-1000 ${usage >= 85 ? 'bg-red-500' : usage >= 70 ? 'bg-amber-500' : 'bg-indigo-600'}`}
               style={{ width: `${usage}%` }}
             ></div>
           </div>
@@ -318,13 +316,13 @@ const BayiFinance = () => {
         </div>
       </div>
 
-      <div className="bg-blue-50 border border-blue-100 p-6 rounded-3xl flex items-start space-x-4">
-        <div className="bg-blue-600 p-2 rounded-xl text-white">
+      <div className="bg-indigo-50 border border-indigo-100 p-6 rounded-3xl flex items-start space-x-4">
+        <div className="bg-indigo-600 p-2 rounded-xl text-white">
           <Info className="h-5 w-5" />
         </div>
         <div>
-          <h4 className="font-bold text-blue-800">{t('Bilgilendirme')}</h4>
-          <p className="text-sm text-blue-800/80 mt-1 leading-relaxed">
+          <h4 className="font-bold text-indigo-800">{t('Bilgilendirme')}</h4>
+          <p className="text-sm text-indigo-800/80 mt-1 leading-relaxed">
             {t('Sanal POS ödemeleri anında bakiyenize yansır ve risk limitiniz otomatik olarak tekrar açılır. Havale bildirimleri için {contact} ile iletişime geçin. Vade süreniz: {days} gün.', {
               contact: company.plasiyer ? t('müşteri temsilciniz {name} ({email})', { name: company.plasiyer.name, email: company.plasiyer.email }) : t('finans birimimiz'),
               days: company.paymentTermDays

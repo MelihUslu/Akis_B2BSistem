@@ -1,8 +1,7 @@
 import { useEffect, useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import {
-  Users, ShoppingCart, TrendingUp, Activity, Award, CreditCard,
-  FileText, Plus, Clock, AlertCircle, Wallet, RotateCcw, ShieldAlert, Trophy
+  Users, ShoppingCart, TrendingUp, Activity, Award, CreditCard, FileText, Clock, AlertCircle, Wallet, RotateCcw, ShieldAlert, Trophy
 } from 'lucide-react';
 import {
   AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer,
@@ -11,6 +10,7 @@ import {
 import api from '../../services/api';
 import { useAuth } from '../../context/AuthContext';
 import { formatTRY, formatDate, ORDER_STATUS, formatMoney } from '../../utils/format';
+import ModalHeader from '../../components/shared/ModalHeader';
 
 const STATUS_COLORS = {
   PENDING: '#f97316', APPROVED: '#10b981', PARTIAL_APPROVED: '#f59e0b',
@@ -62,7 +62,7 @@ const AdminDashboardHome = () => {
     },
     { title: 'Aktif Bayiler', value: stats.activeDealers, desc: stats.pendingDealers ? `${stats.pendingDealers} başvuru bekliyor` : 'Bekleyen başvuru yok', icon: Users, color: 'bg-emerald-400', shadow: 'shadow-emerald-400/30', link: '/admin/dealers' },
     { title: 'Bekleyen Sipariş', value: stats.pendingOrders, desc: stats.pendingReturns ? `${stats.pendingReturns} iade talebi bekliyor` : 'Onay bekleyen siparişler', icon: ShoppingCart, color: 'bg-pink-500', shadow: 'shadow-pink-500/30', link: '/admin/orders' },
-    { title: 'Toplam Prim', value: stats.plasiyerTotal.toLocaleString('tr-TR'), desc: 'Plasiyer prim puanları', icon: CreditCard, color: 'bg-blue-500', shadow: 'shadow-blue-500/30', link: '/admin/finance' },
+    { title: 'Toplam Prim', value: stats.plasiyerTotal.toLocaleString('tr-TR'), desc: 'Plasiyer prim puanları', icon: CreditCard, color: 'bg-indigo-500', shadow: 'shadow-indigo-500/30', link: '/admin/finance' },
   ];
 
   const statusData = data.orderStatus.map((s) => ({ name: ORDER_STATUS[s.status]?.label || s.status, value: s.count, status: s.status }));
@@ -75,23 +75,7 @@ const AdminDashboardHome = () => {
         <div className="fixed inset-0 z-[100] flex items-center justify-center p-6 animate-in fade-in zoom-in duration-300">
           <div className="modal-backdrop" onClick={() => setSelectedOrder(null)}></div>
           <div className="modal-panel w-full max-w-xl">
-            <div className="modal-header items-center">
-              <div className="flex items-center space-x-4">
-                <div className="w-12 h-12 bg-white rounded-2xl flex items-center justify-center shadow-sm border border-slate-100">
-                  <ShoppingCart className="h-6 w-6 text-indigo-600" />
-                </div>
-                <div>
-                  <h3 className="text-lg font-black text-slate-900 leading-tight">Sipariş Detayı</h3>
-                  <p className="text-xs font-bold text-slate-400 uppercase tracking-widest">#AK-{selectedOrder.id}</p>
-                </div>
-              </div>
-              <button
-                onClick={() => setSelectedOrder(null)}
-                className="w-10 h-10 bg-white hover:bg-slate-50 rounded-xl flex items-center justify-center border border-slate-100 transition-colors shadow-sm"
-              >
-                <Plus className="h-5 w-5 text-slate-400 rotate-45" />
-              </button>
-            </div>
+            <ModalHeader icon={ShoppingCart} title="Sipariş Detayı" subtitle={`#AK-${selectedOrder.id}`} onClose={() => setSelectedOrder(null)} />
 
             <div className="p-8 space-y-8">
               <div className="grid grid-cols-2 gap-6">
@@ -208,8 +192,8 @@ const AdminDashboardHome = () => {
 
         <div className="card-premium p-8 flex flex-col">
           <div className="flex items-center space-x-3 mb-8">
-            <div className="p-2 bg-blue-50 rounded-lg">
-              <ShoppingCart className="h-4 w-4 text-blue-500" />
+            <div className="p-2 bg-indigo-50 rounded-lg">
+              <ShoppingCart className="h-4 w-4 text-indigo-500" />
             </div>
             <h3 className="text-base font-black text-gray-900 tracking-tight">Sipariş Durumları</h3>
           </div>
@@ -404,7 +388,7 @@ const AdminDashboardHome = () => {
               <span className="text-[9px] font-black text-gray-400 uppercase tracking-widest">Vadesi Geçen</span>
             </div>
             <div className="flex items-center space-x-2">
-              <div className="w-2 h-2 rounded-full bg-blue-500"></div>
+              <div className="w-2 h-2 rounded-full bg-indigo-500"></div>
               <span className="text-[9px] font-black text-gray-400 uppercase tracking-widest">Ödeme Bekleyen</span>
             </div>
           </div>
@@ -418,7 +402,7 @@ const AdminDashboardHome = () => {
               const overdue = d.nextDue && new Date(d.nextDue) < new Date();
               return (
                 <div key={d.id} className="p-6 bg-gray-50/50 border border-gray-100 rounded-[2rem] hover:bg-white hover:shadow-2xl hover:shadow-gray-100 transition-all relative group">
-                  <div className={`absolute top-6 right-6 p-2 rounded-xl ${overdue ? 'bg-red-50 text-red-500' : 'bg-blue-50 text-blue-500'}`}>
+                  <div className={`absolute top-6 right-6 p-2 rounded-xl ${overdue ? 'bg-red-50 text-red-500' : 'bg-indigo-50 text-indigo-500'}`}>
                     {overdue ? <AlertCircle className="h-4 w-4" /> : <Clock className="h-4 w-4" />}
                   </div>
                   <div className="mb-4">

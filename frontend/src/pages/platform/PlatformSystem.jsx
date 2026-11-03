@@ -26,7 +26,7 @@ const PlatformSystem = () => {
     <div className="space-y-6">
       <div className="flex flex-wrap items-center justify-between gap-4">
         <div className="flex items-center gap-4">
-          <div className="bg-gradient-to-br from-emerald-500 to-emerald-700 p-3.5 rounded-2xl shadow-lg shadow-emerald-500/25 shrink-0"><Activity className="h-6 w-6 text-white" /></div>
+          <div className="page-icon"><Activity className="h-6 w-6 text-white" /></div>
           <div>
             <h1 className="text-3xl font-black text-gray-900 tracking-tight">Sistem Durumu</h1>
             <p className="text-gray-500 text-sm mt-1">Ortam: <b>{s.nodeEnv === 'production' ? 'Canlı' : 'Geliştirme'}</b> · çalışma süresi {Math.round(s.uptimeSeconds / 60)} dk. Dış izleme adresi: <code className="text-xs bg-gray-100 px-1.5 py-0.5 rounded">/health/ready</code></p>

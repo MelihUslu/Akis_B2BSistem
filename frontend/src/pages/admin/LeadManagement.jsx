@@ -1,16 +1,17 @@
 import { useCallback, useEffect, useState } from 'react';
-import { Inbox, Plus, Save, X, Trash2, FileSpreadsheet, Search, Phone, MessageCircle, Link2, Copy, Check, ChevronLeft, ChevronRight, ExternalLink, SlidersHorizontal } from 'lucide-react';
+import { Inbox, Plus, Save, Trash2, FileSpreadsheet, Search, Phone, MessageCircle, Link2, Copy, Check, ChevronLeft, ChevronRight, ExternalLink, SlidersHorizontal, UserPlus } from 'lucide-react';
 import api, { errorMessage } from '../../services/api';
 import useAlert from '../../hooks/useAlert';
 import { formatDate } from '../../utils/format';
 import { downloadFile } from '../../utils/download';
 import { useTenant } from '../../context/TenantContext';
 import LeadFormEditor from '../../components/leads/LeadFormEditor';
+import ModalHeader from '../../components/shared/ModalHeader';
 
 const SOURCES = {
   INSTAGRAM: { label: 'Instagram', cls: 'bg-pink-50 text-pink-700' },
   WHATSAPP: { label: 'WhatsApp', cls: 'bg-emerald-50 text-emerald-700' },
-  FACEBOOK: { label: 'Facebook', cls: 'bg-blue-50 text-blue-700' },
+  FACEBOOK: { label: 'Facebook', cls: 'bg-indigo-50 text-indigo-700' },
   FORM: { label: 'Talep formu', cls: 'bg-indigo-50 text-indigo-700' },
   PHONE: { label: 'Telefon', cls: 'bg-amber-50 text-amber-700' },
   OTHER: { label: 'Diğer', cls: 'bg-slate-100 text-slate-600' },
@@ -163,10 +164,7 @@ const LeadManagement = () => {
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
           <div className="modal-backdrop" onClick={() => setEditing(null)} />
           <form onSubmit={save} className="modal-panel w-full max-w-lg max-h-[92vh] flex flex-col">
-            <div className="modal-header items-center">
-              <h3 className="modal-title">{editing.id ? 'Kişiyi Düzenle' : 'Kişi Ekle'}</h3>
-              <button type="button" onClick={() => setEditing(null)} className="modal-close" aria-label="Kapat"><X className="h-5 w-5" /></button>
-            </div>
+            <ModalHeader icon={UserPlus} title={editing.id ? 'Kişiyi Düzenle' : 'Kişi Ekle'} onClose={() => setEditing(null)} />
             <div className="p-6 space-y-4 overflow-y-auto">
               {editing.viaForm && <p className="text-xs font-bold text-indigo-700 bg-indigo-50 rounded-xl px-3 py-2">Bu kişi talep formunu kendisi doldurdu · {formatDate(editing.createdAt, true)}</p>}
               {answersOf(editing).length > 0 && (
@@ -198,7 +196,7 @@ const LeadManagement = () => {
             <div className="p-6 border-t border-gray-100 flex gap-3">
               {editing.id
                 ? <button type="button" onClick={() => remove(editing)} className="p-3 rounded-xl border border-gray-200 text-gray-400 hover:text-red-500 hover:border-red-200" aria-label="Sil"><Trash2 className="h-5 w-5" /></button>
-                : <button type="button" onClick={() => setEditing(null)} className="flex-1 py-3 border border-gray-200 rounded-xl font-bold text-gray-600 hover:bg-gray-50">Vazgeç</button>}
+                : <button type="button" onClick={() => setEditing(null)} className="btn-secondary flex-1">Vazgeç</button>}
               <button type="submit" disabled={saving} className="flex-1 btn-gradient disabled:opacity-60"><Save className="h-4 w-4 mr-2" /> Kaydet</button>
             </div>
           </form>
@@ -207,7 +205,7 @@ const LeadManagement = () => {
 
       <div className="flex flex-col xl:flex-row justify-between xl:items-end gap-4">
         <div className="flex items-center gap-4 min-w-0">
-          <div className="bg-gradient-to-br from-fuchsia-500 to-pink-600 p-3.5 rounded-2xl shadow-lg shadow-pink-500/25 shrink-0"><Inbox className="h-6 w-6 text-white" /></div>
+          <div className="page-icon"><Inbox className="h-6 w-6 text-white" /></div>
           <div>
             <h1 className="text-3xl font-black text-gray-900 tracking-tight">Müşteri Adayları</h1>
             <p className="text-gray-500 text-sm mt-1">Instagram ve WhatsApp reklamlarından yazan kişiler tek listede. Arayın, durumunu işaretleyin, Excel'e alın.</p>

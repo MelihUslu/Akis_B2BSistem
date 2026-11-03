@@ -74,7 +74,7 @@ const InvoicePanel = ({ orderId, orderStatus, canManage = false, onError }) => {
       <div className="flex items-center justify-between gap-3">
         <h4 className="text-sm font-black text-gray-900 flex items-center gap-2"><FileText className="h-4 w-4 text-indigo-500" /> {t('Fatura')}</h4>
         {inv?.status === 'ISSUED' && <span className="px-2 py-0.5 rounded-md bg-emerald-100 text-emerald-700 text-[11px] font-bold">{t('Kesildi')}</span>}
-        {inv?.status === 'PENDING' && <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-md bg-blue-100 text-blue-700 text-[11px] font-bold"><Loader2 className="h-3 w-3 animate-spin" /> {t('Kesiliyor')}</span>}
+        {inv?.status === 'PENDING' && <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-md bg-indigo-100 text-indigo-700 text-[11px] font-bold"><Loader2 className="h-3 w-3 animate-spin" /> {t('Kesiliyor')}</span>}
         {inv?.status === 'FAILED' && <span className="px-2 py-0.5 rounded-md bg-red-100 text-red-700 text-[11px] font-bold">{t('Hata')}</span>}
       </div>
 
