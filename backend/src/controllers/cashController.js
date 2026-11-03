@@ -4,6 +4,8 @@ import xlsx from 'xlsx';
 import prisma, { currentTenantId } from '../utils/prisma.js';
 import { localDay, localMonth } from '../utils/dates.js';
 import { CASH_DOC_DIR, CASH_DOC_TYPES } from '../middlewares/upload.js';
+import { getExchangeRates } from '../services/exchangeRateService.js';
+import { notifyAdmins, safeNotify } from '../services/notificationService.js';
 
 /**
  * Gelir-gider: elle girilen giderler (kira, maaş, fatura…) ve satış dışı gelirler.
@@ -221,6 +223,7 @@ export const createCash = async (req, res) => {
       }
       return tx.cashEntry.create({ data: { ...data, recurringId, createdByName: req.user.name || null } });
     });
+    if (entry.type === 'OUT') safeNotify(checkBudgets());
     res.locals.auditEntityId = entry.id;
     res.status(201).json({ message: `${entry.type === 'IN' ? 'Gelir' : 'Gider'} kaydedildi.${entry.recurringId ? ' Her ay otomatik eklenecek.' : ''}`, entry: publicEntry(entry) });
   } catch (error) {
@@ -233,6 +236,7 @@ export const updateCash = async (req, res) => {
     const id = parseInt(req.params.id) || 0;
     const updated = await prisma.cashEntry.updateMany({ where: { id }, data: parseEntry(req.body) });
     if (updated.count === 0) throw new CashError('Kayıt bulunamadı.', 404);
+    safeNotify(checkBudgets());
     res.locals.auditEntityId = id;
     res.json({ message: 'Kayıt güncellendi.' });
   } catch (error) {
@@ -311,6 +315,7 @@ export const saveBudgets = async (req, res) => {
       update: { value: JSON.stringify(budgets) },
       create: { key: BUDGET_KEY, value: JSON.stringify(budgets) }
     });
+    safeNotify(checkBudgets());
     res.json({ message: Object.keys(budgets).length ? `${Object.keys(budgets).length} kategori için aylık bütçe kaydedildi.` : 'Bütçeler kaldırıldı.', budgets });
   } catch (error) {
     fail(res, error, 'Bütçe kaydedilemedi.');
@@ -379,6 +384,171 @@ export const deleteRecurring = async (req, res) => {
   const deleted = await prisma.cashRecurring.deleteMany({ where: { id: parseInt(req.params.id) || 0 } });
   if (deleted.count === 0) return res.status(404).json({ message: 'Düzenli kayıt bulunamadı.' });
   res.json({ message: 'Düzenli kayıt silindi. Geçmiş kayıtlar duruyor.' });
+};
+
+// ─── Bütçe bildirimi ─────────────────────────────────────────────────────────
+
+/**
+ * Bu ayın kategori bütçeleri: %90'a gelince ve aşılınca Finans yetkililerine bildirim (her eşik ayda bir kez).
+ * Gider kaydı / bütçe değişince ve saatlik işte (düzenli kayıtlardan sonra) çalışır.
+ */
+export const checkBudgets = async (now = new Date()) => {
+  const budgets = await loadBudgets();
+  const names = Object.keys(budgets);
+  if (!names.length) return 0;
+  const month = localMonth(now);
+  const [y, m] = month.split('-').map(Number);
+  const from = new Date(y, m - 1, 1);
+  const to = new Date(y, m, 1);
+  const rows = await prisma.cashEntry.groupBy({ by: ['category'], where: { type: 'OUT', category: { in: names }, date: { gte: from, lt: to } }, _sum: { amount: true } });
+  const spent = Object.fromEntries(rows.map((r) => [r.category, r._sum.amount || 0]));
+  if (budgets[SUPPLIER]) spent[SUPPLIER] = (await partnerFlows(from, to)).filter((f) => f.type === 'OUT').reduce((t, f) => t + f.amount, 0);
+  const tl = (n) => `₺${round2(n).toLocaleString('tr-TR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
+  let sent = 0;
+  for (const category of names) {
+    const used = spent[category] || 0;
+    const pct = (used / budgets[category]) * 100;
+    if (pct < 90) continue;
+    const over = pct > 100;
+    await notifyAdmins({
+      type: 'BUDGET',
+      title: over ? `${category} bütçesi aşıldı` : `${category} bütçesinin %${Math.floor(pct)}'i kullanıldı`,
+      message: over
+        ? `Bu ay ${tl(used)} harcandı; aylık bütçe ${tl(budgets[category])} (${tl(used - budgets[category])} fazla).`
+        : `Bu ay ${tl(used)} harcandı; aylık bütçe ${tl(budgets[category])}, kalan ${tl(budgets[category] - used)}.`,
+      link: '/admin/cash',
+      dedupeKey: `cash-budget:${month}:${category}:${over ? 'over' : 'near'}`
+    });
+    sent++;
+  }
+  return sent;
+};
+
+// ─── Önümüzdeki 30 günün nakit tahmini ───────────────────────────────────────
+
+const HORIZON = 30;
+
+/**
+ * Açık kalemler (cari yaşlandırmadaki kural: ödemeler en eski borcu kapatır). Cari kayıtları yalnızca okunur.
+ * receivable: bayi / müşteri borçları (bize ödeyecekleri), payable: tedarikçi alacakları (bizim ödeyeceğimiz).
+ */
+const openItems = async (side) => {
+  const receivable = side === 'receivable';
+  const companies = await prisma.company.findMany({
+    where: receivable ? { kind: { in: ['DEALER', 'CUSTOMER'] }, currentBalance: { lt: 0 } } : { kind: 'SUPPLIER', currentBalance: { gt: 0 } },
+    select: { id: true, name: true, currentBalance: true, paymentTermDays: true, currency: true }
+  });
+  if (!companies.length) return [];
+  const ids = companies.map((c) => c.id);
+  const [moves, reversed] = await Promise.all([
+    prisma.financialTransaction.findMany({
+      where: { companyId: { in: ids }, type: receivable ? 'DEBT' : 'CREDIT', source: { notIn: ['REVERSAL', 'PAYMENT'] } },
+      orderBy: [{ date: 'desc' }, { id: 'desc' }],
+      select: { id: true, companyId: true, amount: true, date: true, order: { select: { dueDate: true } } }
+    }),
+    prisma.financialTransaction.findMany({ where: { companyId: { in: ids }, reversalOfId: { not: null } }, select: { reversalOfId: true } })
+  ]);
+  const skip = new Set(reversed.map((r) => r.reversalOfId));
+  const byCompany = new Map();
+  for (const t of moves) {
+    if (skip.has(t.id)) continue;
+    if (!byCompany.has(t.companyId)) byCompany.set(t.companyId, []);
+    byCompany.get(t.companyId).push(t);
+  }
+  const items = [];
+  for (const c of companies) {
+    let remaining = round2(Math.abs(c.currentBalance));
+    for (const t of byCompany.get(c.id) || []) { // en yeni → en eski
+      if (remaining <= 0) break;
+      const part = Math.min(remaining, t.amount);
+      remaining = round2(remaining - part);
+      const due = t.order?.dueDate ? new Date(t.order.dueDate) : new Date(new Date(t.date).getTime() + (c.paymentTermDays || 0) * 864e5);
+      items.push({ companyId: c.id, name: c.name, currency: c.currency, amount: part, due });
+    }
+    if (remaining > 0) items.push({ companyId: c.id, name: c.name, currency: c.currency, amount: remaining, due: null }); // açılış / devir
+  }
+  return items;
+};
+
+export const cashForecast = async (req, res) => {
+  try {
+    const now = new Date();
+    const today = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+    const end = new Date(today.getFullYear(), today.getMonth(), today.getDate() + HORIZON + 1);
+    const rates = (await getExchangeRates()).rates || {};
+    const toTRY = (amount, currency) => (currency === 'TRY' || !currency ? amount : rates[currency] ? amount * rates[currency] : null);
+
+    const [receivables, payables, checks, rules] = await Promise.all([
+      openItems('receivable'),
+      openItems('payable'),
+      prisma.payment.findMany({
+        where: { status: 'COMPLETED', method: { in: ['CHECK', 'NOTE'] }, dueDate: { gte: today, lt: end } },
+        select: { id: true, amount: true, currency: true, rate: true, direction: true, method: true, dueDate: true, bankName: true, company: { select: { name: true } } }
+      }),
+      prisma.cashRecurring.findMany({ where: { isActive: true } })
+    ]);
+
+    const items = [];
+    const overdue = { receivable: 0, payable: 0 };
+    const addOpen = (list, type, source) => {
+      // Aynı carinin aynı gün vadeli kalemleri tek satır
+      const grouped = new Map();
+      for (const it of list) {
+        const amount = toTRY(it.amount, it.currency);
+        if (amount == null || !it.due) continue;
+        if (it.due < today) { overdue[source === 'RECEIVABLE' ? 'receivable' : 'payable'] += amount; continue; }
+        if (it.due >= end) continue;
+        const day = localDay(it.due);
+        const key = `${it.companyId}:${day}`;
+        const g = grouped.get(key) || { date: new Date(`${day}T12:00:00`), type, source, label: it.name, amount: 0 };
+        g.amount += amount;
+        grouped.set(key, g);
+      }
+      items.push(...grouped.values());
+    };
+    addOpen(receivables, 'IN', 'RECEIVABLE');
+    addOpen(payables, 'OUT', 'PAYABLE');
+    for (const c of checks) {
+      items.push({ date: c.dueDate, type: c.direction === 'OUT' ? 'OUT' : 'IN', source: c.method === 'NOTE' ? 'NOTE' : 'CHECK', label: [c.company?.name, c.bankName].filter(Boolean).join(' · ') || (c.method === 'NOTE' ? 'Senet' : 'Çek'), amount: c.currency === 'TRY' ? c.amount : c.amount * (c.rate || 1) });
+    }
+    for (const r of rules) {
+      for (let i = 0; i < 2; i++) { // bu ay ve gelecek ay
+        const d = new Date(today.getFullYear(), today.getMonth() + i, r.dayOfMonth, 12);
+        const monthKey = localMonth(d);
+        if (d < today || d >= end || (r.lastRunMonth && r.lastRunMonth >= monthKey)) continue;
+        items.push({ date: d, type: r.type, source: 'RECURRING', label: r.category, amount: r.amount });
+      }
+    }
+    items.sort((a, b) => a.date - b.date || b.amount - a.amount);
+
+    // Gün gün birikimli net (bugün = 0)
+    const daily = [];
+    let running = 0;
+    for (let i = 0; i <= HORIZON; i++) {
+      const d = new Date(today.getFullYear(), today.getMonth(), today.getDate() + i);
+      const key = localDay(d);
+      const dayItems = items.filter((x) => localDay(x.date) === key);
+      const inflow = dayItems.filter((x) => x.type === 'IN').reduce((t, x) => t + x.amount, 0);
+      const outflow = dayItems.filter((x) => x.type === 'OUT').reduce((t, x) => t + x.amount, 0);
+      running += inflow - outflow;
+      daily.push({ key, income: round2(inflow), expense: round2(outflow), cumulative: round2(running) });
+    }
+    const sum = (type, source) => round2(items.filter((x) => x.type === type && (!source || x.source === source)).reduce((t, x) => t + x.amount, 0));
+    res.json({
+      days: HORIZON,
+      totals: {
+        income: sum('IN'), expense: sum('OUT'), net: round2(sum('IN') - sum('OUT')),
+        receivables: sum('IN', 'RECEIVABLE'), payables: sum('OUT', 'PAYABLE'),
+        checksIn: round2(sum('IN', 'CHECK') + sum('IN', 'NOTE')), checksOut: round2(sum('OUT', 'CHECK') + sum('OUT', 'NOTE')),
+        recurringIn: sum('IN', 'RECURRING'), recurringOut: sum('OUT', 'RECURRING')
+      },
+      overdue: { receivable: round2(overdue.receivable), payable: round2(overdue.payable) },
+      daily,
+      items: items.slice(0, 60).map((x) => ({ ...x, amount: round2(x.amount) }))
+    });
+  } catch (error) {
+    fail(res, error, 'Nakit tahmini hesaplanamadı.');
+  }
 };
 
 // ─── Excel ───────────────────────────────────────────────────────────────────

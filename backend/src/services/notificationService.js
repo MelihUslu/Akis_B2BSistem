@@ -173,7 +173,7 @@ export const runScheduledJobs = async () => {
       // Haftalık / aylık müşteri takip raporu (zamanı geldiyse)
       await import('./periodicReportService.js').then((m) => m.runPeriodicReports());
       // Düzenli gelir / gider (kira, maaş…): günü gelenler kaydedilir
-      await import('../controllers/cashController.js').then((m) => m.runRecurringCash());
+      await import('../controllers/cashController.js').then(async (m) => { await m.runRecurringCash(); await m.checkBudgets(); });
     }).catch(err => console.error(`[Zamanlanmış İş] ${tenant.slug}:`, err.message));
   }
   if (process.env.AUTO_PURGE_CLOSED === 'true') await purgeExpiredClosedTenants(tenants);

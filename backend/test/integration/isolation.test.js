@@ -1058,3 +1058,50 @@ test('gelir-gider: kayıt, KDV, aylık/yıllık özet ve karşılaştırma, büt
 });
 
 const localToday = () => new Date().toLocaleDateString('sv-SE', { timeZone: 'Europe/Istanbul' });
+
+test('gelir-gider: 30 günlük nakit tahmini (alacak, tedarikçi borcu, çek, gecikmiş) ve bütçe bildirimi', { skip }, async () => {
+  const A = { tenant: 'itest-a', token: tenants['itest-a'].token };
+  const tenantId = tenants['itest-a'].id;
+  const day = 864e5;
+  await runAsPlatform(async () => {
+    const dealer = await prisma.company.create({ data: { tenantId, name: 'Tahmin Bayi', kind: 'DEALER', status: 'ACTIVE', currentBalance: -1000, paymentTermDays: 15 } });
+    await prisma.financialTransaction.create({ data: { tenantId, companyId: dealer.id, type: 'DEBT', amount: 1000, source: 'MANUAL', date: new Date(Date.now() - 5 * day) } }); // vade +10 gün
+    const late = await prisma.company.create({ data: { tenantId, name: 'Gecikmiş Bayi', kind: 'DEALER', status: 'ACTIVE', currentBalance: -300, paymentTermDays: 0 } });
+    await prisma.financialTransaction.create({ data: { tenantId, companyId: late.id, type: 'DEBT', amount: 300, source: 'MANUAL', date: new Date(Date.now() - 60 * day) } });
+    const supplier = await prisma.company.create({ data: { tenantId, name: 'Tahmin Tedarikçi', kind: 'SUPPLIER', status: 'ACTIVE', currentBalance: 400, paymentTermDays: 7 } });
+    await prisma.financialTransaction.create({ data: { tenantId, companyId: supplier.id, type: 'CREDIT', amount: 400, source: 'MANUAL', date: new Date() } });
+    await prisma.payment.create({ data: { tenantId, companyId: dealer.id, amount: 250, method: 'CHECK', direction: 'IN', dueDate: new Date(Date.now() + 3 * day), bankName: 'Ziraat' } });
+  });
+  const balances = await runAsPlatform(() => prisma.company.findMany({ where: { tenantId, name: { startsWith: 'Tahmin' } }, select: { currentBalance: true } }));
+
+  const res = await api('/cash/forecast', A);
+  assert.equal(res.status, 200, res.data?.message);
+  const find = (label, source) => res.data.items.find((x) => x.label.startsWith(label) && x.source === source);
+  assert.equal(find('Tahmin Bayi', 'RECEIVABLE').amount, 1000);
+  assert.equal(find('Tahmin Bayi', 'RECEIVABLE').type, 'IN');
+  assert.equal(find('Tahmin Tedarikçi', 'PAYABLE').amount, 400);
+  assert.equal(find('Tahmin Tedarikçi', 'PAYABLE').type, 'OUT');
+  assert.equal(find('Tahmin Bayi · Ziraat', 'CHECK').amount, 250);
+  assert.ok(!res.data.items.some((x) => x.label === 'Gecikmiş Bayi'));
+  assert.ok(res.data.overdue.receivable >= 300);
+  assert.equal(res.data.daily.length, 31);
+  assert.equal(res.data.daily.at(-1).cumulative, res.data.totals.net);
+  // Cari bakiyeleri değişmedi (yalnızca okunur)
+  assert.deepEqual(await runAsPlatform(() => prisma.company.findMany({ where: { tenantId, name: { startsWith: 'Tahmin' } }, select: { currentBalance: true } })), balances);
+
+  // Bütçe bildirimi: %90 ve aşım, her eşik ayda bir kez
+  const today = new Date().toLocaleDateString('sv-SE', { timeZone: 'Europe/Istanbul' });
+  await api('/cash/budgets', { ...A, method: 'PUT', body: { budgets: { 'Ofis / kırtasiye': 1000 } } });
+  const notes = async () => {
+    await new Promise((r) => setTimeout(r, 300));
+    return runAsPlatform(() => prisma.notification.findMany({ where: { tenantId, type: 'BUDGET' }, select: { title: true } }));
+  };
+  await api('/cash', { ...A, method: 'POST', body: { type: 'OUT', category: 'Ofis / kırtasiye', amount: 950, date: today } });
+  let list = await notes();
+  assert.equal(list.filter((n) => /%95'i kullanıldı/.test(n.title)).length, 1);
+  await api('/cash', { ...A, method: 'POST', body: { type: 'OUT', category: 'Ofis / kırtasiye', amount: 100, date: today } });
+  await api('/cash', { ...A, method: 'POST', body: { type: 'OUT', category: 'Ofis / kırtasiye', amount: 10, date: today } });
+  list = await notes();
+  assert.equal(list.filter((n) => /bütçesi aşıldı/.test(n.title)).length, 1);
+  assert.equal(list.filter((n) => /kullanıldı/.test(n.title)).length, 1);
+});

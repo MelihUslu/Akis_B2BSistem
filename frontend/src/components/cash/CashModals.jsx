@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { Plus, Minus, Paperclip, X, Repeat, Pencil, Trash2, Pause, Play, ArrowDownLeft, ArrowUpRight } from 'lucide-react';
+import { Plus, Minus, Paperclip, X, Repeat, Pencil, Trash2, Pause, Play, ArrowDownLeft, ArrowUpRight, Camera } from 'lucide-react';
 import api, { errorMessage } from '../../services/api';
 import Modal from '../shared/Modal';
 import { downloadFile } from '../../utils/download';
@@ -130,6 +130,13 @@ export const EntryModal = ({ initial, suggestions, onClose, onSaved, showAlert }
             <span className="truncate">{file ? file.name : 'PDF ya da fotoğraf ekleyin (en fazla 10 MB)'}</span>
             {file && <button type="button" onClick={(e) => { e.preventDefault(); setFile(null); }} className="ml-auto p-1 text-gray-400 hover:text-red-600" aria-label="Seçimi kaldır"><X className="h-4 w-4" /></button>}
             <input type="file" accept=".pdf,.jpg,.jpeg,.png,.webp" className="hidden" onChange={(e) => setFile(e.target.files[0] || null)} />
+          </label>
+        )}
+        {/* Telefonda fişi doğrudan kamerayla çek */}
+        {!file && (
+          <label className="sm:hidden mt-2 flex items-center justify-center gap-2 h-11 rounded-xl bg-gray-900 text-white text-sm font-black cursor-pointer">
+            <Camera className="h-4 w-4" /> Fişin fotoğrafını çek
+            <input type="file" accept="image/*" capture="environment" className="hidden" onChange={(e) => setFile(e.target.files[0] || null)} />
           </label>
         )}
       </div>

@@ -1,8 +1,9 @@
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import {
   Wallet, Plus, Minus, ChevronLeft, ChevronRight, FileSpreadsheet, Pencil, Trash2, Info, ArrowDownLeft, ArrowUpRight,
-  Repeat, Target, Paperclip, Search, AlertTriangle, TrendingUp, TrendingDown, CalendarClock, Receipt, Landmark, Banknote, CreditCard
+  Repeat, Target, Paperclip, Search, AlertTriangle, TrendingUp, TrendingDown, CalendarClock, Receipt, Landmark, Banknote, CreditCard, Telescope
 } from 'lucide-react';
+import { Link } from 'react-router-dom';
 import { ResponsiveContainer, ComposedChart, Bar, Line, Area, AreaChart, XAxis, YAxis, Tooltip, CartesianGrid, Legend, ReferenceLine } from 'recharts';
 import api, { errorMessage } from '../../services/api';
 import useAlert from '../../hooks/useAlert';
@@ -78,6 +79,92 @@ const FlowTip = ({ active, payload, period, view }) => {
   );
 };
 
+const SOURCE = { RECEIVABLE: 'Alacak vadesi', PAYABLE: 'Tedarikçi borcu', CHECK: 'Çek', NOTE: 'Senet', RECURRING: 'Düzenli' };
+
+const ForecastTip = ({ active, payload }) => {
+  if (!active || !payload?.length) return null;
+  const p = payload[0].payload;
+  return (
+    <div className="rounded-xl bg-white shadow-lg ring-1 ring-black/5 px-3 py-2 text-xs space-y-0.5 min-w-44">
+      <p className="font-bold text-gray-500">{formatDate(`${p.key}T12:00:00`)}</p>
+      {p.income > 0 && <p className="flex"><span className="text-gray-600">Beklenen giriş</span><b className="ml-auto pl-3 tabular-nums">{formatTRY(p.income)}</b></p>}
+      {p.expense > 0 && <p className="flex"><span className="text-gray-600">Beklenen çıkış</span><b className="ml-auto pl-3 tabular-nums">{formatTRY(p.expense)}</b></p>}
+      <p className="pt-1 mt-1 border-t border-gray-100 flex"><span className="text-gray-500">Bugünden itibaren net</span><b className="ml-auto pl-3 tabular-nums text-gray-900">{formatTRY(p.cumulative)}</b></p>
+    </div>
+  );
+};
+
+// Önümüzdeki 30 gün: vadesi gelen alacaklar, tedarikçi borçları, çek / senet ve düzenli kayıtlar (cari yalnızca okunur)
+const Forecast = ({ f }) => {
+  const t = f.totals;
+  const rows = [
+    ['Bayi / müşteri alacakları', t.receivables, 'IN'], ['Çek / senet tahsilatı', t.checksIn, 'IN'], ['Düzenli gelirler', t.recurringIn, 'IN'],
+    ['Tedarikçi borçları', t.payables, 'OUT'], ['Verilen çek / senet', t.checksOut, 'OUT'], ['Düzenli giderler', t.recurringOut, 'OUT']
+  ].filter(([, v]) => v > 0);
+  return (
+    <div className="card-premium p-4 md:p-6">
+      <div className="flex flex-wrap items-start justify-between gap-3">
+        <div>
+          <p className="text-sm font-black text-gray-900 flex items-center gap-2"><Telescope className="h-4 w-4 text-indigo-500" /> Önümüzdeki {f.days} gün</p>
+          <p className="text-xs text-gray-500 mt-0.5">Vadesi gelen alacaklar ve borçlar, çek / senetler ve düzenli kayıtlardan tahmin</p>
+        </div>
+        <div className="text-right">
+          <p className="text-[11px] font-bold text-gray-500">Tahmini net</p>
+          <p className={`text-2xl font-black tabular-nums ${f.totals.net >= 0 ? 'text-gray-900' : 'text-red-700'}`}>{f.totals.net > 0 ? '+' : ''}{formatTRY(f.totals.net)}</p>
+        </div>
+      </div>
+      <div className="mt-5 grid gap-6 lg:grid-cols-5">
+        <div className="lg:col-span-2 space-y-4">
+          <div className="grid grid-cols-2 gap-3">
+            <div className="rounded-2xl bg-blue-50/60 p-3"><p className="text-[11px] font-bold text-blue-800 flex items-center gap-1"><ArrowDownLeft className="h-3.5 w-3.5" /> Beklenen giriş</p><p className="mt-1 text-lg font-black tabular-nums text-gray-900">{formatTRY(t.income)}</p></div>
+            <div className="rounded-2xl bg-orange-50/60 p-3"><p className="text-[11px] font-bold text-orange-800 flex items-center gap-1"><ArrowUpRight className="h-3.5 w-3.5" /> Beklenen çıkış</p><p className="mt-1 text-lg font-black tabular-nums text-gray-900">{formatTRY(t.expense)}</p></div>
+          </div>
+          {rows.length > 0 && (
+            <dl className="space-y-1.5 text-xs">
+              {rows.map(([label, v, type]) => (
+                <div key={label} className="flex justify-between"><dt className="text-gray-600 flex items-center gap-1.5"><span className="h-2 w-2 rounded-full" style={{ background: type === 'IN' ? INCOME : EXPENSE }} /> {label}</dt><dd className="font-bold tabular-nums">{type === 'IN' ? '+' : '−'}{formatTRY(v)}</dd></div>
+              ))}
+            </dl>
+          )}
+          {(f.overdue.receivable > 0 || f.overdue.payable > 0) && (
+            <p className="rounded-xl bg-amber-50 px-3 py-2 text-[11px] text-amber-900 flex items-start gap-1.5">
+              <AlertTriangle className="h-3.5 w-3.5 mt-0.5 shrink-0" />
+              <span>Tahmine dahil değil: {f.overdue.receivable > 0 && <>vadesi geçmiş <b>{formatTRY(f.overdue.receivable)}</b> alacak</>}{f.overdue.receivable > 0 && f.overdue.payable > 0 && ', '}{f.overdue.payable > 0 && <>vadesi geçmiş <b>{formatTRY(f.overdue.payable)}</b> tedarikçi borcu</>}. <Link to="/admin/partners" className="font-bold underline">Carilere git</Link></span>
+            </p>
+          )}
+        </div>
+        <div className="lg:col-span-3">
+          <div className="h-40">
+            <ResponsiveContainer width="100%" height="100%">
+              <AreaChart data={f.daily} margin={{ top: 8, right: 4, left: 4, bottom: 0 }}>
+                <defs><linearGradient id="fcFill" x1="0" y1="0" x2="0" y2="1"><stop offset="0%" stopColor={NET} stopOpacity={0.18} /><stop offset="100%" stopColor={NET} stopOpacity={0} /></linearGradient></defs>
+                <CartesianGrid vertical={false} stroke="#eef0f3" />
+                <XAxis dataKey="key" tickLine={false} axisLine={false} interval={6} tick={{ fontSize: 11, fill: '#6b7280' }} tickFormatter={(k) => new Date(`${k}T12:00:00`).toLocaleDateString('tr-TR', { day: 'numeric', month: 'short' })} />
+                <YAxis tickFormatter={short} tickLine={false} axisLine={false} tick={{ fontSize: 11, fill: '#6b7280' }} width={52} />
+                <ReferenceLine y={0} stroke="#d1d5db" />
+                <Tooltip cursor={{ stroke: '#9ca3af', strokeDasharray: '3 3' }} content={<ForecastTip />} />
+                <Area type="stepAfter" dataKey="cumulative" stroke={NET} strokeWidth={2} fill="url(#fcFill)" dot={false} activeDot={{ r: 4, stroke: '#fff', strokeWidth: 2 }} />
+              </AreaChart>
+            </ResponsiveContainer>
+          </div>
+          {f.items.length === 0 ? <p className="text-xs text-gray-500 mt-3">Önümüzdeki {f.days} günde vadesi gelen kalem yok.</p> : (
+            <ul className="mt-3 divide-y divide-gray-50 max-h-56 overflow-y-auto">
+              {f.items.slice(0, 12).map((x, i) => (
+                <li key={`${x.source}-${x.label}-${x.date}-${i}`} className="flex items-center gap-3 py-2 text-sm">
+                  <span className="w-14 shrink-0 text-[11px] font-bold text-gray-500">{new Date(x.date).toLocaleDateString('tr-TR', { day: 'numeric', month: 'short' })}</span>
+                  <span className="flex-1 min-w-0 truncate text-gray-800">{x.label}</span>
+                  <span className="hidden sm:inline shrink-0 rounded-md bg-gray-100 px-1.5 py-0.5 text-[10px] font-bold text-gray-600">{SOURCE[x.source]}</span>
+                  <span className={`shrink-0 font-black tabular-nums ${x.type === 'IN' ? 'text-blue-700' : 'text-gray-900'}`}>{x.type === 'IN' ? '+' : '−'}{formatTRY(x.amount)}</span>
+                </li>
+              ))}
+            </ul>
+          )}
+        </div>
+      </div>
+    </div>
+  );
+};
+
 const daysLeft = (d) => {
   const n = Math.round((new Date(d).setHours(12, 0, 0, 0) - new Date().setHours(12, 0, 0, 0)) / 864e5);
   return n <= 0 ? 'bugün' : n === 1 ? 'yarın' : `${n} gün sonra`;
@@ -92,6 +179,7 @@ const CashPage = () => {
   const [month, setMonth] = useState(thisMonth);
   const year = month.slice(0, 4);
   const [data, setData] = useState(null);
+  const [forecast, setForecast] = useState(null);
   const [view, setView] = useState('trend');
   const [filter, setFilter] = useState({ type: '', category: '', q: '' });
   const [modal, setModal] = useState(null); // { kind: 'entry' | 'recurring' | 'budget', ... }
@@ -100,6 +188,8 @@ const CashPage = () => {
   const load = useCallback(() => api.get('/cash', { params: period === 'year' ? { period, year } : { month } }).then((r) => setData(r.data))
     .catch((err) => showAlert({ type: 'error', title: 'Hata', message: errorMessage(err, 'Kayıtlar yüklenemedi.') })), [period, month, year]); // eslint-disable-line react-hooks/exhaustive-deps
   useEffect(() => { load(); }, [load]);
+  const loadForecast = useCallback(() => api.get('/cash/forecast').then((r) => setForecast(r.data)).catch(() => setForecast(null)), []);
+  useEffect(() => { loadForecast(); }, [loadForecast]);
 
   const isCurrent = period === 'year' ? year === thisMonth().slice(0, 4) : month === thisMonth();
   const step = (n) => setMonth((m) => (period === 'year' ? `${Number(m.slice(0, 4)) + n}${m.slice(4)}` : shiftMonth(m, n)));
@@ -117,7 +207,7 @@ const CashPage = () => {
       showAlert({ type: 'error', title: 'Hata', message: errorMessage(err, 'Silinemedi.') });
     }
   };
-  const saved = (message) => { setModal(null); showAlert({ type: 'success', title: 'Kaydedildi', message }); load(); };
+  const saved = (message) => { setModal(null); showAlert({ type: 'success', title: 'Kaydedildi', message }); load(); loadForecast(); };
 
   const s = data?.summary;
   const p = data?.previous;
@@ -298,6 +388,8 @@ const CashPage = () => {
           </div>
         </div>
 
+        {forecast && <Forecast f={forecast} />}
+
         {/* Yaklaşan düzenli ödemeler · KDV · ödeme şekli */}
         <div className="grid gap-4 md:grid-cols-3">
           <div className="card-premium p-5">
@@ -421,7 +513,7 @@ const CashPage = () => {
       </>}
 
       {modal?.kind === 'entry' && <EntryModal initial={modal.initial} suggestions={data?.suggestions || { IN: [], OUT: [] }} showAlert={showAlert} onClose={() => setModal(null)} onSaved={saved} />}
-      {modal?.kind === 'recurring' && <RecurringModal rules={data?.recurring || []} suggestions={data?.suggestions || { IN: [], OUT: [] }} showAlert={showAlert} confirm={confirm} onClose={() => setModal(null)} onChanged={load} />}
+      {modal?.kind === 'recurring' && <RecurringModal rules={data?.recurring || []} suggestions={data?.suggestions || { IN: [], OUT: [] }} showAlert={showAlert} confirm={confirm} onClose={() => setModal(null)} onChanged={() => { load(); loadForecast(); }} />}
       {modal?.kind === 'budget' && <BudgetModal budgets={data?.budgets || {}} categories={(data?.suggestions?.OUT || []).filter((c) => c !== 'Diğer')} spent={spent} showAlert={showAlert} onClose={() => setModal(null)} onSaved={saved} />}
     </div>
   );

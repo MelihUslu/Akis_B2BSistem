@@ -1,6 +1,6 @@
 import express from 'express';
 import {
-  listCash, createCash, updateCash, deleteCash, exportCash, uploadCashFile, downloadCashFile, deleteCashFile,
+  listCash, cashForecast, createCash, updateCash, deleteCash, exportCash, uploadCashFile, downloadCashFile, deleteCashFile,
   saveBudgets, createRecurring, updateRecurring, deleteRecurring
 } from '../controllers/cashController.js';
 import { verifyToken, requirePermission } from '../middlewares/authMiddleware.js';
@@ -12,6 +12,7 @@ const router = express.Router();
 router.use(verifyToken, requirePermission('FINANCE'));
 router.get('/', listCash);
 router.get('/export', exportCash);
+router.get('/forecast', cashForecast);
 router.put('/budgets', saveBudgets);
 router.post('/recurring', createRecurring);
 router.put('/recurring/:id', updateRecurring);
