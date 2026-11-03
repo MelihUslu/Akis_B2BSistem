@@ -219,6 +219,7 @@ const AdminSubscriptionPage = () => {
   const [data, setData] = useState(null);
   const [cycle, setCycle] = useState('MONTHLY');
   const [buying, setBuying] = useState(null);
+  const [tab, setTab] = useState('subscription');
   const [params, setParams] = useSearchParams();
   const { alertElement, showAlert, confirm } = useAlert();
   const { refresh: refreshTenant } = useTenant();
@@ -248,6 +249,8 @@ const AdminSubscriptionPage = () => {
   const paidActive = tenant.status === 'ACTIVE' && access.active;
   const maxSaving = Math.max(0, ...plans.map(yearlySaving));
   const planName = (code) => plans.find((x) => x.code === code)?.name || (code === plan.code ? plan.name : code);
+  const usageRows = [['Bayi', Users, usage.dealers, plan.maxDealers], ['Ürün', Package, usage.products, plan.maxProducts], ['Yönetici', UserCog, usage.admins, plan.maxAdmins]];
+  const nearLimit = usageRows.some(([, , used, max]) => max > 0 && used / max >= 0.9);
   const featuredCode = paidActive ? plan.code : (plans[Math.min(1, plans.length - 1)]?.code);
 
   const cancelRenewal = async () => {
@@ -371,104 +374,100 @@ const AdminSubscriptionPage = () => {
         </div>
       </section>
 
-      {/* Mevcut abonelik ve ödeme geçmişi */}
-      <section className="grid gap-6 lg:grid-cols-5">
-        <div className="card-premium p-6 lg:col-span-2 flex flex-col">
-          <div className="flex items-start justify-between gap-3">
-            <div>
-              <p className="text-[10px] font-black text-gray-400 uppercase tracking-widest">Mevcut aboneliğiniz</p>
-              <h3 className="mt-1 text-2xl font-black text-gray-900">{plan.name}</h3>
-            </div>
-            <span className={`shrink-0 rounded-full px-2.5 py-1 text-[11px] font-black ${STATUS_TONE[tenant.status] || 'bg-gray-100 text-gray-600'}`}>{STATUS_TEXT[tenant.status]}</span>
+      {/* Aboneliğim / Kullanım / Ödemeler: tek kartta sekmeler */}
+      <section className="card-premium overflow-hidden">
+        <div className="flex flex-wrap items-center justify-between gap-3 px-4 sm:px-5 pt-4 pb-3 border-b border-gray-100">
+          <div className="flex w-full sm:w-auto p-1 rounded-xl bg-gray-100" role="tablist">
+            {[['subscription', 'Aboneliğim', Crown], ['usage', 'Kullanım', Users], ['payments', 'Ödemeler', Receipt]].map(([id, label, Icon]) => (
+              <button key={id} role="tab" aria-selected={tab === id} onClick={() => setTab(id)}
+                className={`h-8 flex-1 sm:flex-none justify-center px-2.5 sm:px-3 rounded-lg text-xs font-black flex items-center gap-1.5 transition-colors ${tab === id ? 'bg-white shadow-sm text-gray-900' : 'text-gray-500 hover:text-gray-700'}`}>
+                <Icon className="h-3.5 w-3.5" /> {label}
+                {id === 'payments' && payments.length > 0 && <span className="rounded bg-gray-200 px-1 text-[10px] text-gray-600">{payments.length}</span>}
+                {id === 'usage' && nearLimit && <span className="h-1.5 w-1.5 rounded-full bg-red-500" aria-label="Sınıra yakın" />}
+              </button>
+            ))}
           </div>
+          <span className={`hidden sm:inline rounded-full px-2.5 py-1 text-[11px] font-black ${STATUS_TONE[tenant.status] || 'bg-gray-100 text-gray-600'}`}>{plan.name} · {STATUS_TEXT[tenant.status]}</span>
+        </div>
 
-          <dl className="mt-4 grid grid-cols-2 gap-3">
-            <div className="rounded-2xl bg-gray-50 px-3 py-2.5">
-              <dt className="text-[10px] font-black text-gray-400 uppercase tracking-widest">{tenant.status === 'TRIAL' ? 'Deneme bitişi' : tenant.cancelAtPeriodEnd || !tenant.hasIyzicoSubscription ? 'Bitiş' : 'Yenileme'}</dt>
-              <dd className="mt-0.5 text-sm font-black text-gray-900">{endDate ? formatDate(endDate) : '—'}{left != null && left >= 0 && <span className="ml-1 text-[11px] font-bold text-gray-400">({left} gün)</span>}</dd>
-            </div>
-            <div className="rounded-2xl bg-gray-50 px-3 py-2.5">
-              <dt className="text-[10px] font-black text-gray-400 uppercase tracking-widest">Ödeme</dt>
-              <dd className="mt-0.5 text-sm font-black text-gray-900">{tenant.status === 'TRIAL' ? 'Ücretsiz deneme' : `${tenant.billingCycle === 'YEARLY' ? 'Yıllık' : 'Aylık'} · ${tenant.hasIyzicoSubscription ? 'kart' : 'havale / elle'}`}</dd>
-            </div>
-          </dl>
-          <p className="mt-3 text-xs text-gray-500 flex items-center gap-1.5">
-            <RefreshCcw className="h-3.5 w-3.5 shrink-0" />
-            {tenant.status === 'TRIAL' ? 'Deneme bitmeden paket seçerseniz kesinti olmaz.'
-              : tenant.hasIyzicoSubscription && !tenant.cancelAtPeriodEnd ? 'Kartınızdan otomatik yenilenir.'
-                : 'Otomatik yenilenmez; bitişten önce hatırlatırız.'}
-          </p>
+        <div className="p-4 sm:p-5">
+          {tab === 'subscription' && (
+            <>
+              <dl className="grid grid-cols-2 lg:grid-cols-4 gap-3">
+                {[
+                  ['Paket', plan.name],
+                  [tenant.status === 'TRIAL' ? 'Deneme bitişi' : tenant.cancelAtPeriodEnd || !tenant.hasIyzicoSubscription ? 'Bitiş' : 'Yenileme', endDate ? <>{formatDate(endDate)}{left != null && left >= 0 && <span className="ml-1 text-[11px] font-bold text-gray-400">({left} gün)</span>}</> : '—'],
+                  ['Ödeme', tenant.status === 'TRIAL' ? 'Ücretsiz deneme' : `${tenant.billingCycle === 'YEARLY' ? 'Yıllık' : 'Aylık'} · ${tenant.hasIyzicoSubscription ? 'kart' : 'havale / elle'}`],
+                  ['Yenileme şekli', tenant.status === 'TRIAL' ? 'Paket seçilince' : tenant.hasIyzicoSubscription && !tenant.cancelAtPeriodEnd ? 'Otomatik (kart)' : 'Elle; hatırlatılır']
+                ].map(([k, v]) => (
+                  <div key={k} className="rounded-2xl bg-gray-50 px-3.5 py-3">
+                    <dt className="text-[10px] font-black text-gray-400 uppercase tracking-widest">{k}</dt>
+                    <dd className="mt-0.5 text-sm font-black text-gray-900">{v}</dd>
+                  </div>
+                ))}
+              </dl>
+              {tenant.hasIyzicoSubscription && !tenant.cancelAtPeriodEnd && (
+                <button onClick={cancelRenewal} className="mt-4 text-xs font-bold text-gray-400 hover:text-red-600">Otomatik yenilemeyi durdur</button>
+              )}
+            </>
+          )}
 
-          <div className="mt-6 space-y-4 flex-1">
-            <p className="text-[10px] font-black text-gray-400 uppercase tracking-widest">Kullanım</p>
-            {[['Bayi', Users, usage.dealers, plan.maxDealers], ['Ürün', Package, usage.products, plan.maxProducts], ['Yönetici', UserCog, usage.admins, plan.maxAdmins]].map(([label, Icon, used, max]) => {
-              const unlimited = max < 0;
-              const pct = unlimited ? 0 : Math.min(100, (used / Math.max(max, 1)) * 100);
-              const tone = pct >= 90 ? 'bg-red-500' : pct >= 70 ? 'bg-amber-500' : 'bg-indigo-500';
-              return (
-                <div key={label} className="flex items-center gap-3">
-                  <span className="h-9 w-9 shrink-0 rounded-xl bg-indigo-50 text-indigo-600 flex items-center justify-center"><Icon className="h-4 w-4" /></span>
-                  <div className="flex-1 min-w-0">
-                    <div className="flex items-baseline justify-between gap-2 text-xs">
-                      <span className="font-bold text-gray-700">{label}</span>
-                      <span className="tabular-nums"><b className="text-gray-900">{used.toLocaleString('tr-TR')}</b> <span className="text-gray-400">/ {limitText(max)}</span></span>
+          {tab === 'usage' && (
+            <div className="grid gap-4 sm:grid-cols-3">
+              {usageRows.map(([label, Icon, used, max]) => {
+                const unlimited = max < 0;
+                const pct = unlimited ? 0 : Math.min(100, (used / Math.max(max, 1)) * 100);
+                const tone = pct >= 90 ? 'bg-red-500' : pct >= 70 ? 'bg-amber-500' : 'bg-indigo-500';
+                return (
+                  <div key={label} className="rounded-2xl bg-gray-50 p-4">
+                    <div className="flex items-center justify-between">
+                      <span className="flex items-center gap-2 text-xs font-bold text-gray-600"><Icon className="h-4 w-4 text-indigo-500" /> {label}</span>
+                      <span className="text-xs tabular-nums"><b className="text-gray-900">{used.toLocaleString('tr-TR')}</b> <span className="text-gray-400">/ {limitText(max)}</span></span>
                     </div>
-                    <div className="mt-1.5 h-1.5 rounded-full bg-gray-100 overflow-hidden">
+                    <div className="mt-3 h-1.5 rounded-full bg-white overflow-hidden">
                       {!unlimited && <div className={`h-full rounded-full ${tone}`} style={{ width: `${Math.max(pct, 2)}%` }} />}
                     </div>
-                    <p className={`mt-1 text-[11px] font-semibold ${pct >= 90 ? 'text-red-600' : 'text-gray-400'}`}>
+                    <p className={`mt-2 text-[11px] font-semibold ${pct >= 90 ? 'text-red-600' : 'text-gray-400'}`}>
                       {unlimited ? 'Sınırsız' : max - used > 0 ? `${(max - used).toLocaleString('tr-TR')} hakkınız kaldı` : 'Sınıra ulaştınız; üst pakete geçin'}
                     </p>
                   </div>
-                </div>
-              );
-            })}
-          </div>
-
-          {tenant.hasIyzicoSubscription && !tenant.cancelAtPeriodEnd && (
-            <button onClick={cancelRenewal} className="mt-5 self-start text-xs font-bold text-gray-400 hover:text-red-600">Otomatik yenilemeyi durdur</button>
+                );
+              })}
+            </div>
           )}
-        </div>
 
-        <div className="card-premium lg:col-span-3 flex flex-col">
-          <div className="flex items-center justify-between px-6 pt-6 pb-3">
-            <h3 className="text-sm font-black text-gray-900 flex items-center gap-2"><Receipt className="h-4 w-4 text-indigo-500" /> Ödeme geçmişi</h3>
-            {payments.length > 0 && <span className="text-[11px] font-bold text-gray-400">{payments.length} kayıt</span>}
-          </div>
-          {payments.length === 0 ? (
-            <div className="flex-1 flex flex-col items-center justify-center text-center px-6 pb-8 pt-4">
-              <span className="h-12 w-12 rounded-2xl bg-gray-50 flex items-center justify-center"><Receipt className="h-6 w-6 text-gray-300" /></span>
+          {tab === 'payments' && (payments.length === 0 ? (
+            <div className="flex flex-col items-center text-center py-8">
+              <span className="h-11 w-11 rounded-2xl bg-gray-50 flex items-center justify-center"><Receipt className="h-5 w-5 text-gray-300" /></span>
               <p className="mt-3 text-sm font-bold text-gray-600">Henüz ödeme yok</p>
-              <p className="mt-1 text-xs text-gray-400 max-w-xs">İlk ödemenizden sonra ödemeleriniz ve faturalarınız burada listelenir.</p>
+              <p className="mt-1 text-xs text-gray-400">İlk ödemenizden sonra ödemeleriniz ve faturalarınız burada listelenir.</p>
             </div>
           ) : (
-            <ul className="divide-y divide-gray-50 max-h-[26rem] overflow-y-auto px-2 pb-2">
+            <ul className="divide-y divide-gray-50 max-h-80 overflow-y-auto -mx-2">
               {payments.map((p) => {
                 const ok = p.status === 'SUCCESS';
                 const method = p.method === 'IYZICO' ? 'Kart' : p.reference?.startsWith('transfer:') ? 'Havale' : 'Elle kayıt';
                 return (
-                  <li key={p.id} className="flex items-center gap-3 px-4 py-3 rounded-xl hover:bg-gray-50/70">
-                    <span className={`h-9 w-9 shrink-0 rounded-xl flex items-center justify-center ${ok ? 'bg-emerald-50 text-emerald-600' : 'bg-red-50 text-red-600'}`}>
+                  <li key={p.id} className="flex items-center gap-3 px-2 py-2.5">
+                    <span className={`h-8 w-8 shrink-0 rounded-lg flex items-center justify-center ${ok ? 'bg-emerald-50 text-emerald-600' : 'bg-red-50 text-red-600'}`}>
                       {ok ? <Check className="h-4 w-4" /> : <X className="h-4 w-4" />}
                     </span>
                     <div className="flex-1 min-w-0">
                       <p className="text-sm font-bold text-gray-900 truncate">{planName(p.planCode)} · {p.billingCycle === 'YEARLY' ? 'Yıllık' : 'Aylık'}</p>
-                      <p className="text-[11px] text-gray-400 truncate">
-                        {formatDate(p.createdAt)} · {method}{ok && p.periodEnd && ` · ${formatDate(p.periodStart)} – ${formatDate(p.periodEnd)}`}
-                      </p>
+                      <p className="text-[11px] text-gray-400 truncate">{formatDate(p.createdAt)} · {method}{ok && p.periodEnd && ` · ${formatDate(p.periodStart)} – ${formatDate(p.periodEnd)}`}</p>
                     </div>
                     <div className="text-right shrink-0">
                       <p className={`text-sm font-black tabular-nums ${ok ? 'text-gray-900' : 'text-red-600'}`}>{ok ? formatTRY(p.amount) : 'Başarısız'}</p>
                       {p.invoiceStatus === 'ISSUED' ? (
                         <button onClick={() => api.get(`/billing/payments/${p.id}/invoice`).then((r) => window.open(r.data.url, '_blank', 'noopener')).catch(() => showAlert({ type: 'error', title: 'Fatura', message: 'Fatura açılamadı.' }))}
-                          className="mt-0.5 inline-flex items-center gap-1 text-[11px] font-bold text-indigo-600 hover:underline"><FileText className="h-3 w-3" /> Fatura</button>
-                      ) : ok && p.invoiceStatus === 'PENDING' ? <p className="mt-0.5 text-[11px] font-semibold text-gray-400">Fatura hazırlanıyor</p> : null}
+                          className="inline-flex items-center gap-1 text-[11px] font-bold text-indigo-600 hover:underline"><FileText className="h-3 w-3" /> Fatura</button>
+                      ) : ok && p.invoiceStatus === 'PENDING' ? <p className="text-[11px] font-semibold text-gray-400">Fatura hazırlanıyor</p> : null}
                     </div>
                   </li>
                 );
               })}
             </ul>
-          )}
+          ))}
         </div>
       </section>
     </div>
