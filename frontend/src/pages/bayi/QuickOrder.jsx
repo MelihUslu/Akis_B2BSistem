@@ -1,15 +1,19 @@
 import { useState } from 'react';
-import { Zap, ClipboardPaste, Plus, Trash2, ShoppingCart, AlertTriangle, Search } from 'lucide-react';
+import { Zap, ClipboardPaste, Plus, Trash2, ShoppingCart, AlertTriangle, Search, FileSignature } from 'lucide-react';
 import api, { errorMessage } from '../../services/api';
 import { useCart } from '../../context/CartContext';
 import useAlert from '../../hooks/useAlert';
 import { formatTRY, normalizeQty } from '../../utils/format';
 import { t } from '../../i18n';
 import PageHeader from '../../components/shared/PageHeader';
+import QuoteRequestModal from '../../components/bayi/QuoteRequestModal';
+import usePortalSettings from '../../hooks/usePortalSettings';
 
 let rowSeq = 0;
 const nextKey = () => ++rowSeq;
 const emptyRow = () => ({ key: nextKey(), sku: '', quantity: '' });
+// Sepete eklenebilir mi? Fiyatı gizli, varyant seçilmesi gereken ve stokta olmayan ürünler eklenmez
+const blocker = (p) => (p.requiresVariant ? 'variant' : p.priceHidden ? 'price' : !p.inStock ? 'stock' : null);
 
 // "SKU<TAB>Miktar", "SKU;Miktar", "SKU,Miktar" veya "SKU Miktar" satırlarını ayrıştırır (Excel'den kopyala-yapıştır)
 const parsePaste = (text) =>
@@ -30,6 +34,8 @@ const QuickOrder = () => {
   const [loading, setLoading] = useState(false);
   const { addToCart, setIsCartOpen } = useCart();
   const { alertElement, showAlert } = useAlert();
+  const { quoteOutOfStock } = usePortalSettings();
+  const [quoteItems, setQuoteItems] = useState(null);
 
   const updateRow = (key, field, value) => setRows((prev) => prev.map((r) => (r.key === key ? { ...r, [field]: value } : r)));
 
@@ -64,16 +70,25 @@ const QuickOrder = () => {
   };
 
   const addAll = () => {
-    const addable = resolved.lines.filter((l) => !l.product.priceHidden && !l.product.requiresVariant);
+    const addable = resolved.lines.filter((l) => !blocker(l.product));
     addable.forEach((l) => addToCart({ ...l.product, price: l.product.netPrice }, l.quantity));
-    const skipped = resolved.lines.length - addable.length;
+    const count = (why) => resolved.lines.filter((l) => blocker(l.product) === why).length;
+    const reasons = [
+      count('stock') && t('{n} ürün stokta yok', { n: count('stock') }),
+      count('price') && t('{n} ürün için fiyat teklifi gerekiyor', { n: count('price') }),
+      count('variant') && t("{n} ürün için varyant seçilmeli (varyantın kendi SKU'sunu girin)", { n: count('variant') })
+    ].filter(Boolean);
     setResolved(null);
     setRows([emptyRow(), emptyRow(), emptyRow()]);
-    setIsCartOpen(true);
-    if (skipped > 0) {
-      showAlert({ type: 'warning', title: t('Bazı ürünler eklenmedi'), message: t('{n} ürün eklenmedi: fiyat teklifi gerekiyor ya da varyant seçilmesi gerekiyor (varyantın kendi SKU\'sunu girin).', { n: skipped }) });
+    if (addable.length) setIsCartOpen(true);
+    if (reasons.length) {
+      showAlert({ type: 'warning', title: t('Bazı ürünler sepete eklenmedi'), message: `${reasons.join(' · ')}.` });
     }
   };
+
+
+  const soldOut = resolved ? resolved.lines.filter((l) => blocker(l.product) === 'stock') : [];
+  const addableCount = resolved ? resolved.lines.filter((l) => !blocker(l.product)).length : 0;
 
   return (
     <div className="space-y-6 md:space-y-8">
@@ -118,14 +133,33 @@ const QuickOrder = () => {
         </div>
       </div>
 
+      {quoteItems && (
+        <QuoteRequestModal items={quoteItems} onClose={() => setQuoteItems(null)}
+          onDone={(message) => { setQuoteItems(null); showAlert({ type: 'success', title: t('Teklif talebi alındı'), message }); }} />
+      )}
+
       {resolved && (
         <div className="card-premium">
           <div className="p-6 border-b border-gray-50 flex justify-between items-center">
             <h3 className="font-black text-gray-900">{t('Bulunan Ürünler ({n})', { n: resolved.lines.length })}</h3>
-            <button onClick={addAll} disabled={resolved.lines.length === 0} className="btn-gradient disabled:opacity-50">
-              <ShoppingCart className="h-4 w-4 mr-2" /> {t('Tümünü Sepete Ekle')}
-            </button>
+            <div className="flex flex-wrap justify-end gap-2">
+              {quoteOutOfStock && soldOut.length > 0 && (
+                <button onClick={() => setQuoteItems(soldOut.map(({ product, quantity }) => ({ productId: product.id, name: product.parentName || product.name, sku: product.sku, variantLabel: product.variantLabel, quantity, unit: product.unit, outOfStock: true })))}
+                  className="h-11 px-4 rounded-2xl bg-amber-500 text-white text-xs font-black flex items-center gap-1.5 hover:bg-amber-600">
+                  <FileSignature className="h-4 w-4" /> {t('Stokta olmayanlar için teklif iste ({n})', { n: soldOut.length })}
+                </button>
+              )}
+              <button onClick={addAll} disabled={addableCount === 0} className="btn-gradient disabled:opacity-50">
+                <ShoppingCart className="h-4 w-4 mr-2" /> {t('Sepete Ekle ({n})', { n: addableCount })}
+              </button>
+            </div>
           </div>
+          {soldOut.length > 0 && (
+            <p className="mx-6 mt-4 text-xs font-bold text-red-800 bg-red-50 p-3 rounded-xl flex items-center">
+              <AlertTriangle className="h-4 w-4 mr-2 shrink-0" />
+              {quoteOutOfStock ? t('{n} ürün stokta yok; sepete eklenmez. Bu ürünler için teklif isteyebilirsiniz.', { n: soldOut.length }) : t('{n} ürün stokta yok; sepete eklenmez.', { n: soldOut.length })}
+            </p>
+          )}
           {resolved.notFound.length > 0 && (
             <p className="mx-6 mt-4 text-xs font-bold text-amber-800 bg-amber-50 p-3 rounded-xl flex items-center">
               <AlertTriangle className="h-4 w-4 mr-2" /> {t('Bulunamayan kodlar:')} {resolved.notFound.join(', ')}
@@ -138,13 +172,14 @@ const QuickOrder = () => {
                   <p className="font-bold text-gray-900">{product.parentName || product.name}</p>
                   {product.variantLabel && <p className="text-xs font-black text-indigo-600">{product.variantLabel}</p>}
                   {product.requiresVariant && <p className="text-xs font-black text-amber-600">{t("Bu ana ürün kodudur — varyantın SKU'sunu girin.")}</p>}
+                  {blocker(product) === 'stock' && <p className="mt-0.5 inline-flex items-center rounded-md bg-red-50 px-1.5 py-0.5 text-[11px] font-black text-red-700">{t('Stokta yok · sepete eklenmez')}</p>}
                   <p className="text-xs text-gray-400 font-semibold">
                     {product.sku} · {t('Stok')}: {product.stock}
                     {requested && parseInt(requested) !== quantity && <span className="text-amber-600"> {t('· Miktar MOQ/koli kuralına göre {qty} yapıldı', { qty: quantity })}</span>}
                   </p>
                 </div>
                 <div className="text-right">
-                  <p className="font-black text-gray-900">{product.priceHidden ? t('Fiyat teklifi gerekli') : formatTRY(product.netPrice * quantity)}</p>
+                  <p className={`font-black ${blocker(product) ? 'text-gray-400' : 'text-gray-900'}`}>{product.priceHidden ? t('Fiyat teklifi gerekli') : formatTRY(product.netPrice * quantity)}</p>
                   <p className="text-xs text-gray-400 font-semibold">{quantity} {product.unit}{!product.priceHidden && ` × ${formatTRY(product.netPrice)}`}</p>
                 </div>
               </div>
