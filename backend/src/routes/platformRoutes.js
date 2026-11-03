@@ -4,7 +4,7 @@ import { getSiteAdmin, putSiteAdmin, listChats, getChatAdmin, replyChat, updateC
 import { monitoringOverview, listJobRuns, listExternalCalls, listApiRequests, listSlowRequests, monitoringFilters } from '../services/monitoringReport.js';
 import {
   platformLogin, getDashboard, listTenants, getTenant, createTenant, updateTenant, addManualPayment,
-  resetTenantAdminPassword, listPlans, createPlan, updatePlan, syncPlanToIyzico, listPayments,
+  resetTenantAdminPassword, listPlans, createPlan, updatePlan, syncPlanToIyzico, listPayments, listTransfers, approveTransfer, rejectTransfer,
   platformVerifyTwoFactor, platformForgotPassword, platformResetPassword, retrySubscriptionInvoice, subscriptionInvoicePdfUrl, listErrors, resolveError, platformTwoFactorStatus, platformTwoFactorSetup, platformTwoFactorEnable, platformTwoFactorDisable,
   impersonateTenant, exportTenantData, reopenTenant, purgeTenantData, platformAuditLogs,
   listAnnouncements, createAnnouncement, deleteAnnouncement, listSupportTickets, getSupportTicket, replySupportTicket,
@@ -45,6 +45,9 @@ router.post('/plans', createPlan);
 router.patch('/plans/:id', updatePlan);
 router.post('/plans/:id/sync-iyzico', syncPlanToIyzico);
 router.get('/payments', listPayments);
+router.get('/transfers', listTransfers);
+router.post('/transfers/:id/approve', approveTransfer);
+router.post('/transfers/:id/reject', rejectTransfer);
 router.post('/payments/:id/invoice', retrySubscriptionInvoice);
 router.get('/payments/:id/invoice/pdf', subscriptionInvoicePdfUrl);
 router.post('/tenants/:id/impersonate', impersonateTenant);

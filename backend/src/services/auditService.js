@@ -62,6 +62,8 @@ const LABELS = {
   'POST /api/cash/recurring': 'Düzenli gelir / gider eklendi',
   'PUT /api/cash/recurring/:id': 'Düzenli gelir / gider güncellendi',
   'DELETE /api/cash/recurring/:id': 'Düzenli gelir / gider silindi',
+  'POST /api/billing/transfer': 'Abonelik için havale bildirimi yapıldı',
+  'DELETE /api/billing/transfer/:id': 'Havale bildirimi iptal edildi',
   'POST /api/settings': 'Sistem ayarı değişti',
   'PATCH /api/tenant': 'Firma bilgileri güncellendi',
   'PUT /api/tenant/pos': 'Sanal POS bağlandı',

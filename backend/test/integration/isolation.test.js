@@ -1105,3 +1105,87 @@ test('gelir-gider: 30 günlük nakit tahmini (alacak, tedarikçi borcu, çek, ge
   assert.equal(list.filter((n) => /bütçesi aşıldı/.test(n.title)).length, 1);
   assert.equal(list.filter((n) => /kullanıldı/.test(n.title)).length, 1);
 });
+
+test('abonelik: havale bildirimi, fatura bilgisi hatırlanır, platform onayı aboneliği uzatır / reddi', { skip }, async () => {
+  const A = { tenant: 'itest-a', token: tenants['itest-a'].token };
+  const tenantId = tenants['itest-a'].id;
+  const jwt = (await import('jsonwebtoken')).default;
+  const bcrypt = (await import('bcrypt')).default;
+  const { saveSiteSettings } = await import('../../src/services/siteSettings.js');
+  const admin = await runAsPlatform(async () => (await prisma.user.findFirst({ where: { email: 'itest-platform@x.test', tenantId: null } }))
+    || prisma.user.create({ data: { email: 'itest-platform@x.test', password: await bcrypt.hash('Test12345', 4), name: 'Platform Test', role: 'SUPER_ADMIN', tenantId: null } }));
+  const P = { token: jwt.sign({ id: admin.id, role: 'SUPER_ADMIN', tenantId: null }, process.env.JWT_SECRET, { expiresIn: '1h' }) };
+  await runAsPlatform(() => prisma.plan.update({ where: { code: 'ITEST' }, data: { isPublic: true, priceMonthly: 1200, priceYearly: 12000 } }));
+
+  try {
+    // IBAN tanımlı değilken havale seçeneği yok
+    await saveSiteSettings({ billing: { bankName: '', accountName: '', iban: '', transferNote: '' } });
+    let res = await api('/billing', A);
+    assert.equal(res.status, 200);
+    assert.equal(res.data.bank, null);
+    assert.equal((await api('/billing/transfer', { ...A, method: 'POST', body: { planCode: 'ITEST', billingCycle: 'MONTHLY', senderName: 'Ali Veli' } })).status, 400);
+
+    await saveSiteSettings({ billing: { bankName: 'Ziraat Bankası', accountName: 'Akis Yazılım Ltd.', iban: 'TR00 0000 0000 0000 0000 0000 00', transferNote: '' } });
+    res = await api('/billing', A);
+    assert.equal(res.data.bank.iban, 'TR00 0000 0000 0000 0000 0000 00');
+    assert.equal(res.data.transferRef, 'ITEST-A');
+    assert.ok(res.data.profile); // ilk seferde firma bilgilerinden dolu gelir
+
+    // Bildirim: gönderen zorunlu, tek bekleyen
+    assert.equal((await api('/billing/transfer', { ...A, method: 'POST', body: { planCode: 'ITEST', billingCycle: 'YEARLY', senderName: '' } })).status, 400);
+    const sent = await api('/billing/transfer', { ...A, method: 'POST', body: { planCode: 'ITEST', billingCycle: 'YEARLY', senderName: 'Ali Veli', note: 'Dekont no 123' } });
+    assert.equal(sent.status, 201, sent.data?.message);
+    assert.equal(sent.data.transfer.amount, 12000);
+    assert.equal((await api('/billing/transfer', { ...A, method: 'POST', body: { planCode: 'ITEST', billingCycle: 'MONTHLY', senderName: 'Ali Veli' } })).status, 400);
+    assert.equal((await api('/billing', A)).data.transfer.status, 'PENDING');
+    // Başka firma göremez / iptal edemez
+    assert.equal((await api(`/billing/transfer/${sent.data.transfer.id}`, { tenant: 'itest-b', token: tenants['itest-b'].token, method: 'DELETE' })).status, 400);
+    assert.equal((await api('/billing', { tenant: 'itest-b', token: tenants['itest-b'].token })).data.transfer, null);
+
+    // Platform: listeler ve onaylar → abonelik yıllık uzar, ödeme kaydı oluşur, firmaya bildirim
+    const before = await runAsPlatform(() => prisma.tenant.findUnique({ where: { id: tenantId } }));
+    const list = await api('/platform/transfers', P);
+    assert.equal(list.status, 200);
+    assert.ok(list.data.some((t) => t.id === sent.data.transfer.id && t.tenant.slug === 'itest-a'));
+    assert.equal((await api(`/platform/transfers/${sent.data.transfer.id}/approve`, { ...P, method: 'POST', body: {} })).status, 200);
+    assert.equal((await api(`/platform/transfers/${sent.data.transfer.id}/approve`, { ...P, method: 'POST', body: {} })).status, 400); // ikinci kez
+    const after = await runAsPlatform(() => prisma.tenant.findUnique({ where: { id: tenantId } }));
+    assert.equal(after.status, 'ACTIVE');
+    assert.equal(after.billingCycle, 'YEARLY');
+    assert.ok(after.currentPeriodEnd > before.currentPeriodEnd);
+    const payment = await runAsPlatform(() => prisma.subscriptionPayment.findUnique({ where: { reference: `transfer:${sent.data.transfer.id}` } }));
+    assert.equal(payment.amount, 12000);
+    assert.equal(payment.status, 'SUCCESS');
+    let note = null;
+    for (let i = 0; i < 20 && !note; i++) {
+      note = await runAsPlatform(() => prisma.notification.findFirst({ where: { tenantId, title: 'Ödemeniz onaylandı' } }));
+      if (!note) await new Promise((r) => setTimeout(r, 100));
+    }
+    assert.ok(note);
+
+    // Red: firma sebebi görür, yeniden bildirebilir; iptal
+    const second = await api('/billing/transfer', { ...A, method: 'POST', body: { planCode: 'ITEST', billingCycle: 'MONTHLY', senderName: 'Ali Veli' } });
+    assert.equal(second.status, 201);
+    assert.equal((await api(`/platform/transfers/${second.data.transfer.id}/reject`, { ...P, method: 'POST', body: { reason: 'Hesapta göremedik.' } })).status, 200);
+    res = await api('/billing', A);
+    assert.equal(res.data.transfer.status, 'REJECTED');
+    assert.equal(res.data.transfer.rejectReason, 'Hesapta göremedik.');
+    const third = await api('/billing/transfer', { ...A, method: 'POST', body: { planCode: 'ITEST', billingCycle: 'MONTHLY', senderName: 'Ali Veli' } });
+    assert.equal((await api(`/billing/transfer/${third.data.transfer.id}`, { ...A, method: 'DELETE' })).status, 200);
+
+    // Otomatik yenilenmeyen abonelik: bitişe 3 gün kala hatırlatma (bir kez)
+    const { runRenewalReminders } = await import('../../src/services/notificationService.js');
+    const { runWithTenant } = await import('../../src/utils/prisma.js');
+    const t3 = { ...after, status: 'ACTIVE', iyzicoSubscriptionRef: null, currentPeriodEnd: new Date(Date.now() + 2.5 * 864e5) };
+    assert.equal(await runWithTenant(tenantId, () => runRenewalReminders(t3)), 1);
+    await runWithTenant(tenantId, () => runRenewalReminders(t3));
+    assert.equal(await runAsPlatform(() => prisma.notification.count({ where: { tenantId, title: 'Aboneliğinizin bitmesine 3 gün kaldı' } })), 1);
+    assert.equal(await runWithTenant(tenantId, () => runRenewalReminders({ ...t3, iyzicoSubscriptionRef: 'abc' })), 0); // kartla otomatik yenileniyor
+
+    // Platform yetkisi olmadan erişilemez
+    assert.equal((await api('/platform/transfers', A)).status >= 401, true);
+  } finally {
+    await saveSiteSettings({ billing: { bankName: '', accountName: '', iban: '', transferNote: '' } });
+    await runAsPlatform(() => prisma.plan.update({ where: { code: 'ITEST' }, data: { isPublic: false, priceMonthly: 0, priceYearly: 0 } }));
+  }
+});

@@ -2,7 +2,7 @@ import bcrypt from 'bcrypt';
 import crypto from 'crypto';
 import { articleData } from '../services/helpService.js';
 import jwt from 'jsonwebtoken';
-import prisma from '../utils/prisma.js';
+import prisma, { runWithTenant } from '../utils/prisma.js';
 import { JWT_SECRET, tenantUrl, tenantPortalUrl } from '../config.js';
 import { tenantAccess, invalidateTenantCache } from '../middlewares/tenantMiddleware.js';
 import { checkSlug, normalizeSlug } from './publicController.js';
@@ -12,7 +12,7 @@ import * as iyzico from '../services/iyzicoService.js';
 import * as twoFactor from '../services/twoFactorService.js';
 import { audit, clientIp } from '../services/auditService.js';
 import { exportTenantWorkbook, purgeTenant } from '../services/tenantDataService.js';
-import { notifyUser } from '../services/notificationService.js';
+import { notifyUser, notifyAdmins } from '../services/notificationService.js';
 import { cleanAttachments } from '../services/supportService.js';
 import { issueSubscriptionInvoice, subscriptionInvoicePdf } from '../services/platformInvoiceService.js';
 import { platformCreds } from '../services/invoiceService.js';
@@ -610,4 +610,54 @@ export const updateHelpArticle = async (req, res) => {
 export const deleteHelpArticle = async (req, res) => {
   await prisma.helpArticle.deleteMany({ where: { id: parseInt(req.params.id) } });
   res.json({ message: 'Yazı silindi.' });
+};
+
+// ─── Abonelik havale bildirimleri ────────────────────────────────────────────
+
+export const listTransfers = async (req, res) => {
+  const status = ['PENDING', 'APPROVED', 'REJECTED', 'CANCELLED'].includes(req.query.status) ? req.query.status : 'PENDING';
+  const rows = await prisma.transferNotice.findMany({
+    where: { status }, include: { tenant: { select: { id: true, name: true, slug: true } } }, orderBy: { createdAt: status === 'PENDING' ? 'asc' : 'desc' }, take: 100
+  });
+  const plans = Object.fromEntries((await prisma.plan.findMany({ select: { code: true, name: true } })).map((p) => [p.code, p.name]));
+  res.json(rows.map((r) => ({ ...r, planName: plans[r.planCode] || r.planCode })));
+};
+
+const tenantNotice = (tenantId, payload) => runWithTenant(tenantId, () => notifyAdmins({ type: 'SYSTEM', anyPermission: ['SETTINGS'], link: '/admin/subscription', ...payload }))
+  .catch((err) => console.error('[Havale bildirimi] Firma bilgilendirilemedi:', err.message));
+
+// Ödeme hesaba geçti: abonelik uzatılır (fatura otomatik kesilir), firmaya bildirim gider
+export const approveTransfer = async (req, res) => {
+  try {
+    const notice = await prisma.transferNotice.findUnique({ where: { id: parseInt(req.params.id) || 0 }, include: { tenant: { include: { plan: true } } } });
+    if (!notice || notice.status !== 'PENDING') return res.status(400).json({ message: 'Bu bildirim onaylanamaz.' });
+    const plan = await prisma.plan.findUnique({ where: { code: notice.planCode } });
+    if (!plan) return res.status(400).json({ message: 'Paket bulunamadı.' });
+    const amount = req.body.amount !== undefined && req.body.amount !== '' ? parseFloat(req.body.amount) : notice.amount;
+    if (!(amount > 0)) return res.status(400).json({ message: 'Geçerli bir tutar girin.' });
+    const claimed = await prisma.transferNotice.updateMany({ where: { id: notice.id, status: 'PENDING' }, data: { status: 'APPROVED', resolvedAt: new Date(), resolvedBy: req.platformUser?.name || req.user?.name || 'Platform' } });
+    if (!claimed.count) return res.status(400).json({ message: 'Bu bildirim zaten işlendi.' });
+    const { payment } = await recordSuccessfulPayment({
+      tenant: notice.tenant, plan, cycle: notice.billingCycle, amount, method: 'MANUAL',
+      reference: `transfer:${notice.id}`, note: `Havale / EFT · gönderen: ${notice.senderName}${notice.note ? ` · ${notice.note}` : ''}`
+    });
+    await prisma.transferNotice.update({ where: { id: notice.id }, data: { paymentId: payment.id } });
+    tenantNotice(notice.tenantId, {
+      title: 'Ödemeniz onaylandı',
+      message: `${plan.name} · ${notice.billingCycle === 'YEARLY' ? 'yıllık' : 'aylık'} aboneliğiniz ${payment.periodEnd.toLocaleDateString('tr-TR')} tarihine kadar aktif. Teşekkür ederiz!`
+    });
+    res.json({ message: `Onaylandı. ${notice.tenant.name} aboneliği ${payment.periodEnd.toLocaleDateString('tr-TR')} tarihine uzatıldı.` });
+  } catch (error) {
+    console.error('approveTransfer error:', error);
+    res.status(400).json({ message: 'Onaylanamadı.' });
+  }
+};
+
+export const rejectTransfer = async (req, res) => {
+  const reason = String(req.body.reason || '').trim().slice(0, 300) || 'Ödeme hesabımızda görünmüyor.';
+  const notice = await prisma.transferNotice.findUnique({ where: { id: parseInt(req.params.id) || 0 } });
+  if (!notice || notice.status !== 'PENDING') return res.status(400).json({ message: 'Bu bildirim reddedilemez.' });
+  await prisma.transferNotice.update({ where: { id: notice.id }, data: { status: 'REJECTED', rejectReason: reason, resolvedAt: new Date(), resolvedBy: req.platformUser?.name || req.user?.name || 'Platform' } });
+  tenantNotice(notice.tenantId, { title: 'Havale bildiriminiz onaylanmadı', message: `${reason} Dekontu kontrol edip tekrar bildirebilir ya da bizimle iletişime geçebilirsiniz.` });
+  res.json({ message: 'Bildirim reddedildi; firmaya haber verildi.' });
 };

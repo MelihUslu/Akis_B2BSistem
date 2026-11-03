@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react';
-import { Receipt, FileText, RefreshCw } from 'lucide-react';
+import { Receipt, FileText, RefreshCw, Landmark, Check, X } from 'lucide-react';
 import { Link } from 'react-router-dom';
 import { platformApi, errorMessage } from '../../services/api';
 import useAlert from '../../hooks/useAlert';
@@ -7,9 +7,36 @@ import { formatDate, formatTRY } from '../../utils/format';
 
 const PlatformPayments = () => {
   const [payments, setPayments] = useState([]);
-  const { alertElement, showAlert } = useAlert();
+  const [transfers, setTransfers] = useState([]);
+  const { alertElement, showAlert, confirm } = useAlert();
 
-  const load = () => platformApi.get('/payments').then((res) => setPayments(res.data)).catch(() => {});
+  const load = () => {
+    platformApi.get('/payments').then((res) => setPayments(res.data)).catch(() => {});
+    platformApi.get('/transfers').then((res) => setTransfers(res.data)).catch(() => {});
+  };
+
+  // Havale bildirimi: hesaba geçtiyse onayla (abonelik uzar, fatura kesilir), görünmüyorsa reddet
+  const approve = async (t) => {
+    if (!(await confirm({ type: 'info', title: `${t.tenant.name} onaylansın mı?`, message: `${t.planName} · ${t.billingCycle === 'YEARLY' ? 'yıllık' : 'aylık'} · ${formatTRY(t.amount)} hesaba geçtiyse onaylayın. Abonelik uzatılır ve fatura kesilir.`, confirmText: 'Onayla' }))) return;
+    try {
+      const res = await platformApi.post(`/transfers/${t.id}/approve`, {});
+      showAlert({ type: 'success', title: 'Onaylandı', message: res.data.message });
+    } catch (err) {
+      showAlert({ type: 'error', title: 'Onaylanamadı', message: errorMessage(err, 'Hata oluştu.') });
+    }
+    load();
+  };
+  const reject = async (t) => {
+    const reason = window.prompt('Firmaya iletilecek sebep', 'Ödeme hesabımızda görünmüyor.');
+    if (reason == null) return;
+    try {
+      const res = await platformApi.post(`/transfers/${t.id}/reject`, { reason });
+      showAlert({ type: 'success', title: 'Reddedildi', message: res.data.message });
+    } catch (err) {
+      showAlert({ type: 'error', title: 'Hata', message: errorMessage(err, 'Hata oluştu.') });
+    }
+    load();
+  };
   useEffect(() => { load(); }, []);
 
   const retry = async (p) => {
@@ -36,6 +63,27 @@ const PlatformPayments = () => {
           <p className="text-gray-500 text-sm mt-1">Son {payments.length} kayıt · Başarılı toplam {formatTRY(total)}</p>
         </div>
       </div>
+      {transfers.length > 0 && (
+        <div className="card-premium p-5 space-y-3 ring-2 ring-amber-200">
+          <h2 className="text-sm font-black text-gray-900 flex items-center gap-2"><Landmark className="h-4 w-4 text-amber-600" /> Onay bekleyen havaleler ({transfers.length})</h2>
+          <ul className="divide-y divide-gray-100">
+            {transfers.map((t) => (
+              <li key={t.id} className="flex flex-wrap items-center gap-3 py-3">
+                <div className="flex-1 min-w-48">
+                  <Link to={`/tenants/${t.tenantId}`} className="font-bold text-gray-900 hover:text-indigo-600">{t.tenant.name}</Link>
+                  <p className="text-xs text-gray-500">{t.planName} · {t.billingCycle === 'YEARLY' ? 'Yıllık' : 'Aylık'} · gönderen <b>{t.senderName}</b> · açıklama {t.tenant.slug.toUpperCase()}-{t.planCode}{t.note && ` · ${t.note}`}</p>
+                  <p className="text-[11px] text-gray-400">{formatDate(t.createdAt, true)}{t.createdByName && ` · ${t.createdByName}`}</p>
+                </div>
+                <span className="font-black tabular-nums text-gray-900">{formatTRY(t.amount)}</span>
+                <div className="flex gap-2">
+                  <button onClick={() => approve(t)} className="h-9 px-3 rounded-xl bg-emerald-600 text-white text-xs font-black flex items-center gap-1 hover:bg-emerald-700"><Check className="h-4 w-4" /> Hesaba geçti, onayla</button>
+                  <button onClick={() => reject(t)} className="h-9 px-3 rounded-xl bg-white ring-1 ring-gray-200 text-gray-600 text-xs font-black flex items-center gap-1 hover:text-red-600"><X className="h-4 w-4" /> Reddet</button>
+                </div>
+              </li>
+            ))}
+          </ul>
+        </div>
+      )}
       <div className="card-premium overflow-x-auto">
         <table className="w-full text-sm">
           <thead className="list-head">
@@ -50,7 +98,7 @@ const PlatformPayments = () => {
                 <td className="px-6 py-4 text-gray-500 font-semibold">{formatDate(p.createdAt, true)}</td>
                 <td className="px-6 py-4"><Link to={`/tenants/${p.tenantId}`} className="font-bold text-gray-900 hover:text-indigo-600">{p.tenant.name}</Link></td>
                 <td className="px-6 py-4 font-semibold">{p.planCode} · {p.billingCycle === 'YEARLY' ? 'Yıllık' : 'Aylık'}</td>
-                <td className="px-6 py-4 font-semibold">{p.method === 'IYZICO' ? 'iyzico' : 'Manuel'}{p.reference && <span className="block text-[10px] text-gray-400">{p.reference}</span>}</td>
+                <td className="px-6 py-4 font-semibold">{p.method === 'IYZICO' ? 'iyzico' : p.reference?.startsWith('transfer:') ? 'Havale' : 'Manuel'}{p.reference && <span className="block text-[10px] text-gray-400">{p.reference}</span>}</td>
                 <td className="px-6 py-4 text-gray-500">{formatDate(p.periodStart)} – {formatDate(p.periodEnd)}</td>
                 <td className={`px-6 py-4 text-right font-black ${p.status === 'SUCCESS' ? 'text-emerald-600' : 'text-red-500'}`}>{p.status === 'SUCCESS' ? formatTRY(p.amount) : 'Başarısız'}</td>
                 <td className="px-6 py-4 whitespace-nowrap">

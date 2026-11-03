@@ -161,6 +161,25 @@ const runTrialReminders = async (tenant) => {
   }
 };
 
+/**
+ * Otomatik yenilenmeyen abonelik (havale / elle ödeme ya da yenilemesi durdurulmuş kart): bitişten 7, 3 ve 1 gün önce
+ * abonelik yetkililerine hatırlatma. Kartla otomatik yenilenen abonelikte gönderilmez.
+ */
+export const runRenewalReminders = async (tenant, now = new Date()) => {
+  if (tenant.status !== 'ACTIVE' || !tenant.currentPeriodEnd || (tenant.iyzicoSubscriptionRef && !tenant.cancelAtPeriodEnd)) return 0;
+  const daysLeft = Math.ceil((new Date(tenant.currentPeriodEnd) - now) / (24 * 60 * 60 * 1000));
+  if (![7, 3, 1].includes(daysLeft)) return 0;
+  await notifyAdmins({
+    type: 'SYSTEM',
+    anyPermission: ['SETTINGS'],
+    title: `Aboneliğinizin bitmesine ${daysLeft} gün kaldı`,
+    message: `Erişiminiz ${new Date(tenant.currentPeriodEnd).toLocaleDateString('tr-TR')} tarihinde sona erer. Kesintisiz devam etmek için Abonelik sayfasından yenileyin.`,
+    link: '/admin/subscription',
+    dedupeKey: `renewal:${tenant.id}:${new Date(tenant.currentPeriodEnd).toISOString().slice(0, 10)}:${daysLeft}`
+  });
+  return 1;
+};
+
 // Zamanlanmış işler her kiracı için kendi bağlamında ayrı ayrı çalışır
 export const runScheduledJobs = async () => {
   const tenants = await runAsPlatform(() => prisma.tenant.findMany({ include: { plan: true } }));
@@ -170,6 +189,7 @@ export const runScheduledJobs = async () => {
       await runDueDateReminders();
       await runPartnerReminders();
       await runTrialReminders(tenant);
+      await runRenewalReminders(tenant);
       // Haftalık / aylık müşteri takip raporu (zamanı geldiyse)
       await import('./periodicReportService.js').then((m) => m.runPeriodicReports());
       // Düzenli gelir / gider (kira, maaş…): günü gelenler kaydedilir

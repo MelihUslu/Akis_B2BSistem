@@ -4,7 +4,7 @@ import { localDay } from '../utils/dates.js';
 /**
  * Tanıtım sitesi ayarları (platform düzeyi; Platform → Geliştirici → Site ve Chatbot).
  * Gruplar: company (firma bilgileri), demo (canlı demo hesabı), legal (yasal metin geçersiz kılmaları),
- * chatbot, tracking (reklam ölçüm kimlikleri). Kayıtlı olmayan alanlar varsayılanla tamamlanır.
+ * chatbot, tracking (reklam ölçüm kimlikleri), billing (abonelik havale bilgileri). Kayıtlı olmayan alanlar varsayılanla tamamlanır.
  */
 export const SITE_DEFAULTS = {
   company: {
@@ -22,7 +22,9 @@ export const SITE_DEFAULTS = {
     knowledge: '',
     handoffMessage: 'Ekibimiz en kısa sürede size dönecek. Telefon numaranızı ya da e-postanızı yazarsanız hemen iletirim.'
   },
-  tracking: { metaPixelId: '', googleTagId: '', googleAdsConversion: '' }
+  tracking: { metaPixelId: '', googleTagId: '', googleAdsConversion: '' },
+  // Abonelik ödemesi için havale / EFT bilgileri (firma panelindeki Abonelik sayfasında gösterilir)
+  billing: { bankName: '', accountName: '', iban: '', transferNote: '' }
 };
 
 const clean = (group, value) => {

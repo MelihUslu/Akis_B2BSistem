@@ -741,6 +741,7 @@ model Tenant {
   periodicReports        PeriodicReport[]
   cashEntries            CashEntry[]
   cashRecurrings         CashRecurring[]
+  transferNotices        TransferNotice[]
 }
 
 // Kiracının platforma yaptığı abonelik ödemeleri (iyzico veya manuel)
@@ -1470,4 +1471,25 @@ model CashRecurring {
   entries       CashEntry[]
 
   @@index([tenantId])
+}
+
+// Abonelik için havale / EFT bildirimi: firma "ödemeyi yaptım" der, platform yöneticisi onaylayınca abonelik uzar
+model TransferNotice {
+  id            Int       @id @default(autoincrement())
+  tenantId      Int
+  tenant        Tenant    @relation(fields: [tenantId], references: [id])
+  planCode      String
+  billingCycle  String
+  amount        Float
+  senderName    String
+  note          String?
+  status        String    @default("PENDING") // PENDING, APPROVED, REJECTED, CANCELLED
+  paymentId     Int? // Onaylanınca oluşan SubscriptionPayment
+  resolvedAt    DateTime?
+  resolvedBy    String?
+  rejectReason  String?
+  createdByName String?
+  createdAt     DateTime  @default(now())
+
+  @@index([tenantId, status])
 }

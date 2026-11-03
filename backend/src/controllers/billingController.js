@@ -1,15 +1,39 @@
-import prisma, { runAsPlatform } from '../utils/prisma.js';
+import prisma, { runAsPlatform, currentTenantId } from '../utils/prisma.js';
 import { syncSubscription } from '../services/iyzicoSyncService.js';
 import { API_PUBLIC_URL } from '../config.js';
 import { tenantAccess, invalidateTenantCache } from '../middlewares/tenantMiddleware.js';
 import { getUsage } from '../services/limitService.js';
 import * as iyzico from '../services/iyzicoService.js';
 import { planPrice } from '../services/subscriptionService.js';
+import { getSiteSettings } from '../services/siteSettings.js';
+import { sendPlatformAlert } from '../services/mailService.js';
+
+const PROFILE_KEY = 'billing_profile'; // Son kullanılan fatura bilgileri (bir sonraki ödemede form dolu gelir)
+const PROFILE_FIELDS = ['fullName', 'identityNumber', 'gsmNumber', 'city', 'address'];
+
+const loadProfile = async () => {
+  const row = await prisma.setting.findFirst({ where: { key: PROFILE_KEY } });
+  try { return JSON.parse(row?.value || 'null'); } catch { return null; }
+};
+const saveProfile = (profile) => prisma.setting.upsert({
+  where: { tenantId_key: { tenantId: currentTenantId(), key: PROFILE_KEY } },
+  update: { value: JSON.stringify(profile) },
+  create: { key: PROFILE_KEY, value: JSON.stringify(profile) }
+});
+
+// Havale bilgileri platform ayarlarından (Platform → Site ve Chatbot → Ödeme); IBAN yoksa havale seçeneği gösterilmez
+const bankInfo = async () => {
+  const { billing, company } = await getSiteSettings();
+  return {
+    bank: billing.iban ? { bankName: billing.bankName, accountName: billing.accountName || company.legalName || company.brand, iban: billing.iban, note: billing.transferNote } : null,
+    contact: { phone: company.phone, whatsapp: company.whatsapp, email: company.email }
+  };
+};
 
 const publicPlan = (p) => ({
   code: p.code, name: p.name, description: p.description,
   priceMonthly: p.priceMonthly, priceYearly: p.priceYearly,
-  maxDealers: p.maxDealers, maxProducts: p.maxProducts, maxAdmins: p.maxAdmins, trialDays: p.trialDays,
+  maxDealers: p.maxDealers, maxProducts: p.maxProducts, maxAdmins: p.maxAdmins, trialDays: p.trialDays, allowCustomDomain: p.allowCustomDomain,
   onlinePayment: { MONTHLY: Boolean(p.iyzicoMonthlyPlanRef), YEARLY: Boolean(p.iyzicoYearlyPlanRef) }
 });
 
@@ -17,10 +41,13 @@ const publicPlan = (p) => ({
 export const getBilling = async (req, res) => {
   try {
     const tenant = await prisma.tenant.findUnique({ where: { id: req.tenant.id }, include: { plan: true } });
-    const [usage, plans, payments] = await Promise.all([
+    const [usage, plans, payments, profile, pay, pendingTransfer] = await Promise.all([
       getUsage(),
       prisma.plan.findMany({ where: { isActive: true, isPublic: true }, orderBy: { sortOrder: 'asc' } }),
-      prisma.subscriptionPayment.findMany({ orderBy: { createdAt: 'desc' }, take: 24 })
+      prisma.subscriptionPayment.findMany({ orderBy: { createdAt: 'desc' }, take: 24 }),
+      loadProfile(),
+      bankInfo(),
+      prisma.transferNotice.findFirst({ where: { status: { in: ['PENDING', 'REJECTED'] } }, orderBy: { createdAt: 'desc' } })
     ]);
 
     res.json({
@@ -35,7 +62,13 @@ export const getBilling = async (req, res) => {
       usage,
       plans: plans.map(publicPlan),
       payments,
-      iyzicoEnabled: iyzico.iyzicoEnabled()
+      iyzicoEnabled: iyzico.iyzicoEnabled(),
+      // Ödeme ekranı: kayıtlı fatura bilgileri, havale bilgileri, bekleyen / reddedilen havale bildirimi
+      profile: profile || { fullName: req.user.name || '', identityNumber: tenant.taxNumber || '', gsmNumber: tenant.phone || '', city: '', address: tenant.address || '' },
+      bank: pay.bank,
+      contact: pay.contact,
+      transferRef: `${tenant.slug.toUpperCase()}`,
+      transfer: pendingTransfer && (pendingTransfer.status === 'PENDING' || Date.now() - pendingTransfer.resolvedAt < 14 * 864e5) ? pendingTransfer : null
     });
   } catch (error) {
     console.error('getBilling error:', error);
@@ -111,6 +144,7 @@ export const startCheckout = async (req, res) => {
       return res.status(400).json({ message: 'Fatura bilgilerini eksiksiz doldurun (ad soyad, TCKN/VKN, telefon, şehir, adres).' });
     }
 
+    await saveProfile(Object.fromEntries(PROFILE_FIELDS.map((k) => [k, String(customer[k] || '').trim().slice(0, 300)])));
     const { name, surname } = splitName(customer.fullName);
     const address = { contactName: customer.fullName, city: customer.city, country: 'Turkey', address: customer.address, zipCode: customer.zipCode || '' };
 
@@ -140,6 +174,43 @@ export const startCheckout = async (req, res) => {
     console.error('startCheckout error:', error);
     res.status(500).json({ message: 'Ödeme başlatılamadı.' });
   }
+};
+
+// ─── Havale / EFT bildirimi ──────────────────────────────────────────────────
+
+// Firma "ödemeyi yaptım" der; platform yöneticisi hesabına geçtiğini görünce onaylar ve abonelik uzar
+export const notifyTransfer = async (req, res) => {
+  try {
+    const { bank } = await bankInfo();
+    if (!bank) return res.status(400).json({ message: 'Havale ile ödeme şu an kullanılamıyor.' });
+    const billingCycle = req.body.billingCycle === 'YEARLY' ? 'YEARLY' : 'MONTHLY';
+    const plan = await prisma.plan.findUnique({ where: { code: String(req.body.planCode || '') } });
+    if (!plan || !plan.isActive) return res.status(400).json({ message: 'Paket bulunamadı.' });
+    const senderName = String(req.body.senderName || '').trim().slice(0, 120);
+    if (senderName.length < 3) return res.status(400).json({ message: 'Gönderen adını (hesap sahibi) yazın.' });
+    if (await prisma.transferNotice.findFirst({ where: { status: 'PENDING' } })) {
+      return res.status(400).json({ message: 'Onay bekleyen bir havale bildiriminiz var. Önce onu iptal edin ya da onaylanmasını bekleyin.' });
+    }
+    const amount = planPrice(plan, billingCycle);
+    const notice = await prisma.transferNotice.create({
+      data: { planCode: plan.code, billingCycle, amount, senderName, note: String(req.body.note || '').trim().slice(0, 500) || null, createdByName: req.user.name || null }
+    });
+    sendPlatformAlert({
+      subject: `Havale bildirimi: ${req.tenant.name}`,
+      text: `${req.tenant.name} (${req.tenant.slug}) ${plan.name} · ${billingCycle === 'YEARLY' ? 'yıllık' : 'aylık'} için ${amount.toLocaleString('tr-TR')} TL havale yaptığını bildirdi. Gönderen: ${senderName}.${notice.note ? ` Not: ${notice.note}` : ''} Hesaba geçince Platform → Ödemeler ekranından onaylayın.`
+    }).catch((err) => console.error('[Havale bildirimi] Uyarı gönderilemedi:', err.message));
+    res.locals.auditEntityId = notice.id;
+    res.status(201).json({ message: 'Bildiriminiz alındı. Ödeme hesabımıza geçince aboneliğiniz aktifleşir; e-posta ve bildirimle haber veririz.', transfer: notice });
+  } catch (error) {
+    console.error('notifyTransfer error:', error);
+    res.status(500).json({ message: 'Bildirim gönderilemedi.' });
+  }
+};
+
+export const cancelTransfer = async (req, res) => {
+  const updated = await prisma.transferNotice.updateMany({ where: { id: parseInt(req.params.id) || 0, status: 'PENDING' }, data: { status: 'CANCELLED', resolvedAt: new Date() } });
+  if (!updated.count) return res.status(400).json({ message: 'Bu bildirim iptal edilemez.' });
+  res.json({ message: 'Havale bildirimi iptal edildi.' });
 };
 
 // Yenilemeyi durdur: erişim dönem sonuna kadar devam eder

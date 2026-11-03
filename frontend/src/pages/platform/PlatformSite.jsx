@@ -2,7 +2,7 @@ import { useEffect, useState } from 'react';
 import { Globe, Save, Loader2, ExternalLink, Plus, X } from 'lucide-react';
 import { platformApi, errorMessage } from '../../services/api';
 
-const TABS = [['company', 'Firma bilgileri'], ['chatbot', 'Chatbot'], ['demo', 'Canlı demo'], ['tracking', 'Reklam ölçümü'], ['legal', 'Yasal metinler']];
+const TABS = [['company', 'Firma bilgileri'], ['billing', 'Abonelik ödemesi'], ['chatbot', 'Chatbot'], ['demo', 'Canlı demo'], ['tracking', 'Reklam ölçümü'], ['legal', 'Yasal metinler']];
 
 const Field = ({ label, hint, children }) => (
   <label className="block">
@@ -112,6 +112,18 @@ const PlatformSite = () => {
               <Field label="Bayi şifresi">{input('demo', 'dealerPassword')}</Field>
               <Field label="Yönetici e-postası">{input('demo', 'adminEmail')}</Field>
               <Field label="Yönetici şifresi">{input('demo', 'adminPassword')}</Field>
+            </div>
+          </div>
+        )}
+
+        {tab === 'billing' && (
+          <div className="space-y-5">
+            <p className="text-sm text-gray-600 bg-gray-50 rounded-xl px-4 py-3">IBAN girildiğinde firmalar Abonelik sayfasında <b>Havale / EFT</b> ile de satın alabilir: banka bilgilerini görür, ödemeyi yapıp bildirir. Bildirim e-postayla gelir; <b>Ödemeler</b> ekranından onaylayınca abonelik uzar ve fatura kesilir. Kartla ödeme iyzico ayarlarıyla çalışır.</p>
+            <div className="grid md:grid-cols-2 gap-5">
+              <Field label="IBAN" hint="Boşsa havale seçeneği gösterilmez.">{input('billing', 'iban', { placeholder: 'TR00 0000 0000 0000 0000 0000 00' })}</Field>
+              <Field label="Banka">{input('billing', 'bankName', { placeholder: 'Örn: Ziraat Bankası' })}</Field>
+              <Field label="Alıcı adı" hint="Boşsa firma bilgilerindeki ticari unvan kullanılır.">{input('billing', 'accountName')}</Field>
+              <Field label="Firmalara not" hint="Örn: Açıklamaya firma kodunu yazmayı unutmayın.">{input('billing', 'transferNote')}</Field>
             </div>
           </div>
         )}
