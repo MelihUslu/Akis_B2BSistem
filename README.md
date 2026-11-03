@@ -65,6 +65,8 @@ TEST_DATABASE_URL=postgresql://akis:akis_dev_password@localhost:5433/akis_test n
 
 Her push'ta GitHub Actions (`.github/workflows/ci.yml`) testleri ve arayüz derlemesini çalıştırır.
 
+Yük testleri (k6, Docker ile): `./loadtest/run.sh smoke | load | stress | spike` · ayrıntı: [loadtest/README.md](loadtest/README.md)
+
 ## Mimari
 
 ```
