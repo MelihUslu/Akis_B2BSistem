@@ -605,6 +605,7 @@ model Notification {
 
   @@index([userId, isRead])
   @@index([tenantId])
+  @@index([createdAt])
 }
 
 // "Gelince Haber Ver" talepleri

@@ -147,6 +147,29 @@ test('günlük özet: sorunlar konu satırına ve metne yansır', { skip }, asyn
   assert.ok(d.text.includes(SVC));
 });
 
+test('bildirim temizliği: 90 günden eski okunmuşlar silinir; okunmamış, yeni ve tekrar anahtarlı olanlar kalır', { skip }, async () => {
+  const { cleanupNotifications, NOTIFICATION_RETENTION_DAYS } = await import('../../src/services/notificationService.js');
+  const user = await runAsPlatform(() => prisma.user.findFirst({ where: { tenantId: T.id } }));
+  const old = new Date(Date.now() - (NOTIFICATION_RETENTION_DAYS + 1) * 86400000);
+  const recent = new Date(Date.now() - (NOTIFICATION_RETENTION_DAYS - 1) * 86400000);
+  const rows = {
+    oldRead: { createdAt: old, isRead: true },
+    oldUnread: { createdAt: old, isRead: false },
+    recentRead: { createdAt: recent, isRead: true },
+    oldReadKeyed: { createdAt: old, isRead: true, dedupeKey: `itest-temizlik:${Date.now()}` } // ör. vade hatırlatması
+  };
+  const ids = {};
+  for (const [k, v] of Object.entries(rows)) {
+    ids[k] = (await runAsPlatform(() => prisma.notification.create({ data: { tenantId: T.id, userId: user.id, type: 'SYSTEM', title: 'itest temizlik', message: '-', ...v } }))).id;
+  }
+  await cleanupNotifications({ batch: 1 }); // parça parça silme sona kadar devam eder
+  const left = new Set((await runAsPlatform(() => prisma.notification.findMany({ where: { id: { in: Object.values(ids) } }, select: { id: true } }))).map((n) => n.id));
+  assert.equal(left.has(ids.oldRead), false);
+  assert.ok(left.has(ids.oldUnread), 'okunmamış kalmalı');
+  assert.ok(left.has(ids.recentRead), '90 günden yeni kalmalı');
+  assert.ok(left.has(ids.oldReadKeyed), 'tekrar anahtarlı kalmalı (yoksa hatırlatma yeniden gider)');
+});
+
 test('firma verisi silinince izleme kayıtları da silinir (KVKK)', { skip }, async () => {
   await monitoring.recordExternal({ service: SVC, operation: 'firma', ok: true, durationMs: 1, tenantId: T.id });
   assert.ok(await prisma.externalCall.count({ where: { tenantId: T.id } }) > 0);

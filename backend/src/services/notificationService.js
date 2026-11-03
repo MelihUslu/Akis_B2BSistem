@@ -1,4 +1,4 @@
-import prisma, { runWithTenant, runAsPlatform } from '../utils/prisma.js';
+import prisma, { runWithTenant, runAsPlatform, basePrisma } from '../utils/prisma.js';
 import { getSettingsMap, num } from './settingsService.js';
 import { tenantAccess } from '../middlewares/tenantMiddleware.js';
 import { sendTrialEndingMail, sendNotificationMail, smtpConfigured } from './mailService.js';
@@ -245,10 +245,31 @@ const purgeExpiredClosedTenants = async (tenants) => {
 
 // Çok sunuculu kurulumda her iş tek sunucuda çalışır (Redis kilidi); böylece bayilere çift hatırlatma gitmez
 // Her çalışma Platform → İzleme → Arka plan işleri'nde görünür; hata veren iş uyarı e-postası gönderir
+/**
+ * Okunmuş bildirimler 90 gün sonra silinir (tablo sınırsız büyümesin). Tekrar engelleme anahtarı olanlar
+ * (ör. vade hatırlatması) silinmez: silinirse aynı eski sipariş için hatırlatma yeniden gönderilirdi.
+ * Birikmiş çok kayıt tabloyu uzun süre kilitlemesin diye parça parça silinir; kalan bir sonraki saate kalır.
+ */
+export const NOTIFICATION_RETENTION_DAYS = 90;
+export const cleanupNotifications = async ({ batch = 5000, maxBatches = 40 } = {}) => {
+  const cutoff = new Date(Date.now() - NOTIFICATION_RETENTION_DAYS * 86400000);
+  let deleted = 0;
+  for (let i = 0; i < maxBatches; i++) {
+    const n = await basePrisma.$executeRaw`
+      DELETE FROM "Notification" WHERE id IN (
+        SELECT id FROM "Notification" WHERE "createdAt" < ${cutoff} AND "isRead" = true AND "dedupeKey" IS NULL LIMIT ${batch}
+      )`;
+    deleted += n;
+    if (n < batch) break;
+  }
+  return deleted;
+};
+
 export const startNotificationJobs = () => {
   const run = () => withJobLock('scheduled-hourly', 50 * 60 * 1000, () => trackJob('Saatlik işler (hatırlatmalar, deneme süresi)', async () => {
     await runScheduledJobs();
     await cleanupMonitoring();
+    await cleanupNotifications();
   })).catch(err => console.error('[Zamanlanmış İş] Hata:', err.message));
   setTimeout(run, 10 * 1000);
   setInterval(run, 60 * 60 * 1000); // saatlik
