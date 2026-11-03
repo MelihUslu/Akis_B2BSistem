@@ -30,7 +30,7 @@ const QuoteRequestModal = ({ items: initialItems, onClose, onDone }) => {
   return (
     <div className="fixed inset-0 z-[60] flex items-center justify-center p-4">
       <div className="modal-backdrop" onClick={onClose} />
-      <form onSubmit={submit} className="modal-panel w-full max-w-lg max-h-[90vh] flex flex-col">
+      <form onSubmit={submit} role="dialog" aria-modal="true" aria-label={t('Teklif İste')} className="modal-panel w-full max-w-lg max-h-[90vh] flex flex-col">
         <ModalHeader icon={FileSignature} title={t('Teklif İste')} subtitle={t('Firma yetkilisi fiyatlandırınca bildirim alırsınız; onaylarsanız sipariş oluşur.')} onClose={onClose} closeLabel={t('Kapat')} />
         <div className="p-6 space-y-3 overflow-y-auto">
           {items.map((item, i) => (
@@ -40,7 +40,7 @@ const QuoteRequestModal = ({ items: initialItems, onClose, onDone }) => {
                 <p className="text-[11px] text-gray-500 font-semibold">{item.sku}{item.variantLabel && ` · ${item.variantLabel}`}</p>
                 {item.outOfStock && <p className="text-[10px] font-black uppercase tracking-wider text-amber-600 mt-0.5">{t('Stokta yok · tedarik için teklif')}</p>}
               </div>
-              <input type="number" min="1" className="premium-input !bg-white !py-2 w-24" value={item.quantity}
+              <input type="number" min="1" aria-label={t('Miktar')} className="premium-input !bg-white !py-2 w-24" value={item.quantity}
                 onChange={(e) => setItems(items.map((x, idx) => (idx === i ? { ...x, quantity: Math.max(1, parseInt(e.target.value) || 1) } : x)))} />
               <span className="text-xs text-gray-400 font-bold w-10">{item.unit}</span>
               {items.length > 1 && (

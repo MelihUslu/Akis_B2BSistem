@@ -101,7 +101,7 @@ const NotificationBell = ({ dark = false }) => {
       </button>
 
       {open && (
-        <div className="absolute right-0 mt-3 w-96 max-w-[calc(100vw-2rem)] bg-white rounded-3xl shadow-2xl border border-gray-100 overflow-hidden z-50 animate-in fade-in zoom-in-95 duration-150">
+        <div role="dialog" aria-label={t('Bildirimler')} className="absolute right-0 mt-3 w-96 max-w-[calc(100vw-2rem)] bg-white rounded-3xl shadow-2xl border border-gray-100 overflow-hidden z-50 animate-in fade-in zoom-in-95 duration-150">
           <div className="flex items-center justify-between px-5 py-4 border-b border-gray-50">
             <p className="text-sm font-black text-gray-900">{t('Bildirimler')}</p>
             {unread > 0 && (

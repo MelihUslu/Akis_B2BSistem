@@ -25,3 +25,6 @@ backend/uploads/private/
 
 # Yedekler (asla depoya girmez)
 backups/
+
+# UAT: oturumlar, derleme, rapor ve ekran kayıtları
+uat/.data/

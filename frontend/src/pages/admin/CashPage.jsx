@@ -25,7 +25,7 @@ const monthName = (key, opts = { month: 'long', year: 'numeric' }) => new Date(`
 const shiftMonth = (m, n) => { const d = new Date(`${m}-01T12:00:00`); d.setMonth(d.getMonth() + n); return localDate(d).slice(0, 7); };
 const short = (v) => {
   const a = Math.abs(v);
-  const s = a >= 1e6 ? `${(a / 1e6).toLocaleString('tr-TR', { maximumFractionDigits: 1 })} Mn` : a >= 1e3 ? `${Math.round(a / 1e3)} B` : `${a}`;
+  const s = a >= 1e6 ? `${(a / 1e6).toLocaleString('tr-TR', { maximumFractionDigits: 1 })} Mn` : a >= 1e3 ? `${(a / 1e3).toLocaleString('tr-TR', { maximumFractionDigits: 1 })} B` : `${a}`; // 1.300 → "1,3 B" (yuvarlanıp "1 B" olmasın)
   return v < 0 ? `−${s}` : s;
 };
 const change = (now, prev) => (prev ? ((now - prev) / Math.abs(prev)) * 100 : null);

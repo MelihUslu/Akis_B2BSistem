@@ -1,0 +1,13 @@
+{
+  "name": "akis-uat",
+  "private": true,
+  "type": "module",
+  "description": "Kullanıcı kabul testleri (Playwright). Çalıştırma: ./uat/run.sh",
+  "scripts": {
+    "test": "./run.sh",
+    "report": "playwright show-report .data/report"
+  },
+  "devDependencies": {
+    "@playwright/test": "1.64.1"
+  }
+}

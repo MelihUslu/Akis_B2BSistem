@@ -67,6 +67,8 @@ Her push'ta GitHub Actions (`.github/workflows/ci.yml`) testleri ve arayüz derl
 
 Yük testleri (k6, Docker ile): `./loadtest/run.sh smoke | load | stress | spike` · ayrıntı: [loadtest/README.md](loadtest/README.md)
 
+Kullanıcı kabul testleri (UAT, gerçek tarayıcıda uçtan uca iş akışları; ayrı veritabanında): `./uat/run.sh` · ayrıntı: [uat/README.md](uat/README.md)
+
 ## Mimari
 
 ```

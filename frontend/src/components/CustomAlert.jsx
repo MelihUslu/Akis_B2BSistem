@@ -92,6 +92,9 @@ const CustomAlert = ({
 
       {/* Modal Card */}
       <div
+        role="alertdialog"
+        aria-modal="true"
+        aria-label={typeof title === 'string' ? title : undefined}
         className="relative bg-white rounded-[1.75rem] ring-1 ring-black/5 shadow-[0_30px_80px_-20px_rgba(15,23,42,0.45)] w-full max-w-sm overflow-hidden"
         style={{ animation: 'alertCardIn 0.35s cubic-bezier(0.16,1,0.3,1) forwards' }}
       >

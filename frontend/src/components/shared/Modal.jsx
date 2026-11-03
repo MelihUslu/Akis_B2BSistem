@@ -6,7 +6,7 @@ const Modal = ({ title, subtitle, icon, onClose, children, footer, size = 'max-w
   return (
     <div className={`fixed inset-0 ${z} flex items-center justify-center p-4`}>
       <div className="modal-backdrop" onClick={onClose} />
-      <Panel onSubmit={onSubmit} className={`modal-panel w-full ${size} max-h-[90vh] flex flex-col`}>
+      <Panel onSubmit={onSubmit} role="dialog" aria-modal="true" aria-label={typeof title === 'string' ? title : undefined} className={`modal-panel w-full ${size} max-h-[90vh] flex flex-col`}>
         <ModalHeader icon={icon} title={title} subtitle={subtitle} onClose={onClose} />
         <div className="p-5 sm:p-7 space-y-4 overflow-y-auto">{children}</div>
         {footer && <div className="modal-footer">{footer}</div>}

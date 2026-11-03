@@ -49,7 +49,7 @@ const CartDrawer = ({ isOpen, onClose }) => {
       />
       
       {/* Drawer */}
-      <div className="relative flex flex-col w-full max-w-md bg-[#0f172a] h-full shadow-[0_0_60px_-15px_rgba(0,0,0,0.7)] animate-in slide-in-from-right duration-500 border-l border-white/10">
+      <div role="dialog" aria-modal="true" aria-label={t('Sepetim')} className="relative flex flex-col w-full max-w-md bg-[#0f172a] h-full shadow-[0_0_60px_-15px_rgba(0,0,0,0.7)] animate-in slide-in-from-right duration-500 border-l border-white/10">
         
         {/* Header */}
         <div className="flex items-center justify-between p-8 border-b border-white/5 relative overflow-hidden">

@@ -250,7 +250,7 @@ const ProductCatalog = () => {
         <div className="relative">
           <Search className="absolute left-4 top-1/2 -translate-y-1/2 h-5 w-5 text-gray-400" />
           <input type="search" value={searchInput} onChange={(e) => setSearchInput(e.target.value)} placeholder={t('Ürün adı, SKU, barkod veya marka ile ara')}
-            className="w-full h-12 pl-12 pr-10 rounded-xl bg-white border border-gray-200 text-[15px] font-medium outline-none focus:border-indigo-400 focus:ring-4 focus:ring-indigo-100 placeholder:text-gray-400" />
+            className="w-full h-12 pl-12 pr-10 rounded-xl bg-white border border-gray-200 text-[15px] font-medium outline-none focus:border-indigo-400 focus:ring-4 focus:ring-indigo-100 placeholder:text-gray-400 [&::-webkit-search-cancel-button]:appearance-none" />
           {searchInput && <button onClick={() => setSearchInput('')} className="absolute right-3 top-1/2 -translate-y-1/2 p-1 text-gray-400 hover:text-gray-700" aria-label={t('Temizle')}><X className="h-4 w-4" /></button>}
         </div>
         <FilterBar value={f} onChange={setF} categories={categories} facets={facets} />

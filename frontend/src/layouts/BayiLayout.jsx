@@ -61,6 +61,7 @@ const BayiLayout = () => {
 
             <button 
               onClick={() => setIsCartOpen(true)}
+              aria-label={t('Sepetim')}
               className="relative p-2 bg-indigo-50 hover:bg-indigo-100 text-indigo-500 rounded-xl transition-all group"
             >
               <ShoppingCart className="h-5 w-5" />
