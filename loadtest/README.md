@@ -94,6 +94,26 @@ docker exec akis_b2bsistem-db-1 psql -U akis -d akis_load -c 'select id, sku, st
 
 `stress` ve `spike` bilerek daha gevşek eşik kullanır; amaç kırılma noktasını görmektir.
 
+## Sonraya bırakılan testler
+
+Henüz yapılmadı (4 Kasım 2026'da planlandı, sonraya bırakıldı). Hazırlık toplam ~4–5 saat, çalışma ~2 saat + bir gece. Bulunan sorunların düzeltilmesi buna dahil değil.
+
+| # | Test | Ne ölçer | Hazırlık | Çalışma |
+|---|---|---|---|---|
+| 1 | **Kampanya günü** (yazma ağırlıklı karışık yük) | Aynı anda 1000 bayi sipariş verir, 50 yönetici onaylar, tahsilat ve teklif akar, katalog okunur. Kilit beklemesi, bağlantı havuzu, stok yarışı birlikte. | 30–45 dk | 15 dk |
+| 2 | **100 firma, gürültülü komşu** | Bir firma ağır yükteyken (toplu ERP senkronu, Excel dışa aktarma, büyük rapor) diğer 99 firmanın yanıt süresi bozuluyor mu? SaaS için en kritik risk. | 45–60 dk | 15 dk |
+| 3 | **Uzun süre** (2–4 saat, gece) | Bellek sızıntısı, açık kalan bağlantılar, büyüyen tablolar (bildirim, istek metrikleri); saatlik işler yük altında birkaç kez çalışır. `soak.js` hazır, `caffeinate` ile başlatılır. | 10 dk | 2–4 saat |
+| 4 | **10 kat veri** | 500 bin sipariş, 50 bin ürün, 10 bin bayi (`seed.mjs` ORDERS= PRODUCTS= DEALERS=). Sorgu planları büyük veride değişiyor mu? | 15 dk | ~20 dk |
+| 5 | **Ağır uçlar yük altında** | Excel dışa aktarma, 12 aylık satış raporu, ekstre, PDF. Tek ağır istek bir Node sürecini kilitleyip diğer istekleri bekletiyor mu? | 30 dk | 10 dk |
+| 6 | **ERP API yükü** | `/api/v1` ile on binlerce ürünün stok/fiyat güncellemesi; API anahtarı istek sınırları. | 30–45 dk | 10 dk |
+| 7 | **Aşırı ani yük** | 10 sn'de 0 → 3000 kullanıcı (kampanya bildirimi anı). Bilgisayarda kapasiteyi değil toparlanmayı gösterir. | 10 dk | 5 dk |
+| 8 | **Dayanıklılık** | Yük sürerken Redis'i / bir işçi süreci yeniden başlatmak, veritabanını kısa süre kesmek. Sistem kendiliğinden toparlanıyor mu? | 30 dk | 15 dk |
+| 9 | **k6 tarayıcı ile sayfa açılışı** | 1000 bayi API'ye yüklenirken birkaç gerçek tarayıcıyla katalog ve ödeme sayfasının açılış süresi. | 30 dk | 10 dk |
+
+**Önerilen sıra:** önce 1, 2, 4, 5 (en çok sorun çıkarabilecekler; düzeltmeye zaman kalsın) → gece 3 → sonra 6, 7, 8, 9.
+
+**Dikkat:** testler sırayla koşmalı (aynı anda koşarlarsa işlemciyi paylaşıp birbirini bozar). Bilgisayarda alınan sayılar önceki ölçümle karşılaştırma içindir; "canlıda kaç bayi kaldırır" sorusu için canlıyla aynı boyutta bir sunucu (Caddy + HTTPS dahil) ve k6'nın ayrı bir makineden çalışması gerekir.
+
 ## Dikkat
 
 - **Canlı ortama karşı** çalıştırırken düşük yoğunluklu bir saat seçin. Önce `smoke`, sonra küçük bir `PEAK` ile `load` deneyin.
