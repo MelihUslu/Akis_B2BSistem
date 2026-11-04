@@ -93,13 +93,13 @@ const Overview = ({ o, goTab }) => {
                   <XAxis dataKey="at" tickFormatter={axisLabel} tick={{ fontSize: 11, fill: '#9ca3af' }} axisLine={false} tickLine={false} minTickGap={24} />
                   <YAxis tick={{ fontSize: 11, fill: '#9ca3af' }} axisLine={false} tickLine={false} allowDecimals={false} />
                   <Tooltip labelFormatter={(v) => formatDate(v, true)} formatter={(v, name) => [num(v), { ok: 'Başarılı', clientErrors: '4xx', errors: '5xx' }[name] || name]} />
-                  <Bar dataKey="ok" stackId="a" fill="#6366f1" />
+                  <Bar dataKey="ok" stackId="a" fill="#2a78d6" />
                   <Bar dataKey="clientErrors" stackId="a" fill="#f59e0b" />
                   <Bar dataKey="errors" stackId="a" fill="#ef4444" radius={[3, 3, 0, 0]} />
                 </BarChart>
               </ResponsiveContainer>
             </div>
-            <p className="text-xs text-gray-500 mt-2 flex gap-4"><span><Dot ok /> başarılı</span><span><span className="inline-block h-2.5 w-2.5 rounded-full bg-amber-500" /> 4xx (kullanıcı)</span><span><Dot ok={false} /> 5xx (sunucu)</span></p>
+            <p className="text-xs text-gray-500 mt-2 flex gap-4"><span><span className="inline-block h-2.5 w-2.5 rounded-full bg-[#2a78d6]" /> başarılı</span><span><span className="inline-block h-2.5 w-2.5 rounded-full bg-amber-500" /> 4xx (kullanıcı)</span><span><Dot ok={false} /> 5xx (sunucu)</span></p>
           </Card>
           <Card title="Ortalama yanıt süresi">
             <div className="h-56">
@@ -118,7 +118,7 @@ const Overview = ({ o, goTab }) => {
       )}
 
       <div className="grid grid-cols-1 xl:grid-cols-3 gap-4">
-        <Card title="Arka plan işleri" action={<button onClick={() => goTab('jobs')} className="text-xs font-bold text-indigo-600 hover:underline">Ayrıntı</button>}>
+        <Card title="Arka plan işleri" action={<button onClick={() => goTab('jobs')} className="text-xs font-bold text-brand-600 hover:underline">Ayrıntı</button>}>
           {o.jobs.length === 0 ? <Empty>Henüz çalışma yok.</Empty> : o.jobs.map((j) => (
             <div key={j.name} className="flex items-start gap-2 py-1.5 text-sm">
               <span className="mt-1.5"><Dot ok={j.last ? j.last.ok : null} /></span>
@@ -130,7 +130,7 @@ const Overview = ({ o, goTab }) => {
             </div>
           ))}
         </Card>
-        <Card title="Dış servisler" action={<button onClick={() => goTab('external')} className="text-xs font-bold text-indigo-600 hover:underline">Ayrıntı</button>}>
+        <Card title="Dış servisler" action={<button onClick={() => goTab('external')} className="text-xs font-bold text-brand-600 hover:underline">Ayrıntı</button>}>
           {o.external.length === 0 ? <Empty>Bu dönemde dış servis çağrısı yok.</Empty> : o.external.map((e) => (
             <div key={e.service} className="flex items-start gap-2 py-1.5 text-sm">
               <span className="mt-1.5"><Dot ok={e.failures === 0} /></span>
@@ -142,7 +142,7 @@ const Overview = ({ o, goTab }) => {
             </div>
           ))}
         </Card>
-        <Card title="Entegrasyon API (ERP)" action={<button onClick={() => goTab('api')} className="text-xs font-bold text-indigo-600 hover:underline">Ayrıntı</button>}>
+        <Card title="Entegrasyon API (ERP)" action={<button onClick={() => goTab('api')} className="text-xs font-bold text-brand-600 hover:underline">Ayrıntı</button>}>
           {o.api.length === 0 ? <Empty>Bu dönemde API isteği yok.</Empty> : (
             <>
               <p className="text-xs text-gray-500 mb-2">{num(apiTotal)} istek · <span className={apiErrors ? 'text-red-600 font-bold' : ''}>{num(apiErrors)} hatalı</span></p>
@@ -311,7 +311,7 @@ const PlatformMonitoring = () => {
     <div className="space-y-6">
       <div className="flex flex-wrap items-center justify-between gap-4 lg:pr-14">
         <div className="flex items-center gap-4">
-          <div className="page-icon"><Gauge className="h-6 w-6 text-white" /></div>
+          <div className="page-icon"><Gauge className="h-6 w-6 text-brand-400" /></div>
           <div>
             <h1 className="text-3xl font-black text-gray-900 tracking-tight">İzleme</h1>
             <p className="text-gray-500 text-sm mt-1">İstekler, arka plan işleri, dış servisler ve ERP API'si. Sorunlarda <code className="text-xs bg-gray-100 px-1.5 py-0.5 rounded">PLATFORM_ALERT_EMAIL</code> adresine uyarı ve her sabah özet gider.</p>
@@ -331,7 +331,7 @@ const PlatformMonitoring = () => {
 
       <div className="flex gap-1 overflow-x-auto border-b border-gray-100">
         {TABS.map((t) => (
-          <button key={t.key} onClick={() => setTab(t.key)} className={`px-4 py-2.5 text-sm font-bold whitespace-nowrap border-b-2 -mb-px ${tab === t.key ? 'border-indigo-600 text-indigo-600' : 'border-transparent text-gray-500 hover:text-gray-800'}`}>{t.label}</button>
+          <button key={t.key} onClick={() => setTab(t.key)} className={`px-4 py-2.5 text-sm font-bold whitespace-nowrap border-b-2 -mb-px ${tab === t.key ? 'border-brand-600 text-brand-600' : 'border-transparent text-gray-500 hover:text-gray-800'}`}>{t.label}</button>
         ))}
       </div>
 

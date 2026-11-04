@@ -72,12 +72,12 @@ const BayiQuotes = () => {
         const doc = q.document;
         const open = openId === q.id;
         return (
-          <div key={q.id} className={`bg-white rounded-2xl border shadow-sm overflow-hidden ${open ? 'border-indigo-300' : 'border-gray-100'}`}>
+          <div key={q.id} className={`bg-white rounded-2xl border shadow-sm overflow-hidden ${open ? 'border-brand-300' : 'border-gray-100'}`}>
             <button onClick={() => setOpenId(open ? null : q.id)} className="w-full p-5 md:p-6 flex justify-between items-center gap-3 text-left">
               <div className="flex flex-wrap gap-x-8 gap-y-2 items-center min-w-0">
                 <div><p className="text-[10px] font-black text-gray-400 uppercase">{t('Teklif')}</p><p className="font-black text-gray-900">{q.code}{q.revision > 1 && <span className="text-xs text-gray-400"> · Rev. {q.revision}</span>}</p></div>
                 <div><p className="text-[10px] font-black text-gray-400 uppercase">{t('Tarih')}</p><p className="text-sm text-gray-700">{formatDate(doc?.issuedAt || q.createdAt)}</p></div>
-                {doc && <div><p className="text-[10px] font-black text-gray-400 uppercase">{t('Toplam (KDV dahil)')}</p><p className="font-black text-indigo-600">{formatTRY(doc.totals.total)}</p></div>}
+                {doc && <div><p className="text-[10px] font-black text-gray-400 uppercase">{t('Toplam (KDV dahil)')}</p><p className="font-black text-brand-600">{formatTRY(doc.totals.total)}</p></div>}
                 {doc?.validUntil && q.status === 'QUOTED' && <p className="text-xs font-bold text-amber-600 flex items-center"><Clock className="h-3.5 w-3.5 mr-1" /> {t('Son geçerlilik:')} {formatDate(doc.validUntil)}</p>}
                 <span className={`px-3 py-1 rounded-full text-[10px] font-black uppercase ${status.className}`}>{t(status.label)}</span>
                 {q.order && <span className="text-xs font-black text-emerald-600">{t('Sipariş')} #AK-{q.order.id}</span>}
@@ -107,7 +107,7 @@ const BayiQuotes = () => {
 
                 <div className="flex flex-wrap gap-3 justify-end items-center">
                   {q.order && <Link to={`/bayi/orders/${q.order.id}`} className="text-xs font-black text-emerald-600 hover:underline">{t('Sipariş')} #AK-{q.order.id}</Link>}
-                  {doc && <a href={`/print/quote/${q.id}`} target="_blank" rel="noreferrer" className="flex items-center px-4 py-2 rounded-xl text-xs font-black text-indigo-700 bg-indigo-50 hover:bg-indigo-100"><FileDown className="h-4 w-4 mr-1.5" /> PDF</a>}
+                  {doc && <a href={`/print/quote/${q.id}`} target="_blank" rel="noreferrer" className="flex items-center px-4 py-2 rounded-xl text-xs font-black text-brand-700 bg-brand-50 hover:bg-brand-100"><FileDown className="h-4 w-4 mr-1.5" /> PDF</a>}
                   {q.status === 'PREPARING' && q.source === 'DEALER' && (
                     <button onClick={() => cancel(q)} className="flex items-center px-4 py-2 rounded-xl text-xs font-black text-gray-500 bg-gray-100 hover:bg-gray-200"><XCircle className="h-4 w-4 mr-1.5" /> {t('İptal')}</button>
                   )}

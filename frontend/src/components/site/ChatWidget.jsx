@@ -27,11 +27,11 @@ const ContactCard = ({ sessionId, onDone, onClose }) => {
       setBusy(false);
     }
   };
-  const input = 'w-full h-10 rounded-xl bg-slate-50 border border-slate-200 px-3 text-sm outline-none focus:bg-white focus:border-indigo-400 focus:ring-2 focus:ring-indigo-100';
+  const input = 'w-full h-10 rounded-xl bg-slate-50 border border-slate-200 px-3 text-sm outline-none focus:bg-white focus:border-brand-400 focus:ring-2 focus:ring-brand-100';
   return (
-    <form onSubmit={submit} className="rounded-2xl bg-white border border-indigo-200 shadow-[0_10px_30px_-15px_rgba(79,70,229,0.4)] p-4 space-y-2.5 animate-in fade-in slide-in-from-bottom-2 duration-300">
+    <form onSubmit={submit} className="rounded-2xl bg-white border border-brand-200 shadow-[0_10px_30px_-15px_rgba(152,107,71,0.4)] p-4 space-y-2.5 animate-in fade-in slide-in-from-bottom-2 duration-300">
       <div className="flex items-start gap-2.5">
-        <span className="h-8 w-8 shrink-0 rounded-lg bg-indigo-600 flex items-center justify-center"><PhoneCall className="h-4 w-4 text-white" /></span>
+        <span className="h-8 w-8 shrink-0 rounded-lg bg-brand-600 flex items-center justify-center"><PhoneCall className="h-4 w-4 text-white" /></span>
         <div className="flex-1 min-w-0">
           <p className="text-sm font-bold text-slate-900 leading-tight">Sizi arayalım</p>
           <p className="text-[11px] text-slate-500">Satış ekibimiz kısa bir görüşmeyle dönsün.</p>
@@ -44,11 +44,11 @@ const ContactCard = ({ sessionId, onDone, onClose }) => {
       <div className="flex gap-1.5">
         {CALL_TIMES.map((t) => (
           <button key={t} type="button" onClick={() => setF({ ...f, callTime: t })}
-            className={`flex-1 h-8 rounded-lg text-xs font-semibold border transition-colors ${f.callTime === t ? 'bg-indigo-600 border-indigo-600 text-white' : 'bg-white border-slate-200 text-slate-600 hover:border-indigo-300'}`}>{t}</button>
+            className={`flex-1 h-8 rounded-lg text-xs font-semibold border transition-colors ${f.callTime === t ? 'bg-brand-600 border-brand-600 text-white' : 'bg-white border-slate-200 text-slate-600 hover:border-brand-300'}`}>{t}</button>
         ))}
       </div>
       {error && <p className="text-xs text-red-600">{error}</p>}
-      <button disabled={busy} className="w-full h-10 rounded-xl bg-[#0b1120] text-white text-sm font-semibold flex items-center justify-center gap-2 disabled:opacity-60">
+      <button disabled={busy} className="w-full h-10 rounded-xl bg-navy-900 text-white text-sm font-semibold flex items-center justify-center gap-2 disabled:opacity-60">
         {busy ? <Loader2 className="h-4 w-4 animate-spin" /> : <PhoneCall className="h-4 w-4" />} Beni arayın
       </button>
       <p className="text-[10px] text-slate-400 leading-snug">Bilgileriniz yalnızca sizinle iletişim için <a href="/kvkk" className="underline">KVKK metni</a> kapsamında kullanılır.</p>
@@ -161,8 +161,8 @@ const ChatWidget = ({ chatbot, company, raised = false, hideLauncher = false }) 
     <div className={`fixed right-4 md:right-6 z-50 transition-[bottom] ${raised ? 'bottom-[5.5rem] md:bottom-6' : 'bottom-4 md:bottom-6'}`}>
       {open && (
         <div className="absolute bottom-[4.5rem] right-0 w-[calc(100vw-2rem)] max-w-[24rem] h-[min(36rem,calc(100dvh-8rem))] rounded-3xl bg-white border border-slate-200 shadow-[0_30px_80px_-20px_rgba(15,23,42,0.45)] flex flex-col overflow-hidden animate-in fade-in slide-in-from-bottom-3 duration-200">
-          <div className="px-5 py-4 bg-[#0b1120] text-white flex items-center gap-3">
-            <span className="relative h-10 w-10 rounded-2xl bg-indigo-500/20 ring-1 ring-white/15 flex items-center justify-center"><MessageCircle className="h-5 w-5 text-indigo-300" /><span className="absolute -bottom-0.5 -right-0.5 h-3 w-3 rounded-full bg-emerald-400 ring-2 ring-[#0b1120]" /></span>
+          <div className="px-5 py-4 bg-navy-900 text-white flex items-center gap-3">
+            <span className="relative h-10 w-10 rounded-2xl bg-brand-500/20 ring-1 ring-white/15 flex items-center justify-center"><MessageCircle className="h-5 w-5 text-brand-300" /><span className="absolute -bottom-0.5 -right-0.5 h-3 w-3 rounded-full bg-emerald-400 ring-2 ring-navy-900" /></span>
             <div className="flex-1 min-w-0">
               <p className="font-semibold leading-tight">{chatbot.botName}</p>
               <p className="text-xs text-slate-400">Genellikle anında yanıt verir</p>
@@ -174,8 +174,8 @@ const ChatWidget = ({ chatbot, company, raised = false, hideLauncher = false }) 
           <div ref={listRef} className="flex-1 overflow-y-auto px-4 py-4 space-y-3 bg-slate-50">
             {messages.map((m) => (
               <div key={m.id} className={`flex ${m.role === 'USER' ? 'justify-end' : 'justify-start'}`}>
-                <div className={`max-w-[85%] rounded-2xl px-4 py-2.5 text-sm leading-relaxed whitespace-pre-line ${m.role === 'USER' ? 'bg-indigo-600 text-white rounded-br-md' : 'bg-white border border-slate-200 text-slate-800 rounded-bl-md'}`}>
-                  {m.role === 'AGENT' && <p className="text-[11px] font-bold text-indigo-600 mb-0.5">Müşteri temsilcisi</p>}
+                <div className={`max-w-[85%] rounded-2xl px-4 py-2.5 text-sm leading-relaxed whitespace-pre-line ${m.role === 'USER' ? 'bg-brand-600 text-white rounded-br-md' : 'bg-white border border-slate-200 text-slate-800 rounded-bl-md'}`}>
+                  {m.role === 'AGENT' && <p className="text-[11px] font-bold text-brand-600 mb-0.5">Müşteri temsilcisi</p>}
                   <Linkify text={m.text} />
                 </div>
               </div>
@@ -183,7 +183,7 @@ const ChatWidget = ({ chatbot, company, raised = false, hideLauncher = false }) 
             {sending && <div className="flex"><span className="rounded-2xl rounded-bl-md bg-white border border-slate-200 px-4 py-3 flex gap-1">{[0, 1, 2].map((i) => <span key={i} className="h-1.5 w-1.5 rounded-full bg-slate-400 animate-bounce" style={{ animationDelay: `${i * 120}ms` }} />)}</span></div>}
             {!userWrote && chatbot.quickReplies?.length > 0 && messages.length > 0 && (
               <div className="flex flex-wrap gap-2 pt-1">
-                {chatbot.quickReplies.map((q) => <button key={q} onClick={() => send(q)} className="px-3 py-1.5 rounded-full bg-white border border-indigo-200 text-xs font-semibold text-indigo-700 hover:bg-indigo-50">{q}</button>)}
+                {chatbot.quickReplies.map((q) => <button key={q} onClick={() => send(q)} className="px-3 py-1.5 rounded-full bg-white border border-brand-200 text-xs font-semibold text-brand-700 hover:bg-brand-50">{q}</button>)}
               </div>
             )}
             {contactOpen && !hasLead && sessionId && <ContactCard sessionId={sessionId} onDone={contactDone} onClose={() => setContactOpen(false)} />}
@@ -192,7 +192,7 @@ const ChatWidget = ({ chatbot, company, raised = false, hideLauncher = false }) 
 
           {userWrote && !hasLead && !contactOpen && (
             <div className="px-3 pt-2 flex">
-              <button onClick={() => setContactOpen(true)} className="inline-flex items-center gap-1.5 rounded-full bg-indigo-50 border border-indigo-100 px-3 py-1.5 text-xs font-semibold text-indigo-700 hover:bg-indigo-100">
+              <button onClick={() => setContactOpen(true)} className="inline-flex items-center gap-1.5 rounded-full bg-brand-50 border border-brand-100 px-3 py-1.5 text-xs font-semibold text-brand-700 hover:bg-brand-100">
                 <PhoneCall className="h-3.5 w-3.5" /> Beni arayın
               </button>
             </div>
@@ -204,8 +204,8 @@ const ChatWidget = ({ chatbot, company, raised = false, hideLauncher = false }) 
           <form onSubmit={(e) => { e.preventDefault(); send(); }} className="p-3 border-t border-slate-100 flex items-end gap-2">
             <textarea rows={1} value={text} onChange={(e) => setText(e.target.value)} maxLength={1000}
               onKeyDown={(e) => { if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); send(); } }}
-              placeholder="Mesajınızı yazın…" className="flex-1 resize-none max-h-28 rounded-2xl bg-slate-100 px-4 py-2.5 text-sm outline-none focus:ring-2 focus:ring-indigo-200" />
-            <button disabled={!text.trim() || sending || !sessionId} className="h-10 w-10 shrink-0 rounded-xl bg-indigo-600 text-white flex items-center justify-center disabled:opacity-40" aria-label="Gönder">
+              placeholder="Mesajınızı yazın…" className="flex-1 resize-none max-h-28 rounded-2xl bg-slate-100 px-4 py-2.5 text-sm outline-none focus:ring-2 focus:ring-brand-200" />
+            <button disabled={!text.trim() || sending || !sessionId} className="h-10 w-10 shrink-0 rounded-xl bg-brand-600 text-white flex items-center justify-center disabled:opacity-40" aria-label="Gönder">
               {sending ? <Loader2 className="h-4 w-4 animate-spin" /> : <Send className="h-4 w-4" />}
             </button>
           </form>
@@ -220,7 +220,7 @@ const ChatWidget = ({ chatbot, company, raised = false, hideLauncher = false }) 
         </button>
       )}
       {(!hideLauncher || open) && <button onClick={() => { setNudge(false); setOpen(!open); }} aria-label={open ? 'Sohbeti kapat' : 'Canlı sohbet'}
-        className="h-14 w-14 rounded-2xl bg-[#0b1120] text-white shadow-[0_15px_40px_-10px_rgba(15,23,42,0.6)] flex items-center justify-center hover:scale-105 transition-transform">
+        className="h-14 w-14 rounded-2xl bg-navy-900 text-white shadow-[0_15px_40px_-10px_rgba(15,23,42,0.6)] flex items-center justify-center hover:scale-105 transition-transform">
         {open ? <X className="h-6 w-6" /> : <MessageCircle className="h-6 w-6" />}
       </button>}
     </div>

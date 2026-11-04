@@ -64,8 +64,8 @@ const BayiOrders = () => {
             <div key={order.id} className="bg-white rounded-2xl border border-gray-100 shadow-sm p-6 hover:shadow-md transition-shadow">
               <div className="flex flex-col md:flex-row justify-between gap-4">
                 <div className="flex items-center space-x-6 flex-wrap gap-y-3">
-                  <div className="bg-indigo-50 p-3 rounded-xl">
-                    <Package className="h-6 w-6 text-indigo-600" />
+                  <div className="bg-brand-50 p-3 rounded-xl">
+                    <Package className="h-6 w-6 text-brand-600" />
                   </div>
                   <div>
                     <p className="text-xs font-bold text-gray-400 uppercase">{t('Sipariş No')}</p>
@@ -96,7 +96,7 @@ const BayiOrders = () => {
                       <Truck className="h-4 w-4 text-gray-400 mr-2" />
                       <div>
                         <p className="text-[10px] font-bold text-gray-400 uppercase">{t('Takip No')}</p>
-                        <p className="text-xs font-bold text-indigo-600">{carrierName(order.cargoCompany)} {order.trackingNumber}</p>
+                        <p className="text-xs font-bold text-brand-600">{carrierName(order.cargoCompany)} {order.trackingNumber}</p>
                       </div>
                     </div>
                   )}
@@ -107,7 +107,7 @@ const BayiOrders = () => {
                 <OrderTimeline order={order} compact />
                 <div className="flex items-center gap-3">
                   {order.status !== 'CANCELLED' && (
-                    <button onClick={() => handleReorder(order)} className="flex items-center px-4 py-2 rounded-xl text-xs font-black text-indigo-600 bg-indigo-50 hover:bg-indigo-100 transition-colors">
+                    <button onClick={() => handleReorder(order)} className="flex items-center px-4 py-2 rounded-xl text-xs font-black text-brand-600 bg-brand-50 hover:bg-brand-100 transition-colors">
                       <RotateCw className="h-3.5 w-3.5 mr-1.5" /> {t('Yeniden Sipariş Ver')}
                     </button>
                   )}

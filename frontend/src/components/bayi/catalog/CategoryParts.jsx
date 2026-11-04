@@ -33,7 +33,7 @@ export const CategoryMenu = ({ categories, value, onPick }) => {
     const on = value === c.id;
     return (
       <button type="button" onClick={() => onPick(c.id)}
-        className={`flex-1 min-w-0 flex items-center gap-2.5 px-2 py-1.5 rounded-lg text-left text-sm ${on ? 'bg-indigo-600 text-white' : 'text-gray-700 hover:bg-gray-50'}`}>
+        className={`flex-1 min-w-0 flex items-center gap-2.5 px-2 py-1.5 rounded-lg text-left text-sm ${on ? 'bg-brand-600 text-white' : 'text-gray-700 hover:bg-gray-50'}`}>
         {child ? <span className={`h-1.5 w-1.5 rounded-full ml-2 mr-1 shrink-0 ${on ? 'bg-white' : 'bg-gray-300'}`} /> : <CategoryIcon category={c} />}
         <span className={`flex-1 truncate ${child ? '' : 'font-semibold'}`}>{c.name}</span>
         <span className={`text-[11px] font-bold tabular-nums px-1.5 py-0.5 rounded-md ${on ? 'bg-white/20 text-white' : 'bg-gray-100 text-gray-500'}`}>{child ? c._count?.products || 0 : categoryTotal(c)}</span>
@@ -45,18 +45,18 @@ export const CategoryMenu = ({ categories, value, onPick }) => {
     <div>
       <div className="flex items-center justify-between px-2 pt-1 pb-2">
         <p className="text-xs font-black text-gray-500 uppercase tracking-wider">{t('Kategoriler')}</p>
-        {value && <button type="button" onClick={() => onPick('')} className="text-xs font-bold text-indigo-600 hover:underline">{t('Seçimi kaldır')}</button>}
+        {value && <button type="button" onClick={() => onPick('')} className="text-xs font-bold text-brand-600 hover:underline">{t('Seçimi kaldır')}</button>}
       </div>
       {categories.length > 6 && (
         <div className="relative mb-2 px-1">
           <Search className="absolute left-4 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-300" />
-          <input autoFocus value={q} onChange={(e) => setQ(e.target.value)} placeholder={t('Kategori ara')} className="w-full pl-9 pr-3 h-9 rounded-lg bg-gray-50 border border-gray-100 text-sm outline-none focus:border-indigo-300" />
+          <input autoFocus value={q} onChange={(e) => setQ(e.target.value)} placeholder={t('Kategori ara')} className="w-full pl-9 pr-3 h-9 rounded-lg bg-gray-50 border border-gray-100 text-sm outline-none focus:border-brand-300" />
         </div>
       )}
       <div className="max-h-[22rem] overflow-y-auto custom-scrollbar space-y-0.5">
         {!query && (
           <button type="button" onClick={() => onPick('')}
-            className={`w-full flex items-center gap-2.5 px-2 py-1.5 rounded-lg text-left text-sm font-semibold ${!value ? 'bg-indigo-600 text-white' : 'text-gray-700 hover:bg-gray-50'}`}>
+            className={`w-full flex items-center gap-2.5 px-2 py-1.5 rounded-lg text-left text-sm font-semibold ${!value ? 'bg-brand-600 text-white' : 'text-gray-700 hover:bg-gray-50'}`}>
             <span className={`h-8 w-8 rounded-lg flex items-center justify-center ${!value ? 'bg-white/20' : 'bg-gray-100 text-gray-500'}`}><LayoutGrid className="h-4 w-4" /></span>
             {t('Tüm kategoriler')}
           </button>

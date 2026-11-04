@@ -15,7 +15,7 @@ const ArticleBody = ({ text = '' }) => {
               <ol className="space-y-2">
                 {lines.map((l, j) => (
                   <li key={j} className="flex gap-3">
-                    <span className="h-6 w-6 shrink-0 rounded-full bg-indigo-50 text-indigo-700 text-xs font-black flex items-center justify-center">{j + 1}</span>
+                    <span className="h-6 w-6 shrink-0 rounded-full bg-brand-50 text-brand-700 text-xs font-black flex items-center justify-center">{j + 1}</span>
                     <span className="pt-0.5">{l.replace(/^\d+\.\s*/, '')}</span>
                   </li>
                 ))}

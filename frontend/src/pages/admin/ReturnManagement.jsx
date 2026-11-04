@@ -90,7 +90,7 @@ const ReturnManagement = () => {
       <div className="flex flex-col md:flex-row justify-between md:items-end gap-4">
         <div>
           <div className="flex items-center gap-4">
-          <div className="page-icon"><RotateCcw className="h-6 w-6 text-white" /></div>
+          <div className="page-icon"><RotateCcw className="h-6 w-6 text-brand-400" /></div>
           <div>
             <h1 className="text-3xl font-black text-gray-900 tracking-tight">İade / Değişim (RMA) Talepleri</h1>
             <p className="text-gray-500 text-sm mt-1">Bayilerin fotoğraflı iade ve değişim taleplerini inceleyin.</p>
@@ -120,7 +120,7 @@ const ReturnManagement = () => {
                       #RMA-{r.id} · {r.type === 'RETURN' ? 'İade' : 'Değişim'} · #AK-{r.orderId} · {formatDate(r.createdAt, true)}
                     </p>
                     <p className="font-bold text-gray-900 mt-1">{r.product.name} <span className="text-gray-400 font-semibold">({r.product.sku}) × {r.quantity}</span></p>
-                    <p className="text-xs font-bold text-indigo-600 mt-0.5">{r.company.name} · {r.user.name}</p>
+                    <p className="text-xs font-bold text-brand-600 mt-0.5">{r.company.name} · {r.user.name}</p>
                   </div>
                   <span className={`px-3 py-1 rounded-full text-xs font-black uppercase self-start md:self-center ${status.className}`}>{status.label}</span>
                 </div>
@@ -130,7 +130,7 @@ const ReturnManagement = () => {
                 {r.photos.length > 0 && (
                   <div className="flex gap-3 flex-wrap">
                     {r.photos.map((url) => (
-                      <button key={url} onClick={() => setPreview(url)} className="w-20 h-20 rounded-xl overflow-hidden border border-gray-100 hover:ring-2 hover:ring-indigo-300">
+                      <button key={url} onClick={() => setPreview(url)} className="w-20 h-20 rounded-xl overflow-hidden border border-gray-100 hover:ring-2 hover:ring-brand-300">
                         <img src={url} className="w-full h-full object-cover" />
                       </button>
                     ))}

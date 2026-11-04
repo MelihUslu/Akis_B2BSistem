@@ -75,16 +75,16 @@ const PosModal = ({ suggested, onClose, onPaid }) => {
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
       <div className="modal-backdrop" onClick={onClose} />
       <form onSubmit={submit} className="modal-panel w-full max-w-md">
-        <div className="p-6 bg-gradient-to-br from-indigo-600 to-purple-700 text-white">
+        <div className="p-6 bg-gradient-to-br from-brand-600 to-brand-800 text-white">
           <div className="flex justify-between items-start">
             <div>
-              <p className="text-[10px] font-black uppercase tracking-widest text-indigo-200">{t('Sanal POS · Demo')}</p>
+              <p className="text-[10px] font-black uppercase tracking-widest text-brand-200">{t('Sanal POS · Demo')}</p>
               <h3 className="text-xl font-black mt-1">{t('Kartla Ödeme')}</h3>
             </div>
             <button type="button" onClick={onClose} className="p-2 rounded-xl hover:bg-white/10"><X className="h-5 w-5" /></button>
           </div>
           <p className="mt-6 font-mono text-lg tracking-widest">{form.cardNumber || '•••• •••• •••• ••••'}</p>
-          <div className="flex justify-between mt-3 text-xs font-bold text-indigo-100">
+          <div className="flex justify-between mt-3 text-xs font-bold text-brand-100">
             <span>{form.cardHolder || 'AD SOYAD'}</span>
             <span>{form.expiry || 'AA/YY'}</span>
           </div>
@@ -227,7 +227,7 @@ const BayiFinance = () => {
             {cur !== 'TRY' && <p className="text-[11px] text-gray-400 mt-2">{t('Cari hesabınız {cur} olarak tutulur. Kartla ödemeler TL alınır ve günün kuruyla {cur} olarak işlenir.', { cur })}</p>}
           </div>
           <div className="absolute top-0 right-0 p-6 opacity-10">
-            <Wallet className="h-20 w-20 text-indigo-600" />
+            <Wallet className="h-20 w-20 text-brand-600" />
           </div>
         </div>
 
@@ -236,7 +236,7 @@ const BayiFinance = () => {
           <h2 className="text-3xl font-black text-gray-900">{money(riskLimit)}</h2>
           <div className="mt-4 w-full bg-gray-100 h-2 rounded-full overflow-hidden">
             <div
-              className={`h-full rounded-full transition-all duration-1000 ${usage >= 85 ? 'bg-red-500' : usage >= 70 ? 'bg-amber-500' : 'bg-indigo-600'}`}
+              className={`h-full rounded-full transition-all duration-1000 ${usage >= 85 ? 'bg-red-500' : usage >= 70 ? 'bg-amber-500' : 'bg-brand-600'}`}
               style={{ width: `${usage}%` }}
             ></div>
           </div>
@@ -316,13 +316,13 @@ const BayiFinance = () => {
         </div>
       </div>
 
-      <div className="bg-indigo-50 border border-indigo-100 p-6 rounded-3xl flex items-start space-x-4">
-        <div className="bg-indigo-600 p-2 rounded-xl text-white">
+      <div className="bg-brand-50 border border-brand-100 p-6 rounded-3xl flex items-start space-x-4">
+        <div className="bg-brand-600 p-2 rounded-xl text-white">
           <Info className="h-5 w-5" />
         </div>
         <div>
-          <h4 className="font-bold text-indigo-800">{t('Bilgilendirme')}</h4>
-          <p className="text-sm text-indigo-800/80 mt-1 leading-relaxed">
+          <h4 className="font-bold text-brand-800">{t('Bilgilendirme')}</h4>
+          <p className="text-sm text-brand-800/80 mt-1 leading-relaxed">
             {t('Sanal POS ödemeleri anında bakiyenize yansır ve risk limitiniz otomatik olarak tekrar açılır. Havale bildirimleri için {contact} ile iletişime geçin. Vade süreniz: {days} gün.', {
               contact: company.plasiyer ? t('müşteri temsilciniz {name} ({email})', { name: company.plasiyer.name, email: company.plasiyer.email }) : t('finans birimimiz'),
               days: company.paymentTermDays

@@ -29,7 +29,7 @@ export const Price = ({ item, summary, large }) => {
         {item.listPriceTRY > item.netPrice && <span className="text-[11px] text-gray-400 line-through">{formatTRY(item.listPriceTRY)}</span>}
         {item.hasSpecialPrice && <span className="text-[10px] font-black text-violet-600 dark:text-violet-400">{t('Özel fiyat')}</span>}
         {item.priceTiers?.length > 0 && (
-          <span title={item.priceTiers.map((p) => `${p.minQty}+ ${item.unit}: ${formatTRY(p.price)}`).join('\n')} className="text-[10px] font-black text-indigo-600 dark:text-indigo-300 cursor-help underline decoration-dotted">{t('Kademeli')}</span>
+          <span title={item.priceTiers.map((p) => `${p.minQty}+ ${item.unit}: ${formatTRY(p.price)}`).join('\n')} className="text-[10px] font-black text-brand-600 dark:text-brand-300 cursor-help underline decoration-dotted">{t('Kademeli')}</span>
         )}
       </div>
     </div>
@@ -51,7 +51,7 @@ export const Thumb = ({ item, onClick, small }) => {
 };
 
 export const Qty = ({ item, row, wide }) => (
-  <div className={`flex items-center h-9 w-full ${wide ? '' : 'max-w-[8.5rem]'} rounded-lg border border-gray-200 bg-white overflow-hidden focus-within:border-indigo-400 focus-within:ring-2 focus-within:ring-indigo-100`}>
+  <div className={`flex items-center h-9 w-full ${wide ? '' : 'max-w-[8.5rem]'} rounded-lg border border-gray-200 bg-white overflow-hidden focus-within:border-brand-400 focus-within:ring-2 focus-within:ring-brand-100`}>
     <button type="button" onClick={() => row.step(item, -1)} className="h-full px-2 text-gray-400 hover:text-gray-900 hover:bg-gray-50" aria-label={t('Azalt')}><Minus className="h-3.5 w-3.5" /></button>
     <input type="number" inputMode="numeric" value={row.qtyOf(item)} aria-label={t('Miktar')}
       onFocus={(e) => e.currentTarget.select()} /* yazılan değer eskisinin yerine geçsin (1 → 12 olmasın) */
@@ -71,7 +71,7 @@ export const Action = ({ item, row }) => {
         <div className="flex gap-1.5">
           <button type="button" onClick={() => row.quote(item)} className={`${base} flex-1 min-w-0 !px-2 !gap-1 bg-amber-500 text-white hover:bg-amber-600`}><FileText className="h-4 w-4" /> {t('Teklif iste')}</button>
           <button type="button" onClick={() => row.stockAlert(item)} title={item.hasStockAlert ? t('Takibi bırak') : t('Gelince haber ver')} aria-label={item.hasStockAlert ? t('Takibi bırak') : t('Gelince haber ver')}
-            className={`h-9 w-9 shrink-0 rounded-lg flex items-center justify-center ${item.hasStockAlert ? 'bg-emerald-50 text-emerald-700 dark:text-emerald-400' : 'border border-gray-200 text-gray-500 hover:text-indigo-600'}`}>
+            className={`h-9 w-9 shrink-0 rounded-lg flex items-center justify-center ${item.hasStockAlert ? 'bg-emerald-50 text-emerald-700 dark:text-emerald-400' : 'border border-gray-200 text-gray-500 hover:text-brand-600'}`}>
             {item.hasStockAlert ? <BellOff className="h-4 w-4" /> : <BellRing className="h-4 w-4" />}
           </button>
         </div>
@@ -79,19 +79,19 @@ export const Action = ({ item, row }) => {
     }
     return item.hasStockAlert
       ? <button type="button" onClick={() => row.stockAlert(item)} className={`${base} bg-emerald-50 text-emerald-700 dark:text-emerald-400`}><BellOff className="h-4 w-4" /> {t('Takipte')}</button>
-      : <button type="button" onClick={() => row.stockAlert(item)} className={`${base} border border-gray-200 text-gray-600 hover:border-indigo-300 hover:text-indigo-600`}><BellRing className="h-4 w-4" /> {t('Haber ver')}</button>;
+      : <button type="button" onClick={() => row.stockAlert(item)} className={`${base} border border-gray-200 text-gray-600 hover:border-brand-300 hover:text-brand-600`}><BellRing className="h-4 w-4" /> {t('Haber ver')}</button>;
   }
-  if (item.priceHidden) return <button type="button" onClick={() => row.add(item)} className={`${base} bg-gray-900 text-white hover:bg-black`}><FileText className="h-4 w-4" /> {t('Teklif iste')}</button>;
-  return <button type="button" onClick={() => row.add(item)} className={`${base} bg-indigo-600 text-white hover:bg-indigo-700`}><ShoppingCart className="h-4 w-4" /> {t('Ekle')}</button>;
+  if (item.priceHidden) return <button type="button" onClick={() => row.add(item)} className={`${base} bg-gray-900 text-white hover:bg-navy-950`}><FileText className="h-4 w-4" /> {t('Teklif iste')}</button>;
+  return <button type="button" onClick={() => row.add(item)} className={`${base} bg-brand-600 text-white hover:bg-brand-700`}><ShoppingCart className="h-4 w-4" /> {t('Ekle')}</button>;
 };
 
 export const Check = ({ item, row }) => (
   canSelect(item)
-    ? <input type="checkbox" checked={row.isSelected(item)} onChange={() => row.toggle(item)} aria-label={t('Seç')} className="h-4 w-4 rounded border-gray-300 accent-indigo-600 cursor-pointer" />
+    ? <input type="checkbox" checked={row.isSelected(item)} onChange={() => row.toggle(item)} aria-label={t('Seç')} className="h-4 w-4 rounded border-gray-300 accent-brand-600 cursor-pointer" />
     : <span />
 );
 
-export const InCart = ({ qty, unit }) => (qty > 0 ? <span className="shrink-0 px-1.5 py-0.5 rounded bg-indigo-600 text-white text-[10px] font-black">{t('Sepette {n} {unit}', { n: qty, unit })}</span> : null);
+export const InCart = ({ qty, unit }) => (qty > 0 ? <span className="shrink-0 px-1.5 py-0.5 rounded bg-brand-600 text-white text-[10px] font-black">{t('Sepette {n} {unit}', { n: qty, unit })}</span> : null);
 
 export const Fav = ({ item, row }) => (
   <button type="button" onClick={() => row.favorite(item)} title={item.isFavorite ? t('Favorilerden çıkar') : t('Favorilere ekle')}

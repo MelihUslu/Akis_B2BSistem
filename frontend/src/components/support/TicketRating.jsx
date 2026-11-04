@@ -25,7 +25,7 @@ const TicketRating = ({ ticket, onRate }) => {
       <div className="flex items-center gap-3 rounded-xl bg-amber-50/60 ring-1 ring-amber-100 px-3 py-2 text-xs">
         <span className="font-bold text-gray-600">Değerlendirmeniz:</span><Stars value={ticket.rating} />
         {ticket.ratingComment && <span className="text-gray-500 truncate">“{ticket.ratingComment}”</span>}
-        <button onClick={() => setEditing(true)} className="ml-auto font-bold text-indigo-600 hover:underline shrink-0">Değiştir</button>
+        <button onClick={() => setEditing(true)} className="ml-auto font-bold text-brand-600 hover:underline shrink-0">Değiştir</button>
       </div>
     );
   }

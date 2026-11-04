@@ -74,7 +74,7 @@ const PosSettings = ({ showAlert, confirm }) => {
   return (
     <div className="space-y-6 max-w-3xl">
       <div className="card-premium p-6 space-y-3">
-        <h3 className="font-black text-gray-900 flex items-center"><CreditCard className="h-5 w-5 mr-2 text-indigo-500" /> Bayilerden Kartla Tahsilat</h3>
+        <h3 className="font-black text-gray-900 flex items-center"><CreditCard className="h-5 w-5 mr-2 text-brand-500" /> Bayilerden Kartla Tahsilat</h3>
         <p className="text-sm text-gray-600">Kendi sanal POS hesabınızı bağlayın; bayileriniz "Finansal Durum" sayfasından kartla cari ödeme yapsın.
           Ödeme onaylanınca carisine alacak yazılır ve risk limiti açılır. Para doğrudan sizin hesabınıza geçer.</p>
         {pos.configured ? (
@@ -86,13 +86,13 @@ const PosSettings = ({ showAlert, confirm }) => {
           <p className="text-sm font-bold text-amber-700 bg-amber-50 rounded-2xl p-4">Sanal POS bağlı değil. Bayileriniz şu an kartla ödeme yapamaz.</p>
         )}
         {pos.configured && pos.provider === 'PAYTR' && (
-          <div className="bg-indigo-50 rounded-2xl p-4 space-y-2">
-            <p className="text-xs font-black text-indigo-800">PayTR mağaza panelinde "Bildirim URL" olarak bu adresi girin (Destek & Kurulum → Ayarlar):</p>
+          <div className="bg-brand-50 rounded-2xl p-4 space-y-2">
+            <p className="text-xs font-black text-brand-800">PayTR mağaza panelinde "Bildirim URL" olarak bu adresi girin (Destek & Kurulum → Ayarlar):</p>
             <div className="flex gap-2 items-center">
               <code className="flex-1 bg-white px-3 py-2 rounded-xl text-xs font-mono break-all">{pos.paytrNotifyUrl}</code>
-              <button onClick={copyNotifyUrl} className="p-2.5 rounded-xl bg-white text-gray-600 hover:text-indigo-600">{copied ? <Check className="h-4 w-4 text-emerald-500" /> : <Copy className="h-4 w-4" />}</button>
+              <button onClick={copyNotifyUrl} className="p-2.5 rounded-xl bg-white text-gray-600 hover:text-brand-600">{copied ? <Check className="h-4 w-4 text-emerald-500" /> : <Copy className="h-4 w-4" />}</button>
             </div>
-            <p className="text-[11px] text-indigo-700">Bu adres girilmezse ödemeler alınır ama carinize otomatik işlenmez.</p>
+            <p className="text-[11px] text-brand-700">Bu adres girilmezse ödemeler alınır ama carinize otomatik işlenmez.</p>
           </div>
         )}
       </div>
@@ -103,7 +103,7 @@ const PosSettings = ({ showAlert, confirm }) => {
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
             {Object.entries(PROVIDERS).map(([id, p]) => (
               <button type="button" key={id} onClick={() => setForm(emptyForm(id, form.mode))}
-                className={`text-left p-4 rounded-2xl border-2 transition-all ${form.provider === id ? 'border-indigo-600 bg-indigo-50/50' : 'border-gray-100 hover:border-gray-200'}`}>
+                className={`text-left p-4 rounded-2xl border-2 transition-all ${form.provider === id ? 'border-brand-600 bg-brand-50/50' : 'border-gray-100 hover:border-gray-200'}`}>
                 <p className="font-black text-gray-900 flex items-center justify-between">{p.name}{pos.configured && pos.provider === id && <span className="text-[10px] font-black text-emerald-600 uppercase">Aktif</span>}</p>
                 <p className="text-[11px] text-gray-500 mt-1">{p.desc}</p>
               </button>
@@ -115,7 +115,7 @@ const PosSettings = ({ showAlert, confirm }) => {
 
         <div className="flex bg-gray-100 p-1 rounded-xl w-fit">
           {[['SANDBOX', 'Test'], ['LIVE', 'Canlı']].map(([v, l]) => (
-            <button type="button" key={v} onClick={() => setForm({ ...form, mode: v })} className={`px-4 py-2 text-xs font-black rounded-lg ${form.mode === v ? 'bg-white text-indigo-600 shadow-sm' : 'text-gray-400'}`}>{l}</button>
+            <button type="button" key={v} onClick={() => setForm({ ...form, mode: v })} className={`px-4 py-2 text-xs font-black rounded-lg ${form.mode === v ? 'bg-white text-brand-600 shadow-sm' : 'text-gray-400'}`}>{l}</button>
           ))}
         </div>
         <p className="text-[11px] text-gray-500">

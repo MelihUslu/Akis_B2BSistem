@@ -73,7 +73,7 @@ const AdminLayout = () => {
   useRememberLastPage();
 
   return (
-    <div className="flex min-h-screen bg-[#0f172a]">
+    <div className="flex min-h-screen bg-navy-900">
       <Sidebar />
       {menuOpen && (
         <div className="fixed inset-0 z-50 lg:hidden">
@@ -83,9 +83,9 @@ const AdminLayout = () => {
       )}
 
       {/* Main Content Area - The "Sheet" */}
-      <div className="flex-1 min-w-0 flex flex-col min-h-screen lg:rounded-l-[2.5rem] shadow-[0_-10px_60px_-15px_rgba(0,0,0,0.3)] overflow-hidden bg-white">
+      <div className="flex-1 min-w-0 flex flex-col min-h-screen lg:rounded-l-[2.5rem] shadow-[0_-10px_60px_-15px_rgba(0,0,0,0.3)] overflow-hidden bg-navy-50">
         <ImpersonationBanner />
-        <header className="px-4 md:px-8 lg:px-12 py-3 lg:py-5 flex justify-between items-center gap-3 sticky top-0 z-40 bg-white/80 backdrop-blur-md"
+        <header className="px-4 md:px-8 lg:px-12 py-3 lg:py-5 flex justify-between items-center gap-3 sticky top-0 z-40 bg-navy-50/80 backdrop-blur-md"
           style={{ paddingTop: 'max(0.75rem, env(safe-area-inset-top))' }}>
           <button onClick={() => setMenuOpen(true)} className="lg:hidden p-2 -ml-2 rounded-xl text-gray-600 hover:bg-gray-100 shrink-0" aria-label="Menü"><Menu className="h-6 w-6" /></button>
           <div className="flex-1 min-w-0">
@@ -108,7 +108,7 @@ const AdminLayout = () => {
           </div>
         </header>
 
-        <main className="flex-1 overflow-y-auto custom-scrollbar px-3 md:px-8 lg:px-12 py-4 md:py-8 bg-white" style={{ paddingBottom: 'max(1rem, env(safe-area-inset-bottom))' }}>
+        <main className="flex-1 overflow-y-auto custom-scrollbar px-3 md:px-8 lg:px-12 py-4 md:py-8 bg-navy-50" style={{ paddingBottom: 'max(1rem, env(safe-area-inset-bottom))' }}>
           <AnnouncementBar />
           <ErrorBoundary key={pathname}>
           <Suspense fallback={<PageLoader />}>

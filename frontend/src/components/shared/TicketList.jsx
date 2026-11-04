@@ -28,8 +28,8 @@ const TicketList = ({ tickets, selectedId, onSelect, side, showTenant = false, n
         const sla = side === 'PLATFORM' && t.status === 'OPEN' ? slaState(t.dueAt, now) : null;
         return (
           <button key={t.id} onClick={() => onSelect(t.id)}
-            className={`relative w-full text-left pl-5 pr-4 py-3.5 flex gap-3 transition-colors ${active ? 'bg-indigo-50/80' : idx % 2 ? 'bg-slate-50/60 hover:bg-indigo-50/40' : 'bg-white hover:bg-indigo-50/40'}`}>
-            <span className={`absolute left-0 top-0 bottom-0 w-1 ${active ? 'bg-indigo-600' : st.bar}`} />
+            className={`relative w-full text-left pl-5 pr-4 py-3.5 flex gap-3 transition-colors ${active ? 'bg-brand-50/80' : idx % 2 ? 'bg-slate-50/60 hover:bg-brand-50/40' : 'bg-white hover:bg-brand-50/40'}`}>
+            <span className={`absolute left-0 top-0 bottom-0 w-1 ${active ? 'bg-brand-600' : st.bar}`} />
             <span className={`h-9 w-9 shrink-0 rounded-xl flex items-center justify-center ${cat.tile}`}><cat.icon className="h-4 w-4" /></span>
             <span className="min-w-0 flex-1">
               <span className="flex items-center gap-2">
@@ -37,7 +37,7 @@ const TicketList = ({ tickets, selectedId, onSelect, side, showTenant = false, n
                 {t.priority === 'HIGH' && <Flame className="h-3.5 w-3.5 text-red-500 shrink-0" title="Yüksek öncelik" />}
                 <span className="ml-auto text-[11px] text-gray-400 whitespace-nowrap shrink-0">{timeAgo(t.updatedAt, now)}</span>
               </span>
-              {showTenant && <span className="block text-[11px] font-bold text-indigo-600 truncate">{t.tenant?.name} · {t.user?.name}</span>}
+              {showTenant && <span className="block text-[11px] font-bold text-brand-600 truncate">{t.tenant?.name} · {t.user?.name}</span>}
               <span className="block text-xs text-gray-500 truncate mt-0.5">
                 {last ? <><span className="font-semibold text-gray-600">{lastByMe ? 'Siz' : side === 'TENANT' ? 'Destek' : last.authorName}:</span> {last.attachments?.length ? <Paperclip className="inline h-3 w-3 -mt-0.5 mr-0.5" /> : null}{last.body || 'Dosya gönderildi'}</> : '—'}
               </span>
@@ -47,7 +47,7 @@ const TicketList = ({ tickets, selectedId, onSelect, side, showTenant = false, n
                 {sla && <span className={`inline-flex items-center gap-1 px-1.5 py-0.5 rounded-md text-[10px] font-bold ${sla.className}`}><Timer className="h-3 w-3" /> {sla.label}</span>}
                 {t.rating && <span className="inline-flex items-center gap-0.5 px-1.5 py-0.5 rounded-md text-[10px] font-bold bg-amber-50 text-amber-700" title="Memnuniyet puanı"><Star className="h-3 w-3 fill-amber-400 text-amber-400" />{t.rating}</span>}
                 {side === 'TENANT' && t.status === 'CLOSED' && !t.rating && <span className="px-1.5 py-0.5 rounded-md text-[10px] font-bold bg-amber-100 text-amber-700">Puan verin</span>}
-                {needsMe && !sla && <span className="px-1.5 py-0.5 rounded-md text-[10px] font-bold bg-indigo-600 text-white">{side === 'TENANT' ? 'Yeni yanıt' : 'Sırada'}</span>}
+                {needsMe && !sla && <span className="px-1.5 py-0.5 rounded-md text-[10px] font-bold bg-brand-600 text-white">{side === 'TENANT' ? 'Yeni yanıt' : 'Sırada'}</span>}
                 <span className="text-[10px] text-gray-400 ml-auto">{t._count?.messages || 0} mesaj</span>
               </span>
             </span>

@@ -62,11 +62,11 @@ const BrandingCard = ({ showAlert }) => {
   return (
     <div className="card-premium p-6 space-y-5">
       <div className="flex justify-between items-start">
-        <h3 className="font-black text-gray-900 flex items-center"><Building2 className="h-5 w-5 mr-2 text-indigo-500" /> Firma & Marka</h3>
-        <span className="text-xs font-bold text-gray-400">Portal adresiniz: <span className="text-indigo-600">{window.location.origin}</span></span>
+        <h3 className="font-black text-gray-900 flex items-center"><Building2 className="h-5 w-5 mr-2 text-brand-500" /> Firma & Marka</h3>
+        <span className="text-xs font-bold text-gray-400">Portal adresiniz: <span className="text-brand-600">{window.location.origin}</span></span>
       </div>
       <div className="grid grid-cols-1 md:grid-cols-[10rem_minmax(0,1fr)] gap-6">
-        <label className="h-32 rounded-2xl border-2 border-dashed border-gray-200 flex items-center justify-center cursor-pointer hover:border-indigo-300 overflow-hidden bg-gray-50">
+        <label className="h-32 rounded-2xl border-2 border-dashed border-gray-200 flex items-center justify-center cursor-pointer hover:border-brand-300 overflow-hidden bg-gray-50">
           {form.logoUrl ? <img src={form.logoUrl} alt="Logo" className="max-h-full max-w-full object-contain p-3" /> : (
             <span className="text-center text-gray-400 text-[11px] font-bold"><ImagePlus className="h-6 w-6 mx-auto mb-1" />{uploading ? 'Yükleniyor...' : 'Logo yükle'}</span>
           )}
@@ -114,7 +114,7 @@ const FIELDS = [
 
 const Switch = ({ on, onChange, label }) => (
   <button type="button" role="switch" aria-checked={on} aria-label={label} onClick={() => onChange(!on)}
-    className={`relative inline-flex h-6 w-11 shrink-0 rounded-full transition-colors ${on ? 'bg-indigo-600' : 'bg-gray-200'}`}>
+    className={`relative inline-flex h-6 w-11 shrink-0 rounded-full transition-colors ${on ? 'bg-brand-600' : 'bg-gray-200'}`}>
     <span className={`absolute top-0.5 h-5 w-5 rounded-full bg-white shadow transition-transform ${on ? 'translate-x-5' : 'translate-x-0.5'}`} />
   </button>
 );
@@ -126,7 +126,7 @@ const OrderOptionsCard = ({ draft, setDraft }) => {
   const set = (k) => (e) => setDraft({ ...draft, [k]: e.target.value });
   return (
     <div className="card-premium p-6 space-y-5">
-      <h3 className="font-black text-gray-900 flex items-center"><Store className="h-5 w-5 mr-2 text-indigo-500" /> Sipariş ve Teslimat</h3>
+      <h3 className="font-black text-gray-900 flex items-center"><Store className="h-5 w-5 mr-2 text-brand-500" /> Sipariş ve Teslimat</h3>
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
         <div className="rounded-2xl ring-1 ring-gray-100 p-5 space-y-2">
           <div className="flex items-start justify-between gap-4">
@@ -222,7 +222,7 @@ const SettingsPage = () => {
       <div className="flex flex-col md:flex-row justify-between md:items-end gap-4">
         <div>
           <div className="flex items-center gap-4">
-          <div className="page-icon"><Settings className="h-6 w-6 text-white" /></div>
+          <div className="page-icon"><Settings className="h-6 w-6 text-brand-400" /></div>
           <div>
             <h1 className="text-3xl font-black text-gray-900 tracking-tight">Sistem Ayarları</h1>
             <p className="text-gray-500 text-sm mt-1">Fiyatlandırma kuralları, döviz, prim ve bildirim ayarları.</p>
@@ -234,7 +234,7 @@ const SettingsPage = () => {
 
       <div className="flex bg-gray-50 p-1 rounded-xl border border-gray-100 w-full md:w-fit overflow-x-auto">
         {TABS.map(([id, label]) => (
-          <button key={id} onClick={() => setTab(id)} className={`px-4 py-2 text-xs font-black rounded-lg whitespace-nowrap ${tab === id ? 'bg-white shadow-sm text-indigo-600' : 'text-gray-400'}`}>{label}</button>
+          <button key={id} onClick={() => setTab(id)} className={`px-4 py-2 text-xs font-black rounded-lg whitespace-nowrap ${tab === id ? 'bg-white shadow-sm text-brand-600' : 'text-gray-400'}`}>{label}</button>
         ))}
       </div>
 
@@ -267,7 +267,7 @@ const SettingsPage = () => {
             </p>
           </div>
         </div>
-        <button onClick={loadRates} className="flex items-center text-xs font-black text-indigo-600 hover:underline"><RefreshCw className="h-3.5 w-3.5 mr-1" /> Yenile</button>
+        <button onClick={loadRates} className="flex items-center text-xs font-black text-brand-600 hover:underline"><RefreshCw className="h-3.5 w-3.5 mr-1" /> Yenile</button>
       </div>
 
       <OrderOptionsCard draft={draft} setDraft={setDraft} />
@@ -275,7 +275,7 @@ const SettingsPage = () => {
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
         {FIELDS.map(({ section, icon: Icon, items }) => (
           <div key={section} className="card-premium p-6 space-y-5">
-            <h3 className="font-black text-gray-900 flex items-center"><Icon className="h-5 w-5 mr-2 text-indigo-500" /> {section}</h3>
+            <h3 className="font-black text-gray-900 flex items-center"><Icon className="h-5 w-5 mr-2 text-brand-500" /> {section}</h3>
             {items.map((f) => (
               <div key={f.key}>
                 <label className="premium-label">{f.label}</label>
@@ -288,7 +288,7 @@ const SettingsPage = () => {
       </div>
 
       <div className="card-premium p-6 space-y-5">
-        <h3 className="font-black text-gray-900 flex items-center"><Users className="h-5 w-5 mr-2 text-indigo-500" /> Plasiyerler</h3>
+        <h3 className="font-black text-gray-900 flex items-center"><Users className="h-5 w-5 mr-2 text-brand-500" /> Plasiyerler</h3>
         <div className="flex flex-wrap gap-3">
           {plasiyers.length === 0 ? <p className="text-sm text-gray-400 font-semibold">Henüz plasiyer yok.</p> : plasiyers.map((p) => (
             <span key={p.id} className="px-4 py-2 bg-gray-50 rounded-xl text-xs font-bold text-gray-700 border border-gray-100">{p.name} · {p.email}</span>

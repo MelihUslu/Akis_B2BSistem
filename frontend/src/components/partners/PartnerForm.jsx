@@ -60,7 +60,7 @@ const PartnerForm = ({ partner, initialKind = 'CUSTOMER', quick = false, meta, o
       <form onSubmit={submit} className="modal-panel w-full max-w-2xl max-h-[90vh] flex flex-col">
         <ModalHeader icon={BookUser} title={title} onClose={onClose} />
         <div className="p-5 space-y-5 overflow-y-auto">
-          {dealer && <p className="text-xs font-semibold text-indigo-700 bg-indigo-50 rounded-xl p-3">Bayinin unvan, vergi, risk limiti ve iskonto bilgileri Bayi Yönetimi ekranında düzenlenir. Burada yetkili kişileri, iletişim e-postasını ve iç notu değiştirebilirsiniz.</p>}
+          {dealer && <p className="text-xs font-semibold text-brand-700 bg-brand-50 rounded-xl p-3">Bayinin unvan, vergi, risk limiti ve iskonto bilgileri Bayi Yönetimi ekranında düzenlenir. Burada yetkili kişileri, iletişim e-postasını ve iç notu değiştirebilirsiniz.</p>}
           {quick && <p className="text-xs text-gray-500">Portala giriş yapmayan, ara sıra alışveriş yapan müşteriler için. Yalnızca ad / unvan zorunlu; diğer bilgileri sonra Cari Hesaplar'dan tamamlayabilirsiniz.</p>}
 
           {!dealer && !quick && (
@@ -111,7 +111,7 @@ const PartnerForm = ({ partner, initialKind = 'CUSTOMER', quick = false, meta, o
             <div className="space-y-3">
               <div className="flex items-center justify-between">
                 <p className="text-sm font-black text-gray-900">Yetkili kişiler</p>
-                <button type="button" onClick={() => setForm({ ...form, contacts: [...form.contacts, { ...emptyContact(), isPrimary: form.contacts.length === 0 }] })} className="flex items-center text-xs font-black text-indigo-600 hover:underline"><Plus className="h-3.5 w-3.5 mr-1" /> Kişi ekle</button>
+                <button type="button" onClick={() => setForm({ ...form, contacts: [...form.contacts, { ...emptyContact(), isPrimary: form.contacts.length === 0 }] })} className="flex items-center text-xs font-black text-brand-600 hover:underline"><Plus className="h-3.5 w-3.5 mr-1" /> Kişi ekle</button>
               </div>
               {form.contacts.length === 0 && <p className="text-xs text-gray-400">Kayıtlı yetkili yok.</p>}
               {form.contacts.map((c, i) => (

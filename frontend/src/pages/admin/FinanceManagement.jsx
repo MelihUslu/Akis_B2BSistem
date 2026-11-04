@@ -34,7 +34,7 @@ const Card = ({ icon: Icon, iconClass, title, children, empty }) => (
 const Row = ({ to, title, sub, right, rightClass = 'text-gray-900' }) => (
   <Link to={to} className="p-4 flex justify-between items-center gap-3 hover:bg-gray-50 transition-colors group">
     <span className="min-w-0"><span className="block text-sm font-bold text-gray-800 truncate">{title}</span><span className="block text-xs text-gray-500 truncate">{sub}</span></span>
-    <span className="flex items-center gap-2 shrink-0"><span className={`text-sm font-black tabular-nums ${rightClass}`}>{right}</span><ChevronRight className="h-4 w-4 text-gray-300 group-hover:text-indigo-500" /></span>
+    <span className="flex items-center gap-2 shrink-0"><span className={`text-sm font-black tabular-nums ${rightClass}`}>{right}</span><ChevronRight className="h-4 w-4 text-gray-300 group-hover:text-brand-500" /></span>
   </Link>
 );
 
@@ -61,10 +61,10 @@ const FinanceManagement = () => {
     <div className="space-y-8">
       <div className="flex flex-col md:flex-row justify-between md:items-end gap-4">
         <div className="flex items-center gap-4">
-          <div className="page-icon"><CreditCard className="h-6 w-6 text-white" /></div>
+          <div className="page-icon"><CreditCard className="h-6 w-6 text-brand-400" /></div>
           <div>
             <h1 className="text-3xl font-black text-gray-900 tracking-tight">Finans ve Prim</h1>
-            <p className="text-gray-500 text-sm mt-1">Tahsilat ve vade takibi, plasiyer primleri, mutabakatlar. Cari bakiye, hareket girişi ve ekstre için <Link to="/admin/partners" className="text-indigo-600 font-bold hover:underline">Cari Hesaplar</Link>.</p>
+            <p className="text-gray-500 text-sm mt-1">Tahsilat ve vade takibi, plasiyer primleri, mutabakatlar. Cari bakiye, hareket girişi ve ekstre için <Link to="/admin/partners" className="text-brand-600 font-bold hover:underline">Cari Hesaplar</Link>.</p>
           </div>
         </div>
         <Link to="/admin/partners" className="btn-gradient shrink-0"><BookUser className="h-4 w-4 mr-2" /> Cari Hesaplar</Link>
@@ -157,7 +157,7 @@ const FinanceManagement = () => {
                       return (
                         <tr key={r.id} className="hover:bg-gray-50 align-top">
                           <td className="px-4 py-2.5">
-                            <Link to={cariLink(r.id)} className="font-bold text-gray-800 hover:text-indigo-600">{r.name}</Link>
+                            <Link to={cariLink(r.id)} className="font-bold text-gray-800 hover:text-brand-600">{r.name}</Link>
                             {sentence && <p className={`text-[11px] font-bold ${sentence.tone}`}>{sentence.text}</p>}
                           </td>
                           {AGING_LABELS.map(([k]) => (

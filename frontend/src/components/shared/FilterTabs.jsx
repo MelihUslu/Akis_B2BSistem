@@ -4,7 +4,7 @@ const TONES = {
   slate: { on: 'bg-slate-800 text-white shadow-md shadow-slate-800/20', icon: 'text-slate-500', badgeOn: 'bg-white/20 text-white', badge: 'bg-slate-100 text-slate-600' },
   orange: { on: 'bg-orange-500 text-white shadow-md shadow-orange-500/25', icon: 'text-orange-500', badgeOn: 'bg-white/25 text-white', badge: 'bg-orange-100 text-orange-700' },
   emerald: { on: 'bg-emerald-500 text-white shadow-md shadow-emerald-500/25', icon: 'text-emerald-500', badgeOn: 'bg-white/25 text-white', badge: 'bg-emerald-100 text-emerald-700' },
-  blue: { on: 'bg-indigo-600 text-white shadow-md shadow-indigo-600/25', icon: 'text-indigo-500', badgeOn: 'bg-white/25 text-white', badge: 'bg-indigo-100 text-indigo-700' },
+  blue: { on: 'bg-brand-600 text-white shadow-md shadow-brand-600/25', icon: 'text-brand-500', badgeOn: 'bg-white/25 text-white', badge: 'bg-brand-100 text-brand-700' },
   violet: { on: 'bg-violet-600 text-white shadow-md shadow-violet-600/25', icon: 'text-violet-500', badgeOn: 'bg-white/25 text-white', badge: 'bg-violet-100 text-violet-700' },
   red: { on: 'bg-red-500 text-white shadow-md shadow-red-500/25', icon: 'text-red-500', badgeOn: 'bg-white/25 text-white', badge: 'bg-red-100 text-red-600' },
   gray: { on: 'bg-gray-500 text-white shadow-md shadow-gray-500/25', icon: 'text-gray-400', badgeOn: 'bg-white/25 text-white', badge: 'bg-gray-100 text-gray-500' },

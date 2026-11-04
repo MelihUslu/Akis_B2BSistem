@@ -110,7 +110,7 @@ const QuickOrder = () => {
             </div>
           ))}
           <div className="flex justify-between pt-3">
-            <button onClick={() => setRows([...rows, emptyRow()])} className="flex items-center text-xs font-black text-indigo-600 hover:underline">
+            <button onClick={() => setRows([...rows, emptyRow()])} className="flex items-center text-xs font-black text-brand-600 hover:underline">
               <Plus className="h-4 w-4 mr-1" /> {t('Satır Ekle')}
             </button>
             <button onClick={resolve} disabled={loading} className="btn-gradient disabled:opacity-60">
@@ -170,7 +170,7 @@ const QuickOrder = () => {
               <div key={product.id} className="px-6 py-4 flex flex-col md:flex-row md:items-center justify-between gap-2">
                 <div>
                   <p className="font-bold text-gray-900">{product.parentName || product.name}</p>
-                  {product.variantLabel && <p className="text-xs font-black text-indigo-600">{product.variantLabel}</p>}
+                  {product.variantLabel && <p className="text-xs font-black text-brand-600">{product.variantLabel}</p>}
                   {product.requiresVariant && <p className="text-xs font-black text-amber-600">{t("Bu ana ürün kodudur — varyantın SKU'sunu girin.")}</p>}
                   {blocker(product) === 'stock' && <p className="mt-0.5 inline-flex items-center rounded-md bg-red-50 px-1.5 py-0.5 text-[11px] font-black text-red-700">{t('Stokta yok · sepete eklenmez')}</p>}
                   <p className="text-xs text-gray-400 font-semibold">

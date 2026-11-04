@@ -15,7 +15,7 @@ const waNumber = (phone) => {
 const Contact = ({ icon: Icon, label, value, href, close }) => (
   <a href={href} onClick={close} target={href.startsWith('http') ? '_blank' : undefined} rel="noreferrer"
     className="flex items-center gap-3 px-3 py-2.5 rounded-xl hover:bg-gray-50">
-    <span className="h-9 w-9 shrink-0 rounded-lg bg-indigo-50 text-indigo-600 dark:text-indigo-300 flex items-center justify-center"><Icon className="h-4 w-4" /></span>
+    <span className="h-9 w-9 shrink-0 rounded-lg bg-brand-50 text-brand-600 dark:text-brand-300 flex items-center justify-center"><Icon className="h-4 w-4" /></span>
     <span className="min-w-0">
       <span className="block text-[11px] font-bold text-gray-400">{label}</span>
       <span className="block text-sm font-bold text-gray-900 truncate">{value}</span>

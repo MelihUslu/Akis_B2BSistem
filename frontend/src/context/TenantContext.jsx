@@ -15,8 +15,8 @@ const applyManifest = (tenant) => {
       scope: `${origin}/`,
       display: 'standalone',
       orientation: 'portrait',
-      background_color: '#0f172a',
-      theme_color: '#4f46e5',
+      background_color: '#14283F',
+      theme_color: '#986B47',
       lang: getLang(),
       icons: [
         { src: `${origin}/icon-192.png`, sizes: '192x192', type: 'image/png' },

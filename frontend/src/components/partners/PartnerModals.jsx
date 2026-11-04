@@ -58,14 +58,14 @@ export const PaymentModal = ({ partner, direction: initial, onClose, onSaved }) 
       <Segmented size="sm" value={form.direction} onChange={(direction) => setForm({ ...form, direction })}
         options={[{ value: 'IN', label: 'Tahsilat (para girişi)' }, { value: 'OUT', label: 'Ödeme (para çıkışı)' }]} />
       {account !== 'TRY' && (
-        <div className="grid grid-cols-2 gap-3 rounded-xl bg-indigo-50/60 p-3">
+        <div className="grid grid-cols-2 gap-3 rounded-xl bg-brand-50/60 p-3">
           <Field label="Ödenen para">
             <Segmented size="sm" value={form.currency} onChange={(currency) => setForm({ ...form, currency })} options={[{ value: account, label: account }, { value: 'TRY', label: 'TL' }]} />
           </Field>
           <Field label={`Kur (1 ${account} = ? TL)`} hint="Varsayılan: güncel TCMB satış kuru">
             <input type="number" min="0" step="0.0001" className="premium-input !bg-white" value={form.rate} onChange={set('rate')} />
           </Field>
-          {posted !== null && amt > 0 && <p className="col-span-2 text-xs font-bold text-indigo-800">Cariye işlenecek: {formatMoney(posted, account)}{form.currency === account && r ? ` (TL karşılığı ${formatMoney(amt * r, 'TRY')})` : ''}</p>}
+          {posted !== null && amt > 0 && <p className="col-span-2 text-xs font-bold text-brand-800">Cariye işlenecek: {formatMoney(posted, account)}{form.currency === account && r ? ` (TL karşılığı ${formatMoney(amt * r, 'TRY')})` : ''}</p>}
         </div>
       )}
       <Field label="Yöntem">
@@ -107,7 +107,7 @@ export const TransactionModal = ({ partner, onClose, onSaved }) => {
       <div className="grid grid-cols-2 gap-2">
         {types.map((t) => (
           <button type="button" key={t.id} onClick={() => setForm({ ...form, type: t.id })}
-            className={`text-left rounded-xl p-3 ring-1 ${form.type === t.id ? 'ring-2 ring-indigo-400 bg-indigo-50/60' : 'ring-gray-100'}`}>
+            className={`text-left rounded-xl p-3 ring-1 ${form.type === t.id ? 'ring-2 ring-brand-400 bg-brand-50/60' : 'ring-gray-100'}`}>
             <span className="block text-xs font-black text-gray-900">{t.label}</span>
             <span className="block text-[10px] text-gray-400">{t.desc}</span>
           </button>
@@ -152,7 +152,7 @@ export const StatementLinkModal = ({ partner, onClose, onSaved }) => {
         <p className={`text-sm font-bold ${result.total && result.delivered < result.total ? 'text-amber-700' : 'text-emerald-700'}`}>{result.message}</p>
         <div className="flex gap-2">
           <input readOnly className="premium-input font-mono text-xs" value={result.url} onFocus={(e) => e.target.select()} />
-          <button type="button" onClick={() => navigator.clipboard?.writeText(result.url)} className="flex items-center px-3 rounded-xl text-xs font-black text-indigo-700 bg-indigo-50 shrink-0"><Copy className="h-4 w-4 mr-1" /> Kopyala</button>
+          <button type="button" onClick={() => navigator.clipboard?.writeText(result.url)} className="flex items-center px-3 rounded-xl text-xs font-black text-brand-700 bg-brand-50 shrink-0"><Copy className="h-4 w-4 mr-1" /> Kopyala</button>
         </div>
         <p className="text-[11px] text-gray-400">Cari bu bağlantıdan ekstresini görür; “Mutabıkız” derse mutabakat kaydı oluşur, itiraz ederse size bildirim gelir. Bağlantı 30 gün geçerlidir.</p>
       </Modal>

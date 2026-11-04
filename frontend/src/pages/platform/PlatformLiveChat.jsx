@@ -4,7 +4,7 @@ import { platformApi, errorMessage } from '../../services/api';
 import { formatDate } from '../../utils/format';
 
 const LEAD_STATUS = {
-  NEW: ['Yeni', 'bg-indigo-100 text-indigo-700'],
+  NEW: ['Yeni', 'bg-brand-100 text-brand-700'],
   CONTACTED: ['Görüşüldü', 'bg-amber-100 text-amber-700'],
   WON: ['Müşteri oldu', 'bg-emerald-100 text-emerald-700'],
   LOST: ['Olumsuz', 'bg-gray-200 text-gray-600'],
@@ -103,13 +103,13 @@ const Leads = () => {
               <div className="min-w-0">
                 <p className="font-black text-gray-900 flex flex-wrap items-center gap-2">{l.name || 'İsimsiz'}{l.company && <span className="font-semibold text-gray-500">· {l.company}</span>}<Pill map={LEAD_STATUS} value={l.status} /><span className="text-[10px] font-black text-gray-400">{l.source === 'CHAT' ? 'SOHBET' : 'FORM'}</span></p>
                 <p className="mt-1 text-sm text-gray-600 flex flex-wrap gap-x-4">
-                  {l.phone && <a href={`tel:${l.phone}`} className="text-indigo-600 font-semibold">{l.phone}</a>}
-                  {l.email && <a href={`mailto:${l.email}`} className="text-indigo-600 font-semibold">{l.email}</a>}
+                  {l.phone && <a href={`tel:${l.phone}`} className="text-brand-600 font-semibold">{l.phone}</a>}
+                  {l.email && <a href={`mailto:${l.email}`} className="text-brand-600 font-semibold">{l.email}</a>}
                   <span className="text-gray-400">{formatDate(l.createdAt, true)}{utmText(l.utm) && ` · ${utmText(l.utm)}`}</span>
                 </p>
                 {l.message && <p className="mt-2 text-sm text-gray-700 whitespace-pre-line">{l.message}</p>}
                 <textarea defaultValue={l.note} onBlur={(e) => e.target.value !== l.note && update(l.id, { note: e.target.value })} placeholder="Not (kaydetmek için alanın dışına tıklayın)" rows={1}
-                  className="mt-2 w-full rounded-lg bg-gray-50 px-3 py-2 text-sm outline-none focus:ring-2 focus:ring-indigo-100 resize-y" />
+                  className="mt-2 w-full rounded-lg bg-gray-50 px-3 py-2 text-sm outline-none focus:ring-2 focus:ring-brand-100 resize-y" />
               </div>
               <select value={l.status} onChange={(e) => update(l.id, { status: e.target.value })} className="premium-input !py-2 text-sm self-start">
                 {Object.entries(LEAD_STATUS).map(([k, [lbl]]) => <option key={k} value={k}>{lbl}</option>)}
@@ -144,7 +144,7 @@ const PlatformLiveChat = () => {
     <div className="space-y-6">
       <div className="flex flex-wrap items-center justify-between gap-4">
         <div className="flex items-center gap-4">
-          <div className="page-icon"><MessagesSquare className="h-6 w-6 text-white" /></div>
+          <div className="page-icon"><MessagesSquare className="h-6 w-6 text-brand-400" /></div>
           <div>
             <h1 className="text-3xl font-black text-gray-900 tracking-tight">Canlı Destek</h1>
             <p className="text-gray-500 text-sm mt-1">Tanıtım sitesindeki sohbetler ve satış talepleri. Bot otomatik yanıtlar; isterseniz konuşmayı devralırsınız.</p>

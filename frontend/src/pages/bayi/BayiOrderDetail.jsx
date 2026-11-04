@@ -86,7 +86,7 @@ const ReturnForm = ({ item, maxQty, onClose, onCreated }) => {
               <div className="flex bg-gray-100 p-1 rounded-xl">
                 {[['RETURN', t('İade')], ['EXCHANGE', t('Değişim')]].map(([value, label]) => (
                   <button key={value} type="button" onClick={() => setForm({ ...form, type: value })}
-                    className={`flex-1 py-2 text-xs font-black rounded-lg transition-all ${form.type === value ? 'bg-white text-indigo-600 shadow-sm' : 'text-gray-400'}`}>
+                    className={`flex-1 py-2 text-xs font-black rounded-lg transition-all ${form.type === value ? 'bg-white text-brand-600 shadow-sm' : 'text-gray-400'}`}>
                     {label}
                   </button>
                 ))}
@@ -115,7 +115,7 @@ const ReturnForm = ({ item, maxQty, onClose, onCreated }) => {
                 </div>
               ))}
               {photos.length < 6 && (
-                <label className="w-20 h-20 rounded-xl border-2 border-dashed border-gray-200 flex items-center justify-center text-gray-400 hover:border-indigo-300 hover:text-indigo-500 cursor-pointer transition-colors">
+                <label className="w-20 h-20 rounded-xl border-2 border-dashed border-gray-200 flex items-center justify-center text-gray-400 hover:border-brand-300 hover:text-brand-500 cursor-pointer transition-colors">
                   {uploading ? <Loader2 className="h-5 w-5 animate-spin" /> : <Camera className="h-5 w-5" />}
                   <input type="file" accept="image/*" multiple className="hidden" onChange={upload} disabled={uploading} />
                 </label>
@@ -184,7 +184,7 @@ const BayiOrderDetail = () => {
         />
       )}
 
-      <Link to="/bayi/orders" className="inline-flex items-center text-xs font-black text-gray-400 hover:text-indigo-600 uppercase tracking-widest">
+      <Link to="/bayi/orders" className="inline-flex items-center text-xs font-black text-gray-400 hover:text-brand-600 uppercase tracking-widest">
         <ArrowLeft className="h-4 w-4 mr-2" /> {t('Siparişlerim')}
       </Link>
 
@@ -197,7 +197,7 @@ const BayiOrderDetail = () => {
           <span className={`px-4 py-1.5 rounded-full text-xs font-black uppercase ${status.className}`}>{t(status.label)}</span>
           <Link to={`/print/order/${order.id}`} className="flex items-center px-4 py-2 rounded-xl text-xs font-black text-gray-600 bg-gray-100 hover:bg-gray-200"><Printer className="h-3.5 w-3.5 mr-1.5" /> {t('Yazdır / PDF')}</Link>
           {order.status !== 'CANCELLED' && (
-            <button onClick={handleReorder} className="flex items-center px-4 py-2 rounded-xl text-xs font-black text-indigo-600 bg-indigo-50 hover:bg-indigo-100">
+            <button onClick={handleReorder} className="flex items-center px-4 py-2 rounded-xl text-xs font-black text-brand-600 bg-brand-50 hover:bg-brand-100">
               <RotateCw className="h-3.5 w-3.5 mr-1.5" /> {t('Yeniden Sipariş Ver')}
             </button>
           )}
@@ -208,7 +208,7 @@ const BayiOrderDetail = () => {
 
       {order.shippingAddress && (
         <div className="card-premium p-5 flex items-start gap-3">
-          <MapPin className="h-5 w-5 text-indigo-500 shrink-0 mt-0.5" />
+          <MapPin className="h-5 w-5 text-brand-500 shrink-0 mt-0.5" />
           <div className="text-sm">
             <p className="font-black text-gray-900">{t('Teslimat:')} {order.shippingAddress.title}</p>
             <p className="text-gray-600 mt-0.5">{formatAddress(order.shippingAddress)}</p>
@@ -224,13 +224,13 @@ const BayiOrderDetail = () => {
       <div className="card-premium p-5 md:p-8 overflow-x-auto">
         <OrderTimeline order={order} />
         {order.trackingNumber && (
-          <div className="mt-8 flex items-center bg-indigo-50 px-5 py-4 rounded-2xl border border-indigo-100">
-            <Truck className="h-5 w-5 text-indigo-600 mr-3" />
+          <div className="mt-8 flex items-center bg-brand-50 px-5 py-4 rounded-2xl border border-brand-100">
+            <Truck className="h-5 w-5 text-brand-600 mr-3" />
             <div>
-              <p className="text-[10px] font-black text-indigo-400 uppercase tracking-widest">{carrierName(order.cargoCompany) || t('Kargo')} · Takip No</p>
-              <p className="text-sm font-black text-indigo-700">{order.trackingNumber}</p>
+              <p className="text-[10px] font-black text-brand-400 uppercase tracking-widest">{carrierName(order.cargoCompany) || t('Kargo')} · Takip No</p>
+              <p className="text-sm font-black text-brand-700">{order.trackingNumber}</p>
               {trackingUrl(order.cargoCompany, order.trackingNumber) && (
-                <a href={trackingUrl(order.cargoCompany, order.trackingNumber)} target="_blank" rel="noreferrer" className="inline-flex items-center text-xs font-black text-indigo-600 mt-1 hover:underline">{t('Kargom nerede?')} <ExternalLink className="h-3 w-3 ml-1" /></a>
+                <a href={trackingUrl(order.cargoCompany, order.trackingNumber)} target="_blank" rel="noreferrer" className="inline-flex items-center text-xs font-black text-brand-600 mt-1 hover:underline">{t('Kargom nerede?')} <ExternalLink className="h-3 w-3 ml-1" /></a>
               )}
             </div>
           </div>
@@ -256,7 +256,7 @@ const BayiOrderDetail = () => {
                 </div>
                 <div className="flex-1 min-w-0">
                   <p className="font-bold text-gray-900">{item.product.parent?.name || item.product.name}</p>
-                  {item.variantLabel && <p className="text-xs font-black text-indigo-600 mt-0.5">{item.variantLabel}</p>}
+                  {item.variantLabel && <p className="text-xs font-black text-brand-600 mt-0.5">{item.variantLabel}</p>}
                   <p className="text-xs text-gray-400 font-semibold mt-1">{t('SKU:')} {item.product.sku} · {item.quantity} {item.product.unit} × {formatTRY(item.price)} + KDV %{item.vatRate}</p>
                   {item.status === 'CANCELLED' && <p className="text-xs font-black text-red-500 mt-1">{t('Bu kalem stok yetersizliği nedeniyle iptal edildi.')}</p>}
                   {returns.map((r) => (

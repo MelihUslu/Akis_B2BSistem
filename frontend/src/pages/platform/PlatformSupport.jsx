@@ -70,7 +70,7 @@ const PlatformSupport = () => {
     <div className="space-y-6">
       {alertElement}
       <div className="flex items-center gap-4">
-        <div className="page-icon"><LifeBuoy className="h-6 w-6 text-white" /></div>
+        <div className="page-icon"><LifeBuoy className="h-6 w-6 text-brand-400" /></div>
         <div>
           <h1 className="text-3xl font-black text-gray-900 tracking-tight">Destek Talepleri</h1>
           <p className="text-gray-500 text-sm mt-1">Müşterilerinizin yönetim panelinden açtığı talepler. Bekleyenler hedef yanıt süresi en yakın olandan başlar.</p>
@@ -85,7 +85,7 @@ const PlatformSupport = () => {
           { icon: Archive, label: 'Kapalı', value: count('CLOSED'), sub: `toplam ${tickets.length} talep`, tone: 'bg-gray-100 text-gray-600', f: 'CLOSED' },
           { icon: Star, label: 'Memnuniyet', value: avgRating ? `${avgRating.toFixed(1)} / 5` : '—', sub: rated.length ? `%${csat} memnun · ${rated.length} puan` : 'henüz puan yok', tone: 'bg-amber-50 text-amber-600', f: 'CLOSED' },
         ].map((c) => (
-          <button key={c.label} onClick={() => setFilter(c.f)} className={`text-left rounded-2xl p-4 ring-1 bg-white transition-all hover:-translate-y-0.5 hover:shadow-md ${filter === c.f && c.label !== 'Süresi geçen' ? 'ring-2 ring-indigo-500' : c.label === 'Süresi geçen' && overdue ? 'ring-2 ring-red-300' : 'ring-gray-100'}`}>
+          <button key={c.label} onClick={() => setFilter(c.f)} className={`text-left rounded-2xl p-4 ring-1 bg-white transition-all hover:-translate-y-0.5 hover:shadow-md ${filter === c.f && c.label !== 'Süresi geçen' ? 'ring-2 ring-brand-500' : c.label === 'Süresi geçen' && overdue ? 'ring-2 ring-red-300' : 'ring-gray-100'}`}>
             <div className="flex items-center justify-between"><span className="text-[11px] font-bold text-gray-500">{c.label}</span><span className={`p-1.5 rounded-lg ${c.tone}`}><c.icon className="h-4 w-4" /></span></div>
             <p className="text-2xl font-black text-gray-900 mt-1 tabular-nums">{c.value}</p>
             <p className="text-[11px] text-gray-400 mt-0.5 truncate">{c.sub}</p>
@@ -99,7 +99,7 @@ const PlatformSupport = () => {
             <div className="relative">
               <Search className="absolute left-3.5 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-400" />
               <input value={query} onChange={(e) => setQuery(e.target.value)} placeholder="Firma, konu, kişi veya talep no ara"
-                className="w-full h-10 pl-10 pr-3 rounded-xl bg-gray-50 border border-transparent text-sm font-semibold outline-none focus:bg-white focus:border-indigo-300 focus:ring-4 focus:ring-indigo-100 placeholder:text-gray-400 placeholder:font-medium" />
+                className="w-full h-10 pl-10 pr-3 rounded-xl bg-gray-50 border border-transparent text-sm font-semibold outline-none focus:bg-white focus:border-brand-300 focus:ring-4 focus:ring-brand-100 placeholder:text-gray-400 placeholder:font-medium" />
             </div>
             <FilterTabs compact value={filter} onChange={setFilter} tabs={[
               { id: 'OPEN', label: 'Bekleyen', icon: Hourglass, tone: 'orange', count: count('OPEN'), alert: true },
@@ -131,7 +131,7 @@ const PlatformSupport = () => {
             subtitle={`${selected.tenant?.name} (${selected.tenant?.slug}) · ${selected.user?.name} <${selected.user?.email}>`} />
         ) : (
           <div className="card-premium p-16 text-center">
-            <div className="h-16 w-16 mx-auto rounded-2xl bg-indigo-50 text-indigo-500 flex items-center justify-center mb-4"><LifeBuoy className="h-8 w-8" /></div>
+            <div className="h-16 w-16 mx-auto rounded-2xl bg-brand-50 text-brand-500 flex items-center justify-center mb-4"><LifeBuoy className="h-8 w-8" /></div>
             <p className="text-lg font-black text-gray-900">Bir talep seçin</p>
             <p className="text-sm text-gray-500 mt-1 flex items-center justify-center gap-1.5"><Clock className="h-4 w-4" /> Bekleyenler hedef süresi en yakın talepten başlar.</p>
           </div>

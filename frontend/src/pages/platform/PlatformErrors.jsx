@@ -29,7 +29,7 @@ const PlatformErrors = () => {
     <div className="space-y-6">
       {alertElement}
       <div className="flex items-center gap-4">
-        <div className="page-icon"><Bug className="h-6 w-6 text-white" /></div>
+        <div className="page-icon"><Bug className="h-6 w-6 text-brand-400" /></div>
         <div>
           <h1 className="text-3xl font-black text-gray-900 tracking-tight">Hatalar</h1>
           <p className="text-gray-500 text-sm mt-1">Sunucuda ve kullanıcıların tarayıcısında oluşan hatalar. Yeni bir hata ilk görüldüğünde PLATFORM_ALERT_EMAIL adresine bildirilir.</p>

@@ -21,8 +21,8 @@ const HelpCenter = ({ client, onOpen }) => {
 
   return (
     <div className="card-premium overflow-hidden">
-      <div className="px-6 pt-6 pb-5 bg-gradient-to-br from-indigo-600 to-indigo-600 text-white">
-        <p className="flex items-center gap-2 text-xs font-black uppercase tracking-widest text-indigo-100"><BookOpen className="h-4 w-4" /> Yardım Merkezi</p>
+      <div className="px-6 pt-6 pb-5 bg-gradient-to-br from-brand-600 to-brand-600 text-white">
+        <p className="flex items-center gap-2 text-xs font-black uppercase tracking-widest text-brand-100"><BookOpen className="h-4 w-4" /> Yardım Merkezi</p>
         <p className="text-xl font-black mt-1.5">Size nasıl yardımcı olabiliriz?</p>
         <div className="relative mt-4">
           <Search className="absolute left-4 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-400" />
@@ -49,10 +49,10 @@ const HelpCenter = ({ client, onOpen }) => {
               <button key={a.id} onClick={() => onOpen(a.id)} className="w-full text-left px-6 py-3.5 flex items-center gap-3 hover:bg-slate-50 group">
                 <span className={`h-9 w-9 shrink-0 rounded-xl flex items-center justify-center ${c.tile}`}><c.icon className="h-4 w-4" /></span>
                 <span className="min-w-0 flex-1">
-                  <span className="block text-sm font-bold text-gray-900 group-hover:text-indigo-700">{a.title}</span>
+                  <span className="block text-sm font-bold text-gray-900 group-hover:text-brand-700">{a.title}</span>
                   {a.summary && <span className="block text-xs text-gray-500 truncate">{a.summary}</span>}
                 </span>
-                <ChevronRight className="h-4 w-4 text-gray-300 group-hover:text-indigo-500 shrink-0" />
+                <ChevronRight className="h-4 w-4 text-gray-300 group-hover:text-brand-500 shrink-0" />
               </button>
             );
           })}

@@ -25,7 +25,7 @@ const Tick = ({ status }) => {
 };
 
 const StatusPill = ({ c }) => (c.status === 'BOT'
-  ? <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-md bg-indigo-50 text-indigo-700 text-[10px] font-black"><Bot className="h-3 w-3" /> Yapay zekâ</span>
+  ? <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-md bg-brand-50 text-brand-700 text-[10px] font-black"><Bot className="h-3 w-3" /> Yapay zekâ</span>
   : c.status === 'HUMAN'
     ? <span className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-md text-[10px] font-black ${c.needsHuman ? 'bg-red-50 text-red-700' : 'bg-amber-50 text-amber-700'}`}><UserRound className="h-3 w-3" /> {c.needsHuman ? 'Ekip bekliyor' : 'Ekipte'}</span>
     : <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-md bg-gray-100 text-gray-500 text-[10px] font-black">Kapalı</span>);
@@ -149,12 +149,12 @@ const WhatsAppInbox = ({ aiEnabled, showAlert }) => {
               <div className="min-w-0 flex-1">
                 <p className="font-black text-gray-900 truncate">{conv.name || phone(conv.waId)}</p>
                 <p className="text-xs text-gray-500 flex flex-wrap items-center gap-x-2 gap-y-1"><span className="whitespace-nowrap">{phone(conv.waId)}</span> <StatusPill c={conv} />
-                  {thread.lead && <Link to="/admin/leads" className="text-indigo-600 font-bold hover:underline">Müşteri adayı</Link>}
+                  {thread.lead && <Link to="/admin/leads" className="text-brand-600 font-bold hover:underline">Müşteri adayı</Link>}
                 </p>
               </div>
               <div className="flex gap-2">
                 {conv.status === 'BOT' && <button type="button" onClick={() => setStatus('HUMAN')} title="Devral" className="h-9 px-3 rounded-xl bg-amber-50 text-amber-800 text-xs font-black flex items-center gap-1.5 hover:bg-amber-100"><Hand className="h-4 w-4" /> <span className="hidden sm:inline">Devral</span></button>}
-                {conv.status !== 'BOT' && aiEnabled && <button type="button" onClick={() => setStatus('BOT')} title="Yapay zekâya bırak" className="h-9 px-3 rounded-xl bg-indigo-50 text-indigo-700 text-xs font-black flex items-center gap-1.5 hover:bg-indigo-100"><Bot className="h-4 w-4" /> <span className="hidden sm:inline">Yapay zekâya bırak</span></button>}
+                {conv.status !== 'BOT' && aiEnabled && <button type="button" onClick={() => setStatus('BOT')} title="Yapay zekâya bırak" className="h-9 px-3 rounded-xl bg-brand-50 text-brand-700 text-xs font-black flex items-center gap-1.5 hover:bg-brand-100"><Bot className="h-4 w-4" /> <span className="hidden sm:inline">Yapay zekâya bırak</span></button>}
                 {conv.status !== 'CLOSED' && <button type="button" onClick={() => setStatus('CLOSED')} title="Kapat" className="h-9 px-3 rounded-xl bg-gray-100 text-gray-600 text-xs font-black flex items-center gap-1.5 hover:bg-gray-200"><Archive className="h-4 w-4" /> <span className="hidden sm:inline">Kapat</span></button>}
               </div>
             </div>
@@ -167,7 +167,7 @@ const WhatsAppInbox = ({ aiEnabled, showAlert }) => {
                   <div key={m.id} className={`flex ${mine ? 'justify-end' : 'justify-start'}`}>
                     <div className={`max-w-[85%] md:max-w-[70%] rounded-2xl px-3.5 py-2 shadow-sm ${mine ? 'rounded-tr-md bg-[#d9fdd3]' : 'rounded-tl-md bg-white'}`}>
                       {mine && (
-                        <p className={`text-[10px] font-black mb-0.5 flex items-center gap-1 ${m.author === 'AI' ? 'text-indigo-600' : 'text-emerald-700'}`}>
+                        <p className={`text-[10px] font-black mb-0.5 flex items-center gap-1 ${m.author === 'AI' ? 'text-brand-600' : 'text-emerald-700'}`}>
                           {m.author === 'AI' ? <><Bot className="h-3 w-3" /> Yapay zekâ</> : <><UserRound className="h-3 w-3" /> {m.agentName || 'Ekip'}</>}
                         </p>
                       )}

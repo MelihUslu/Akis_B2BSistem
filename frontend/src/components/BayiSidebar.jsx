@@ -40,12 +40,12 @@ const BayiSidebar = ({ mobile = false, onNavigate }) => {
   };
 
   return (
-    <aside className={`w-64 bg-[#0f172a] flex-col h-screen top-0 py-8 overflow-y-auto ${mobile ? 'flex' : 'hidden lg:flex sticky'}`}>
+    <aside className={`w-64 bg-navy-900 flex-col h-screen top-0 py-8 overflow-y-auto ${mobile ? 'flex' : 'hidden lg:flex sticky'}`}>
       {/* Logo Section */}
       <div className="px-8 mb-8 flex justify-between items-start">
         <div className="flex flex-col items-start">
           <TenantBrand onDark />
-          <span className="text-[9px] font-black text-indigo-400 uppercase tracking-[0.2em] mt-2">{t('BAYİ PANELİ')}</span>
+          <span className="text-[9px] font-black text-brand-400 uppercase tracking-[0.2em] mt-2">{t('BAYİ PANELİ')}</span>
         </div>
         {mobile && <button onClick={onNavigate} className="p-2 text-gray-400 hover:text-white"><X className="h-5 w-5" /></button>}
       </div>
@@ -60,11 +60,11 @@ const BayiSidebar = ({ mobile = false, onNavigate }) => {
             className={({ isActive }) => `
               flex items-center px-5 py-3.5 rounded-xl text-sm font-bold transition-all duration-300 group
               ${isActive 
-                ? 'bg-indigo-600/10 text-indigo-400 border-l-2 border-indigo-400' 
-                : 'text-gray-400 hover:text-white hover:bg-white/5'}
+                ? 'bg-gradient-to-r from-brand-600 to-brand-700 text-white shadow-lg shadow-black/20'
+                : 'text-white/70 hover:text-white hover:bg-white/5'}
             `}
           >
-            <item.icon className={`h-5 w-5 mr-4 transition-colors ${location.pathname === item.path || (location.pathname.startsWith('/bayi') && item.path === '/bayi' && location.pathname === '/bayi') ? 'text-indigo-400' : 'text-gray-500 group-hover:text-gray-300'}`} />
+            <item.icon className={`h-5 w-5 mr-4 transition-colors ${location.pathname === item.path || (location.pathname.startsWith('/bayi') && item.path === '/bayi' && location.pathname === '/bayi') ? 'text-white' : 'text-navy-300 group-hover:text-white'}`} />
             {item.name}
           </NavLink>
         ))}

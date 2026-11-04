@@ -119,7 +119,7 @@ const Checkout = ({ plan, cycle, data, onClose, onDone }) => {
                 {[['CARD', 'Kartla öde', 'Anında aktif', CreditCard], ['TRANSFER', 'Havale / EFT', 'Onaydan sonra aktif', Landmark]].map(([id, label, sub, Icon]) => (
                   <button key={id} type="button" onClick={() => { setMethod(id); setError(null); }}
                     className={`rounded-xl px-3 py-2.5 text-left flex items-center gap-2.5 ${method === id ? 'bg-white shadow-sm' : 'text-gray-500'}`}>
-                    <Icon className={`h-5 w-5 shrink-0 ${method === id ? 'text-indigo-600' : ''}`} />
+                    <Icon className={`h-5 w-5 shrink-0 ${method === id ? 'text-brand-600' : ''}`} />
                     <span><span className="block text-sm font-black text-gray-900">{label}</span><span className="block text-[11px] text-gray-500">{sub}</span></span>
                   </button>
                 ))}
@@ -154,7 +154,7 @@ const Checkout = ({ plan, cycle, data, onClose, onDone }) => {
                       <p className="font-bold text-gray-900 truncate">{form.fullName} · {form.identityNumber}</p>
                       <p className="text-xs text-gray-500 truncate">{form.address}, {form.city} · {form.gsmNumber}</p>
                     </div>
-                    <button type="button" onClick={() => setEditing(true)} className="shrink-0 text-xs font-black text-indigo-600 flex items-center gap-1"><Pencil className="h-3.5 w-3.5" /> Değiştir</button>
+                    <button type="button" onClick={() => setEditing(true)} className="shrink-0 text-xs font-black text-brand-600 flex items-center gap-1"><Pencil className="h-3.5 w-3.5" /> Değiştir</button>
                   </div>
                 )}
                 {error && <p className="text-xs font-bold text-red-600 bg-red-50 p-3 rounded-xl">{error}</p>}
@@ -284,7 +284,7 @@ const AdminSubscriptionPage = () => {
 
       <div className="flex flex-wrap items-center justify-between gap-4">
         <div className="flex items-center gap-4">
-          <div className="page-icon"><Crown className="h-6 w-6 text-white" /></div>
+          <div className="page-icon"><Crown className="h-6 w-6 text-brand-400" /></div>
           <div>
             <h1 className="text-3xl font-black text-gray-900 tracking-tight">Abonelik</h1>
             <p className="text-gray-500 text-sm mt-1">
@@ -301,10 +301,10 @@ const AdminSubscriptionPage = () => {
       )}
 
       {transfer?.status === 'PENDING' && (
-        <div className="flex flex-wrap items-center gap-3 rounded-2xl bg-indigo-50 ring-1 ring-indigo-100 px-5 py-4 text-sm text-indigo-900">
+        <div className="flex flex-wrap items-center gap-3 rounded-2xl bg-brand-50 ring-1 ring-brand-100 px-5 py-4 text-sm text-brand-900">
           <Landmark className="h-5 w-5 shrink-0" />
           <span className="flex-1 min-w-0"><b>Havale bildiriminiz alındı</b> · {plans.find((x) => x.code === transfer.planCode)?.name || transfer.planCode} {transfer.billingCycle === 'YEARLY' ? 'yıllık' : 'aylık'} · {formatTRY(transfer.amount)} · {formatDate(transfer.createdAt, true)}. Ödeme hesabımıza geçince aboneliğiniz aktifleşir.</span>
-          <button onClick={cancelTransfer} className="text-xs font-black text-indigo-700 hover:underline">Bildirimi iptal et</button>
+          <button onClick={cancelTransfer} className="text-xs font-black text-brand-700 hover:underline">Bildirimi iptal et</button>
         </div>
       )}
       {transfer?.status === 'REJECTED' && (
@@ -333,8 +333,8 @@ const AdminSubscriptionPage = () => {
             const featured = p.code === featuredCode;
             const saving = cycle === 'YEARLY' ? yearlySaving(p) : 0;
             return (
-              <div key={p.code} className={`relative rounded-[1.75rem] p-6 flex flex-col bg-white ${featured ? 'ring-2 ring-indigo-500 shadow-xl shadow-indigo-500/10' : 'ring-1 ring-gray-100 shadow-sm'}`}>
-                {featured && !isCurrent && <span className="absolute -top-3 left-1/2 -translate-x-1/2 rounded-full bg-indigo-600 px-3 py-1 text-[10px] font-black uppercase tracking-widest text-white flex items-center gap-1"><Sparkles className="h-3 w-3" /> Önerilen</span>}
+              <div key={p.code} className={`relative rounded-[1.75rem] p-6 flex flex-col bg-white ${featured ? 'ring-2 ring-brand-500 shadow-xl shadow-brand-500/10' : 'ring-1 ring-gray-100 shadow-sm'}`}>
+                {featured && !isCurrent && <span className="absolute -top-3 left-1/2 -translate-x-1/2 rounded-full bg-brand-600 px-3 py-1 text-[10px] font-black uppercase tracking-widest text-white flex items-center gap-1"><Sparkles className="h-3 w-3" /> Önerilen</span>}
                 {isCurrent && <span className="absolute -top-3 left-1/2 -translate-x-1/2 rounded-full bg-gray-900 px-3 py-1 text-[10px] font-black uppercase tracking-widest text-white">Mevcut paketiniz</span>}
                 <h3 className="text-lg font-black text-gray-900">{p.name}</h3>
                 {p.description && <p className="text-xs text-gray-500 mt-1 min-h-8">{p.description}</p>}
@@ -354,7 +354,7 @@ const AdminSubscriptionPage = () => {
                   </li>
                 </ul>
                 <button disabled={isCurrent || transfer?.status === 'PENDING'} onClick={() => setBuying(p)}
-                  className={`mt-6 h-12 rounded-2xl text-sm font-black transition-colors disabled:opacity-50 disabled:cursor-not-allowed ${featured ? 'bg-indigo-600 text-white hover:bg-indigo-700 shadow-lg shadow-indigo-600/25' : 'bg-gray-900 text-white hover:bg-black'}`}>
+                  className={`mt-6 h-12 rounded-2xl text-sm font-black transition-colors disabled:opacity-50 disabled:cursor-not-allowed ${featured ? 'bg-brand-600 text-white hover:bg-brand-700 shadow-lg shadow-brand-600/25' : 'bg-gray-900 text-white hover:bg-navy-950'}`}>
                   {isCurrent ? 'Kullanıyorsunuz' : paidActive && p.code !== plan.code ? 'Bu pakete geç' : paidActive ? `${cycle === 'YEARLY' ? 'Yıllığa' : 'Aylığa'} geç` : 'Satın al'}
                 </button>
               </div>
@@ -412,11 +412,11 @@ const AdminSubscriptionPage = () => {
               {usageRows.map(([label, Icon, used, max]) => {
                 const unlimited = max < 0;
                 const pct = unlimited ? 0 : Math.min(100, (used / Math.max(max, 1)) * 100);
-                const tone = pct >= 90 ? 'bg-red-500' : pct >= 70 ? 'bg-amber-500' : 'bg-indigo-500';
+                const tone = pct >= 90 ? 'bg-red-500' : pct >= 70 ? 'bg-amber-500' : 'bg-brand-500';
                 return (
                   <div key={label} className="rounded-2xl bg-gray-50 p-4">
                     <div className="flex items-center justify-between">
-                      <span className="flex items-center gap-2 text-xs font-bold text-gray-600"><Icon className="h-4 w-4 text-indigo-500" /> {label}</span>
+                      <span className="flex items-center gap-2 text-xs font-bold text-gray-600"><Icon className="h-4 w-4 text-brand-500" /> {label}</span>
                       <span className="text-xs tabular-nums"><b className="text-gray-900">{used.toLocaleString('tr-TR')}</b> <span className="text-gray-400">/ {limitText(max)}</span></span>
                     </div>
                     <div className="mt-3 h-1.5 rounded-full bg-white overflow-hidden">
@@ -455,7 +455,7 @@ const AdminSubscriptionPage = () => {
                       <p className={`text-sm font-black tabular-nums ${ok ? 'text-gray-900' : 'text-red-600'}`}>{ok ? formatTRY(p.amount) : 'Başarısız'}</p>
                       {p.invoiceStatus === 'ISSUED' ? (
                         <button onClick={() => api.get(`/billing/payments/${p.id}/invoice`).then((r) => window.open(r.data.url, '_blank', 'noopener')).catch(() => showAlert({ type: 'error', title: 'Fatura', message: 'Fatura açılamadı.' }))}
-                          className="inline-flex items-center gap-1 text-[11px] font-bold text-indigo-600 hover:underline"><FileText className="h-3 w-3" /> Fatura</button>
+                          className="inline-flex items-center gap-1 text-[11px] font-bold text-brand-600 hover:underline"><FileText className="h-3 w-3" /> Fatura</button>
                       ) : ok && p.invoiceStatus === 'PENDING' ? <p className="text-[11px] font-semibold text-gray-400">Fatura hazırlanıyor</p> : null}
                     </div>
                   </li>

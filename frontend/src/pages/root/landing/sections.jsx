@@ -51,13 +51,13 @@ export const ProblemSolution = () => (
         </div>
       </Reveal>
       <Reveal delay={120}>
-        <div className="h-full rounded-[2rem] p-[2px] bg-indigo-500 shadow-[0_30px_80px_-40px_rgba(79,70,229,0.5)]">
+        <div className="h-full rounded-[2rem] p-[2px] bg-brand-500 shadow-[0_30px_80px_-40px_rgba(152,107,71,0.5)]">
           <div className="h-full rounded-[1.9rem] bg-white p-7 md:p-9">
-            <p className="text-sm font-black text-indigo-600 uppercase tracking-wider">B2B portalla</p>
+            <p className="text-sm font-black text-brand-600 uppercase tracking-wider">B2B portalla</p>
             <ul className="mt-6 space-y-5">
               {SOLUTIONS.map(([t, d]) => (
                 <li key={t} className="flex gap-4">
-                  <span className="h-8 w-8 shrink-0 rounded-xl bg-indigo-600 text-white flex items-center justify-center"><Check className="h-4 w-4" /></span>
+                  <span className="h-8 w-8 shrink-0 rounded-xl bg-brand-600 text-white flex items-center justify-center"><Check className="h-4 w-4" /></span>
                   <span><span className="block font-semibold text-slate-900">{t}</span><span className="block text-slate-500 mt-0.5">{d}</span></span>
                 </li>
               ))}
@@ -102,7 +102,7 @@ export const Sectors = () => (
   <section className="pt-24 md:pt-32 overflow-hidden">
     <Reveal>
       <div className="text-center max-w-4xl mx-auto px-5">
-        <p className="text-xs font-black uppercase tracking-[0.2em] text-indigo-600">Kimler için?</p>
+        <p className="text-xs font-black uppercase tracking-[0.2em] text-brand-600">Kimler için?</p>
         <h2 className="mt-4 text-2xl md:text-[2rem] font-semibold tracking-[-0.03em] leading-tight text-slate-950">Bayi ve toptan satış yapan her üretici ve distribütör için</h2>
         <p className="mt-3 text-slate-500">Katalog, fiyat ve sipariş yapınız ne olursa olsun aynı portal uyum sağlar.</p>
       </div>
@@ -117,12 +117,12 @@ export const Sectors = () => (
 // İki ekran: bayinin telefonu + yöneticinin panosu (üstte metin, altta iki çizim yan yana)
 export const DualView = () => (
   <section className="px-3 md:px-6 pt-24 md:pt-32">
-    <div className="max-w-[90rem] mx-auto rounded-[2.5rem] bg-[#0b0d12] text-white overflow-hidden relative">
-      <div className="absolute inset-0 bg-[radial-gradient(50%_60%_at_85%_80%,rgba(99,102,241,0.28),transparent_70%)]" />
+    <div className="max-w-[90rem] mx-auto rounded-[2.5rem] bg-navy-900 text-white overflow-hidden relative">
+      <div className="absolute inset-0 bg-[radial-gradient(50%_60%_at_85%_80%,rgba(183,134,95,0.28),transparent_70%)]" />
       <div className="relative max-w-6xl mx-auto px-5 py-20 md:py-28">
         <Reveal className="grid lg:grid-cols-2 gap-8 lg:gap-14 items-end">
           <div>
-            <span className="inline-flex items-center gap-1.5 px-3.5 py-1.5 rounded-full bg-white/10 border border-white/15 text-[13px] font-semibold"><Sparkles className="h-3.5 w-3.5 text-indigo-300" /> İki taraf, tek sistem</span>
+            <span className="inline-flex items-center gap-1.5 px-3.5 py-1.5 rounded-full bg-white/10 border border-white/15 text-[13px] font-semibold"><Sparkles className="h-3.5 w-3.5 text-brand-300" /> İki taraf, tek sistem</span>
             <h2 className="mt-5 text-3xl sm:text-4xl lg:text-[3.25rem] font-semibold tracking-[-0.04em] leading-[1.08]">Bayiniz telefonundan sipariş verir, siz panodan yönetirsiniz</h2>
           </div>
           <p className="text-lg text-slate-300">Bayi portalı telefona uygulama gibi yüklenir. Sipariş onayı, kargo ve tahsilat bildirimleri anında gelir; siz de ciroyu, onay bekleyenleri ve riskli bayileri tek bakışta görürsünüz.</p>
@@ -150,7 +150,7 @@ export const FeatureCatalog = () => (
         const Icon = ICONS[g.icon];
         return (
           <div key={g.title} className="md:sticky md:top-24 md:h-[calc(100vh-7rem)] md:min-h-[28rem] md:pb-4">
-            <article className="relative h-full max-w-[90rem] mx-auto overflow-hidden rounded-[2.5rem] bg-[#0b1120] text-white ring-1 ring-white/10 shadow-[0_-30px_60px_-30px_rgba(15,23,42,0.55)]"
+            <article className="relative h-full max-w-[90rem] mx-auto overflow-hidden rounded-[2.5rem] bg-navy-900 text-white ring-1 ring-white/10 shadow-[0_-30px_60px_-30px_rgba(15,23,42,0.55)]"
               style={{ '--accent': g.accent }}>
               {/* İnce ızgara + tek, hafif vurgu ışığı */}
               <div className="absolute inset-0 opacity-[0.07] bg-[linear-gradient(to_right,#fff_1px,transparent_1px),linear-gradient(to_bottom,#fff_1px,transparent_1px)] bg-[size:56px_56px] [mask-image:radial-gradient(ellipse_at_top_right,black_20%,transparent_70%)]" />
@@ -187,7 +187,7 @@ export const FeatureCatalog = () => (
 const Slider = ({ label, value, onChange, min, max, step = 1, suffix }) => (
   <label className="block">
     <span className="flex items-baseline justify-between"><span className="font-semibold text-slate-800">{label}</span><span className="text-xl font-semibold tracking-tight text-slate-950">{value.toLocaleString('tr-TR')}{suffix}</span></span>
-    <input type="range" min={min} max={max} step={step} value={value} onChange={(e) => onChange(Number(e.target.value))} className="mt-3 w-full accent-indigo-600 cursor-pointer" />
+    <input type="range" min={min} max={max} step={step} value={value} onChange={(e) => onChange(Number(e.target.value))} className="mt-3 w-full accent-brand-600 cursor-pointer" />
   </label>
 );
 
@@ -211,7 +211,7 @@ export const SavingsCalculator = () => {
               <Slider label="Portala taşınacak sipariş oranı" value={share} onChange={setShare} min={20} max={100} step={5} suffix="%" />
             </div>
           </div>
-          <div className="rounded-[1.4rem] bg-gradient-to-br from-indigo-600 via-blue-600 to-sky-500 text-white p-8 md:p-10 flex flex-col justify-center">
+          <div className="rounded-[1.4rem] bg-gradient-to-br from-brand-600 via-blue-600 to-sky-500 text-white p-8 md:p-10 flex flex-col justify-center">
             <p className="text-white/80 font-semibold">Ekibinize geri kazandıracağınız süre</p>
             <p className="mt-3 text-6xl md:text-7xl font-semibold tracking-[-0.05em] tabular-nums">{hours.toLocaleString('tr-TR')}<span className="text-2xl md:text-3xl font-medium"> saat / ay</span></p>
             <p className="mt-3 text-lg text-white/90">≈ {workdays.toLocaleString('tr-TR')} tam iş günü; satışa ve bayi ziyaretine ayrılabilir.</p>
@@ -226,9 +226,9 @@ export const SavingsCalculator = () => {
 
 // Karşılaştırma tablosu
 const Cell = ({ v, strong }) => (
-  v === true ? <span className={`inline-flex h-7 w-7 rounded-full items-center justify-center ${strong ? 'bg-indigo-600 text-white' : 'bg-emerald-50 text-emerald-600'}`}><Check className="h-4 w-4" /></span>
+  v === true ? <span className={`inline-flex h-7 w-7 rounded-full items-center justify-center ${strong ? 'bg-brand-600 text-white' : 'bg-emerald-50 text-emerald-600'}`}><Check className="h-4 w-4" /></span>
     : v === false ? <span className="inline-flex h-7 w-7 rounded-full items-center justify-center bg-slate-100 text-slate-400"><Minus className="h-4 w-4" /></span>
-      : <span className={`text-sm font-semibold ${strong ? 'text-indigo-700' : 'text-slate-500'}`}>{v}</span>
+      : <span className={`text-sm font-semibold ${strong ? 'text-brand-700' : 'text-slate-500'}`}>{v}</span>
 );
 
 export const Comparison = () => (
@@ -244,14 +244,14 @@ export const Comparison = () => (
           <thead>
             <tr>
               <th className="p-5" />
-              {COMPARISON.cols.map((c, i) => <th key={c} className={`p-5 text-center text-sm font-semibold ${i === 2 ? 'text-indigo-700 bg-indigo-50/60 rounded-t-2xl' : 'text-slate-500'}`}>{c}</th>)}
+              {COMPARISON.cols.map((c, i) => <th key={c} className={`p-5 text-center text-sm font-semibold ${i === 2 ? 'text-brand-700 bg-brand-50/60 rounded-t-2xl' : 'text-slate-500'}`}>{c}</th>)}
             </tr>
           </thead>
           <tbody>
             {COMPARISON.rows.map(([label, ...vals]) => (
               <tr key={label} className="border-t border-slate-100">
                 <td className="p-5 font-semibold text-slate-800">{label}</td>
-                {vals.map((v, i) => <td key={i} className={`p-5 text-center ${i === 2 ? 'bg-indigo-50/60' : ''}`}><Cell v={v} strong={i === 2} /></td>)}
+                {vals.map((v, i) => <td key={i} className={`p-5 text-center ${i === 2 ? 'bg-brand-50/60' : ''}`}><Cell v={v} strong={i === 2} /></td>)}
               </tr>
             ))}
           </tbody>
@@ -272,9 +272,9 @@ export const StickyCta = ({ trialDays }) => {
   }, []);
   return (
     <div className={`md:hidden fixed inset-x-3 z-40 transition-all duration-300 ${show ? 'bottom-3 opacity-100' : '-bottom-24 opacity-0'}`} style={{ paddingBottom: 'env(safe-area-inset-bottom)' }}>
-      <Link to="/kayit" className="flex items-center justify-between gap-3 h-14 pl-5 pr-2 rounded-2xl bg-[#0b0d12] text-white shadow-2xl">
+      <Link to="/kayit" className="flex items-center justify-between gap-3 h-14 pl-5 pr-2 rounded-2xl bg-navy-900 text-white shadow-2xl">
         <span className="text-sm font-semibold">{trialDays} gün ücretsiz deneyin</span>
-        <span className="h-10 px-4 rounded-xl bg-indigo-500 text-sm font-semibold flex items-center gap-1.5">Başla <ArrowRight className="h-4 w-4" /></span>
+        <span className="h-10 px-4 rounded-xl bg-brand-500 text-sm font-semibold flex items-center gap-1.5">Başla <ArrowRight className="h-4 w-4" /></span>
       </Link>
     </div>
   );
@@ -317,7 +317,7 @@ export const SiteFooter = ({ company, brand, nav, className = 'mt-3' }) => (
     <div className="grid gap-10 md:grid-cols-2 lg:grid-cols-[1.4fr_0.8fr_1fr_1.2fr]">
       <div>
         <span className="flex items-center gap-2.5">
-          <span className="h-9 w-9 rounded-xl bg-[#0b1120] flex items-center justify-center"><Store className="h-5 w-5 text-white" /></span>
+          <span className="h-9 w-9 rounded-xl bg-navy-900 flex items-center justify-center"><Store className="h-5 w-5 text-white" /></span>
           <span className="text-xl font-semibold tracking-tight">{brand}</span>
         </span>
         <p className="mt-4 text-slate-500 max-w-xs">Üreticiler ve distribütörler için bayi sipariş, cari ve tahsilat platformu.</p>
@@ -341,7 +341,7 @@ export const SiteFooter = ({ company, brand, nav, className = 'mt-3' }) => (
       <div>
         <p className="font-semibold text-slate-950">Firma girişi</p>
         <p className="mt-4 text-sm text-slate-600">E-posta ve şifrenizle portalınıza girin.</p>
-        <Link to="/giris" className="mt-4 h-10 px-4 rounded-xl bg-[#0b0d12] text-white text-sm font-semibold inline-flex items-center gap-2 hover:bg-black">Giriş yap <ArrowRight className="h-4 w-4" /></Link>
+        <Link to="/giris" className="mt-4 h-10 px-4 rounded-xl bg-navy-900 text-white text-sm font-semibold inline-flex items-center gap-2 hover:bg-navy-950">Giriş yap <ArrowRight className="h-4 w-4" /></Link>
       </div>
     </div>
     <p className="mt-12 pt-6 border-t border-slate-100 text-center text-sm text-slate-500">© {new Date().getFullYear()} {(company?.legalName || brand).replace(/\.$/, '')}. Tüm hakları saklıdır.</p>
@@ -385,10 +385,10 @@ export const SetupSteps = () => {
           className="max-w-6xl mx-auto mt-12 rounded-[2rem] border border-slate-200/80 p-2 grid lg:grid-cols-2 gap-2">
           <div className="relative overflow-hidden rounded-[1.6rem] bg-[#f3f4f7] min-h-[26rem] flex items-center justify-center p-6 md:p-10">
             <div aria-hidden="true" className="absolute inset-0 opacity-60 [background-image:radial-gradient(#cbd5e1_1px,transparent_1px)] [background-size:22px_22px] [mask-image:radial-gradient(ellipse_at_center,black,transparent_75%)]" />
-            <div aria-hidden="true" className="absolute h-72 w-72 rounded-full bg-indigo-300/30 blur-3xl transition-transform duration-1000" style={{ transform: `translate(${[-30, 30, -20, 25][step]}%, ${[-20, 15, 25, -10][step]}%)` }} />
+            <div aria-hidden="true" className="absolute h-72 w-72 rounded-full bg-brand-300/30 blur-3xl transition-transform duration-1000" style={{ transform: `translate(${[-30, 30, -20, 25][step]}%, ${[-20, 15, 25, -10][step]}%)` }} />
             <span className="absolute top-5 left-5 inline-flex items-center gap-2 rounded-full bg-white/90 px-3 py-1 text-[11px] font-bold text-slate-600 ring-1 ring-slate-200">
               Adım {step + 1} / {STEPS.length}
-              <span className="flex gap-1">{STEPS.map((s, i) => <span key={s.title} className={`h-1.5 rounded-full transition-all duration-500 ${i === step ? 'w-4 bg-indigo-600' : i < step ? 'w-1.5 bg-indigo-300' : 'w-1.5 bg-slate-300'}`} />)}</span>
+              <span className="flex gap-1">{STEPS.map((s, i) => <span key={s.title} className={`h-1.5 rounded-full transition-all duration-500 ${i === step ? 'w-4 bg-brand-600' : i < step ? 'w-1.5 bg-brand-300' : 'w-1.5 bg-slate-300'}`} />)}</span>
             </span>
             <div key={step} className="relative w-full flex justify-center animate-in fade-in zoom-in-95 slide-in-from-bottom-4 duration-700"><StepMock step={step} /></div>
           </div>
@@ -399,7 +399,7 @@ export const SetupSteps = () => {
                 <button key={s.title} onClick={() => setStep(i)}
                   className={`relative overflow-hidden text-left rounded-2xl px-5 py-4 transition-all duration-500 ${active ? 'bg-white border border-slate-200 shadow-[0_10px_30px_-15px_rgba(15,23,42,0.25)]' : 'border border-transparent hover:bg-slate-50'}`}>
                   <p className={`flex items-center gap-3 text-[17px] font-semibold tracking-tight transition-colors ${active ? 'text-slate-950' : i < step ? 'text-slate-700' : 'text-slate-500'}`}>
-                    <span className={`h-7 w-7 rounded-lg text-xs font-black flex items-center justify-center transition-all duration-500 ${active ? 'bg-indigo-600 text-white scale-110' : i < step ? 'bg-indigo-100 text-indigo-600' : 'bg-slate-100 text-slate-500'}`}>
+                    <span className={`h-7 w-7 rounded-lg text-xs font-black flex items-center justify-center transition-all duration-500 ${active ? 'bg-brand-600 text-white scale-110' : i < step ? 'bg-brand-100 text-brand-600' : 'bg-slate-100 text-slate-500'}`}>
                       {i < step ? <Check className="h-3.5 w-3.5" /> : i + 1}
                     </span>
                     {s.title}
@@ -409,7 +409,7 @@ export const SetupSteps = () => {
                   </div>
                   {active && (
                     <span className="absolute left-0 bottom-0 h-[3px] w-full bg-slate-100">
-                      <span key={step} onAnimationEnd={next} className="step-progress block h-full bg-indigo-600"
+                      <span key={step} onAnimationEnd={next} className="step-progress block h-full bg-brand-600"
                         style={{ '--step-ms': `${STEP_MS}ms`, animationPlayState: running ? 'running' : 'paused' }} />
                     </span>
                   )}

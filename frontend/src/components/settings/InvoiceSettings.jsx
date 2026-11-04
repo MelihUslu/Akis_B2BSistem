@@ -60,8 +60,8 @@ const InvoiceSettings = ({ showAlert, confirm }) => {
             { id: 'PARASUT', title: 'Paraşüt ile otomatik', desc: 'Fatura Paraşüt\'te oluşturulur; alıcı e-fatura mükellefiyse e-fatura, değilse e-arşiv gönderilir.', icon: PlugZap },
           ].map((o) => (
             <button key={o.id} type="button" onClick={() => setForm({ ...form, provider: o.id })}
-              className={`text-left flex items-start gap-3 p-4 rounded-xl ring-1 transition-all ${form.provider === o.id ? 'ring-2 ring-indigo-400 bg-indigo-50/50' : 'ring-gray-100 hover:ring-gray-200 hover:bg-gray-50'}`}>
-              <span className={`p-2 rounded-lg shrink-0 ${form.provider === o.id ? 'bg-indigo-600 text-white' : 'bg-gray-100 text-gray-500'}`}><o.icon className="h-4 w-4" /></span>
+              className={`text-left flex items-start gap-3 p-4 rounded-xl ring-1 transition-all ${form.provider === o.id ? 'ring-2 ring-brand-400 bg-brand-50/50' : 'ring-gray-100 hover:ring-gray-200 hover:bg-gray-50'}`}>
+              <span className={`p-2 rounded-lg shrink-0 ${form.provider === o.id ? 'bg-brand-600 text-white' : 'bg-gray-100 text-gray-500'}`}><o.icon className="h-4 w-4" /></span>
               <span>
                 <span className="block text-sm font-bold text-gray-900">{o.title}</span>
                 <span className="block text-xs text-gray-500 mt-0.5 leading-snug">{o.desc}</span>

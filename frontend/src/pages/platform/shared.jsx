@@ -1,6 +1,6 @@
 
 export const TENANT_STATUS = {
-  TRIAL: { label: 'Deneme', className: 'bg-indigo-100 text-indigo-700' },
+  TRIAL: { label: 'Deneme', className: 'bg-brand-100 text-brand-700' },
   ACTIVE: { label: 'Aktif', className: 'bg-emerald-100 text-emerald-700' },
   PAST_DUE: { label: 'Ödeme Gecikti', className: 'bg-amber-100 text-amber-700' },
   SUSPENDED: { label: 'Askıda', className: 'bg-red-100 text-red-600' },

@@ -20,7 +20,7 @@ const PrintLayout = ({ title, subtitle, children, ready, seller, toolbar, printL
     <div className="min-h-screen bg-gray-100 print:bg-white py-6 print:py-0 px-3">
       <style>{`@page { size: A4; margin: 14mm; } @media print { body { background: #fff !important; } thead { display: table-header-group; } tr { break-inside: avoid; } }`}</style>
       <div className="max-w-[210mm] mx-auto flex justify-between items-center mb-4 print:hidden">
-        {toolbar ?? <button onClick={() => window.history.back()} className="flex items-center text-xs font-black text-gray-500 hover:text-indigo-600"><ArrowLeft className="h-4 w-4 mr-1" /> Geri</button>}
+        {toolbar ?? <button onClick={() => window.history.back()} className="flex items-center text-xs font-black text-gray-500 hover:text-brand-600"><ArrowLeft className="h-4 w-4 mr-1" /> Geri</button>}
         <button disabled={!ready} onClick={() => window.print()} className="btn-gradient disabled:opacity-50"><Printer className="h-4 w-4 mr-2" /> {printLabel}</button>
       </div>
       <div className="max-w-[210mm] mx-auto bg-white shadow-xl print:shadow-none p-8 print:p-0 text-[12px] text-gray-900">

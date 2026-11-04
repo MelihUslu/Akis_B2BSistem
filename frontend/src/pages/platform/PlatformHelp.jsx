@@ -60,7 +60,7 @@ const PlatformHelp = () => {
       {alertElement}
       <div className="flex justify-between items-center flex-wrap gap-4">
         <div className="flex items-center gap-4">
-          <div className="page-icon"><BookOpen className="h-6 w-6 text-white" /></div>
+          <div className="page-icon"><BookOpen className="h-6 w-6 text-brand-400" /></div>
           <div>
             <h1 className="text-3xl font-black text-gray-900 tracking-tight">Yardım Merkezi</h1>
             <p className="text-gray-500 text-sm mt-1">Firmalar destek sayfasında bu yazıları arar; talep yazarken uygun yazılar önerilir.</p>
@@ -76,7 +76,7 @@ const PlatformHelp = () => {
           { label: 'İşe yaradı oranı', value: totals.yes + totals.no ? `%${Math.round((totals.yes / (totals.yes + totals.no)) * 100)}` : '—', icon: ThumbsUp },
         ].map((c) => (
           <div key={c.label} className="rounded-2xl p-4 ring-1 ring-gray-100 bg-white">
-            <div className="flex items-center justify-between"><span className="text-[11px] font-bold text-gray-500">{c.label}</span><c.icon className="h-4 w-4 text-indigo-500" /></div>
+            <div className="flex items-center justify-between"><span className="text-[11px] font-bold text-gray-500">{c.label}</span><c.icon className="h-4 w-4 text-brand-500" /></div>
             <p className="text-2xl font-black text-gray-900 mt-1 tabular-nums">{c.value}</p>
           </div>
         ))}
@@ -87,7 +87,7 @@ const PlatformHelp = () => {
           <div className="relative max-w-sm">
             <Search className="absolute left-3.5 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-400" />
             <input value={query} onChange={(e) => setQuery(e.target.value)} placeholder="Başlık veya anahtar kelime ara"
-              className="w-full h-10 pl-10 pr-3 rounded-xl bg-gray-50 border border-transparent text-sm font-semibold outline-none focus:bg-white focus:border-indigo-300 focus:ring-4 focus:ring-indigo-100" />
+              className="w-full h-10 pl-10 pr-3 rounded-xl bg-gray-50 border border-transparent text-sm font-semibold outline-none focus:bg-white focus:border-brand-300 focus:ring-4 focus:ring-brand-100" />
           </div>
         </div>
         <div className="overflow-x-auto">
@@ -102,10 +102,10 @@ const PlatformHelp = () => {
                     const c = TICKET_CATEGORIES[a.category] || TICKET_CATEGORIES.USAGE;
                     const rate = helpfulRate(a);
                     return (
-                      <tr key={a.id} className={`${i % 2 ? 'bg-slate-50/60' : 'bg-white'} hover:bg-indigo-50/40`}>
+                      <tr key={a.id} className={`${i % 2 ? 'bg-slate-50/60' : 'bg-white'} hover:bg-brand-50/40`}>
                         <td className="px-4 py-3 max-w-[28rem]">
                           <button onClick={() => edit(a)} className="text-left block w-full min-w-0">
-                            <span className="font-bold text-gray-900 hover:text-indigo-700">{a.title}</span>
+                            <span className="font-bold text-gray-900 hover:text-brand-700">{a.title}</span>
                             {!a.isPublished && <span className="ml-2 px-1.5 py-0.5 rounded-md bg-gray-200 text-gray-600 text-[10px] font-bold">Taslak</span>}
                             {a.summary && <span className="block text-xs text-gray-500 truncate pr-4">{a.summary}</span>}
                           </button>
@@ -118,7 +118,7 @@ const PlatformHelp = () => {
                         </td>
                         <td className="px-4 py-3 text-xs text-gray-500 whitespace-nowrap">{formatDate(a.updatedAt)}</td>
                         <td className="px-4 py-3 text-right whitespace-nowrap">
-                          <button onClick={() => edit(a)} className="p-2 rounded-lg text-gray-400 hover:text-indigo-600 hover:bg-indigo-50" title="Düzenle"><Pencil className="h-4 w-4" /></button>
+                          <button onClick={() => edit(a)} className="p-2 rounded-lg text-gray-400 hover:text-brand-600 hover:bg-brand-50" title="Düzenle"><Pencil className="h-4 w-4" /></button>
                           <button onClick={() => remove(a)} className="p-2 rounded-lg text-gray-400 hover:text-red-600 hover:bg-red-50" title="Sil"><Trash2 className="h-4 w-4" /></button>
                         </td>
                       </tr>

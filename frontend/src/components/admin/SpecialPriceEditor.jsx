@@ -92,7 +92,7 @@ const SpecialPriceEditor = ({ productId, currency, showAlert }) => {
 
       <div className="flex gap-3">
         <button type="button" onClick={() => setRows([...rows, { scope: 'ALL', companyId: '', dealerGroup: 'GOLD', minQty: 1, price: '' }])}
-          className="flex items-center px-4 py-2.5 rounded-xl bg-indigo-50 text-indigo-700 text-[10px] font-black uppercase tracking-widest hover:bg-indigo-100">
+          className="flex items-center px-4 py-2.5 rounded-xl bg-brand-50 text-brand-700 text-[10px] font-black uppercase tracking-widest hover:bg-brand-100">
           <Plus className="h-4 w-4 mr-1.5" /> Fiyat Satırı
         </button>
         <button type="button" onClick={save} className="btn-gradient"><Save className="h-4 w-4 mr-2" /> Özel Fiyatları Kaydet</button>

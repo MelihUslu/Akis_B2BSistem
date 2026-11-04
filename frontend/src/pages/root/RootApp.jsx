@@ -21,7 +21,7 @@ const CookieBanner = ({ tracking }) => {
       <p className="text-sm text-slate-700">Sitemizi geliştirmek ve reklamlarımızın etkinliğini ölçmek için çerezler kullanıyoruz. Ayrıntılar: <Link to="/cerez-politikasi" className="underline">Çerez Politikası</Link>.</p>
       <div className="mt-4 flex gap-2">
         <button onClick={() => choose('necessary')} className="flex-1 h-10 rounded-xl bg-slate-100 text-sm font-semibold text-slate-700">Yalnızca zorunlu</button>
-        <button onClick={() => choose('all')} className="flex-1 h-10 rounded-xl bg-[#0b1120] text-white text-sm font-semibold">Kabul et</button>
+        <button onClick={() => choose('all')} className="flex-1 h-10 rounded-xl bg-navy-900 text-white text-sm font-semibold">Kabul et</button>
       </div>
     </div>
   );

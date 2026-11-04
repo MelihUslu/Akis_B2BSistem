@@ -17,7 +17,7 @@ const STATUS_COLORS = {
   SHIPPED: '#3b82f6', COMPLETED: '#22c55e', CANCELLED: '#ef4444'
 };
 
-const tooltipStyle = { backgroundColor: '#1e293b', border: 'none', borderRadius: '12px', color: '#fff' };
+const tooltipStyle = { backgroundColor: '#14283F', border: 'none', borderRadius: '12px', color: '#fff' };
 
 const timeAgo = (date) => {
   const minutes = Math.round((Date.now() - new Date(date).getTime()) / 60000);
@@ -58,11 +58,11 @@ const AdminDashboardHome = () => {
     {
       title: 'Bu Ayki Satış', value: formatTRY(stats.monthSales),
       desc: stats.salesChange === null ? 'Geçen ay veri yok' : `Geçen aya göre %${stats.salesChange > 0 ? '+' : ''}${stats.salesChange}`,
-      icon: TrendingUp, color: 'bg-indigo-500', shadow: 'shadow-indigo-500/30', link: '/admin/orders'
+      icon: TrendingUp, color: 'bg-navy-900', shadow: 'shadow-navy-900/25', link: '/admin/orders'
     },
-    { title: 'Aktif Bayiler', value: stats.activeDealers, desc: stats.pendingDealers ? `${stats.pendingDealers} başvuru bekliyor` : 'Bekleyen başvuru yok', icon: Users, color: 'bg-emerald-400', shadow: 'shadow-emerald-400/30', link: '/admin/dealers' },
-    { title: 'Bekleyen Sipariş', value: stats.pendingOrders, desc: stats.pendingReturns ? `${stats.pendingReturns} iade talebi bekliyor` : 'Onay bekleyen siparişler', icon: ShoppingCart, color: 'bg-pink-500', shadow: 'shadow-pink-500/30', link: '/admin/orders' },
-    { title: 'Toplam Prim', value: stats.plasiyerTotal.toLocaleString('tr-TR'), desc: 'Plasiyer prim puanları', icon: CreditCard, color: 'bg-indigo-500', shadow: 'shadow-indigo-500/30', link: '/admin/finance' },
+    { title: 'Aktif Bayiler', value: stats.activeDealers, desc: stats.pendingDealers ? `${stats.pendingDealers} başvuru bekliyor` : 'Bekleyen başvuru yok', icon: Users, color: 'bg-brand-600', shadow: 'shadow-brand-600/30', link: '/admin/dealers' },
+    { title: 'Bekleyen Sipariş', value: stats.pendingOrders, desc: stats.pendingReturns ? `${stats.pendingReturns} iade talebi bekliyor` : 'Onay bekleyen siparişler', icon: ShoppingCart, color: 'bg-navy-700', shadow: 'shadow-navy-700/25', link: '/admin/orders' },
+    { title: 'Toplam Prim', value: stats.plasiyerTotal.toLocaleString('tr-TR'), desc: 'Plasiyer prim puanları', icon: CreditCard, color: 'bg-brand-700', shadow: 'shadow-brand-700/30', link: '/admin/finance' },
   ];
 
   const statusData = data.orderStatus.map((s) => ({ name: ORDER_STATUS[s.status]?.label || s.status, value: s.count, status: s.status }));
@@ -111,8 +111,8 @@ const AdminDashboardHome = () => {
                 </div>
               </div>
 
-              <div className="flex justify-between items-center p-6 bg-indigo-50/50 rounded-2xl border border-indigo-100/50">
-                <span className="text-xs font-black text-indigo-600 uppercase tracking-widest">Toplam Tutar (KDV dahil)</span>
+              <div className="flex justify-between items-center p-6 bg-brand-50/50 rounded-2xl border border-brand-100/50">
+                <span className="text-xs font-black text-brand-600 uppercase tracking-widest">Toplam Tutar (KDV dahil)</span>
                 <span className="text-2xl font-black text-slate-900 tracking-tighter">{formatTRY(selectedOrder.totalAmount)}</span>
               </div>
             </div>
@@ -133,7 +133,7 @@ const AdminDashboardHome = () => {
       <div className="flex justify-between items-end">
         <div className="space-y-1">
           <h1 className="text-3xl font-black text-gray-900 tracking-tight">
-            {greeting()}, <span className="text-indigo-600">{user?.name?.split(' ')[0] || 'Admin'}!</span>
+            {greeting()}, <span className="text-brand-600">{user?.name?.split(' ')[0] || 'Admin'}!</span>
           </h1>
           <p className="text-gray-400 text-sm font-medium">Satış, risk ve tahsilat özetiniz.</p>
         </div>
@@ -161,8 +161,8 @@ const AdminDashboardHome = () => {
         <div className="lg:col-span-2 card-premium p-8">
           <div className="flex justify-between items-center mb-8">
             <div className="flex items-center space-x-3">
-              <div className="p-2 bg-indigo-50 rounded-lg">
-                <FileText className="h-4 w-4 text-indigo-500" />
+              <div className="p-2 bg-brand-50 rounded-lg">
+                <FileText className="h-4 w-4 text-brand-500" />
               </div>
               <h3 className="text-base font-black text-gray-900 tracking-tight">Satış Analizi · Son 30 Gün</h3>
             </div>
@@ -172,8 +172,8 @@ const AdminDashboardHome = () => {
               <AreaChart data={data.salesSeries} margin={{ top: 10, right: 10, left: 0, bottom: 0 }}>
                 <defs>
                   <linearGradient id="colorRevenue" x1="0" y1="0" x2="0" y2="1">
-                    <stop offset="5%" stopColor="#6366f1" stopOpacity={0.3}/>
-                    <stop offset="95%" stopColor="#6366f1" stopOpacity={0}/>
+                    <stop offset="5%" stopColor="#B7865F" stopOpacity={0.3}/>
+                    <stop offset="95%" stopColor="#B7865F" stopOpacity={0}/>
                   </linearGradient>
                 </defs>
                 <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#f1f5f9" />
@@ -184,7 +184,7 @@ const AdminDashboardHome = () => {
                   itemStyle={{ fontSize: '10px', fontWeight: 'bold' }}
                   formatter={(value, name) => (name === 'revenue' ? [formatTRY(value), 'Ciro'] : [value, 'Sipariş'])}
                 />
-                <Area type="monotone" dataKey="revenue" stroke="#6366f1" strokeWidth={3} fillOpacity={1} fill="url(#colorRevenue)" />
+                <Area type="monotone" dataKey="revenue" stroke="#B7865F" strokeWidth={3} fillOpacity={1} fill="url(#colorRevenue)" />
               </AreaChart>
             </ResponsiveContainer>
           </div>
@@ -192,8 +192,8 @@ const AdminDashboardHome = () => {
 
         <div className="card-premium p-8 flex flex-col">
           <div className="flex items-center space-x-3 mb-8">
-            <div className="p-2 bg-indigo-50 rounded-lg">
-              <ShoppingCart className="h-4 w-4 text-indigo-500" />
+            <div className="p-2 bg-brand-50 rounded-lg">
+              <ShoppingCart className="h-4 w-4 text-brand-500" />
             </div>
             <h3 className="text-base font-black text-gray-900 tracking-tight">Sipariş Durumları</h3>
           </div>
@@ -301,7 +301,7 @@ const AdminDashboardHome = () => {
               </div>
               <h3 className="text-base font-black text-slate-900 tracking-tight">Son Bekleyen Siparişler</h3>
             </div>
-            <Link to="/admin/orders" className="text-[10px] font-black text-indigo-600 uppercase tracking-widest hover:underline">Hepsini Gör</Link>
+            <Link to="/admin/orders" className="text-[10px] font-black text-brand-600 uppercase tracking-widest hover:underline">Hepsini Gör</Link>
           </div>
 
           <div className="w-full overflow-x-auto">
@@ -327,7 +327,7 @@ const AdminDashboardHome = () => {
                       <td className="py-5 px-2">
                         <div className="flex items-center space-x-3">
                           <div className={`w-8 h-8 rounded-full flex items-center justify-center text-[10px] font-black text-white shadow-sm ${
-                            ['bg-orange-400', 'bg-indigo-400', 'bg-emerald-400'][idx % 3]
+                            ['bg-navy-700', 'bg-brand-500', 'bg-navy-500'][idx % 3]
                           }`}>
                             {order.company?.name?.substring(0, 1)}
                           </div>
@@ -388,7 +388,7 @@ const AdminDashboardHome = () => {
               <span className="text-[9px] font-black text-gray-400 uppercase tracking-widest">Vadesi Geçen</span>
             </div>
             <div className="flex items-center space-x-2">
-              <div className="w-2 h-2 rounded-full bg-indigo-500"></div>
+              <div className="w-2 h-2 rounded-full bg-brand-500"></div>
               <span className="text-[9px] font-black text-gray-400 uppercase tracking-widest">Ödeme Bekleyen</span>
             </div>
           </div>
@@ -402,7 +402,7 @@ const AdminDashboardHome = () => {
               const overdue = d.nextDue && new Date(d.nextDue) < new Date();
               return (
                 <div key={d.id} className="p-6 bg-gray-50/50 border border-gray-100 rounded-[2rem] hover:bg-white hover:shadow-2xl hover:shadow-gray-100 transition-all relative group">
-                  <div className={`absolute top-6 right-6 p-2 rounded-xl ${overdue ? 'bg-red-50 text-red-500' : 'bg-indigo-50 text-indigo-500'}`}>
+                  <div className={`absolute top-6 right-6 p-2 rounded-xl ${overdue ? 'bg-red-50 text-red-500' : 'bg-brand-50 text-brand-500'}`}>
                     {overdue ? <AlertCircle className="h-4 w-4" /> : <Clock className="h-4 w-4" />}
                   </div>
                   <div className="mb-4">
@@ -412,14 +412,14 @@ const AdminDashboardHome = () => {
                   <div className="flex items-end justify-between">
                     <div>
                       <p className="text-lg font-black text-gray-900 tracking-tighter">{formatMoney(-d.balance, d.currency)}</p>
-                      <p className="text-[9px] font-black text-indigo-500 uppercase tracking-widest mt-1">{d.phone || 'Telefon yok'}</p>
+                      <p className="text-[9px] font-black text-brand-500 uppercase tracking-widest mt-1">{d.phone || 'Telefon yok'}</p>
                     </div>
                     <div className="text-right">
                       <span className="text-[8px] font-black text-gray-300 block mb-1 uppercase">En Yakın Vade</span>
                       <span className="text-[10px] font-black text-gray-500">{d.nextDue ? formatDate(d.nextDue) : '-'}</span>
                     </div>
                   </div>
-                  <Link to={`/admin/partners?id=${d.id}`} className="block text-center w-full mt-6 py-3 bg-white border border-gray-100 text-[9px] font-black text-gray-400 uppercase tracking-widest rounded-xl group-hover:bg-indigo-600 group-hover:text-white group-hover:border-indigo-600 transition-all">
+                  <Link to={`/admin/partners?id=${d.id}`} className="block text-center w-full mt-6 py-3 bg-white border border-gray-100 text-[9px] font-black text-gray-400 uppercase tracking-widest rounded-xl group-hover:bg-brand-600 group-hover:text-white group-hover:border-brand-600 transition-all">
                     Ekstreyi Gör
                   </Link>
                 </div>

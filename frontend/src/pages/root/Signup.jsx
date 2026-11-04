@@ -73,16 +73,16 @@ const Signup = ({ site }) => {
       <SiteHeader brand={brand} />
       <main className="max-w-6xl mx-auto px-3 md:px-5 pt-6 md:pt-10">
         <Frame inner="grid lg:grid-cols-2 gap-2 p-2">
-          <div className="relative overflow-hidden order-last lg:order-none rounded-[1.4rem] bg-[#0b1120] text-white p-8 md:p-12 flex flex-col justify-center lg:min-h-[40rem]">
+          <div className="relative overflow-hidden order-last lg:order-none rounded-[1.4rem] bg-navy-900 text-white p-8 md:p-12 flex flex-col justify-center lg:min-h-[40rem]">
             <div aria-hidden="true" className="absolute inset-0 [background-image:linear-gradient(rgba(255,255,255,0.05)_1px,transparent_1px),linear-gradient(90deg,rgba(255,255,255,0.05)_1px,transparent_1px)] [background-size:32px_32px] [mask-image:radial-gradient(ellipse_at_top_left,black,transparent_70%)]" />
-            <div aria-hidden="true" className="absolute -top-32 -left-24 h-96 w-96 rounded-full bg-[radial-gradient(closest-side,rgba(99,102,241,0.55),transparent)]" />
+            <div aria-hidden="true" className="absolute -top-32 -left-24 h-96 w-96 rounded-full bg-[radial-gradient(closest-side,rgba(183,134,95,0.55),transparent)]" />
             <div aria-hidden="true" className="absolute -bottom-40 -right-24 h-96 w-96 rounded-full bg-[radial-gradient(closest-side,rgba(56,189,248,0.22),transparent)]" />
             <div className="relative">
-              <span className="inline-flex items-center gap-2 rounded-full bg-white/10 ring-1 ring-white/15 px-3 py-1 text-[11px] font-bold uppercase tracking-[0.18em] text-indigo-200">
+              <span className="inline-flex items-center gap-2 rounded-full bg-white/10 ring-1 ring-white/15 px-3 py-1 text-[11px] font-bold uppercase tracking-[0.18em] text-brand-200">
                 <span className="relative flex h-2 w-2"><span className="absolute inset-0 rounded-full bg-emerald-400 animate-ping opacity-75" /><span className="relative h-2 w-2 rounded-full bg-emerald-400" /></span>
                 Hemen başlayın
               </span>
-              <h2 className="mt-5 text-3xl md:text-[2.6rem] font-semibold tracking-[-0.04em] leading-[1.1]">Portalınız <span className="bg-gradient-to-r from-indigo-300 to-sky-300 bg-clip-text text-transparent">birkaç dakika</span> içinde hazır</h2>
+              <h2 className="mt-5 text-3xl md:text-[2.6rem] font-semibold tracking-[-0.04em] leading-[1.1]">Portalınız <span className="bg-gradient-to-r from-brand-300 to-sky-300 bg-clip-text text-transparent">birkaç dakika</span> içinde hazır</h2>
               <div className="mt-7 flex items-end gap-3">
                 <span className="text-6xl md:text-7xl font-semibold tracking-[-0.05em] leading-none">{trialDays}</span>
                 <span className="pb-1.5 text-slate-300 leading-tight">gün boyunca<br /><b className="text-white">tüm özellikler ücretsiz</b></span>
@@ -90,7 +90,7 @@ const Signup = ({ site }) => {
               <ul className="mt-7 grid sm:grid-cols-2 gap-2.5">
                 {['Kredi kartı istenmez', 'Kurulum ücreti yok', `firmaniz.${ROOT_DOMAIN_LABEL} adresi`, 'Excel ile hızlı ürün yükleme'].map((t) => (
                   <li key={t} className="flex items-center gap-2.5 rounded-xl bg-white/[0.06] ring-1 ring-white/10 px-3 py-2.5 text-sm text-slate-200">
-                    <span className="h-5 w-5 shrink-0 rounded-full bg-indigo-500 flex items-center justify-center"><Check className="h-3 w-3 text-white" /></span>{t}
+                    <span className="h-5 w-5 shrink-0 rounded-full bg-brand-500 flex items-center justify-center"><Check className="h-3 w-3 text-white" /></span>{t}
                   </li>
                 ))}
               </ul>
@@ -152,7 +152,7 @@ const Signup = ({ site }) => {
                     <div className={`grid gap-2 grid-cols-1 ${plans.length >= 3 ? 'sm:grid-cols-3' : 'sm:grid-cols-2'}`}>
                       {plans.map((p) => (
                         <button key={p.code} type="button" onClick={() => choosePlan(p.code)}
-                          className={`rounded-2xl border px-3 py-2.5 text-left transition-colors flex sm:block items-center justify-between gap-3 ${form.planCode === p.code ? 'border-indigo-500 bg-indigo-50 ring-2 ring-indigo-100' : 'border-slate-200 bg-white hover:border-slate-300'}`}>
+                          className={`rounded-2xl border px-3 py-2.5 text-left transition-colors flex sm:block items-center justify-between gap-3 ${form.planCode === p.code ? 'border-brand-500 bg-brand-50 ring-2 ring-brand-100' : 'border-slate-200 bg-white hover:border-slate-300'}`}>
                           <span className="block text-sm font-semibold text-slate-900 truncate">{p.name}</span>
                           <span className="block text-right sm:text-left">
                             <span className="block text-[11px] text-slate-500 truncate">{formatTRY(p.priceMonthly)}/ay</span>
@@ -170,7 +170,7 @@ const Signup = ({ site }) => {
                 {slugState?.available === false && <p className="text-[11px] text-center text-red-500">Başka bir portal adresi seçin.</p>}
                 <p className="text-[11px] text-center text-slate-500">Kayıt olarak <a href="/kullanim-kosullari" target="_blank" className="underline">Kullanım Koşulları</a>'nı kabul etmiş olursunuz. Kişisel verileriniz <a href="/kvkk" target="_blank" className="underline">KVKK Aydınlatma Metni</a> kapsamında işlenir.</p>
               </form>
-            <p className="mt-6 text-center text-sm text-slate-500">Zaten portalınız var mı? <Link to="/giris" className="font-semibold text-indigo-600 hover:underline">Giriş yapın</Link> · Sorunuz mu var? <button type="button" onClick={() => window.dispatchEvent(new Event('akis:open-chat'))} className="font-semibold text-indigo-600 hover:underline">Ekibimize yazın</button></p>
+            <p className="mt-6 text-center text-sm text-slate-500">Zaten portalınız var mı? <Link to="/giris" className="font-semibold text-brand-600 hover:underline">Giriş yapın</Link> · Sorunuz mu var? <button type="button" onClick={() => window.dispatchEvent(new Event('akis:open-chat'))} className="font-semibold text-brand-600 hover:underline">Ekibimize yazın</button></p>
           </div>
         </Frame>
       </main>
@@ -196,11 +196,11 @@ export const SignupDone = ({ site }) => {
           <ol className="mt-8 space-y-3 text-left">
             {[
               <>E-posta kutunuzu açın{state.email ? <> (<b className="text-slate-900">{state.email}</b>)</> : null} ve doğrulama bağlantısına tıklayın.</>,
-              <>Portalınıza giriş yapın: <a className="font-semibold text-indigo-600 break-all" href={state.portalUrl}>{state.portalUrl.replace(/^https?:\/\//, '')}</a></>,
+              <>Portalınıza giriş yapın: <a className="font-semibold text-brand-600 break-all" href={state.portalUrl}>{state.portalUrl.replace(/^https?:\/\//, '')}</a></>,
               'Ürünlerinizi Excel ile yükleyin ve bayilerinizi davet edin.'
             ].map((t, i) => (
               <li key={i} className="flex gap-3 rounded-2xl bg-slate-50 px-4 py-3 text-sm text-slate-700">
-                <span className="h-6 w-6 shrink-0 rounded-lg bg-indigo-600 text-white text-xs font-black flex items-center justify-center">{i + 1}</span>
+                <span className="h-6 w-6 shrink-0 rounded-lg bg-brand-600 text-white text-xs font-black flex items-center justify-center">{i + 1}</span>
                 <span>{t}</span>
               </li>
             ))}

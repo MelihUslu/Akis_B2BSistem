@@ -11,8 +11,8 @@ import ModalHeader from '../../components/shared/ModalHeader';
 const SOURCES = {
   INSTAGRAM: { label: 'Instagram', cls: 'bg-pink-50 text-pink-700' },
   WHATSAPP: { label: 'WhatsApp', cls: 'bg-emerald-50 text-emerald-700' },
-  FACEBOOK: { label: 'Facebook', cls: 'bg-indigo-50 text-indigo-700' },
-  FORM: { label: 'Talep formu', cls: 'bg-indigo-50 text-indigo-700' },
+  FACEBOOK: { label: 'Facebook', cls: 'bg-brand-50 text-brand-700' },
+  FORM: { label: 'Talep formu', cls: 'bg-brand-50 text-brand-700' },
   PHONE: { label: 'Telefon', cls: 'bg-amber-50 text-amber-700' },
   OTHER: { label: 'Diğer', cls: 'bg-slate-100 text-slate-600' },
 };
@@ -59,14 +59,14 @@ const FormLinks = ({ onEdit }) => {
     <div className="card-premium p-5 md:p-6">
       <div className="flex flex-col md:flex-row md:items-end gap-4 justify-between">
         <div className="flex items-start gap-3">
-          <span className="p-2.5 rounded-xl bg-indigo-50 text-indigo-600 shrink-0"><Link2 className="h-5 w-5" /></span>
+          <span className="p-2.5 rounded-xl bg-brand-50 text-brand-600 shrink-0"><Link2 className="h-5 w-5" /></span>
           <div>
             <h2 className="font-black text-gray-900">Talep formu bağlantıları</h2>
             <p className="text-sm text-gray-500 mt-0.5">Reklamdan yazan kişiye bu bağlantıyı gönderin; adını, telefonunu ve ne istediğini yazar, buraya kendiliğinden düşer. Hangi kanaldan geldiği de kaydedilir.</p>
           </div>
         </div>
         <div className="md:w-64 shrink-0">
-          <button type="button" onClick={onEdit} className="mb-3 w-full h-10 rounded-xl bg-gray-900 text-white text-xs font-black flex items-center justify-center gap-2 hover:bg-black"><SlidersHorizontal className="h-4 w-4" /> Formdaki soruları düzenle</button>
+          <button type="button" onClick={onEdit} className="mb-3 w-full h-10 rounded-xl bg-gray-900 text-white text-xs font-black flex items-center justify-center gap-2 hover:bg-navy-950"><SlidersHorizontal className="h-4 w-4" /> Formdaki soruları düzenle</button>
           <label className="premium-label">Kampanya / reklam adı (isteğe bağlı)</label>
           <input className="premium-input" value={campaign} onChange={(e) => setCampaign(e.target.value)} placeholder="Örn: Kasım indirimi" />
         </div>
@@ -80,8 +80,8 @@ const FormLinks = ({ onEdit }) => {
                 <p className="text-sm font-bold text-gray-800">{label} <span className="font-medium text-gray-400 text-xs">· {hint}</span></p>
                 <p className="text-xs font-mono text-gray-500 truncate">{url}</p>
               </div>
-              <a href={url} target="_blank" rel="noreferrer" className="p-2 text-gray-400 hover:text-indigo-600" title="Formu aç"><ExternalLink className="h-4 w-4" /></a>
-              <button type="button" onClick={() => copy(label, url)} className={`h-9 px-3 rounded-lg text-xs font-black flex items-center gap-1.5 ${copied === label ? 'bg-emerald-600 text-white' : 'bg-white border border-gray-200 text-gray-700 hover:border-indigo-300'}`}>
+              <a href={url} target="_blank" rel="noreferrer" className="p-2 text-gray-400 hover:text-brand-600" title="Formu aç"><ExternalLink className="h-4 w-4" /></a>
+              <button type="button" onClick={() => copy(label, url)} className={`h-9 px-3 rounded-lg text-xs font-black flex items-center gap-1.5 ${copied === label ? 'bg-emerald-600 text-white' : 'bg-white border border-gray-200 text-gray-700 hover:border-brand-300'}`}>
                 {copied === label ? <><Check className="h-3.5 w-3.5" /> Kopyalandı</> : <><Copy className="h-3.5 w-3.5" /> Kopyala</>}
               </button>
             </div>
@@ -166,7 +166,7 @@ const LeadManagement = () => {
           <form onSubmit={save} className="modal-panel w-full max-w-lg max-h-[92vh] flex flex-col">
             <ModalHeader icon={UserPlus} title={editing.id ? 'Kişiyi Düzenle' : 'Kişi Ekle'} onClose={() => setEditing(null)} />
             <div className="p-6 space-y-4 overflow-y-auto">
-              {editing.viaForm && <p className="text-xs font-bold text-indigo-700 bg-indigo-50 rounded-xl px-3 py-2">Bu kişi talep formunu kendisi doldurdu · {formatDate(editing.createdAt, true)}</p>}
+              {editing.viaForm && <p className="text-xs font-bold text-brand-700 bg-brand-50 rounded-xl px-3 py-2">Bu kişi talep formunu kendisi doldurdu · {formatDate(editing.createdAt, true)}</p>}
               {answersOf(editing).length > 0 && (
                 <dl className="rounded-xl border border-gray-100 divide-y divide-gray-100 text-sm">
                   {answersOf(editing).map((a) => (
@@ -205,14 +205,14 @@ const LeadManagement = () => {
 
       <div className="flex flex-col xl:flex-row justify-between xl:items-end gap-4">
         <div className="flex items-center gap-4 min-w-0">
-          <div className="page-icon"><Inbox className="h-6 w-6 text-white" /></div>
+          <div className="page-icon"><Inbox className="h-6 w-6 text-brand-400" /></div>
           <div>
             <h1 className="text-3xl font-black text-gray-900 tracking-tight">Müşteri Adayları</h1>
             <p className="text-gray-500 text-sm mt-1">Instagram ve WhatsApp reklamlarından yazan kişiler tek listede. Arayın, durumunu işaretleyin, Excel'e alın.</p>
           </div>
         </div>
         <div className="flex flex-wrap gap-2 shrink-0">
-          <button onClick={() => setShowLinks(!showLinks)} className={`flex items-center px-4 h-11 rounded-xl text-sm font-black ${showLinks ? 'bg-indigo-600 text-white' : 'text-indigo-700 bg-indigo-50 hover:bg-indigo-100'}`}><Link2 className="h-4 w-4 mr-2" /> Form bağlantısı</button>
+          <button onClick={() => setShowLinks(!showLinks)} className={`flex items-center px-4 h-11 rounded-xl text-sm font-black ${showLinks ? 'bg-brand-600 text-white' : 'text-brand-700 bg-brand-50 hover:bg-brand-100'}`}><Link2 className="h-4 w-4 mr-2" /> Form bağlantısı</button>
           <button onClick={() => setFormEditor(true)} className="flex items-center px-4 h-11 rounded-xl text-sm font-black text-gray-700 bg-white border border-gray-200 hover:border-gray-300"><SlidersHorizontal className="h-4 w-4 mr-2" /> Formu düzenle</button>
           <button onClick={exportExcel} className="flex items-center px-4 h-11 rounded-xl text-sm font-black text-emerald-700 bg-emerald-50 hover:bg-emerald-100"><FileSpreadsheet className="h-4 w-4 mr-2" /> Excel'e Aktar</button>
           <button onClick={() => setEditing({ ...EMPTY })} className="btn-gradient"><Plus className="h-4 w-4 mr-2" /> Kişi Ekle</button>
@@ -285,7 +285,7 @@ const LeadManagement = () => {
                 <td className="px-5 py-4 whitespace-nowrap text-right" onClick={(e) => e.stopPropagation()}>
                   {l.phone && <>
                     <a href={`https://wa.me/${intl(l.phone)}`} target="_blank" rel="noreferrer" className="inline-flex p-2 rounded-lg text-emerald-600 hover:bg-emerald-50" title="WhatsApp'tan yaz"><MessageCircle className="h-4 w-4" /></a>
-                    <a href={`tel:+${intl(l.phone)}`} className="inline-flex p-2 rounded-lg text-indigo-600 hover:bg-indigo-50" title="Ara"><Phone className="h-4 w-4" /></a>
+                    <a href={`tel:+${intl(l.phone)}`} className="inline-flex p-2 rounded-lg text-brand-600 hover:bg-brand-50" title="Ara"><Phone className="h-4 w-4" /></a>
                   </>}
                 </td>
               </tr>
@@ -293,7 +293,7 @@ const LeadManagement = () => {
             {data.items.length === 0 && (
               <tr><td colSpan={6} className="text-center py-14 px-6">
                 <p className="text-gray-400 font-bold">{filtered || filter.status ? 'Bu filtreye uyan kişi yok.' : 'Henüz müşteri adayı yok.'}</p>
-                {!filtered && !filter.status && <p className="mt-2 text-sm text-gray-400">DM'den yazan kişiyi <b>Kişi Ekle</b> ile kaydedin ya da <button onClick={() => setShowLinks(true)} className="font-bold text-indigo-600 hover:underline">form bağlantısını</button> reklamınıza koyun.</p>}
+                {!filtered && !filter.status && <p className="mt-2 text-sm text-gray-400">DM'den yazan kişiyi <b>Kişi Ekle</b> ile kaydedin ya da <button onClick={() => setShowLinks(true)} className="font-bold text-brand-600 hover:underline">form bağlantısını</button> reklamınıza koyun.</p>}
               </td></tr>
             )}
           </tbody>

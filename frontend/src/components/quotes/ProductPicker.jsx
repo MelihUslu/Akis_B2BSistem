@@ -40,7 +40,7 @@ const ProductPicker = ({ companyId, onPick, placeholder = 'Ürün adı, SKU veya
         <div className="absolute z-30 mt-1 w-full max-h-80 overflow-y-auto rounded-xl bg-white shadow-xl ring-1 ring-gray-100">
           {shown.map((p) => (
             <button key={p.id} type="button" onClick={() => { onPick(p); setQ(''); setOpen(false); }}
-              className="w-full text-left px-4 py-2.5 hover:bg-indigo-50 flex items-start gap-3 border-b border-gray-50 last:border-0">
+              className="w-full text-left px-4 py-2.5 hover:bg-brand-50 flex items-start gap-3 border-b border-gray-50 last:border-0">
               <Package className="h-4 w-4 text-gray-300 mt-0.5 shrink-0" />
               <span className="min-w-0 flex-1">
                 <span className="block text-sm font-bold text-gray-900 truncate">{p.name}</span>

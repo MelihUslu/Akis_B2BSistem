@@ -49,7 +49,7 @@ const SummaryTab = ({ p }) => {
       </div>
 
       {s.fx && (
-        <div className="rounded-xl bg-indigo-50/60 p-3 text-xs text-indigo-900 space-y-1">
+        <div className="rounded-xl bg-brand-50/60 p-3 text-xs text-brand-900 space-y-1">
           <p className="font-black">{p.currency} cari · güncel kur {s.fx.rate ? `1 ${p.currency} = ${s.fx.rate.toLocaleString('tr-TR')} TL` : 'alınamadı'}</p>
           {s.fx.balanceTRY !== null && <p>Bakiyenin güncel TL karşılığı: <b>{formatTRY(Math.abs(s.fx.balanceTRY))}</b> {p.currentBalance < 0 ? '(borç)' : p.currentBalance > 0 ? '(alacak)' : ''}</p>}
           {s.fx.difference !== null && Math.abs(s.fx.difference) >= 1 && ( // 1 TL altı kuruş yuvarlamasıdır
@@ -155,7 +155,7 @@ const PartnerDrawer = ({ id, meta, onClose, onChanged, showAlert, confirm }) => 
             <div className="flex items-start justify-between gap-3">
               <span className="modal-icon"><BookUser className="h-5 w-5" /></span>
               <div className="min-w-0 flex-1">
-                <div className="flex items-center gap-2"><Badge kind={p.kind} />{p.currency !== 'TRY' && <span className="px-2 py-0.5 rounded-md text-[10px] font-black bg-indigo-50 text-indigo-700">{p.currency} cari</span>}{p.status === 'PASSIVE' && <span className="text-[10px] font-black uppercase text-gray-400">Pasif</span>}</div>
+                <div className="flex items-center gap-2"><Badge kind={p.kind} />{p.currency !== 'TRY' && <span className="px-2 py-0.5 rounded-md text-[10px] font-black bg-brand-50 text-brand-700">{p.currency} cari</span>}{p.status === 'PASSIVE' && <span className="text-[10px] font-black uppercase text-gray-400">Pasif</span>}</div>
                 <h2 className="modal-title mt-1 break-words">{p.name}</h2>
                 {p.externalCode && <p className="text-xs font-mono text-gray-400">Cari {p.externalCode}</p>}
               </div>
@@ -173,17 +173,17 @@ const PartnerDrawer = ({ id, meta, onClose, onChanged, showAlert, confirm }) => 
               {finance && <button onClick={() => setModal('out')} className={`${btn} ${p.kind === 'SUPPLIER' ? 'text-white bg-amber-500 hover:bg-amber-600' : 'text-gray-700 bg-gray-100 hover:bg-gray-200'}`}><ArrowUpRight className="h-3.5 w-3.5 mr-1.5" /> Ödeme yap</button>}
               {finance && <button onClick={() => setModal('tx')} className={`${btn} text-gray-700 bg-gray-100 hover:bg-gray-200`}><Wallet className="h-3.5 w-3.5 mr-1.5" /> {p.kind === 'SUPPLIER' ? 'Alış faturası / borç-alacak' : 'Borç / alacak'}</button>}
               {finance && <a href={`/print/statement/${p.id}`} target="_blank" rel="noreferrer" className={`${btn} text-gray-700 bg-gray-100 hover:bg-gray-200`}><FileText className="h-3.5 w-3.5 mr-1.5" /> Ekstre</a>}
-              {finance && <button onClick={() => setModal('statement')} className={`${btn} text-indigo-700 bg-indigo-50 hover:bg-indigo-100`}><Send className="h-3.5 w-3.5 mr-1.5" /> Ekstre gönder / mutabakat</button>}
+              {finance && <button onClick={() => setModal('statement')} className={`${btn} text-brand-700 bg-brand-50 hover:bg-brand-100`}><Send className="h-3.5 w-3.5 mr-1.5" /> Ekstre gönder / mutabakat</button>}
               {p.kind !== 'SUPPLIER' && p.status === 'ACTIVE' && can(user, 'QUOTES') && <Link to={`/admin/quotes/new?companyId=${p.id}`} className={`${btn} text-violet-700 bg-violet-50`}><FileSignature className="h-3.5 w-3.5 mr-1.5" /> Teklif hazırla</Link>}
               <button onClick={() => setModal('edit')} className={`${btn} text-gray-700 bg-gray-100 hover:bg-gray-200`}><Pencil className="h-3.5 w-3.5 mr-1.5" /> {p.kind === 'DEALER' ? 'Yetkililer / etiket / not' : 'Kartı düzenle'}</button>
-              {p.kind === 'DEALER' && can(user, 'DEALERS') && <Link to={`/admin/dealers?search=${encodeURIComponent(p.name)}`} className={`${btn} text-indigo-700 bg-indigo-50`}><ExternalLink className="h-3.5 w-3.5 mr-1.5" /> Bayi kartı</Link>}
-              {p.kind === 'CUSTOMER' && can(user, 'DEALERS') && <button onClick={() => setModal('convert')} className={`${btn} text-indigo-700 bg-indigo-50`}><Store className="h-3.5 w-3.5 mr-1.5" /> Bayiye dönüştür</button>}
+              {p.kind === 'DEALER' && can(user, 'DEALERS') && <Link to={`/admin/dealers?search=${encodeURIComponent(p.name)}`} className={`${btn} text-brand-700 bg-brand-50`}><ExternalLink className="h-3.5 w-3.5 mr-1.5" /> Bayi kartı</Link>}
+              {p.kind === 'CUSTOMER' && can(user, 'DEALERS') && <button onClick={() => setModal('convert')} className={`${btn} text-brand-700 bg-brand-50`}><Store className="h-3.5 w-3.5 mr-1.5" /> Bayiye dönüştür</button>}
               {p.kind !== 'DEALER' && <button onClick={remove} className={`${btn} text-red-600 hover:bg-red-50 ml-auto`}><Trash2 className="h-3.5 w-3.5 mr-1.5" /> Sil</button>}
             </div>
 
             <div className="flex gap-1 border-b border-gray-100">
               {TABS.map(([k, label]) => (
-                <button key={k} onClick={() => setTab(k)} className={`px-3 py-2 text-xs font-black border-b-2 -mb-px ${tab === k ? 'border-indigo-600 text-indigo-600' : 'border-transparent text-gray-400 hover:text-gray-700'}`}>
+                <button key={k} onClick={() => setTab(k)} className={`px-3 py-2 text-xs font-black border-b-2 -mb-px ${tab === k ? 'border-brand-600 text-brand-600' : 'border-transparent text-gray-400 hover:text-gray-700'}`}>
                   {label}{k === 'notes' && openReminders > 0 && <span className="ml-1 inline-flex items-center text-amber-600"><Bell className="h-3 w-3" />{openReminders}</span>}
                 </button>
               ))}
@@ -253,10 +253,10 @@ const PartnerManagement = () => {
       {alertElement}
       <div className="flex flex-col xl:flex-row justify-between xl:items-end gap-4">
         <div className="flex items-center gap-4">
-          <div className="page-icon"><BookUser className="h-6 w-6 text-white" /></div>
+          <div className="page-icon"><BookUser className="h-6 w-6 text-brand-400" /></div>
           <div>
             <h1 className="text-3xl font-black text-gray-900 tracking-tight">Cari Hesaplar</h1>
-            <p className="text-gray-500 text-sm mt-1">Bayiler, portal kullanmayan müşteriler ve tedarikçiler: bakiye, tahsilat, hareket, not ve belgeler. Portala giren bayiler <Link to="/admin/dealers" className="text-indigo-600 font-bold hover:underline">Bayi Yönetimi</Link>'nden eklenir.</p>
+            <p className="text-gray-500 text-sm mt-1">Bayiler, portal kullanmayan müşteriler ve tedarikçiler: bakiye, tahsilat, hareket, not ve belgeler. Portala giren bayiler <Link to="/admin/dealers" className="text-brand-600 font-bold hover:underline">Bayi Yönetimi</Link>'nden eklenir.</p>
           </div>
         </div>
         <div className="flex flex-wrap gap-2 shrink-0">
@@ -281,7 +281,7 @@ const PartnerManagement = () => {
           <select className="premium-input" value={filter.sort} onChange={set('sort')}>
             <option value="name">Ada göre</option><option value="balance">En borçlu önce</option><option value="newest">En yeni kayıt</option>
           </select>
-          <button onClick={() => setMoreFilters(!moreFilters)} className={`flex items-center justify-center px-4 h-11 rounded-xl text-sm font-black ${moreFilters || extraCount ? 'bg-indigo-50 text-indigo-700' : 'bg-gray-100 text-gray-600'}`}>
+          <button onClick={() => setMoreFilters(!moreFilters)} className={`flex items-center justify-center px-4 h-11 rounded-xl text-sm font-black ${moreFilters || extraCount ? 'bg-brand-50 text-brand-700' : 'bg-gray-100 text-gray-600'}`}>
             <SlidersHorizontal className="h-4 w-4 mr-2" /> Filtreler{extraCount > 0 && ` (${extraCount})`}
           </button>
         </div>

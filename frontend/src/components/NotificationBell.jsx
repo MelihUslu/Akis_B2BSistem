@@ -89,7 +89,7 @@ const NotificationBell = ({ dark = false }) => {
     <div className="relative" ref={panelRef}>
       <button
         onClick={() => setOpen(!open)}
-        className={`relative p-2 rounded-xl transition-all ${dark ? 'text-slate-400 hover:text-white' : 'text-gray-400 hover:text-indigo-500 hover:bg-indigo-50'}`}
+        className={`relative p-2 rounded-xl transition-all ${dark ? 'text-slate-400 hover:text-white' : 'text-gray-400 hover:text-brand-500 hover:bg-brand-50'}`}
         title={t('Bildirimler')}
       >
         <Bell className="h-5 w-5" />
@@ -105,14 +105,14 @@ const NotificationBell = ({ dark = false }) => {
           <div className="flex items-center justify-between px-5 py-4 border-b border-gray-50">
             <p className="text-sm font-black text-gray-900">{t('Bildirimler')}</p>
             {unread > 0 && (
-              <button onClick={markAll} className="text-[10px] font-black text-indigo-600 uppercase tracking-widest flex items-center hover:underline">
+              <button onClick={markAll} className="text-[10px] font-black text-brand-600 uppercase tracking-widest flex items-center hover:underline">
                 <CheckCheck className="h-3.5 w-3.5 mr-1" /> {t('Tümünü okundu yap')}
               </button>
             )}
           </div>
 
           {permission === 'default' && (
-            <button onClick={requestPermission} className="w-full text-left px-5 py-3 bg-indigo-50 text-[11px] font-bold text-indigo-700 flex items-center">
+            <button onClick={requestPermission} className="w-full text-left px-5 py-3 bg-brand-50 text-[11px] font-bold text-brand-700 flex items-center">
               <Info className="h-4 w-4 mr-2 flex-shrink-0" /> {t('Masaüstü bildirimlerini açmak için tıklayın')}
             </button>
           )}
@@ -123,8 +123,8 @@ const NotificationBell = ({ dark = false }) => {
             ) : items.map((n) => {
               const Icon = TYPE_ICON[n.type] || Bell;
               return (
-                <button key={n.id} onClick={() => openItem(n)} className={`w-full text-left px-5 py-4 flex gap-3 hover:bg-gray-50 transition-colors ${n.isRead ? '' : 'bg-indigo-50/40'}`}>
-                  <div className={`w-9 h-9 rounded-xl flex items-center justify-center flex-shrink-0 ${n.isRead ? 'bg-gray-100 text-gray-400' : 'bg-indigo-100 text-indigo-600'}`}>
+                <button key={n.id} onClick={() => openItem(n)} className={`w-full text-left px-5 py-4 flex gap-3 hover:bg-gray-50 transition-colors ${n.isRead ? '' : 'bg-brand-50/40'}`}>
+                  <div className={`w-9 h-9 rounded-xl flex items-center justify-center flex-shrink-0 ${n.isRead ? 'bg-gray-100 text-gray-400' : 'bg-brand-100 text-brand-600'}`}>
                     <Icon className="h-4 w-4" />
                   </div>
                   <div className="min-w-0">

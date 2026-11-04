@@ -5,7 +5,7 @@ import useAlert from '../../hooks/useAlert';
 import { formatDate } from '../../utils/format';
 
 const LEVELS = {
-  INFO: { label: 'Bilgi', className: 'bg-indigo-100 text-indigo-700' },
+  INFO: { label: 'Bilgi', className: 'bg-brand-100 text-brand-700' },
   WARNING: { label: 'Uyarı', className: 'bg-amber-100 text-amber-700' },
   MAINTENANCE: { label: 'Bakım', className: 'bg-red-100 text-red-600' }
 };
@@ -50,7 +50,7 @@ const PlatformAnnouncements = () => {
     <div className="space-y-8 max-w-5xl">
       {alertElement}
       <div className="flex items-center gap-4">
-        <div className="page-icon"><Megaphone className="h-6 w-6 text-white" /></div>
+        <div className="page-icon"><Megaphone className="h-6 w-6 text-brand-400" /></div>
         <div>
           <h1 className="text-3xl font-black text-gray-900 tracking-tight">Duyurular</h1>
           <p className="text-gray-500 text-sm mt-1">Bakım, yeni özellik ve fiyat değişikliklerini müşterilerinizin yönetim paneline duyurun.</p>
@@ -58,7 +58,7 @@ const PlatformAnnouncements = () => {
       </div>
 
       <form onSubmit={submit} className="card-premium p-6 space-y-4">
-        <h3 className="font-black text-gray-900 flex items-center"><Megaphone className="h-5 w-5 mr-2 text-indigo-500" /> Yeni Duyuru</h3>
+        <h3 className="font-black text-gray-900 flex items-center"><Megaphone className="h-5 w-5 mr-2 text-brand-500" /> Yeni Duyuru</h3>
         <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
           <div className="md:col-span-2"><label className="premium-label">Başlık</label><input required maxLength={120} className="premium-input" value={form.title} onChange={set('title')} /></div>
           <div><label className="premium-label">Tür</label>

@@ -59,7 +59,7 @@ const BayiProfile = () => {
 
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
         <div className="card-premium p-5 md:p-8 space-y-6">
-          <h3 className="font-black text-gray-900 flex items-center"><Building2 className="h-5 w-5 mr-2 text-indigo-500" /> {t('Firma Bilgileri')}</h3>
+          <h3 className="font-black text-gray-900 flex items-center"><Building2 className="h-5 w-5 mr-2 text-brand-500" /> {t('Firma Bilgileri')}</h3>
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
             <Field icon={Building2} label={t('Unvan')} value={company.name} />
             <Field icon={User} label={t('Yetkili')} value={company.authorizedPerson || me.name} />
@@ -75,15 +75,15 @@ const BayiProfile = () => {
             <div><p className="text-[10px] font-black text-gray-400 uppercase">{t('Vade')}</p><p className="font-black text-gray-900">{company.paymentTermDays} gün</p></div>
           </div>
           {company.plasiyer && (
-            <p className="text-xs font-bold text-gray-500 bg-indigo-50/60 p-4 rounded-2xl">
-              {t('Müşteri temsilciniz:')} <span className="text-indigo-700">{company.plasiyer.name}</span> · {company.plasiyer.email}
+            <p className="text-xs font-bold text-gray-500 bg-brand-50/60 p-4 rounded-2xl">
+              {t('Müşteri temsilciniz:')} <span className="text-brand-700">{company.plasiyer.name}</span> · {company.plasiyer.email}
             </p>
           )}
           <p className="text-[11px] text-gray-400 font-semibold">{t('Firma bilgilerinde değişiklik için müşteri temsilcinizle iletişime geçin.')}</p>
         </div>
 
         <form onSubmit={changePassword} className="card-premium p-5 md:p-8 space-y-5">
-          <h3 className="font-black text-gray-900 flex items-center"><KeyRound className="h-5 w-5 mr-2 text-indigo-500" /> {t('Şifre Değiştir')}</h3>
+          <h3 className="font-black text-gray-900 flex items-center"><KeyRound className="h-5 w-5 mr-2 text-brand-500" /> {t('Şifre Değiştir')}</h3>
           <div>
             <label className="premium-label">{t('Mevcut Şifre')}</label>
             <input required type="password" autoComplete="current-password" className="premium-input" value={form.currentPassword} onChange={(e) => setForm({ ...form, currentPassword: e.target.value })} />
@@ -103,14 +103,14 @@ const BayiProfile = () => {
       <NotificationPrefs showAlert={showAlert} />
 
       <div className="card-premium p-5 md:p-8 space-y-4">
-        <h3 className="font-black text-gray-900 flex items-center"><MapPin className="h-5 w-5 mr-2 text-indigo-500" /> {t('Teslimat Adreslerim')}</h3>
+        <h3 className="font-black text-gray-900 flex items-center"><MapPin className="h-5 w-5 mr-2 text-brand-500" /> {t('Teslimat Adreslerim')}</h3>
         <p className="text-sm text-gray-500">{t('Siparişte hangi adrese gönderileceğini seçebilirsiniz; varsayılan adres otomatik seçilir.')}</p>
         <AddressBook showAlert={showAlert} />
       </div>
 
       {me.isOwner ? (
         <div className="card-premium p-5 md:p-8 space-y-4">
-          <h3 className="font-black text-gray-900 flex items-center"><Users className="h-5 w-5 mr-2 text-indigo-500" /> {t('Firma Kullanıcıları')}</h3>
+          <h3 className="font-black text-gray-900 flex items-center"><Users className="h-5 w-5 mr-2 text-brand-500" /> {t('Firma Kullanıcıları')}</h3>
           <p className="text-sm text-gray-500">{t('Şubeleriniz veya çalışanlarınız için ayrı giriş hesabı açın. Herkes aynı cari hesabı ve siparişleri görür.')}</p>
           <DealerUsersModal inline base="/team/my-company" showAlert={showAlert} confirm={confirm} />
         </div>

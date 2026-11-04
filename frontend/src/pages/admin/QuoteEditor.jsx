@@ -206,8 +206,8 @@ const QuoteForm = ({ meta, companies, quote, onReload, onCompanyAdded, showAlert
     <div className="space-y-6">
       <div className="flex flex-col md:flex-row justify-between md:items-end gap-4">
         <div className="flex items-center gap-4">
-          <Link to="/admin/quotes" className="p-2 rounded-xl text-gray-400 hover:text-indigo-600 hover:bg-indigo-50"><ArrowLeft className="h-5 w-5" /></Link>
-          <div className="page-icon"><FileSignature className="h-6 w-6 text-white" /></div>
+          <Link to="/admin/quotes" className="p-2 rounded-xl text-gray-400 hover:text-brand-600 hover:bg-brand-50"><ArrowLeft className="h-5 w-5" /></Link>
+          <div className="page-icon"><FileSignature className="h-6 w-6 text-brand-400" /></div>
           <div>
             <h1 className="text-2xl md:text-3xl font-black text-gray-900 tracking-tight">{quote ? `${quote.code}${quote.revision > 1 ? ` · Revizyon ${quote.revision}` : ''}` : 'Yeni Teklif'}</h1>
             <div className="flex flex-wrap items-center gap-2 mt-1">
@@ -226,7 +226,7 @@ const QuoteForm = ({ meta, companies, quote, onReload, onCompanyAdded, showAlert
 
       <Section icon={Building2} title="Müşteri ve Koşullar" description="Fiyatlar seçilen müşterinin fiyat listesi, özel fiyatları ve iskontolarıyla hesaplanır." color="indigo">
         <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-          <Field label="Müşteri / Bayi" required hint={!fromDealer && <button type="button" onClick={() => setAddingCustomer(true)} className="flex items-center font-bold text-indigo-600 hover:underline"><UserPlus className="h-3 w-3 mr-1" /> Listede yok mu? Yeni müşteri ekle</button>}>
+          <Field label="Müşteri / Bayi" required hint={!fromDealer && <button type="button" onClick={() => setAddingCustomer(true)} className="flex items-center font-bold text-brand-600 hover:underline"><UserPlus className="h-3 w-3 mr-1" /> Listede yok mu? Yeni müşteri ekle</button>}>
             <select className="premium-input" value={form.companyId} onChange={chooseCompany} disabled={fromDealer}>
               <option value="">Müşteri seçin</option>
               {[['DEALER', 'Bayiler'], ['CUSTOMER', 'Müşteriler (portal dışı)']].map(([kind, label]) => {
@@ -306,7 +306,7 @@ const QuoteForm = ({ meta, companies, quote, onReload, onCompanyAdded, showAlert
         {quote && !quote.sentRevision && quote.source === 'STAFF' && <button onClick={removeDraft} className="mr-auto flex items-center text-xs font-black text-red-500 hover:underline"><Trash2 className="h-4 w-4 mr-1" /> Taslağı sil</button>}
         {fromDealer && !quote.sentRevision && <button onClick={rejectRequest} className="mr-auto flex items-center px-4 h-11 rounded-xl text-xs font-black text-red-600 bg-red-50 hover:bg-red-100"><XCircle className="h-4 w-4 mr-1.5" /> Talebi Reddet</button>}
         <button disabled={busy} onClick={saveDraft} className="flex items-center px-4 h-11 rounded-xl text-sm font-black text-gray-700 bg-gray-100 hover:bg-gray-200 disabled:opacity-50"><Save className="h-4 w-4 mr-2" /> Taslağı Kaydet</button>
-        <button disabled={busy || !lines.length} onClick={preview} className="flex items-center px-4 h-11 rounded-xl text-sm font-black text-indigo-700 bg-indigo-50 hover:bg-indigo-100 disabled:opacity-50"><Eye className="h-4 w-4 mr-2" /> Önizleme / PDF</button>
+        <button disabled={busy || !lines.length} onClick={preview} className="flex items-center px-4 h-11 rounded-xl text-sm font-black text-brand-700 bg-brand-50 hover:bg-brand-100 disabled:opacity-50"><Eye className="h-4 w-4 mr-2" /> Önizleme / PDF</button>
         <button disabled={busy || !lines.length} onClick={submit} className="btn-gradient disabled:opacity-50"><Send className="h-4 w-4 mr-2" /> {priced?.approvalRequired ? 'Onaya Gönder' : 'Gönder'}</button>
       </div>
     </div>

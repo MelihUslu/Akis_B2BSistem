@@ -7,7 +7,7 @@ import { t } from '../../i18n';
 const MobileTabBar = ({ onMenu }) => {
   const { cartCount, setIsCartOpen } = useCart();
   const item = 'flex-1 h-16 flex flex-col items-center justify-center gap-0.5 text-[10px] font-bold';
-  const link = ({ isActive }) => `${item} ${isActive ? 'text-indigo-600' : 'text-gray-400'}`;
+  const link = ({ isActive }) => `${item} ${isActive ? 'text-brand-600' : 'text-gray-400'}`;
 
   return (
     <nav className="lg:hidden fixed bottom-0 inset-x-0 z-40 bg-white/95 backdrop-blur border-t border-gray-100 flex"

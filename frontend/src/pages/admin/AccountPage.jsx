@@ -31,7 +31,7 @@ const AccountPage = () => {
     <div className="space-y-8 max-w-4xl">
       {alertElement}
       <div className="flex items-center gap-4">
-        <div className="page-icon"><UserCircle2 className="h-6 w-6 text-white" /></div>
+        <div className="page-icon"><UserCircle2 className="h-6 w-6 text-brand-400" /></div>
         <div>
           <h1 className="text-3xl font-black text-gray-900 tracking-tight">Hesabım</h1>
           <p className="text-gray-500 text-sm mt-1"><UserCircle2 className="h-4 w-4 mr-1" /> {user?.name} · {user?.email}</p>
@@ -47,7 +47,7 @@ const AccountPage = () => {
           <TwoFactorSettings client={api} base="/auth/2fa" showAlert={showAlert} />
 
           <form onSubmit={changePassword} className="card-premium p-6 space-y-4">
-            <h3 className="font-black text-gray-900 flex items-center"><KeyRound className="h-5 w-5 mr-2 text-indigo-500" /> Şifre Değiştir</h3>
+            <h3 className="font-black text-gray-900 flex items-center"><KeyRound className="h-5 w-5 mr-2 text-brand-500" /> Şifre Değiştir</h3>
             <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
               <div><label className="premium-label">Mevcut Şifre</label><input type="password" required className="premium-input" value={pw.currentPassword} onChange={set('currentPassword')} autoComplete="current-password" /></div>
               <div><label className="premium-label">Yeni Şifre</label><input type="password" required minLength={8} className="premium-input" value={pw.newPassword} onChange={set('newPassword')} autoComplete="new-password" /></div>

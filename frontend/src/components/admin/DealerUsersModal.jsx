@@ -67,13 +67,13 @@ const DealerUsersModal = ({ title, base, isAdmin, onClose, showAlert, confirm, i
         </div>
       )}
       {form ? (
-        <form onSubmit={add} className="bg-indigo-50/40 rounded-2xl p-4 grid grid-cols-1 sm:grid-cols-[minmax(0,1fr)_minmax(0,1fr)_auto] gap-2">
+        <form onSubmit={add} className="bg-brand-50/40 rounded-2xl p-4 grid grid-cols-1 sm:grid-cols-[minmax(0,1fr)_minmax(0,1fr)_auto] gap-2">
           <input required className="premium-input !bg-white" placeholder={t('Ad Soyad / Şube')} value={form.name} onChange={(e) => setForm({ ...form, name: e.target.value })} />
           <input required type="email" className="premium-input !bg-white" placeholder={t('E-posta')} value={form.email} onChange={(e) => setForm({ ...form, email: e.target.value })} />
           <button type="submit" className="btn-gradient">{t('Ekle')}</button>
         </form>
       ) : (
-        <button onClick={() => setForm({ name: '', email: '' })} className="flex items-center px-4 py-2.5 rounded-xl bg-indigo-50 text-indigo-700 text-xs font-black hover:bg-indigo-100">
+        <button onClick={() => setForm({ name: '', email: '' })} className="flex items-center px-4 py-2.5 rounded-xl bg-brand-50 text-brand-700 text-xs font-black hover:bg-brand-100">
           <UserPlus className="h-4 w-4 mr-1.5" /> {t('Kullanıcı Ekle')}
         </button>
       )}

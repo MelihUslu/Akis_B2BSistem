@@ -20,7 +20,7 @@ const MODES = {
 const Copyable = ({ value }) => (
   <span className="inline-flex items-center gap-1.5">
     <span className="font-mono text-xs text-gray-800 break-all">{value}</span>
-    <button type="button" onClick={() => navigator.clipboard?.writeText(value)} className="text-gray-400 hover:text-indigo-600 shrink-0" title="Kopyala"><Copy className="h-3.5 w-3.5" /></button>
+    <button type="button" onClick={() => navigator.clipboard?.writeText(value)} className="text-gray-400 hover:text-brand-600 shrink-0" title="Kopyala"><Copy className="h-3.5 w-3.5" /></button>
   </span>
 );
 
@@ -87,20 +87,20 @@ const DomainSettings = ({ showAlert, confirm }) => {
   return (
     <div className="card-premium p-6 space-y-6">
       <div>
-        <h3 className="font-black text-gray-900 flex items-center"><Globe className="h-5 w-5 mr-2 text-indigo-500" /> Özel Alan Adı</h3>
+        <h3 className="font-black text-gray-900 flex items-center"><Globe className="h-5 w-5 mr-2 text-brand-500" /> Özel Alan Adı</h3>
         <p className="text-xs text-gray-500 mt-1">Bayileriniz portala kendi alan adınızdan girer. Mevcut alt alan adınız da çalışmaya devam eder.</p>
       </div>
 
       <div className="grid sm:grid-cols-2 gap-3">
         {Object.entries(MODES).map(([key, m]) => (
           <button key={key} type="button" onClick={() => setMode(key)}
-            className={`text-left rounded-2xl border-2 p-4 transition-colors ${mode === key ? 'border-indigo-500 bg-indigo-50/50' : 'border-gray-100 hover:border-gray-200'}`}>
+            className={`text-left rounded-2xl border-2 p-4 transition-colors ${mode === key ? 'border-brand-500 bg-brand-50/50' : 'border-gray-100 hover:border-gray-200'}`}>
             <div className="flex items-center gap-2">
-              <span className={`h-4 w-4 rounded-full border-2 ${mode === key ? 'border-indigo-500 bg-indigo-500 ring-2 ring-inset ring-white' : 'border-gray-300'}`} />
+              <span className={`h-4 w-4 rounded-full border-2 ${mode === key ? 'border-brand-500 bg-brand-500 ring-2 ring-inset ring-white' : 'border-gray-300'}`} />
               <span className="font-black text-sm text-gray-900">{m.title}</span>
               {m.tag && <span className="text-[10px] font-black uppercase tracking-wider text-emerald-700 bg-emerald-50 px-2 py-0.5 rounded-full">{m.tag}</span>}
             </div>
-            <p className="font-mono text-xs text-indigo-600 mt-2">{m.example}</p>
+            <p className="font-mono text-xs text-brand-600 mt-2">{m.example}</p>
             <p className="text-xs text-gray-500 mt-1">{m.text}</p>
           </button>
         ))}
@@ -147,7 +147,7 @@ const DomainSettings = ({ showAlert, confirm }) => {
       )}
 
       <details className="rounded-2xl bg-gray-50 p-4 group" open={!saved || !info.verified}>
-        <summary className="cursor-pointer text-sm font-black text-gray-800 flex items-center gap-2"><Info className="h-4 w-4 text-indigo-500" /> Nasıl yapılır? ({MODES[mode].title})</summary>
+        <summary className="cursor-pointer text-sm font-black text-gray-800 flex items-center gap-2"><Info className="h-4 w-4 text-brand-500" /> Nasıl yapılır? ({MODES[mode].title})</summary>
         <ol className="mt-3 space-y-2 text-sm text-gray-600 list-decimal pl-5">
           {mode === 'root' ? (
             <>

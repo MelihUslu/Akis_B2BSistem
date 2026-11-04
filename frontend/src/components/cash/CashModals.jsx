@@ -120,12 +120,12 @@ export const EntryModal = ({ initial, suggestions, onClose, onSaved, showAlert }
         {form.hasFile && !file ? (
           <div className="flex items-center gap-2 rounded-xl bg-gray-50 px-3 py-2.5 text-sm">
             <Paperclip className="h-4 w-4 text-gray-400 shrink-0" />
-            <button type="button" onClick={() => downloadFile(`/cash/${form.id}/file`, null, form.fileName)} className="font-semibold text-indigo-600 hover:underline truncate">{form.fileName || 'Belge'}</button>
+            <button type="button" onClick={() => downloadFile(`/cash/${form.id}/file`, null, form.fileName)} className="font-semibold text-brand-600 hover:underline truncate">{form.fileName || 'Belge'}</button>
             <label className="ml-auto text-xs font-bold text-gray-500 hover:text-gray-900 cursor-pointer shrink-0">Değiştir<input type="file" accept=".pdf,.jpg,.jpeg,.png,.webp" className="hidden" onChange={(e) => setFile(e.target.files[0] || null)} /></label>
             <button type="button" onClick={removeFile} className="p-1 text-gray-400 hover:text-red-600 shrink-0" aria-label="Belgeyi kaldır"><X className="h-4 w-4" /></button>
           </div>
         ) : (
-          <label className="flex items-center gap-2 rounded-xl border-2 border-dashed border-gray-200 px-3 py-3 text-sm text-gray-500 cursor-pointer hover:border-indigo-300 hover:text-indigo-600">
+          <label className="flex items-center gap-2 rounded-xl border-2 border-dashed border-gray-200 px-3 py-3 text-sm text-gray-500 cursor-pointer hover:border-brand-300 hover:text-brand-600">
             <Paperclip className="h-4 w-4 shrink-0" />
             <span className="truncate">{file ? file.name : 'PDF ya da fotoğraf ekleyin (en fazla 10 MB)'}</span>
             {file && <button type="button" onClick={(e) => { e.preventDefault(); setFile(null); }} className="ml-auto p-1 text-gray-400 hover:text-red-600" aria-label="Seçimi kaldır"><X className="h-4 w-4" /></button>}
@@ -142,8 +142,8 @@ export const EntryModal = ({ initial, suggestions, onClose, onSaved, showAlert }
       </div>
 
       {!form.id && (
-        <label className="flex items-start gap-3 rounded-xl bg-indigo-50/60 p-3 cursor-pointer">
-          <input type="checkbox" className="mt-0.5 h-4 w-4 accent-indigo-600" checked={Boolean(form.repeat)} onChange={(e) => set({ repeat: e.target.checked })} />
+        <label className="flex items-start gap-3 rounded-xl bg-brand-50/60 p-3 cursor-pointer">
+          <input type="checkbox" className="mt-0.5 h-4 w-4 accent-brand-600" checked={Boolean(form.repeat)} onChange={(e) => set({ repeat: e.target.checked })} />
           <span className="text-sm">
             <span className="font-black text-gray-900 flex items-center gap-1.5"><Repeat className="h-3.5 w-3.5" /> Her ay tekrarla</span>
             <span className="block text-xs text-gray-500 mt-0.5">Kira, maaş gibi sabit kalemler her ay aynı gün otomatik eklenir. Düzenli kayıtlardan durdurabilirsiniz.</span>
@@ -246,7 +246,7 @@ export const RecurringModal = ({ rules, suggestions, onClose, onChanged, showAle
                 <button type="button" onClick={() => run(() => api.put(`/cash/recurring/${r.id}`, { isActive: !r.isActive }))} className="p-2 text-gray-400 hover:text-gray-900" title={r.isActive ? 'Durdur' : 'Devam ettir'} aria-label={r.isActive ? 'Durdur' : 'Devam ettir'}>
                   {r.isActive ? <Pause className="h-4 w-4" /> : <Play className="h-4 w-4" />}
                 </button>
-                <button type="button" onClick={() => setForm({ ...r, amount: String(r.amount).replace('.', ',') })} className="p-2 text-gray-400 hover:text-indigo-600" aria-label="Düzenle"><Pencil className="h-4 w-4" /></button>
+                <button type="button" onClick={() => setForm({ ...r, amount: String(r.amount).replace('.', ',') })} className="p-2 text-gray-400 hover:text-brand-600" aria-label="Düzenle"><Pencil className="h-4 w-4" /></button>
                 <button type="button" onClick={() => remove(r)} className="p-2 text-gray-400 hover:text-red-600" aria-label="Sil"><Trash2 className="h-4 w-4" /></button>
               </div>
             </li>

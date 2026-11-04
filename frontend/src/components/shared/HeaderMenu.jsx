@@ -43,16 +43,16 @@ export const UserMenu = ({ name, role, email, items }) => (
       <>
         <span className="hidden md:flex flex-col text-right">
           <span className="text-xs font-black leading-none text-gray-900">{name}</span>
-          <span className="text-[8px] font-black text-indigo-500 uppercase tracking-widest mt-1">{role}</span>
+          <span className="text-[8px] font-black text-brand-500 uppercase tracking-widest mt-1">{role}</span>
         </span>
-        <span className={`w-9 h-9 rounded-xl flex items-center justify-center font-black text-[11px] shadow-sm transition-colors ${open ? 'bg-indigo-600 text-white' : 'bg-indigo-100 text-indigo-600 group-hover:bg-indigo-200'}`}>{initials(name)}</span>
-        <ChevronDown className={`hidden md:block h-3.5 w-3.5 transition-transform ${open ? 'rotate-180 text-indigo-500' : 'text-gray-300 group-hover:text-indigo-500'}`} />
+        <span className={`w-9 h-9 rounded-xl flex items-center justify-center font-black text-[11px] shadow-sm transition-colors ${open ? 'bg-brand-600 text-white' : 'bg-brand-100 text-brand-600 group-hover:bg-brand-200'}`}>{initials(name)}</span>
+        <ChevronDown className={`hidden md:block h-3.5 w-3.5 transition-transform ${open ? 'rotate-180 text-brand-500' : 'text-gray-300 group-hover:text-brand-500'}`} />
       </>
     )}>
     {(close) => (
       <>
         <div className="px-4 py-3 bg-gray-50 border-b border-gray-100 flex items-center gap-3">
-          <span className="w-10 h-10 shrink-0 rounded-xl bg-indigo-600 text-white flex items-center justify-center font-black text-xs">{initials(name)}</span>
+          <span className="w-10 h-10 shrink-0 rounded-xl bg-brand-600 text-white flex items-center justify-center font-black text-xs">{initials(name)}</span>
           <div className="min-w-0">
             <p className="text-sm font-black text-gray-900 truncate">{name}</p>
             {email && <p className="text-xs text-gray-500 truncate">{email}</p>}

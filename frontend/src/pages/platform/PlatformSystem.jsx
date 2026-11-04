@@ -26,7 +26,7 @@ const PlatformSystem = () => {
     <div className="space-y-6">
       <div className="flex flex-wrap items-center justify-between gap-4">
         <div className="flex items-center gap-4">
-          <div className="page-icon"><Activity className="h-6 w-6 text-white" /></div>
+          <div className="page-icon"><Activity className="h-6 w-6 text-brand-400" /></div>
           <div>
             <h1 className="text-3xl font-black text-gray-900 tracking-tight">Sistem Durumu</h1>
             <p className="text-gray-500 text-sm mt-1">Ortam: <b>{s.nodeEnv === 'production' ? 'Canlı' : 'Geliştirme'}</b> · çalışma süresi {Math.round(s.uptimeSeconds / 60)} dk. Dış izleme adresi: <code className="text-xs bg-gray-100 px-1.5 py-0.5 rounded">/health/ready</code></p>
@@ -44,12 +44,12 @@ const PlatformSystem = () => {
 
       <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
         <div className="rounded-2xl bg-white ring-1 ring-gray-100 p-5 space-y-2">
-          <p className="flex items-center font-black text-gray-900"><Database className="h-4 w-4 mr-2 text-indigo-500" /> Veritabanı ve Redis</p>
+          <p className="flex items-center font-black text-gray-900"><Database className="h-4 w-4 mr-2 text-brand-500" /> Veritabanı ve Redis</p>
           <p className="flex items-center gap-2 text-sm"><Dot ok={s.db.ok} /> Veritabanı {s.db.ok ? `(${s.db.ms} ms)` : 'ulaşılamıyor'}</p>
           <p className="flex items-center gap-2 text-sm"><Dot ok={s.redis.ok} /> Redis {s.redis.ok === null ? '— tanımlı değil' : s.redis.ok ? 'bağlı' : 'bağlı değil'}</p>
         </div>
         <div className="rounded-2xl bg-white ring-1 ring-gray-100 p-5 space-y-2">
-          <p className="flex items-center font-black text-gray-900"><HardDrive className="h-4 w-4 mr-2 text-indigo-500" /> Son yedek</p>
+          <p className="flex items-center font-black text-gray-900"><HardDrive className="h-4 w-4 mr-2 text-brand-500" /> Son yedek</p>
           {!b.configured ? <p className="text-sm text-gray-500">{b.note}</p> : b.file ? (
             <>
               <p className="flex items-center gap-2 text-sm"><Dot ok={b.ok} /> {formatDate(b.at, true)} ({b.ageHours} saat önce)</p>
@@ -59,7 +59,7 @@ const PlatformSystem = () => {
           ) : <p className="flex items-center gap-2 text-sm text-red-600"><Dot ok={false} /> {b.note}</p>}
         </div>
         <div className="rounded-2xl bg-white ring-1 ring-gray-100 p-5 space-y-2">
-          <p className="flex items-center font-black text-gray-900"><Coins className="h-4 w-4 mr-2 text-indigo-500" /> Döviz kuru</p>
+          <p className="flex items-center font-black text-gray-900"><Coins className="h-4 w-4 mr-2 text-brand-500" /> Döviz kuru</p>
           <p className="flex items-center gap-2 text-sm"><Dot ok={s.exchangeRates.ok && !s.exchangeRates.stale} /> {s.exchangeRates.source === 'TCMB' ? 'TCMB' : s.exchangeRates.source === 'MANUAL' ? 'Manuel kur (Ayarlar)' : s.exchangeRates.source || 'Alınamadı'}{s.exchangeRates.date && ` · ${s.exchangeRates.date}`}</p>
           {s.exchangeRates.stale && <p className="text-xs text-amber-700">TCMB'ye şu an ulaşılamıyor; son alınan kur kullanılıyor.</p>}
         </div>

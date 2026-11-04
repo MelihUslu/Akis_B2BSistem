@@ -51,14 +51,14 @@ export const sendMail = async ({ to, subject, html, fromName }) => {
 const PLATFORM_NAME = () => process.env.PLATFORM_NAME || 'Akis B2B';
 
 const layout = (title, body, brand = PLATFORM_NAME()) => `
-  <div style="font-family:Inter,Arial,sans-serif;max-width:520px;margin:0 auto;padding:32px;color:#0f172a">
+  <div style="font-family:Inter,Arial,sans-serif;max-width:520px;margin:0 auto;padding:32px;color:#14283F">
     <h2 style="margin:0 0 16px;font-size:20px">${title}</h2>
     ${body}
     <p style="margin-top:32px;font-size:12px;color:#94a3b8">${brand} · Bu e-posta otomatik olarak gönderilmiştir.</p>
   </div>`;
 
 const button = (href, text) =>
-  `<p><a href="${href}" style="display:inline-block;background:#4f46e5;color:#fff;padding:12px 20px;border-radius:12px;text-decoration:none;font-weight:700">${text}</a></p>`;
+  `<p><a href="${href}" style="display:inline-block;background:#986B47;color:#fff;padding:12px 20px;border-radius:12px;text-decoration:none;font-weight:700">${text}</a></p>`;
 
 // Kiracının bayilerine / yöneticilerine giriş bilgileri (kiracının adıyla ve kendi adresiyle)
 export const sendCredentialsMail = ({ to, name, password, isReset, tenant }) =>
@@ -70,7 +70,7 @@ export const sendCredentialsMail = ({ to, name, password, isReset, tenant }) =>
       isReset ? 'Şifreniz sıfırlandı' : 'B2B Portal hesabınız oluşturuldu',
       `<p>Merhaba ${name},</p>
        <p>${isReset ? 'Hesabınız için yeni bir şifre oluşturuldu.' : 'Bayi portalına aşağıdaki bilgilerle giriş yapabilirsiniz.'}</p>
-       <p style="background:#f1f5f9;padding:16px;border-radius:12px">
+       <p style="background:#F5F7FA;padding:16px;border-radius:12px">
          <b>E-posta:</b> ${to}<br/><b>Şifre:</b> ${password}
        </p>
        <p>Güvenliğiniz için ilk girişten sonra <b>Profilim</b> sayfasından şifrenizi değiştirin.</p>
@@ -101,7 +101,7 @@ export const sendPortalListMail = ({ to, tenants }) =>
     html: layout(
       'Portal adresleriniz',
       `<p>Bu e-posta adresiyle kayıtlı olduğunuz portallar:</p>
-       ${tenants.map((t) => `<p style="margin:12px 0"><b>${esc(t.name)}</b><br><a href="${tenantPortalUrl(t)}/login" style="color:#4f46e5">${tenantPortalUrl(t).replace(/^https?:\/\//, '')}</a></p>`).join('')}
+       ${tenants.map((t) => `<p style="margin:12px 0"><b>${esc(t.name)}</b><br><a href="${tenantPortalUrl(t)}/login" style="color:#986B47">${tenantPortalUrl(t).replace(/^https?:\/\//, '')}</a></p>`).join('')}
        <p style="font-size:13px;color:#64748b">Bu isteği siz yapmadıysanız e-postayı yok sayabilirsiniz.</p>`
     )
   });

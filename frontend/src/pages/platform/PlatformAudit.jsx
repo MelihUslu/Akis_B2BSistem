@@ -9,7 +9,7 @@ const PlatformAudit = () => {
   return (
     <div className="space-y-6">
       <div className="flex items-center gap-4">
-        <div className="page-icon"><ScrollText className="h-6 w-6 text-white" /></div>
+        <div className="page-icon"><ScrollText className="h-6 w-6 text-brand-400" /></div>
         <div>
           <h1 className="text-3xl font-black text-gray-900 tracking-tight">İşlem Kaydı</h1>
           <p className="text-gray-500 text-sm mt-1">Girişler, ayar değişiklikleri, destek oturumları ve silme işlemleri. Satıra tıklayınca ayrıntı açılır.</p>

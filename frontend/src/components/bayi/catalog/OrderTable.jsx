@@ -16,7 +16,7 @@ const ItemRow = ({ item, parent, row }) => {
   const selected = row.isSelected(item);
   const variant = Boolean(parent);
   return (
-    <div className={`${COLS} px-3 md:px-4 py-3 ${variant ? 'bg-gray-50/70' : ''} ${selected ? '!bg-indigo-50/60' : 'hover:bg-gray-50/80'}`}>
+    <div className={`${COLS} px-3 md:px-4 py-3 ${variant ? 'bg-gray-50/70' : ''} ${selected ? '!bg-brand-50/60' : 'hover:bg-gray-50/80'}`}>
       <Check item={item} row={row} />
       <div className="flex items-center gap-3 min-w-0">
         {variant ? <span className="w-12 shrink-0 hidden md:block" /> : <Thumb item={item} onClick={() => row.open(item)} />}
@@ -24,7 +24,7 @@ const ItemRow = ({ item, parent, row }) => {
           <div className="flex items-center gap-2 min-w-0">
             {variant
               ? <p className="text-sm font-bold text-gray-900 truncate">{item.variantLabel || item.sku}</p>
-              : <button type="button" onClick={() => row.open(item)} className="text-sm font-bold text-gray-900 hover:text-indigo-600 truncate text-left">{item.name}</button>}
+              : <button type="button" onClick={() => row.open(item)} className="text-sm font-bold text-gray-900 hover:text-brand-600 truncate text-left">{item.name}</button>}
             <InCart qty={row.inCart(item)} unit={item.unit} />
             {!variant && <Fav item={item} row={row} />}
           </div>
@@ -51,7 +51,7 @@ const MasterRow = ({ product, row }) => {
   const inCart = row.inCart(product);
   const toggle = (
     <button type="button" onClick={() => setOpen(!open)} aria-expanded={open}
-      className={`h-9 w-full px-3 rounded-lg text-xs font-black flex items-center justify-center gap-1.5 border ${open ? 'bg-gray-900 border-gray-900 text-white' : 'border-indigo-200 text-indigo-700 dark:text-indigo-300 hover:bg-indigo-50'}`}>
+      className={`h-9 w-full px-3 rounded-lg text-xs font-black flex items-center justify-center gap-1.5 border ${open ? 'bg-gray-900 border-gray-900 text-white' : 'border-brand-200 text-brand-700 dark:text-brand-300 hover:bg-brand-50'}`}>
       {t('{n} seçenek', { n: summary.count })} <ChevronDown className={`h-4 w-4 transition-transform ${open ? 'rotate-180' : ''}`} />
     </button>
   );
@@ -63,7 +63,7 @@ const MasterRow = ({ product, row }) => {
           <Thumb item={product} onClick={() => row.open(product)} />
           <div className="min-w-0 flex-1">
             <div className="flex items-center gap-2 min-w-0">
-              <button type="button" onClick={() => row.open(product)} className="text-sm font-bold text-gray-900 hover:text-indigo-600 truncate text-left">{product.name}</button>
+              <button type="button" onClick={() => row.open(product)} className="text-sm font-bold text-gray-900 hover:text-brand-600 truncate text-left">{product.name}</button>
               <InCart qty={inCart} unit={product.unit} />
               <Fav item={product} row={row} />
             </div>

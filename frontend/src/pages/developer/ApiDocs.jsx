@@ -4,7 +4,7 @@ import { useTenant } from '../../context/TenantContext';
 
 const API = import.meta.env.VITE_API_URL || 'http://localhost:5001/api';
 const METHOD = {
-  get: 'bg-emerald-100 text-emerald-700', post: 'bg-indigo-100 text-indigo-700',
+  get: 'bg-emerald-100 text-emerald-700', post: 'bg-brand-100 text-brand-700',
   put: 'bg-amber-100 text-amber-700', patch: 'bg-violet-100 text-violet-700', delete: 'bg-red-100 text-red-700'
 };
 
@@ -135,17 +135,17 @@ const ApiDocs = () => {
   const base = spec.servers[0].url;
 
   return (
-    <div className="min-h-screen bg-[#F8FAFC] dark:bg-[#0b1220]">
+    <div className="min-h-screen bg-navy-50 dark:bg-[#0b1220]">
       <header className="bg-slate-900 text-white">
         <div className="max-w-5xl mx-auto px-4 md:px-8 py-10">
-          <div className="flex items-center gap-3 text-indigo-300 text-xs font-black uppercase tracking-[0.2em]"><Code2 className="h-4 w-4" /> Geliştirici</div>
+          <div className="flex items-center gap-3 text-brand-300 text-xs font-black uppercase tracking-[0.2em]"><Code2 className="h-4 w-4" /> Geliştirici</div>
           <h1 className="text-3xl md:text-4xl font-black tracking-tight mt-2">{tenant?.name ? `${tenant.name} · ` : ''}Entegrasyon API</h1>
           <div className="mt-3 max-w-3xl text-slate-300 text-sm leading-relaxed space-y-2">
             {spec.info.description.split('\n\n').map((p) => <p key={p}>{p.replace(/\*\*/g, '')}</p>)}
           </div>
           <div className="mt-6 flex flex-wrap gap-2 text-xs">
             <span className="inline-flex items-center gap-1.5 px-3 py-2 rounded-xl bg-white/10 font-mono">{base}</span>
-            <a href={`${API}/v1/openapi.json`} target="_blank" rel="noreferrer" className="inline-flex items-center gap-1.5 px-3 py-2 rounded-xl bg-indigo-500 font-bold hover:bg-indigo-400"><Download className="h-3.5 w-3.5" /> openapi.json</a>
+            <a href={`${API}/v1/openapi.json`} target="_blank" rel="noreferrer" className="inline-flex items-center gap-1.5 px-3 py-2 rounded-xl bg-brand-500 font-bold hover:bg-brand-400"><Download className="h-3.5 w-3.5" /> openapi.json</a>
           </div>
         </div>
       </header>
@@ -158,7 +158,7 @@ const ApiDocs = () => {
             { icon: Webhook, title: 'Webhook', text: 'Sipariş, ödeme, iade, fatura olayları anında bildirilir; imzayı doğrulayın. 2xx dönmezseniz 3 kez yeniden denenir.' },
           ].map((c) => (
             <div key={c.title} className="rounded-2xl bg-white ring-1 ring-gray-100 p-5">
-              <c.icon className="h-5 w-5 text-indigo-500 mb-2" />
+              <c.icon className="h-5 w-5 text-brand-500 mb-2" />
               <p className="text-sm font-black text-gray-900">{c.title}</p>
               <p className="text-xs text-gray-500 mt-1 leading-relaxed">{c.text}</p>
             </div>
@@ -187,7 +187,7 @@ const ApiDocs = () => {
           <Text>{Object.values(spec.webhooks)[0]?.post.description}</Text>
           <div className="rounded-2xl ring-1 ring-gray-100 bg-white divide-y divide-gray-100">
             {Object.entries(spec.webhooks).map(([event, w]) => (
-              <div key={event} className="flex items-center gap-3 px-4 py-2.5"><code className="font-mono text-sm font-bold text-indigo-700 w-44">{event}</code><span className="text-sm text-gray-600">{w.post.summary}</span></div>
+              <div key={event} className="flex items-center gap-3 px-4 py-2.5"><code className="font-mono text-sm font-bold text-brand-700 w-44">{event}</code><span className="text-sm text-gray-600">{w.post.summary}</span></div>
             ))}
           </div>
           <p className="text-sm font-bold text-gray-800">Gövde örneği</p>

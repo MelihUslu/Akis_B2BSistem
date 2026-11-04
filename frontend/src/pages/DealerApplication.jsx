@@ -29,9 +29,9 @@ const DealerApplication = () => {
   };
 
   return (
-    <div className="min-h-screen bg-[#F8FAFC] flex items-center justify-center p-4 md:p-6">
+    <div className="min-h-screen bg-navy-50 flex items-center justify-center p-4 md:p-6">
       <div className="bg-white rounded-[2rem] shadow-xl border border-slate-100 w-full max-w-2xl p-6 md:p-10">
-        <Link to="/login" className="inline-flex items-center text-xs font-black text-gray-400 hover:text-indigo-600 uppercase tracking-widest mb-6"><ArrowLeft className="h-4 w-4 mr-1.5" /> {t('Girişe dön')}</Link>
+        <Link to="/login" className="inline-flex items-center text-xs font-black text-gray-400 hover:text-brand-600 uppercase tracking-widest mb-6"><ArrowLeft className="h-4 w-4 mr-1.5" /> {t('Girişe dön')}</Link>
         {done ? (
           <div className="text-center space-y-4 py-8">
             <CheckCircle2 className="h-14 w-14 mx-auto text-emerald-500" />
@@ -41,7 +41,7 @@ const DealerApplication = () => {
         ) : (
           <form onSubmit={submit} className="space-y-5">
             <div className="flex items-center gap-4">
-              {tenant?.logoUrl ? <img src={tenant.logoUrl} alt={tenant.name} className="h-12 max-w-[10rem] object-contain" /> : <div className="p-3 rounded-2xl bg-indigo-50 text-indigo-600"><Building2 className="h-6 w-6" /></div>}
+              {tenant?.logoUrl ? <img src={tenant.logoUrl} alt={tenant.name} className="h-12 max-w-[10rem] object-contain" /> : <div className="p-3 rounded-2xl bg-brand-50 text-brand-600"><Building2 className="h-6 w-6" /></div>}
               <div>
                 <h1 className="text-2xl font-black text-slate-900">{t('Bayilik Başvurusu')}</h1>
                 <p className="text-sm text-slate-500">{tenant?.name} B2B portalına bayi olarak katılın.</p>

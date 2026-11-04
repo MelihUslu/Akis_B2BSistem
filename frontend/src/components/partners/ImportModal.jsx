@@ -6,7 +6,7 @@ import { downloadFile } from '../../utils/download';
 
 const ACTION = {
   create: { label: 'Yeni', className: 'bg-emerald-50 text-emerald-700' },
-  update: { label: 'Güncelle', className: 'bg-indigo-50 text-indigo-700' },
+  update: { label: 'Güncelle', className: 'bg-brand-50 text-brand-700' },
   skip: { label: 'Atla', className: 'bg-gray-100 text-gray-500' },
   error: { label: 'Hata', className: 'bg-red-50 text-red-600' },
 };
@@ -58,7 +58,7 @@ const ImportModal = ({ onClose, onDone }) => {
             <li>Bayiler Bayi Yönetimi'nden yönetildiği için atlanır.</li>
           </ol>
           <button type="button" onClick={() => downloadFile('/partners/import/template', {}, 'cari-aktarim-sablonu.xlsx')} className="flex items-center px-3 h-9 rounded-xl text-xs font-black text-emerald-700 bg-emerald-50"><FileSpreadsheet className="h-4 w-4 mr-1" /> Şablonu indir</button>
-          <label className="flex items-center justify-center gap-2 h-20 rounded-xl border-2 border-dashed border-gray-200 text-sm font-bold text-gray-500 cursor-pointer hover:border-indigo-300">
+          <label className="flex items-center justify-center gap-2 h-20 rounded-xl border-2 border-dashed border-gray-200 text-sm font-bold text-gray-500 cursor-pointer hover:border-brand-300">
             <Upload className="h-5 w-5" /> {file ? file.name : 'Excel dosyası seçin (.xlsx)'}
             <input type="file" accept=".xlsx,.xls" className="hidden" onChange={(e) => setFile(e.target.files[0] || null)} />
           </label>
@@ -66,7 +66,7 @@ const ImportModal = ({ onClose, onDone }) => {
       )}
       {shown && (
         <>
-          <div className={`flex items-center gap-2 rounded-xl p-3 text-sm font-bold ${result ? 'bg-emerald-50 text-emerald-700' : 'bg-indigo-50 text-indigo-700'}`}>
+          <div className={`flex items-center gap-2 rounded-xl p-3 text-sm font-bold ${result ? 'bg-emerald-50 text-emerald-700' : 'bg-brand-50 text-brand-700'}`}>
             {result ? <CheckCircle2 className="h-5 w-5" /> : <AlertTriangle className="h-5 w-5" />}
             {result ? 'Aktarım tamamlandı' : 'Önizleme — henüz hiçbir şey kaydedilmedi'}: {s.create} yeni, {s.update} güncelleme, {s.skip} atlandı, {s.error} hatalı satır.
           </div>

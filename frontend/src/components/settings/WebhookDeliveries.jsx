@@ -6,7 +6,7 @@ import { formatDate } from '../../utils/format';
 const STATUS = {
   SUCCESS: { label: 'Gönderildi', className: 'bg-emerald-100 text-emerald-700' },
   PENDING: { label: 'Yeniden denenecek', className: 'bg-amber-100 text-amber-700' },
-  SENDING: { label: 'Gönderiliyor', className: 'bg-indigo-100 text-indigo-700' },
+  SENDING: { label: 'Gönderiliyor', className: 'bg-brand-100 text-brand-700' },
   FAILED: { label: 'Başarısız', className: 'bg-red-100 text-red-700' }
 };
 
@@ -48,7 +48,7 @@ const WebhookDeliveries = ({ hookId, showAlert }) => {
                 <span className="text-gray-400">· {d.attempts} deneme{d.lastStatusCode ? ` · HTTP ${d.lastStatusCode}` : ''}</span>
                 {d.status === 'PENDING' && d.attempts > 0 && <span className="text-amber-600">· sonraki {formatDate(d.nextAttemptAt, true)}</span>}
                 <span className="ml-auto flex items-center gap-1">
-                  <button onClick={() => retry(d)} title="Yeniden gönder" className="p-1.5 rounded-lg text-gray-400 hover:text-indigo-600 hover:bg-indigo-50"><RotateCw className="h-3.5 w-3.5" /></button>
+                  <button onClick={() => retry(d)} title="Yeniden gönder" className="p-1.5 rounded-lg text-gray-400 hover:text-brand-600 hover:bg-brand-50"><RotateCw className="h-3.5 w-3.5" /></button>
                   <button onClick={() => setOpen(open === d.id ? null : d.id)} title="Ayrıntı" className="p-1.5 rounded-lg text-gray-400 hover:text-gray-700"><ChevronDown className={`h-3.5 w-3.5 transition-transform ${open === d.id ? 'rotate-180' : ''}`} /></button>
                 </span>
               </div>

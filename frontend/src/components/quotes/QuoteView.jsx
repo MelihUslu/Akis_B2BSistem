@@ -105,20 +105,20 @@ const QuoteView = ({ quote, onReload, showAlert, confirm }) => {
     <div className="space-y-6">
       <div className="flex flex-col lg:flex-row justify-between lg:items-end gap-4">
         <div className="flex items-center gap-4">
-          <Link to="/admin/quotes" className="p-2 rounded-xl text-gray-400 hover:text-indigo-600 hover:bg-indigo-50"><ArrowLeft className="h-5 w-5" /></Link>
-          <div className="page-icon"><FileSignature className="h-6 w-6 text-white" /></div>
+          <Link to="/admin/quotes" className="p-2 rounded-xl text-gray-400 hover:text-brand-600 hover:bg-brand-50"><ArrowLeft className="h-5 w-5" /></Link>
+          <div className="page-icon"><FileSignature className="h-6 w-6 text-brand-400" /></div>
           <div className="min-w-0">
             <h1 className="text-2xl md:text-3xl font-black text-gray-900 tracking-tight">{quote.code}{quote.title && <span className="text-gray-400 font-bold text-lg"> · {quote.title}</span>}</h1>
             <div className="flex flex-wrap items-center gap-2 mt-1 text-xs">
               <span className={`px-2.5 py-0.5 rounded-full text-[10px] font-black uppercase ${status.className}`}>{status.label}</span>
-              <span className="font-bold text-indigo-600">{quote.company?.name}</span>
+              <span className="font-bold text-brand-600">{quote.company?.name}</span>
               {quote.sentRevision && <span className="text-gray-400 font-bold">Gönderilen sürüm: {quote.sentRevision}{quote.revision !== quote.sentRevision && ` · çalışılan: ${quote.revision}`}</span>}
               {quote.order && <span className="font-black text-emerald-600">Sipariş #AK-{quote.order.id}</span>}
             </div>
           </div>
         </div>
         <div className="flex flex-wrap gap-2">
-          {doc && <a href={`/print/quote/${quote.id}${!pendingApproval && revision ? `?revision=${revision}` : ''}`} target="_blank" rel="noreferrer" className="flex items-center px-4 h-10 rounded-xl text-xs font-black text-indigo-700 bg-indigo-50 hover:bg-indigo-100"><FileDown className="h-4 w-4 mr-1.5" /> PDF</a>}
+          {doc && <a href={`/print/quote/${quote.id}${!pendingApproval && revision ? `?revision=${revision}` : ''}`} target="_blank" rel="noreferrer" className="flex items-center px-4 h-10 rounded-xl text-xs font-black text-brand-700 bg-brand-50 hover:bg-brand-100"><FileDown className="h-4 w-4 mr-1.5" /> PDF</a>}
           {quote.can?.revise && <button disabled={busy} onClick={revise} className="flex items-center px-4 h-10 rounded-xl text-xs font-black text-gray-700 bg-gray-100 hover:bg-gray-200"><PenLine className="h-4 w-4 mr-1.5" /> Revize Et</button>}
           {canMail && <button disabled={busy} onClick={() => setMail({ to: '', message: '' })} className="flex items-center px-4 h-10 rounded-xl text-xs font-black text-gray-700 bg-gray-100 hover:bg-gray-200"><Mail className="h-4 w-4 mr-1.5" /> E-posta</button>}
           {quote.status === 'ACCEPTED' && !quote.order && quote.can?.convert && (
@@ -151,19 +151,19 @@ const QuoteView = ({ quote, onReload, showAlert, confirm }) => {
 
       {quote.sentRevision && !['CANCELLED'].includes(quote.status) && (
         <div className="rounded-2xl ring-1 ring-gray-100 bg-white p-5 space-y-3">
-          <p className="flex items-center text-sm font-black text-gray-900"><Link2 className="h-4 w-4 mr-2 text-indigo-500" /> Müşteri bağlantısı</p>
+          <p className="flex items-center text-sm font-black text-gray-900"><Link2 className="h-4 w-4 mr-2 text-brand-500" /> Müşteri bağlantısı</p>
           <p className="text-xs text-gray-500">Giriş gerektirmeyen, tahmin edilemez bağlantı. Müşteri gönderilen son sürümü görür; kabul eder, reddeder veya revizyon ister. İstediğiniz an iptal edebilirsiniz.</p>
           {quote.shareUrl ? (
             <div className="flex flex-col md:flex-row gap-2">
               <input readOnly className="premium-input font-mono text-xs" value={quote.shareUrl} onFocus={(e) => e.target.select()} />
               <div className="flex gap-2 shrink-0">
-                <button onClick={() => copy(quote.shareUrl)} className="flex items-center px-3 h-11 rounded-xl text-xs font-black text-indigo-700 bg-indigo-50 hover:bg-indigo-100"><Copy className="h-4 w-4 mr-1" /> Kopyala</button>
+                <button onClick={() => copy(quote.shareUrl)} className="flex items-center px-3 h-11 rounded-xl text-xs font-black text-brand-700 bg-brand-50 hover:bg-brand-100"><Copy className="h-4 w-4 mr-1" /> Kopyala</button>
                 <button disabled={busy} onClick={() => createLink(true)} title="Yeni bağlantı" className="flex items-center px-3 h-11 rounded-xl text-xs font-black text-gray-600 bg-gray-100 hover:bg-gray-200"><RefreshCw className="h-4 w-4" /></button>
                 <button disabled={busy} onClick={revoke} title="İptal et" className="flex items-center px-3 h-11 rounded-xl text-xs font-black text-red-600 bg-red-50 hover:bg-red-100"><Ban className="h-4 w-4" /></button>
               </div>
             </div>
           ) : (
-            <button disabled={busy} onClick={() => createLink(false)} className="flex items-center px-4 h-10 rounded-xl text-xs font-black text-indigo-700 bg-indigo-50 hover:bg-indigo-100"><Link2 className="h-4 w-4 mr-1.5" /> Bağlantı oluştur ve kopyala</button>
+            <button disabled={busy} onClick={() => createLink(false)} className="flex items-center px-4 h-10 rounded-xl text-xs font-black text-brand-700 bg-brand-50 hover:bg-brand-100"><Link2 className="h-4 w-4 mr-1.5" /> Bağlantı oluştur ve kopyala</button>
           )}
           <p className="text-[11px] text-gray-400">{quote.emailedAt ? `Son e-posta gönderimi: ${formatDate(quote.emailedAt, true)}` : 'Henüz e-postayla gönderilmedi.'}</p>
         </div>

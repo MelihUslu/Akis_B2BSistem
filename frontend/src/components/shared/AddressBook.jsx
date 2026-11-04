@@ -11,7 +11,7 @@ export const AddressForm = ({ initial, onSave, onCancel, busy }) => {
   const [form, setForm] = useState({ ...EMPTY, ...initial });
   const set = (k) => (e) => setForm({ ...form, [k]: e.target.value });
   return (
-    <form onSubmit={(e) => { e.preventDefault(); onSave(form); }} className="rounded-2xl ring-1 ring-indigo-100 bg-indigo-50/30 p-4 space-y-3">
+    <form onSubmit={(e) => { e.preventDefault(); onSave(form); }} className="rounded-2xl ring-1 ring-brand-100 bg-brand-50/30 p-4 space-y-3">
       <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
         <Field label={t('Adres adı')} required><IconInput icon={Building} required maxLength={60} placeholder={t('Merkez depo, Ankara şube…')} value={form.title} onChange={set('title')} /></Field>
         <Field label={t('Teslim alacak kişi')} required><IconInput icon={User} required maxLength={80} value={form.contactName} onChange={set('contactName')} /></Field>
@@ -33,7 +33,7 @@ export const AddressForm = ({ initial, onSave, onCancel, busy }) => {
       </label>
       <div className="flex justify-end gap-2">
         <button type="button" onClick={onCancel} className="inline-flex items-center gap-1 h-9 px-3 rounded-xl text-xs font-bold text-gray-500 hover:bg-gray-100"><X className="h-3.5 w-3.5" /> {t('Vazgeç')}</button>
-        <button disabled={busy} className="inline-flex items-center gap-1.5 h-9 px-4 rounded-xl bg-indigo-600 text-white text-xs font-bold disabled:opacity-50"><Save className="h-3.5 w-3.5" /> {t('Kaydet')}</button>
+        <button disabled={busy} className="inline-flex items-center gap-1.5 h-9 px-4 rounded-xl bg-brand-600 text-white text-xs font-bold disabled:opacity-50"><Save className="h-3.5 w-3.5" /> {t('Kaydet')}</button>
       </div>
     </form>
   );
@@ -89,9 +89,9 @@ const AddressBook = ({ base = '/addresses', showAlert, selectable = false, value
           const on = selectable && value === a.id;
           return (
             <div key={a.id} onClick={() => selectable && onSelect?.(a.id)}
-              className={`relative rounded-2xl p-4 ring-1 transition-all ${selectable ? 'cursor-pointer' : ''} ${on ? 'ring-2 ring-indigo-500 bg-indigo-50/40' : 'ring-gray-100 bg-white hover:ring-gray-200'}`}>
+              className={`relative rounded-2xl p-4 ring-1 transition-all ${selectable ? 'cursor-pointer' : ''} ${on ? 'ring-2 ring-brand-500 bg-brand-50/40' : 'ring-gray-100 bg-white hover:ring-gray-200'}`}>
               <div className="flex items-start gap-3">
-                <span className={`p-2 rounded-xl shrink-0 ${on ? 'bg-indigo-600 text-white' : 'bg-gray-100 text-gray-500'}`}>{on ? <Check className="h-4 w-4" /> : <MapPin className="h-4 w-4" />}</span>
+                <span className={`p-2 rounded-xl shrink-0 ${on ? 'bg-brand-600 text-white' : 'bg-gray-100 text-gray-500'}`}>{on ? <Check className="h-4 w-4" /> : <MapPin className="h-4 w-4" />}</span>
                 <div className="min-w-0 flex-1">
                   <p className="text-sm font-black text-gray-900 flex items-center gap-2">
                     {a.title}
@@ -103,7 +103,7 @@ const AddressBook = ({ base = '/addresses', showAlert, selectable = false, value
               </div>
               <div className="flex justify-end gap-1 mt-2" onClick={(e) => e.stopPropagation()}>
                 {!a.isDefault && <button onClick={() => makeDefault(a)} title={t('Varsayılan yap')} className="p-1.5 rounded-lg text-gray-400 hover:text-amber-600 hover:bg-amber-50"><Star className="h-3.5 w-3.5" /></button>}
-                <button onClick={() => setEditing(a)} title={t('Düzenle')} className="p-1.5 rounded-lg text-gray-400 hover:text-indigo-600 hover:bg-indigo-50"><Pencil className="h-3.5 w-3.5" /></button>
+                <button onClick={() => setEditing(a)} title={t('Düzenle')} className="p-1.5 rounded-lg text-gray-400 hover:text-brand-600 hover:bg-brand-50"><Pencil className="h-3.5 w-3.5" /></button>
                 <button onClick={() => remove(a)} title={t('Sil')} className="p-1.5 rounded-lg text-gray-400 hover:text-red-600 hover:bg-red-50"><Trash2 className="h-3.5 w-3.5" /></button>
               </div>
             </div>
@@ -114,7 +114,7 @@ const AddressBook = ({ base = '/addresses', showAlert, selectable = false, value
       {editing ? (
         <AddressForm initial={editing === 'new' ? { isDefault: list.length === 0 } : editing} busy={busy} onSave={save} onCancel={() => setEditing(null)} />
       ) : (
-        <button onClick={() => setEditing('new')} className="inline-flex items-center gap-1.5 h-10 px-4 rounded-xl border-2 border-dashed border-gray-200 text-xs font-bold text-gray-500 hover:border-indigo-300 hover:text-indigo-600">
+        <button onClick={() => setEditing('new')} className="inline-flex items-center gap-1.5 h-10 px-4 rounded-xl border-2 border-dashed border-gray-200 text-xs font-bold text-gray-500 hover:border-brand-300 hover:text-brand-600">
           <Plus className="h-4 w-4" /> {t('Yeni adres ekle')}
         </button>
       )}

@@ -57,7 +57,7 @@ const PlatformPayments = () => {
     <div className="space-y-8">
       {alertElement}
       <div className="flex items-center gap-4">
-        <div className="page-icon"><Receipt className="h-6 w-6 text-white" /></div>
+        <div className="page-icon"><Receipt className="h-6 w-6 text-brand-400" /></div>
         <div>
           <h1 className="text-3xl font-black text-gray-900 tracking-tight">Ödemeler</h1>
           <p className="text-gray-500 text-sm mt-1">Son {payments.length} kayıt · Başarılı toplam {formatTRY(total)}</p>
@@ -70,7 +70,7 @@ const PlatformPayments = () => {
             {transfers.map((t) => (
               <li key={t.id} className="flex flex-wrap items-center gap-3 py-3">
                 <div className="flex-1 min-w-48">
-                  <Link to={`/tenants/${t.tenantId}`} className="font-bold text-gray-900 hover:text-indigo-600">{t.tenant.name}</Link>
+                  <Link to={`/tenants/${t.tenantId}`} className="font-bold text-gray-900 hover:text-brand-600">{t.tenant.name}</Link>
                   <p className="text-xs text-gray-500">{t.planName} · {t.billingCycle === 'YEARLY' ? 'Yıllık' : 'Aylık'} · gönderen <b>{t.senderName}</b> · açıklama {t.tenant.slug.toUpperCase()}-{t.planCode}{t.note && ` · ${t.note}`}</p>
                   <p className="text-[11px] text-gray-400">{formatDate(t.createdAt, true)}{t.createdByName && ` · ${t.createdByName}`}</p>
                 </div>
@@ -96,16 +96,16 @@ const PlatformPayments = () => {
             {payments.map((p) => (
               <tr key={p.id} className="transition-colors hover:bg-slate-50/80 hover:shadow-[inset_3px_0_0_0_#3b82f6]">
                 <td className="px-6 py-4 text-gray-500 font-semibold">{formatDate(p.createdAt, true)}</td>
-                <td className="px-6 py-4"><Link to={`/tenants/${p.tenantId}`} className="font-bold text-gray-900 hover:text-indigo-600">{p.tenant.name}</Link></td>
+                <td className="px-6 py-4"><Link to={`/tenants/${p.tenantId}`} className="font-bold text-gray-900 hover:text-brand-600">{p.tenant.name}</Link></td>
                 <td className="px-6 py-4 font-semibold">{p.planCode} · {p.billingCycle === 'YEARLY' ? 'Yıllık' : 'Aylık'}</td>
                 <td className="px-6 py-4 font-semibold">{p.method === 'IYZICO' ? 'iyzico' : p.reference?.startsWith('transfer:') ? 'Havale' : 'Manuel'}{p.reference && <span className="block text-[10px] text-gray-400">{p.reference}</span>}</td>
                 <td className="px-6 py-4 text-gray-500">{formatDate(p.periodStart)} – {formatDate(p.periodEnd)}</td>
                 <td className={`px-6 py-4 text-right font-black ${p.status === 'SUCCESS' ? 'text-emerald-600' : 'text-red-500'}`}>{p.status === 'SUCCESS' ? formatTRY(p.amount) : 'Başarısız'}</td>
                 <td className="px-6 py-4 whitespace-nowrap">
-                  {p.invoiceStatus === 'ISSUED' && <button onClick={() => pdf(p)} className="inline-flex items-center gap-1 text-xs font-bold text-indigo-600 hover:underline"><FileText className="h-3.5 w-3.5" /> {p.invoiceNumber || 'PDF'}</button>}
-                  {p.invoiceStatus === 'PENDING' && <span className="text-xs font-bold text-indigo-600">Kesiliyor…</span>}
+                  {p.invoiceStatus === 'ISSUED' && <button onClick={() => pdf(p)} className="inline-flex items-center gap-1 text-xs font-bold text-brand-600 hover:underline"><FileText className="h-3.5 w-3.5" /> {p.invoiceNumber || 'PDF'}</button>}
+                  {p.invoiceStatus === 'PENDING' && <span className="text-xs font-bold text-brand-600">Kesiliyor…</span>}
                   {p.invoiceStatus === 'FAILED' && <button onClick={() => retry(p)} title={p.invoiceError || ''} className="inline-flex items-center gap-1 text-xs font-bold text-red-600 hover:underline"><RefreshCw className="h-3.5 w-3.5" /> Hata · tekrar dene</button>}
-                  {!p.invoiceStatus && p.status === 'SUCCESS' && <button onClick={() => retry(p)} className="text-xs font-bold text-gray-400 hover:text-indigo-600">Fatura kes</button>}
+                  {!p.invoiceStatus && p.status === 'SUCCESS' && <button onClick={() => retry(p)} className="text-xs font-bold text-gray-400 hover:text-brand-600">Fatura kes</button>}
                 </td>
               </tr>
             ))}

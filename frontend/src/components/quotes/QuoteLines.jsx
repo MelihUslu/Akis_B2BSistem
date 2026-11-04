@@ -65,7 +65,7 @@ const QuoteLines = ({ lines, calc, canPrice, companyId, onChange, disabled }) =>
                     <button type="button" title="Öneriyi onayla" onClick={() => update(line.key, { matchStatus: 'MATCHED', warnings: [] })}
                       className="flex items-center px-2.5 py-1.5 rounded-lg text-[11px] font-black text-emerald-700 bg-emerald-50 hover:bg-emerald-100"><Check className="h-3.5 w-3.5 mr-1" /> Onayla</button>
                   )}
-                  {line.productId && <button type="button" title="Başka ürün seç" onClick={() => setPicking(picking === line.key ? null : line.key)} className="p-2 rounded-lg text-gray-400 hover:text-indigo-600 hover:bg-indigo-50"><Replace className="h-4 w-4" /></button>}
+                  {line.productId && <button type="button" title="Başka ürün seç" onClick={() => setPicking(picking === line.key ? null : line.key)} className="p-2 rounded-lg text-gray-400 hover:text-brand-600 hover:bg-brand-50"><Replace className="h-4 w-4" /></button>}
                   <button type="button" title="Kalemi çıkar" onClick={() => remove(line.key)} className="p-2 rounded-lg text-gray-400 hover:text-red-600 hover:bg-red-50"><Trash2 className="h-4 w-4" /></button>
                 </div>
               )}
@@ -111,7 +111,7 @@ const QuoteLines = ({ lines, calc, canPrice, companyId, onChange, disabled }) =>
                 <div>
                   <label className="premium-label flex items-center justify-between">
                     <span className="flex items-center">Net birim {!canPrice && <Lock className="h-3 w-3 ml-1 text-gray-300" />}</span>
-                    {line.manualPrice && !disabled && <button type="button" title="Sistem fiyatına dön" onClick={() => update(line.key, { manualPrice: false, unitPrice: null })} className="text-indigo-500"><RotateCcw className="h-3 w-3" /></button>}
+                    {line.manualPrice && !disabled && <button type="button" title="Sistem fiyatına dön" onClick={() => update(line.key, { manualPrice: false, unitPrice: null })} className="text-brand-500"><RotateCcw className="h-3 w-3" /></button>}
                   </label>
                   {line.manualPrice ? (
                     <input type="number" min="0" step="0.01" className="premium-input !py-2 ring-2 ring-amber-200" disabled={disabled || !canPrice} value={line.unitPrice ?? ''}

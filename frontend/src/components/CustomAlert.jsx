@@ -42,11 +42,11 @@ const CONFIG = {
   },
   info: {
     icon: Info,
-    gradient: 'from-indigo-400 to-purple-500',
-    shadow: 'shadow-indigo-500/30',
-    ring: 'ring-indigo-100',
-    btn: 'from-indigo-500 to-purple-600 shadow-indigo-500/30 hover:shadow-indigo-500/50',
-    bg: 'bg-indigo-50',
+    gradient: 'from-brand-400 to-brand-600',
+    shadow: 'shadow-brand-500/30',
+    ring: 'ring-brand-100',
+    btn: 'from-brand-500 to-brand-700 shadow-brand-500/30 hover:shadow-brand-500/50',
+    bg: 'bg-brand-50',
   },
 };
 

@@ -132,7 +132,7 @@ const SupportPage = () => {
       )}
       <div className="flex justify-between items-center flex-wrap gap-4">
         <div className="flex items-center gap-4">
-          <div className="page-icon"><LifeBuoy className="h-6 w-6 text-white" /></div>
+          <div className="page-icon"><LifeBuoy className="h-6 w-6 text-brand-400" /></div>
           <div>
             <h1 className="text-3xl font-black text-gray-900 tracking-tight">Destek</h1>
             <p className="text-gray-500 text-sm mt-1">Sistemle ilgili soru ve sorunlarınızı bize iletin; yanıtlar burada ve bildirimlerde görünür.</p>
@@ -155,7 +155,7 @@ const SupportPage = () => {
             <div className="relative">
               <Search className="absolute left-3.5 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-400" />
               <input value={query} onChange={(e) => setQuery(e.target.value)} placeholder="Konu veya talep no ara"
-                className="w-full h-10 pl-10 pr-3 rounded-xl bg-gray-50 border border-transparent text-sm font-semibold outline-none focus:bg-white focus:border-indigo-300 focus:ring-4 focus:ring-indigo-100 placeholder:text-gray-400 placeholder:font-medium" />
+                className="w-full h-10 pl-10 pr-3 rounded-xl bg-gray-50 border border-transparent text-sm font-semibold outline-none focus:bg-white focus:border-brand-300 focus:ring-4 focus:ring-brand-100 placeholder:text-gray-400 placeholder:font-medium" />
             </div>
             <FilterTabs compact value={filter} onChange={setFilter} tabs={[
               { id: '', label: 'Tümü', tone: 'slate', count: tickets.length },
@@ -216,7 +216,7 @@ const SupportPage = () => {
                   placeholder={'1. Ürünler > Excel ile Toplu menüsüne girdim\n2. Fiyat dosyasını yükledim\n3. “Dosya işlenemedi” hatası aldım'} />
               </Field>
               <Field label="Ekler" hint="Ekran görüntüsü çözümü çok hızlandırır. Görseli kopyalayıp açıklama alanına Ctrl+V ile de yapıştırabilirsiniz.">
-                <div {...att.dropProps} className={`rounded-xl border-2 border-dashed p-4 transition-all ${att.dragging ? 'border-indigo-400 bg-indigo-50/60' : 'border-gray-200'}`}>
+                <div {...att.dropProps} className={`rounded-xl border-2 border-dashed p-4 transition-all ${att.dragging ? 'border-brand-400 bg-brand-50/60' : 'border-gray-200'}`}>
                   <div className="flex flex-wrap items-center gap-3">
                     <UploadCloud className="h-6 w-6 text-gray-300" />
                     <span className="text-xs text-gray-500 flex-1 min-w-[10rem]">Dosyaları buraya sürükleyin veya seçin · görsel, PDF, Excel, Word · en fazla 5 dosya, her biri 10 MB</span>
@@ -249,8 +249,8 @@ const SupportPage = () => {
             <HelpCenter client={api} onOpen={setArticleId} />
             <div className="card-premium p-5 flex flex-col sm:flex-row sm:items-center gap-4">
               <div className="flex-1 grid grid-cols-1 sm:grid-cols-2 gap-3">
-                <p className="flex items-start gap-2.5 text-xs text-gray-500"><Timer className="h-4 w-4 text-indigo-500 shrink-0" /><span><b className="text-gray-800">Hedef süre:</b> acil talepleri {hoursText(sla.HIGH)}, diğerlerini {hoursText(sla.NORMAL)} içinde yanıtlarız.</span></p>
-                <p className="flex items-start gap-2.5 text-xs text-gray-500"><BookOpen className="h-4 w-4 text-indigo-500 shrink-0" /><span><b className="text-gray-800">Ayrıntı verin:</b> hangi ekranda, ne yaparken olduğunu yazın; ekran görüntüsü ekleyin.</span></p>
+                <p className="flex items-start gap-2.5 text-xs text-gray-500"><Timer className="h-4 w-4 text-brand-500 shrink-0" /><span><b className="text-gray-800">Hedef süre:</b> acil talepleri {hoursText(sla.HIGH)}, diğerlerini {hoursText(sla.NORMAL)} içinde yanıtlarız.</span></p>
+                <p className="flex items-start gap-2.5 text-xs text-gray-500"><BookOpen className="h-4 w-4 text-brand-500 shrink-0" /><span><b className="text-gray-800">Ayrıntı verin:</b> hangi ekranda, ne yaparken olduğunu yazın; ekran görüntüsü ekleyin.</span></p>
               </div>
               <button onClick={startNew} className="btn-gradient h-11 px-5 py-0 shrink-0"><Plus className="h-4 w-4 mr-1.5" /> Yeni talep aç</button>
             </div>

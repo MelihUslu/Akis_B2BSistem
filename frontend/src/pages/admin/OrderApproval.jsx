@@ -49,7 +49,7 @@ const StatusPill = ({ status }) => {
 
 const SummaryCard = ({ icon: Icon, label, value, sub, tone, active, onClick }) => (
   <button onClick={onClick}
-    className={`text-left rounded-2xl p-4 ring-1 transition-all hover:-translate-y-0.5 hover:shadow-md ${active ? 'ring-2 ring-indigo-500 bg-indigo-50/40' : 'ring-gray-100 bg-white'}`}>
+    className={`text-left rounded-2xl p-4 ring-1 transition-all hover:-translate-y-0.5 hover:shadow-md ${active ? 'ring-2 ring-brand-500 bg-brand-50/40' : 'ring-gray-100 bg-white'}`}>
     <div className="flex items-center justify-between">
       <span className="text-[11px] font-bold text-gray-500">{label}</span>
       <span className={`p-1.5 rounded-lg ${tone}`}><Icon className="h-4 w-4" /></span>
@@ -298,13 +298,13 @@ const OrderApproval = () => {
       return <button onClick={(e) => { e.stopPropagation(); handleReady(order.id); }} className="inline-flex items-center gap-1.5 h-8 px-3 rounded-lg bg-violet-50 text-violet-700 text-xs font-bold ring-1 ring-violet-100 hover:bg-violet-100"><Store className="h-3.5 w-3.5" /> Hazır</button>;
     }
     if (order.status === 'READY_FOR_PICKUP') {
-      return <button onClick={(e) => { e.stopPropagation(); handleComplete(order.id); }} className="inline-flex items-center gap-1.5 h-8 px-3 rounded-lg bg-indigo-50 text-indigo-700 text-xs font-bold ring-1 ring-indigo-100 hover:bg-indigo-100"><PackageCheck className="h-3.5 w-3.5" /> Teslim</button>;
+      return <button onClick={(e) => { e.stopPropagation(); handleComplete(order.id); }} className="inline-flex items-center gap-1.5 h-8 px-3 rounded-lg bg-brand-50 text-brand-700 text-xs font-bold ring-1 ring-brand-100 hover:bg-brand-100"><PackageCheck className="h-3.5 w-3.5" /> Teslim</button>;
     }
     if (order.status === 'APPROVED' || order.status === 'PARTIAL_APPROVED') {
       return <button onClick={(e) => { e.stopPropagation(); openOrder(order); }} className="inline-flex items-center gap-1.5 h-8 px-3 rounded-lg bg-orange-50 text-orange-700 text-xs font-bold ring-1 ring-orange-100 hover:bg-orange-100"><Truck className="h-3.5 w-3.5" /> Kargola</button>;
     }
     if (order.status === 'SHIPPED') {
-      return <button onClick={(e) => { e.stopPropagation(); handleComplete(order.id); }} className="inline-flex items-center gap-1.5 h-8 px-3 rounded-lg bg-indigo-50 text-indigo-700 text-xs font-bold ring-1 ring-indigo-100 hover:bg-indigo-100"><PackageCheck className="h-3.5 w-3.5" /> Teslim</button>;
+      return <button onClick={(e) => { e.stopPropagation(); handleComplete(order.id); }} className="inline-flex items-center gap-1.5 h-8 px-3 rounded-lg bg-brand-50 text-brand-700 text-xs font-bold ring-1 ring-brand-100 hover:bg-brand-100"><PackageCheck className="h-3.5 w-3.5" /> Teslim</button>;
     }
     return null;
   };
@@ -314,7 +314,7 @@ const OrderApproval = () => {
       {alertElement}
       <div className="flex flex-col md:flex-row justify-between md:items-center gap-4">
         <div className="flex items-center gap-4">
-          <div className="page-icon"><ShoppingCart className="h-6 w-6 text-white" /></div>
+          <div className="page-icon"><ShoppingCart className="h-6 w-6 text-brand-400" /></div>
           <div>
             <h1 className="text-3xl font-black text-gray-900 tracking-tight">Siparişler</h1>
             <p className="text-gray-500 text-sm mt-1">Onaylayın, kalem bazında karar verin, kargoya verin. Satıra tıklayınca detay açılır.</p>
@@ -355,10 +355,10 @@ const OrderApproval = () => {
             const on = filter === t.id;
             return (
               <button key={t.id} onClick={() => changeFilter(t.id)}
-                className={`flex items-center gap-2 px-3.5 py-2.5 -mb-px border-b-2 text-sm font-bold whitespace-nowrap transition-colors ${on ? 'border-indigo-600 text-indigo-700' : 'border-transparent text-gray-500 hover:text-gray-800'}`}>
+                className={`flex items-center gap-2 px-3.5 py-2.5 -mb-px border-b-2 text-sm font-bold whitespace-nowrap transition-colors ${on ? 'border-brand-600 text-brand-700' : 'border-transparent text-gray-500 hover:text-gray-800'}`}>
                 {t.dot && <span className={`h-2 w-2 rounded-full ${t.dot}`} />}
                 {t.label}
-                <span className={`min-w-[1.5rem] px-1.5 py-0.5 rounded-md text-[11px] tabular-nums ${on ? 'bg-indigo-100 text-indigo-700' : t.id === 'PENDING' && count ? 'bg-orange-100 text-orange-700' : 'bg-gray-100 text-gray-500'}`}>{count}</span>
+                <span className={`min-w-[1.5rem] px-1.5 py-0.5 rounded-md text-[11px] tabular-nums ${on ? 'bg-brand-100 text-brand-700' : t.id === 'PENDING' && count ? 'bg-orange-100 text-orange-700' : 'bg-gray-100 text-gray-500'}`}>{count}</span>
               </button>
             );
           })}
@@ -368,7 +368,7 @@ const OrderApproval = () => {
         <div className="flex flex-wrap gap-2 items-center p-3 border-b border-gray-100">
           <div className="relative flex-1 min-w-[14rem]">
             <Search className="absolute left-3.5 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-400" />
-            <input className="w-full h-10 pl-10 pr-3 rounded-xl bg-gray-50 border border-transparent text-sm font-semibold outline-none focus:bg-white focus:border-indigo-300 focus:ring-4 focus:ring-indigo-100 placeholder:text-gray-400 placeholder:font-medium"
+            <input className="w-full h-10 pl-10 pr-3 rounded-xl bg-gray-50 border border-transparent text-sm font-semibold outline-none focus:bg-white focus:border-brand-300 focus:ring-4 focus:ring-brand-100 placeholder:text-gray-400 placeholder:font-medium"
               placeholder="Sipariş no (AK-12) veya bayi adı" value={query} onChange={(e) => { setPage(1); setQuery(e.target.value); }} />
           </div>
           <div className="flex items-center gap-1 h-10 px-3 rounded-xl bg-gray-50 text-sm" title="Tarih aralığı">
@@ -390,7 +390,7 @@ const OrderApproval = () => {
 
         {/* Toplu işlem çubuğu */}
         {checked.size > 0 && (
-          <div className="flex flex-wrap items-center gap-2 px-4 py-2.5 bg-indigo-600 text-white text-sm">
+          <div className="flex flex-wrap items-center gap-2 px-4 py-2.5 bg-brand-600 text-white text-sm">
             <span className="font-bold mr-2">{checked.size} sipariş seçildi</span>
             <button disabled={busy || !selPending.length} onClick={bulkApprove}
               className="inline-flex items-center gap-1.5 h-8 px-3 rounded-lg bg-white/15 hover:bg-white/25 font-bold text-xs disabled:opacity-40">
@@ -400,8 +400,8 @@ const OrderApproval = () => {
               className="inline-flex items-center gap-1.5 h-8 px-3 rounded-lg bg-white/15 hover:bg-white/25 font-bold text-xs disabled:opacity-40">
               <PackageCheck className="h-3.5 w-3.5" /> Teslim edildi{selShipped.length ? ` (${selShipped.length})` : ''}
             </button>
-            {busy && <span className="text-xs text-indigo-100">İşleniyor…</span>}
-            <button onClick={() => setChecked(new Set())} className="ml-auto inline-flex items-center gap-1 text-xs font-bold text-indigo-100 hover:text-white"><X className="h-3.5 w-3.5" /> Seçimi temizle</button>
+            {busy && <span className="text-xs text-brand-100">İşleniyor…</span>}
+            <button onClick={() => setChecked(new Set())} className="ml-auto inline-flex items-center gap-1 text-xs font-bold text-brand-100 hover:text-white"><X className="h-3.5 w-3.5" /> Seçimi temizle</button>
           </div>
         )}
 
@@ -416,7 +416,7 @@ const OrderApproval = () => {
           <table className="w-full text-left">
             <thead className="list-head">
               <tr className="text-[10px] font-black text-gray-500 uppercase tracking-[0.15em] whitespace-nowrap">
-                <th className="pl-4 pr-2 py-3 w-8"><input type="checkbox" className="h-4 w-4 rounded accent-indigo-600 cursor-pointer" checked={allChecked} onChange={toggleAll} aria-label="Tümünü seç" /></th>
+                <th className="pl-4 pr-2 py-3 w-8"><input type="checkbox" className="h-4 w-4 rounded accent-brand-600 cursor-pointer" checked={allChecked} onChange={toggleAll} aria-label="Tümünü seç" /></th>
                 <th className="px-3 py-3">Sipariş</th>
                 <th className="px-3 py-3">Bayi</th>
                 <th className="px-3 py-3">Tarih</th>
@@ -444,9 +444,9 @@ const OrderApproval = () => {
                 const cancelledItems = order.items.filter((i) => i.status === 'CANCELLED').length;
                 return (
                   <tr key={order.id} onClick={() => openOrder(order)}
-                    className={`group cursor-pointer transition-colors ${isOpen ? 'bg-indigo-50/70 shadow-[inset_3px_0_0_0_#4f46e5]' : isChecked ? 'bg-indigo-50/40' : `${idx % 2 ? 'bg-slate-50/80' : 'bg-white'} hover:bg-indigo-50/40 hover:shadow-[inset_3px_0_0_0_#6366f1]`}`}>
+                    className={`group cursor-pointer transition-colors ${isOpen ? 'bg-brand-50/70 shadow-[inset_3px_0_0_0_var(--color-brand-500)]' : isChecked ? 'bg-brand-50/40' : `${idx % 2 ? 'bg-slate-50/80' : 'bg-white'} hover:bg-brand-50/40 hover:shadow-[inset_3px_0_0_0_#6366f1]`}`}>
                     <td className="pl-4 pr-2 py-3" onClick={(e) => e.stopPropagation()}>
-                      <input type="checkbox" className="h-4 w-4 rounded accent-indigo-600 cursor-pointer" checked={isChecked} onChange={() => toggleCheck(order.id)} aria-label={`#AK-${order.id} seç`} />
+                      <input type="checkbox" className="h-4 w-4 rounded accent-brand-600 cursor-pointer" checked={isChecked} onChange={() => toggleCheck(order.id)} aria-label={`#AK-${order.id} seç`} />
                     </td>
                     <td className="px-3 py-3 whitespace-nowrap">
                       <p className="font-mono text-sm font-bold text-gray-900">#AK-{order.id}</p>
@@ -534,12 +534,12 @@ const OrderApproval = () => {
 
               <div className="flex-1 overflow-y-auto custom-scrollbar p-6 space-y-5">
                 {warehouses.length > 1 && (
-                  <div className="flex flex-wrap items-center gap-3 rounded-2xl bg-indigo-50/50 ring-1 ring-indigo-100 px-4 py-3">
-                    <WarehouseIcon className="h-4 w-4 text-indigo-600" />
+                  <div className="flex flex-wrap items-center gap-3 rounded-2xl bg-brand-50/50 ring-1 ring-brand-100 px-4 py-3">
+                    <WarehouseIcon className="h-4 w-4 text-brand-600" />
                     <span className="text-sm font-bold text-gray-800">Karşılanacak depo</span>
                     {editable ? (
                       <select value={warehouseId || warehouses.find((w) => w.isDefault)?.id || ''} onChange={(e) => setWarehouseId(Number(e.target.value))}
-                        className="ml-auto h-9 rounded-xl bg-white border border-indigo-200 px-3 text-sm font-semibold">
+                        className="ml-auto h-9 rounded-xl bg-white border border-brand-200 px-3 text-sm font-semibold">
                         {warehouses.map((w) => <option key={w.id} value={w.id}>{w.code} · {w.name}{w.isDefault ? ' (varsayılan)' : ''}</option>)}
                       </select>
                     ) : <span className="ml-auto text-sm font-semibold text-gray-600">{warehouses.find((w) => w.id === order.warehouseId)?.name || 'Varsayılan depo'}</span>}
@@ -566,7 +566,7 @@ const OrderApproval = () => {
                           <p className={`text-sm font-semibold truncate ${off ? 'text-gray-400 line-through' : 'text-gray-900'}`}>{item.product?.parent?.name || item.product?.name}</p>
                           <div className="flex items-center gap-2 flex-wrap mt-0.5">
                             <span className="font-mono text-[10px] font-semibold text-gray-500 bg-gray-100/80 px-1.5 py-0.5 rounded-md">{item.product?.sku}</span>
-                            {item.variantLabel && <span className="text-[11px] font-bold text-indigo-600">{item.variantLabel}</span>}
+                            {item.variantLabel && <span className="text-[11px] font-bold text-brand-600">{item.variantLabel}</span>}
                           </div>
                         </div>
                         <div className="text-right shrink-0">
@@ -611,7 +611,7 @@ const OrderApproval = () => {
 
                 {/* Teslimat adresi */}
                 {!isPickup(order) && <div className="rounded-2xl ring-1 ring-gray-100 p-4">
-                  <h4 className="text-sm font-black text-gray-900 flex items-center gap-2 mb-1.5"><MapPin className="h-4 w-4 text-indigo-500" /> Teslimat adresi</h4>
+                  <h4 className="text-sm font-black text-gray-900 flex items-center gap-2 mb-1.5"><MapPin className="h-4 w-4 text-brand-500" /> Teslimat adresi</h4>
                   {order.shippingAddress ? (
                     <div className="text-sm text-gray-700">
                       <p className="font-bold">{order.shippingAddress.title} · {order.shippingAddress.contactName} {order.shippingAddress.phone && <span className="text-gray-400 font-normal">· {order.shippingAddress.phone}</span>}</p>
@@ -647,8 +647,8 @@ const OrderApproval = () => {
                     )}
                     {stats.cargoEnabled && order.status !== 'SHIPPED' && <p className="text-[11px] text-gray-400">ya da başka bir kargo firmasıyla gönderdiyseniz takip numarasını elle girin:</p>}
                     {order.trackingNumber && (
-                      <p className="text-xs text-gray-600">Mevcut: {carrierName(order.cargoCompany)} <b className="text-indigo-600">{order.trackingNumber}</b>
-                        {trackingUrl(order.cargoCompany, order.trackingNumber) && <a href={trackingUrl(order.cargoCompany, order.trackingNumber)} target="_blank" rel="noreferrer" className="ml-2 inline-flex items-center text-indigo-600 font-bold">takip et <ExternalLink className="h-3 w-3 ml-0.5" /></a>}
+                      <p className="text-xs text-gray-600">Mevcut: {carrierName(order.cargoCompany)} <b className="text-brand-600">{order.trackingNumber}</b>
+                        {trackingUrl(order.cargoCompany, order.trackingNumber) && <a href={trackingUrl(order.cargoCompany, order.trackingNumber)} target="_blank" rel="noreferrer" className="ml-2 inline-flex items-center text-brand-600 font-bold">takip et <ExternalLink className="h-3 w-3 ml-0.5" /></a>}
                       </p>
                     )}
                     <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">

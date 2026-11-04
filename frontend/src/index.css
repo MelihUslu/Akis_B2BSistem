@@ -1,18 +1,48 @@
 @import "tailwindcss";
 
-
-:root {
-  --primary: #6366f1; /* Indigo */
-  --sidebar-bg: #0f172a; /* Slate 900 */
-  --sidebar-active: #1e293b;
-  --bg-main: #f1f5f9;
-  --card-bg: #ffffff;
-  --text-main: #0f172a;
-}
-
+/* ─── Kurumsal renkler ───────────────────────────────────────────────────────
+   navy (lacivert) 900 = #14283F: menü, başlık, navigasyon, tablo başlığı, koyu düğmeler
+   brand (bronz)   500 = #B7865F: seçili alan, ana düğme, vurgu ve ayrıntılar
+   navy 50 = #F5F7FA içerik çalışma alanı · beyaz kart, tablo ve form yüzeyi
+   Küçük yazıda bronzun 600 ve üstü kullanılır (beyazda 4,6:1 ve üzeri okunur); 500 düğme, ikon ve vurgu içindir. */
 @theme {
   --font-inter: "Inter", sans-serif;
-  --color-brand-indigo: #6366f1;
+
+  --color-navy-50: #F5F7FA;
+  --color-navy-100: #E6ECF3;
+  --color-navy-200: #CED7E2;
+  --color-navy-300: #ACB9C8;
+  --color-navy-400: #8494A6;
+  --color-navy-500: #617389;
+  --color-navy-600: #43576E;
+  --color-navy-700: #2F435A;
+  --color-navy-800: #20344C;
+  --color-navy-900: #14283F;
+  --color-navy-950: #07182B;
+
+  --color-brand-50: #FFF5EE;
+  --color-brand-100: #FBE9DC;
+  --color-brand-200: #F3D6C0;
+  --color-brand-300: #E4BB9B;
+  --color-brand-400: #CC9C77;
+  --color-brand-500: #B7865F;
+  --color-brand-600: #986B47;
+  --color-brand-700: #7D5737;
+  --color-brand-800: #65452C;
+  --color-brand-900: #503722;
+  --color-brand-950: #312011;
+
+  /* En koyu metin ve koyu zeminler (başlıklar, koyu düğmeler, karartma) kurumsal laciverte bağlanır */
+  --color-gray-900: #14283F;
+  --color-slate-900: #14283F;
+  --color-slate-800: #20344C;
+}
+
+:root {
+  --sidebar-bg: var(--color-navy-900);
+  --bg-main: var(--color-navy-50);
+  --card-bg: #ffffff;
+  --text-main: var(--color-navy-900);
 }
 
 body {
@@ -48,7 +78,7 @@ body {
 /* AI Tools Style Design System */
 @layer components {
   .premium-input {
-    @apply w-full bg-gray-50 border-none rounded-2xl px-5 py-3 text-sm font-semibold text-gray-900 placeholder:text-gray-300 focus:ring-4 focus:ring-indigo-100 transition-all outline-none;
+    @apply w-full bg-gray-50 border-none rounded-2xl px-5 py-3 text-sm font-semibold text-gray-900 placeholder:text-gray-300 focus:ring-4 focus:ring-brand-100 transition-all outline-none;
   }
   
   .premium-label {
@@ -56,12 +86,12 @@ body {
   }
 
   .btn-gradient {
-    @apply px-6 py-3.5 bg-gradient-to-br from-indigo-500 to-purple-600 text-white rounded-2xl font-black text-[10px] uppercase tracking-widest shadow-xl shadow-indigo-500/20 hover:shadow-indigo-500/40 hover:-translate-y-0.5 transition-all active:scale-95 flex items-center justify-center;
+    @apply px-6 py-3.5 bg-gradient-to-br from-brand-500 to-brand-700 text-white rounded-2xl font-black text-[10px] uppercase tracking-widest shadow-xl shadow-brand-700/20 hover:shadow-brand-700/35 hover:-translate-y-0.5 transition-all active:scale-95 flex items-center justify-center;
   }
 
-  /* Sayfa başlığı ikonu: tüm sayfalarda aynı marka geçişi (ana düğmelerle aynı) */
+  /* Sayfa başlığı ikonu: tüm sayfalarda lacivert kutu, bronz ikon */
   .page-icon {
-    @apply bg-gradient-to-br from-indigo-500 to-purple-600 p-3.5 rounded-2xl shadow-lg shadow-indigo-500/25 shrink-0;
+    @apply bg-navy-900 p-3.5 rounded-2xl shadow-lg shadow-navy-900/20 shrink-0 dark:ring-1 dark:ring-white/10;
   }
 
   .card-premium {
@@ -99,7 +129,7 @@ body {
   .modal-title { @apply text-lg font-black text-gray-900 tracking-tight leading-snug; }
   /* Pencere başlığındaki ikon kutusu: tüm pencerelerde aynı boyut ve marka rengi */
   .modal-icon {
-    @apply h-10 w-10 shrink-0 rounded-xl bg-indigo-50 text-indigo-600 ring-1 ring-indigo-100 flex items-center justify-center overflow-hidden;
+    @apply h-10 w-10 shrink-0 rounded-xl bg-brand-50 text-brand-600 ring-1 ring-brand-100 flex items-center justify-center overflow-hidden;
   }
   .modal-subtitle { @apply text-xs font-semibold text-gray-400 mt-0.5; }
   .modal-close {
@@ -117,14 +147,14 @@ body {
   .modal-backdrop, .modal-panel { animation: none; }
 }
 
-/* Liste başlık satırı: koyu zemin, açık yazı (tablolar ve kategori ağacı) */
+/* Liste başlık satırı: kurumsal lacivert zemin, açık yazı (tablolar ve kategori ağacı) */
 .list-head {
-  background: linear-gradient(180deg, #1e293b 0%, #0f172a 100%);
-  border-bottom: 1px solid #0f172a;
+  background: linear-gradient(180deg, var(--color-navy-800) 0%, var(--color-navy-900) 100%);
+  border-bottom: 1px solid var(--color-navy-900);
 }
-.list-head th, .list-head p { color: #cbd5e1; }
-.list-head input[type="checkbox"] { accent-color: #60a5fa; }
-html.dark .list-head { background: linear-gradient(180deg, #0b1220 0%, #060b16 100%); border-bottom-color: #1e293b; }
+.list-head th, .list-head p { color: #E6ECF3; } /* sabit: koyu modda da açık kalsın */
+.list-head input[type="checkbox"] { accent-color: var(--color-brand-400); }
+html.dark .list-head { background: linear-gradient(180deg, #0b1626 0%, #07111e 100%); border-bottom-color: #1e293b; }
 
 /* Slide Over Animations */
 @keyframes slide-in-right {
@@ -174,7 +204,8 @@ html.dark {
   --color-gray-950: #f8fafc; --color-slate-950: #f8fafc;
 
   /* Rozet / uyarı kutusu zeminleri: açık pastel yerine saydam koyu ton */
-  --color-indigo-50: rgb(99 102 241 / .12);  --color-indigo-100: rgb(99 102 241 / .2);  --color-indigo-200: rgb(99 102 241 / .32);
+  --color-brand-50: rgb(183 134 95 / .14);  --color-brand-100: rgb(183 134 95 / .22); --color-brand-200: rgb(183 134 95 / .34);
+  --color-navy-50: #0c1524;                  --color-navy-100: rgb(132 148 166 / .16); --color-navy-200: rgb(132 148 166 / .28);
   --color-purple-50: rgb(168 85 247 / .12);  --color-purple-100: rgb(168 85 247 / .2);  --color-purple-200: rgb(168 85 247 / .32);
   --color-violet-50: rgb(139 92 246 / .12);  --color-violet-100: rgb(139 92 246 / .2);
   --color-blue-50: rgb(59 130 246 / .12);    --color-blue-100: rgb(59 130 246 / .2);    --color-blue-200: rgb(59 130 246 / .32);
@@ -189,7 +220,7 @@ html.dark {
   --color-amber-50: rgb(245 158 11 / .12);   --color-amber-100: rgb(245 158 11 / .2);   --color-amber-200: rgb(245 158 11 / .32);
   --color-yellow-50: rgb(234 179 8 / .12);   --color-yellow-100: rgb(234 179 8 / .2);   --color-yellow-200: rgb(234 179 8 / .32);
   /* Koyu zeminde okunabilsin diye koyu metin tonları açılır */
-  --color-indigo-800: #c7d2fe; --color-indigo-900: #e0e7ff;
+  --color-brand-800: #F3D6C0; --color-brand-900: #FBE9DC; --color-navy-700: #CED7E2;
   --color-emerald-800: #a7f3d0; --color-emerald-900: #d1fae5;
   --color-green-800: #bbf7d0; --color-red-800: #fecaca; --color-red-900: #fee2e2;
   --color-amber-800: #fde68a; --color-amber-900: #fef3c7; --color-yellow-800: #fef08a;
@@ -213,7 +244,7 @@ html.dark .bg-slate-800\/40 { background-color: rgb(30 41 59 / .4); }
 html.dark .from-slate-900\/30 { --tw-gradient-from: rgb(2 6 23 / .3); }
 
 html.dark .custom-scrollbar::-webkit-scrollbar-thumb { background: #334155; }
-html.dark ::selection { background: rgb(99 102 241 / .4); }
+html.dark ::selection { background: rgb(183 134 95 / .4); }
 
 /* Tanıtım sayfası: kurulum adımları animasyonları */
 @keyframes step-progress { from { transform: scaleX(0); } to { transform: scaleX(1); } }
@@ -223,7 +254,7 @@ html.dark ::selection { background: rgb(99 102 241 / .4); }
 @keyframes step-draw { from { stroke-dashoffset: 1; } to { stroke-dashoffset: 0; } }
 @keyframes step-fade { from { opacity: 0; } to { opacity: 1; } }
 @keyframes step-pop { 0% { transform: scale(.6); opacity: 0; } 70% { transform: scale(1.12); opacity: 1; } 100% { transform: scale(1); opacity: 1; } }
-@keyframes step-pulse { 0%, 100% { box-shadow: 0 0 0 0 rgba(99,102,241,.45); } 50% { box-shadow: 0 0 0 8px rgba(99,102,241,0); } }
+@keyframes step-pulse { 0%, 100% { box-shadow: 0 0 0 0 rgba(183,134,95,.45); } 50% { box-shadow: 0 0 0 8px rgba(183,134,95,0); } }
 .step-progress { transform-origin: left; animation: step-progress var(--step-ms, 5s) linear forwards; }
 .step-rise { opacity: 0; animation: step-rise .5s cubic-bezier(0.16, 1, 0.3, 1) forwards; }
 .step-type { clip-path: inset(0 100% 0 0); animation: step-type .7s steps(18) forwards; }

@@ -88,7 +88,7 @@ export const LedgerTab = ({ partner, version, onChanged, showAlert }) => {
                     <p className="text-[10px] text-gray-400 tabular-nums">Bakiye {money(t.balanceAfter)}</p>
                   </div>
                   <div className="flex flex-col gap-1 shrink-0 w-7">
-                    {t.payment && <a href={`/print/receipt/${t.payment.id}`} target="_blank" rel="noreferrer" title={`Makbuz ${t.payment.receiptNo ?? ''}`} className="p-1 rounded-lg text-gray-400 hover:text-indigo-600 hover:bg-indigo-50"><Printer className="h-4 w-4" /></a>}
+                    {t.payment && <a href={`/print/receipt/${t.payment.id}`} target="_blank" rel="noreferrer" title={`Makbuz ${t.payment.receiptNo ?? ''}`} className="p-1 rounded-lg text-gray-400 hover:text-brand-600 hover:bg-brand-50"><Printer className="h-4 w-4" /></a>}
                     {t.reversible && <button type="button" onClick={() => reverse(t)} title="Ters kayıt" className="p-1 rounded-lg text-gray-400 hover:text-red-600 hover:bg-red-50"><Undo2 className="h-4 w-4" /></button>}
                   </div>
                 </div>
@@ -182,7 +182,7 @@ export const DocumentsTab = ({ partner, documents, onChanged, showAlert, confirm
   };
   return (
     <div className="space-y-3">
-      <label className={`flex items-center justify-center gap-2 h-16 rounded-xl border-2 border-dashed border-gray-200 text-xs font-black text-gray-500 cursor-pointer hover:border-indigo-300 hover:text-indigo-600 ${busy ? 'opacity-50 pointer-events-none' : ''}`}>
+      <label className={`flex items-center justify-center gap-2 h-16 rounded-xl border-2 border-dashed border-gray-200 text-xs font-black text-gray-500 cursor-pointer hover:border-brand-300 hover:text-brand-600 ${busy ? 'opacity-50 pointer-events-none' : ''}`}>
         <Upload className="h-4 w-4" /> {busy ? 'Yükleniyor...' : 'Belge yükle (PDF, görsel, Excel, Word · en fazla 15 MB)'}
         <input type="file" className="hidden" accept=".pdf,.jpg,.jpeg,.png,.webp,.gif,.xlsx,.xls,.docx,.csv,.txt" onChange={upload} />
       </label>
@@ -193,7 +193,7 @@ export const DocumentsTab = ({ partner, documents, onChanged, showAlert, confirm
             <p className="text-sm font-bold text-gray-800 truncate">{d.name}</p>
             <p className="text-[10px] text-gray-400">{kb(d.size)} · {d.uploadedBy || '—'} · {formatDate(d.createdAt)}</p>
           </div>
-          <button type="button" onClick={() => downloadFile(`/partners/${partner.id}/documents/${d.id}`, {}, d.name)} className="p-2 rounded-lg text-gray-400 hover:text-indigo-600 hover:bg-indigo-50" title="İndir"><FileDown className="h-4 w-4" /></button>
+          <button type="button" onClick={() => downloadFile(`/partners/${partner.id}/documents/${d.id}`, {}, d.name)} className="p-2 rounded-lg text-gray-400 hover:text-brand-600 hover:bg-brand-50" title="İndir"><FileDown className="h-4 w-4" /></button>
           <button type="button" onClick={() => remove(d)} className="p-2 rounded-lg text-gray-400 hover:text-red-600 hover:bg-red-50" title="Sil"><Trash2 className="h-4 w-4" /></button>
         </div>
       ))}

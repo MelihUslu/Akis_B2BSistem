@@ -238,7 +238,7 @@ const ProductCatalog = () => {
           <div role="group" aria-label={t('Görünüm')} className="flex bg-gray-100 rounded-xl p-1">
             {[['grid', LayoutGrid, t('Kart')], ['table', List, t('Liste')]].map(([v, Icon, label]) => (
               <button key={v} onClick={() => changeView(v)} aria-pressed={view === v}
-                className={`h-8 px-3 rounded-lg flex items-center gap-1.5 text-xs font-black transition-colors ${view === v ? 'bg-white text-indigo-600 shadow-sm' : 'text-gray-500 hover:text-gray-800'}`}>
+                className={`h-8 px-3 rounded-lg flex items-center gap-1.5 text-xs font-black transition-colors ${view === v ? 'bg-white text-brand-600 shadow-sm' : 'text-gray-500 hover:text-gray-800'}`}>
                 <Icon className="h-4 w-4" /> {label}
               </button>
             ))}
@@ -246,11 +246,11 @@ const ProductCatalog = () => {
         </>} />
 
       {/* Arama + filtreler: kaydırırken üstte kalır */}
-      <div className="md:sticky md:top-[4.5rem] z-20 -mx-3 md:-mx-8 lg:-mx-12 px-3 md:px-8 lg:px-12 py-3 bg-white/90 backdrop-blur border-b border-gray-100 space-y-2.5">
+      <div className="md:sticky md:top-[4.5rem] z-20 -mx-3 md:-mx-8 lg:-mx-12 px-3 md:px-8 lg:px-12 py-3 bg-navy-50/90 backdrop-blur border-b border-gray-200/70 space-y-2.5">
         <div className="relative">
           <Search className="absolute left-4 top-1/2 -translate-y-1/2 h-5 w-5 text-gray-400" />
           <input type="search" value={searchInput} onChange={(e) => setSearchInput(e.target.value)} placeholder={t('Ürün adı, SKU, barkod veya marka ile ara')}
-            className="w-full h-12 pl-12 pr-10 rounded-xl bg-white border border-gray-200 text-[15px] font-medium outline-none focus:border-indigo-400 focus:ring-4 focus:ring-indigo-100 placeholder:text-gray-400 [&::-webkit-search-cancel-button]:appearance-none" />
+            className="w-full h-12 pl-12 pr-10 rounded-xl bg-white border border-gray-200 text-[15px] font-medium outline-none focus:border-brand-400 focus:ring-4 focus:ring-brand-100 placeholder:text-gray-400 [&::-webkit-search-cancel-button]:appearance-none" />
           {searchInput && <button onClick={() => setSearchInput('')} className="absolute right-3 top-1/2 -translate-y-1/2 p-1 text-gray-400 hover:text-gray-700" aria-label={t('Temizle')}><X className="h-4 w-4" /></button>}
         </div>
         <FilterBar value={f} onChange={setF} categories={categories} facets={facets} />
@@ -265,12 +265,12 @@ const ProductCatalog = () => {
             {c.label} <X className="h-3.5 w-3.5 ml-1 text-gray-500" />
           </button>
         ))}
-        {chips.length > 0 && <button onClick={clearAll} className="text-xs font-bold text-indigo-600 hover:underline px-1">{t('Tümünü temizle')}</button>}
+        {chips.length > 0 && <button onClick={clearAll} className="text-xs font-bold text-brand-600 hover:underline px-1">{t('Tümünü temizle')}</button>}
         <div className="ml-auto flex items-center gap-3">
           <p className="hidden xl:block text-xs text-gray-400">{t("İpucu: miktarı yazıp Enter'a basınca ürün sepete eklenir.")}</p>
           {view === 'grid' && selectable.length > 0 && (
             <label className="flex items-center gap-2 text-xs font-bold text-gray-600 cursor-pointer">
-              <input type="checkbox" checked={allSelected} onChange={toggleAll} className="h-4 w-4 rounded accent-indigo-600" /> {t('Tümünü seç')}
+              <input type="checkbox" checked={allSelected} onChange={toggleAll} className="h-4 w-4 rounded accent-brand-600" /> {t('Tümünü seç')}
             </label>
           )}
         </div>
@@ -298,7 +298,7 @@ const ProductCatalog = () => {
       {!isLoading && result.page < result.pages && (
         <div className="flex flex-col items-center gap-2">
           <p className="text-xs text-gray-400">{t('{shown} / {total} ürün gösteriliyor', { shown: result.items.length, total: result.total })}</p>
-          <button onClick={loadMore} disabled={loadingMore} className="flex items-center h-10 px-6 rounded-xl bg-white border border-gray-200 text-sm font-bold text-gray-700 hover:border-indigo-300 hover:text-indigo-600 disabled:opacity-60">
+          <button onClick={loadMore} disabled={loadingMore} className="flex items-center h-10 px-6 rounded-xl bg-white border border-gray-200 text-sm font-bold text-gray-700 hover:border-brand-300 hover:text-brand-600 disabled:opacity-60">
             {loadingMore && <Loader2 className="h-4 w-4 mr-2 animate-spin" />} {t('Daha fazla göster')}
           </button>
         </div>
@@ -308,11 +308,11 @@ const ProductCatalog = () => {
       {/* Seçim / bildirim yoksa yalnızca sağda küçük sepet düğmesi */}
       {showBar && (
         <div className="sticky bottom-[calc(4.5rem+env(safe-area-inset-bottom))] lg:bottom-4 z-20 flex justify-end pointer-events-none">
-          <div className={`pointer-events-auto bg-[#0f172a] dark:bg-[#1e293b] ring-1 ring-white/10 text-white rounded-2xl shadow-2xl flex flex-wrap items-center gap-x-4 gap-y-2 ${selectedList.length > 0 || notice ? 'w-full px-4 py-3' : 'p-1.5'}`}>
+          <div className={`pointer-events-auto bg-navy-900 dark:bg-navy-800 ring-1 ring-white/10 text-white rounded-2xl shadow-2xl flex flex-wrap items-center gap-x-4 gap-y-2 ${selectedList.length > 0 || notice ? 'w-full px-4 py-3' : 'p-1.5'}`}>
             {selectedList.length > 0 ? (
               <div className="flex items-center gap-3 flex-wrap">
                 <p className="text-sm"><b>{t('{n} ürün seçili', { n: selectedList.length })}</b> <span className="text-white/60">· {formatTRY(selectedTotal)}</span></p>
-                <button onClick={addSelected} className="h-9 px-4 rounded-lg bg-indigo-500 hover:bg-indigo-400 text-white text-xs font-black flex items-center gap-1.5"><ShoppingCart className="h-4 w-4" /> {t('Seçilenleri sepete ekle')}</button>
+                <button onClick={addSelected} className="h-9 px-4 rounded-lg bg-brand-600 hover:bg-brand-500 text-white text-xs font-black flex items-center gap-1.5"><ShoppingCart className="h-4 w-4" /> {t('Seçilenleri sepete ekle')}</button>
                 <button onClick={() => setSelected({})} className="text-xs font-bold text-white/60 hover:text-white">{t('Vazgeç')}</button>
               </div>
             ) : notice ? (
@@ -321,7 +321,7 @@ const ProductCatalog = () => {
             {cart.length > 0 && (
               <button onClick={() => setIsCartOpen(true)} className="ml-auto flex items-center gap-2 h-9 pl-3 pr-4 rounded-lg bg-white/10 hover:bg-white/20 text-sm">
                 <ShoppingCart className="h-4 w-4" /> <span className="font-bold">{t('{n} kalem', { n: cart.length })}</span> <span className="text-white/70">· {formatTRY(cartTotal)}</span>
-                <span className="text-xs font-black text-indigo-300 ml-1">{t('Sepete git')}</span>
+                <span className="text-xs font-black text-brand-300 ml-1">{t('Sepete git')}</span>
               </button>
             )}
           </div>

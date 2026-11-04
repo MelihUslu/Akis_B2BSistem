@@ -43,12 +43,12 @@ const LeadForm = () => {
   };
 
   return (
-    <div className="min-h-screen bg-[#F8FAFC] flex items-center justify-center p-4 md:p-6">
+    <div className="min-h-screen bg-navy-50 flex items-center justify-center p-4 md:p-6">
       <div className="bg-white rounded-[2rem] shadow-xl border border-slate-100 w-full max-w-md p-6 md:p-9">
         <div className="flex items-center gap-3">
           {tenant?.logoUrl
             ? <img src={tenant.logoUrl} alt={tenant.name} className="h-11 max-w-[9rem] object-contain" />
-            : <div className="p-3 rounded-2xl bg-indigo-50 text-indigo-600"><Building2 className="h-6 w-6" /></div>}
+            : <div className="p-3 rounded-2xl bg-brand-50 text-brand-600"><Building2 className="h-6 w-6" /></div>}
           {!tenant?.logoUrl && <p className="font-black text-slate-900">{tenant?.name}</p>}
         </div>
         {done ? (

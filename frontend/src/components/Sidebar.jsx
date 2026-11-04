@@ -40,7 +40,7 @@ const MENU = [
 const COUNTS_MS = 60000;
 const Badge = ({ n, dot }) => (n > 0
   ? (dot
-    ? <span className="absolute top-2 right-2 h-2.5 w-2.5 rounded-full bg-rose-500 ring-2 ring-[#0f172a]" />
+    ? <span className="absolute top-2 right-2 h-2.5 w-2.5 rounded-full bg-rose-500 ring-2 ring-navy-900" />
     : <span className="ml-auto h-5 min-w-5 px-1.5 rounded-full bg-rose-500 text-white text-[10px] font-black flex items-center justify-center">{n > 99 ? '99+' : n}</span>)
   : null);
 
@@ -103,11 +103,11 @@ const Sidebar = ({ mobile = false, onNavigate }) => {
         relative flex items-center rounded-2xl transition-all duration-300 group
         ${isCollapsed ? 'justify-center p-3.5' : child ? 'pl-4 pr-4 py-2.5' : 'px-5 py-3.5'}
         ${isActive
-          ? 'bg-indigo-600/10 text-indigo-600 border-l-2 border-indigo-500'
-          : 'text-gray-400 hover:text-white hover:bg-white/5'}
+          ? 'bg-gradient-to-r from-brand-600 to-brand-700 text-white shadow-lg shadow-black/20'
+          : 'text-white/70 hover:text-white hover:bg-white/5'}
       `}
     >
-      <item.icon className={`transition-all duration-700 ${isCollapsed ? 'h-7 w-7' : child ? 'h-4 w-4 mr-3.5' : 'h-5 w-5 mr-4'} ${isActivePath(item.path) ? 'text-indigo-600' : 'text-gray-500 group-hover:text-gray-300'}`} />
+      <item.icon className={`transition-all duration-700 ${isCollapsed ? 'h-7 w-7' : child ? 'h-4 w-4 mr-3.5' : 'h-5 w-5 mr-4'} ${isActivePath(item.path) ? 'text-white' : 'text-navy-300 group-hover:text-white'}`} />
       {!isCollapsed && <span className={`${child ? 'text-[13px]' : 'text-sm'} font-bold whitespace-nowrap`}>{item.name}</span>}
       <Badge n={countOf(item)} dot={isCollapsed} />
     </NavLink>
@@ -117,7 +117,7 @@ const Sidebar = ({ mobile = false, onNavigate }) => {
     <aside className={`
       ${isCollapsed ? 'w-24' : 'w-72'} 
       ${mobile ? 'flex h-full overflow-y-auto' : 'hidden lg:flex h-screen sticky top-0'} flex-col py-6 transition-all duration-700 ease-in-out relative z-50
-      bg-[#0f172a]
+      bg-navy-900
     `}>
       {/* Collapse Toggle Button */}
       {mobile ? (
@@ -125,7 +125,7 @@ const Sidebar = ({ mobile = false, onNavigate }) => {
       ) : (
         <button 
           onClick={() => setIsCollapsed(!isCollapsed)}
-          className="absolute -right-3 top-10 bg-indigo-600 text-white p-1.5 rounded-full shadow-lg hover:bg-indigo-700 transition-colors z-[60]"
+          className="absolute -right-3 top-10 bg-brand-600 text-white p-1.5 rounded-full shadow-lg hover:bg-brand-700 transition-colors z-[60]"
         >
           {isCollapsed ? <ChevronRight size={14} /> : <ChevronLeft size={14} />}
         </button>
@@ -149,11 +149,11 @@ const Sidebar = ({ mobile = false, onNavigate }) => {
           return (
             <div key={m.key}>
               <button type="button" onClick={() => toggleGroup(m.key)} aria-expanded={open}
-                className={`w-full flex items-center px-5 py-3.5 rounded-2xl transition-colors group ${hasActive ? 'text-white' : 'text-gray-400 hover:text-white hover:bg-white/5'}`}>
-                <m.icon className={`h-5 w-5 mr-4 ${hasActive ? 'text-indigo-500' : 'text-gray-500 group-hover:text-gray-300'}`} />
+                className={`w-full flex items-center px-5 py-3.5 rounded-2xl transition-colors group ${hasActive ? 'text-white' : 'text-white/85 hover:text-white hover:bg-white/5'}`}>
+                <m.icon className={`h-5 w-5 mr-4 text-brand-400`} />
                 <span className="text-sm font-bold whitespace-nowrap flex-1 text-left">{m.name}</span>
                 {!open && <span className="mr-2"><Badge n={m.items.reduce((sum, i) => sum + countOf(i), 0)} /></span>}
-                <ChevronDown className={`h-4 w-4 text-gray-500 transition-transform duration-300 ${open ? 'rotate-180' : ''}`} />
+                <ChevronDown className={`h-4 w-4 text-navy-300 transition-transform duration-300 ${open ? 'rotate-180' : ''}`} />
               </button>
               <div className={`grid transition-[grid-template-rows] duration-300 ${open ? 'grid-rows-[1fr]' : 'grid-rows-[0fr]'}`}>
                 <div className="overflow-hidden" inert={!open}>
@@ -168,10 +168,10 @@ const Sidebar = ({ mobile = false, onNavigate }) => {
       {/* Abonelik uyarısı (deneme / süre doldu / ödeme bekleniyor; menü açıkken) */}
       {planBox && !isCollapsed && can(user, 'SETTINGS') && (
         <div className="px-6 mb-6 animate-in fade-in duration-500">
-          <div className={`rounded-2xl p-5 border transition-all duration-700 bg-gradient-to-br from-indigo-600/20 to-purple-600/20 border-indigo-500/20`}>
-            <p className="text-[10px] font-black text-indigo-500 uppercase tracking-widest mb-1">{planBox.title}</p>
+          <div className={`rounded-2xl p-5 border transition-all duration-700 bg-gradient-to-br from-brand-600/20 to-brand-800/20 border-brand-500/20`}>
+            <p className="text-[10px] font-black text-brand-500 uppercase tracking-widest mb-1">{planBox.title}</p>
             <p className={`text-[11px] leading-relaxed mb-3 transition-colors duration-700 text-gray-400`}>{planBox.text}</p>
-            <button onClick={() => { onNavigate?.(); navigate('/admin/subscription'); }} className="w-full py-2.5 bg-indigo-500 text-white text-[10px] font-black rounded-lg hover:bg-indigo-600 transition-colors">{planBox.cta}</button>
+            <button onClick={() => { onNavigate?.(); navigate('/admin/subscription'); }} className="w-full py-2.5 bg-brand-600 text-white text-[10px] font-black rounded-lg hover:bg-brand-700 transition-colors">{planBox.cta}</button>
           </div>
         </div>
       )}

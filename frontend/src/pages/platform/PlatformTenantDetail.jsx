@@ -124,7 +124,7 @@ const PlatformTenantDetail = () => {
   return (
     <div className="space-y-8 max-w-6xl">
       {alertElement}
-      <Link to="/tenants" className="inline-flex items-center text-xs font-black text-gray-400 hover:text-indigo-600 uppercase tracking-widest"><ArrowLeft className="h-4 w-4 mr-2" /> Müşteriler</Link>
+      <Link to="/tenants" className="inline-flex items-center text-xs font-black text-gray-400 hover:text-brand-600 uppercase tracking-widest"><ArrowLeft className="h-4 w-4 mr-2" /> Müşteriler</Link>
 
       <div className="flex flex-col md:flex-row justify-between md:items-end gap-4">
         <div>
@@ -132,11 +132,11 @@ const PlatformTenantDetail = () => {
             <h1 className="text-3xl font-black text-gray-900 tracking-tight">{tenant.name}</h1>
             <StatusPill status={tenant.status} access={tenant.access} />
           </div>
-          <a href={tenant.url} target="_blank" rel="noreferrer" className="inline-flex items-center text-sm font-bold text-indigo-600 mt-1">{tenant.url} <ExternalLink className="h-3.5 w-3.5 ml-1" /></a>
+          <a href={tenant.url} target="_blank" rel="noreferrer" className="inline-flex items-center text-sm font-bold text-brand-600 mt-1">{tenant.url} <ExternalLink className="h-3.5 w-3.5 ml-1" /></a>
           <p className="text-xs text-gray-400 font-semibold mt-1">{tenant.signupSource === 'SELF' ? 'Kendi kayıt oldu' : 'Platformdan açıldı'} · {formatDate(tenant.createdAt)}{tenant.iyzicoSubscriptionRef && ' · iyzico aboneliği aktif'}{tenant.cancelAtPeriodEnd && ' · Yenileme iptal edildi'}</p>
         </div>
         <div className="flex flex-wrap gap-3">
-          <button onClick={impersonate} className="flex items-center px-4 py-2.5 rounded-xl bg-indigo-50 text-indigo-700 text-xs font-black"><UserCog className="h-4 w-4 mr-2" /> Müşteri Olarak Giriş</button>
+          <button onClick={impersonate} className="flex items-center px-4 py-2.5 rounded-xl bg-brand-50 text-brand-700 text-xs font-black"><UserCog className="h-4 w-4 mr-2" /> Müşteri Olarak Giriş</button>
           {tenant.status === 'SUSPENDED' ? (
             <button onClick={() => setStatus('ACTIVE')} className="flex items-center px-4 py-2.5 rounded-xl bg-emerald-50 text-emerald-700 text-xs font-black"><PlayCircle className="h-4 w-4 mr-2" /> Aktifleştir</button>
           ) : (
@@ -155,7 +155,7 @@ const PlatformTenantDetail = () => {
         </div>
       )}
       {tenant.customDomain && (
-        <p className="text-xs font-bold text-gray-500 flex items-center"><Globe className="h-4 w-4 mr-2 text-indigo-500" /> Özel alan adı: {tenant.customDomain} · {tenant.customDomainVerifiedAt ? 'doğrulandı' : 'doğrulanmadı'}</p>
+        <p className="text-xs font-bold text-gray-500 flex items-center"><Globe className="h-4 w-4 mr-2 text-brand-500" /> Özel alan adı: {tenant.customDomain} · {tenant.customDomainVerifiedAt ? 'doğrulandı' : 'doğrulanmadı'}</p>
       )}
 
       <div className="grid grid-cols-2 md:grid-cols-4 gap-4">

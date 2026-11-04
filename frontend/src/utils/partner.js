@@ -2,7 +2,7 @@ import { UserRound, Truck, Store } from 'lucide-react';
 
 // Cari türleri: bayi (portala girer), portal dışı müşteri, tedarikçi
 export const PARTNER_KINDS = {
-  DEALER: { label: 'Bayi', plural: 'Bayiler', icon: Store, className: 'bg-indigo-50 text-indigo-700' },
+  DEALER: { label: 'Bayi', plural: 'Bayiler', icon: Store, className: 'bg-brand-50 text-brand-700' },
   CUSTOMER: { label: 'Müşteri', plural: 'Müşteriler', icon: UserRound, className: 'bg-emerald-50 text-emerald-700' },
   SUPPLIER: { label: 'Tedarikçi', plural: 'Tedarikçiler', icon: Truck, className: 'bg-amber-50 text-amber-700' },
 };
@@ -38,7 +38,7 @@ export const PAYMENT_METHODS = {
 
 // Cari hareketinin kaynağı
 export const TX_SOURCES = {
-  ORDER: { label: 'Sipariş', className: 'bg-indigo-50 text-indigo-600' },
+  ORDER: { label: 'Sipariş', className: 'bg-brand-50 text-brand-600' },
   RETURN: { label: 'İade', className: 'bg-orange-50 text-orange-600' },
   PAYMENT: { label: 'Tahsilat / ödeme', className: 'bg-emerald-50 text-emerald-700' },
   ERP: { label: 'ERP', className: 'bg-slate-100 text-slate-600' },

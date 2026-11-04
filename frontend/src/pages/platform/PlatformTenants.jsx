@@ -58,7 +58,7 @@ const CreateTenantModal = ({ plans, onClose, onCreated }) => {
               <label className="premium-label">Başlangıç</label>
               <div className="flex bg-gray-100 p-1 rounded-xl">
                 {[['TRIAL', 'Deneme ile başlat'], ['ACTIVE', 'Ödemesi alındı, aktif başlat']].map(([v, l]) => (
-                  <button key={v} type="button" onClick={() => setForm({ ...form, mode: v })} className={`flex-1 py-2 text-xs font-black rounded-lg ${form.mode === v ? 'bg-white text-indigo-600 shadow-sm' : 'text-gray-400'}`}>{l}</button>
+                  <button key={v} type="button" onClick={() => setForm({ ...form, mode: v })} className={`flex-1 py-2 text-xs font-black rounded-lg ${form.mode === v ? 'bg-white text-brand-600 shadow-sm' : 'text-gray-400'}`}>{l}</button>
                 ))}
               </div>
             </div>
@@ -109,7 +109,7 @@ const PlatformTenants = () => {
       )}
       <div className="flex flex-col md:flex-row justify-between md:items-end gap-4">
         <div className="flex items-center gap-4">
-        <div className="page-icon"><Building2 className="h-6 w-6 text-white" /></div>
+        <div className="page-icon"><Building2 className="h-6 w-6 text-brand-400" /></div>
         <div>
           <h1 className="text-3xl font-black text-gray-900 tracking-tight">Müşteriler</h1>
           <p className="text-gray-500 text-sm mt-1">{tenants.length} müşteri</p>
@@ -140,7 +140,7 @@ const PlatformTenants = () => {
             {tenants.map((t) => (
               <tr key={t.id} className="transition-colors hover:bg-slate-50/80 hover:shadow-[inset_3px_0_0_0_#3b82f6]">
                 <td className="px-6 py-4">
-                  <Link to={`/tenants/${t.id}`} className="font-bold text-gray-900 hover:text-indigo-600">{t.name}</Link>
+                  <Link to={`/tenants/${t.id}`} className="font-bold text-gray-900 hover:text-brand-600">{t.name}</Link>
                   <p className="text-[11px] text-gray-400 font-semibold">{t.slug} · {t.contactEmail}</p>
                 </td>
                 <td className="px-6 py-4 font-semibold text-gray-700">{t.plan.name} <span className="text-gray-400 text-xs">{t.billingCycle === 'YEARLY' ? 'Yıllık' : 'Aylık'}</span></td>
@@ -148,7 +148,7 @@ const PlatformTenants = () => {
                 <td className="px-6 py-4 text-gray-600 font-semibold">{formatDate(t.status === 'TRIAL' ? t.trialEndsAt : t.currentPeriodEnd)}</td>
                 <td className="px-6 py-4 text-right font-bold text-gray-700">{t._count.companies} / {t._count.products} / {t._count.orders}</td>
                 <td className="px-6 py-4 text-right">
-                  <a href={t.url} target="_blank" rel="noreferrer" className="inline-flex items-center text-xs font-black text-indigo-600 hover:underline">Portal <ExternalLink className="h-3 w-3 ml-1" /></a>
+                  <a href={t.url} target="_blank" rel="noreferrer" className="inline-flex items-center text-xs font-black text-brand-600 hover:underline">Portal <ExternalLink className="h-3 w-3 ml-1" /></a>
                 </td>
               </tr>
             ))}

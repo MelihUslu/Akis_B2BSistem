@@ -40,11 +40,11 @@ const BayiReturns = () => {
                   <p className="text-xs font-black text-gray-400 uppercase tracking-widest">#RMA-{r.id} · {r.type === 'RETURN' ? t('İade') : t('Değişim')} · {formatDate(r.createdAt)}</p>
                   <p className="font-bold text-gray-900 mt-1">{r.product.name} <span className="text-gray-400 font-semibold">× {r.quantity}</span></p>
                   <p className="text-xs text-gray-500 mt-1 line-clamp-2">{r.reason}</p>
-                  {r.adminNote && <p className="text-xs font-bold text-indigo-600 mt-1">{t('Yanıt:')} {r.adminNote}</p>}
+                  {r.adminNote && <p className="text-xs font-bold text-brand-600 mt-1">{t('Yanıt:')} {r.adminNote}</p>}
                 </div>
                 <div className="flex items-center gap-3">
                   <span className={`px-3 py-1 rounded-full text-xs font-black uppercase ${status.className}`}>{t(status.label)}</span>
-                  <Link to={`/bayi/orders/${r.orderId}`} className="text-xs font-black text-indigo-600 hover:underline">#AK-{r.orderId}</Link>
+                  <Link to={`/bayi/orders/${r.orderId}`} className="text-xs font-black text-brand-600 hover:underline">#AK-{r.orderId}</Link>
                 </div>
               </div>
             );

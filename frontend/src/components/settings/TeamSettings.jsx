@@ -11,7 +11,7 @@ const PermissionChips = ({ value, onChange, disabled }) => (
       const on = value.includes(key);
       return (
         <button key={key} type="button" disabled={disabled} onClick={() => onChange(on ? value.filter(v => v !== key) : [...value, key])}
-          className={`px-3 py-1.5 rounded-xl text-[11px] font-black border transition-all ${on ? 'bg-indigo-600 border-indigo-600 text-white' : 'bg-white border-gray-200 text-gray-500 hover:border-indigo-300'} disabled:opacity-60`}>
+          className={`px-3 py-1.5 rounded-xl text-[11px] font-black border transition-all ${on ? 'bg-brand-600 border-brand-600 text-white' : 'bg-white border-gray-200 text-gray-500 hover:border-brand-300'} disabled:opacity-60`}>
           {label}
         </button>
       );
@@ -75,7 +75,7 @@ const TeamSettings = ({ showAlert, confirm }) => {
         </div>
 
         {invite && (
-          <form onSubmit={sendInvite} className="p-6 bg-indigo-50/40 space-y-4">
+          <form onSubmit={sendInvite} className="p-6 bg-brand-50/40 space-y-4">
             <div className="flex justify-between"><p className="text-sm font-black text-gray-900">Yeni ekip üyesi</p><button type="button" onClick={() => setInvite(null)} className="text-gray-400"><X className="h-4 w-4" /></button></div>
             <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
               <input required className="premium-input !bg-white" placeholder="Ad Soyad" value={invite.name} onChange={(e) => setInvite({ ...invite, name: e.target.value })} />
@@ -90,7 +90,7 @@ const TeamSettings = ({ showAlert, confirm }) => {
         {data.users.map((u) => (
           <div key={u.id} className={`p-6 flex flex-col lg:flex-row lg:items-center gap-4 ${u.isActive ? '' : 'opacity-50'}`}>
             <div className="lg:w-64">
-              <p className="font-bold text-gray-900 flex items-center">{u.name}{u.isOwner && <Crown className="h-4 w-4 ml-1.5 text-amber-500" title="Firma sahibi" />}{u.id === me?.id && <span className="ml-2 text-[10px] text-indigo-500 font-black">SİZ</span>}</p>
+              <p className="font-bold text-gray-900 flex items-center">{u.name}{u.isOwner && <Crown className="h-4 w-4 ml-1.5 text-amber-500" title="Firma sahibi" />}{u.id === me?.id && <span className="ml-2 text-[10px] text-brand-500 font-black">SİZ</span>}</p>
               <p className="text-xs text-gray-400">{u.email}</p>
               <p className="text-[10px] text-gray-400">Son giriş: {u.lastLoginAt ? formatDate(u.lastLoginAt, true) : '—'}</p>
             </div>

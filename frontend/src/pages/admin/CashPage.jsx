@@ -105,7 +105,7 @@ const Forecast = ({ f }) => {
     <div className="card-premium p-4 md:p-6">
       <div className="flex flex-wrap items-start justify-between gap-3">
         <div>
-          <p className="text-sm font-black text-gray-900 flex items-center gap-2"><Telescope className="h-4 w-4 text-indigo-500" /> Önümüzdeki {f.days} gün</p>
+          <p className="text-sm font-black text-gray-900 flex items-center gap-2"><Telescope className="h-4 w-4 text-brand-500" /> Önümüzdeki {f.days} gün</p>
           <p className="text-xs text-gray-500 mt-0.5">Vadesi gelen alacaklar ve borçlar, çek / senetler ve düzenli kayıtlardan tahmin</p>
         </div>
         <div className="text-right">
@@ -243,7 +243,7 @@ const CashPage = () => {
       {/* Başlık + hızlı ekleme */}
       <div className="flex flex-col sm:flex-row justify-between sm:items-center gap-4">
         <div className="flex items-center gap-4">
-          <div className="page-icon"><Wallet className="h-6 w-6 text-white" /></div>
+          <div className="page-icon"><Wallet className="h-6 w-6 text-brand-400" /></div>
           <div>
             <h1 className="text-3xl font-black text-gray-900 tracking-tight">Gelir-Gider</h1>
             <p className="text-gray-500 text-sm mt-1">Kasaya giren ve çıkan para.</p>
@@ -251,7 +251,7 @@ const CashPage = () => {
         </div>
         <div className="flex gap-2">
           <button onClick={() => openEntry('IN')} className="flex-1 sm:flex-none justify-center h-11 px-4 rounded-xl bg-white border border-gray-200 text-sm font-black text-gray-800 flex items-center gap-1.5 hover:border-gray-300"><Plus className="h-4 w-4" /> Gelir</button>
-          <button onClick={() => openEntry('OUT')} className="flex-1 sm:flex-none justify-center h-11 px-5 rounded-xl bg-gray-900 text-white text-sm font-black flex items-center gap-1.5 hover:bg-black shadow-lg shadow-gray-900/15"><Minus className="h-4 w-4" /> Gider</button>
+          <button onClick={() => openEntry('OUT')} className="flex-1 sm:flex-none justify-center h-11 px-5 rounded-xl bg-gray-900 text-white text-sm font-black flex items-center gap-1.5 hover:bg-navy-950 shadow-lg shadow-gray-900/15"><Minus className="h-4 w-4" /> Gider</button>
         </div>
       </div>
 
@@ -284,7 +284,7 @@ const CashPage = () => {
 
         {/* Özet: net (koyu kart, dönem içi birikimli eğri) + gelir + gider */}
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
-          <div className="relative overflow-hidden rounded-[1.75rem] bg-gradient-to-br from-gray-900 via-gray-900 to-indigo-950 p-6 text-white shadow-xl shadow-gray-900/20">
+          <div className="relative overflow-hidden rounded-[1.75rem] bg-gradient-to-br from-gray-900 via-gray-900 to-brand-950 p-6 text-white shadow-xl shadow-gray-900/20">
             <p className="text-xs font-bold text-white/60">Net · {title}</p>
             <p className="mt-2 text-3xl sm:text-4xl font-black tabular-nums tracking-tight break-words">{s.net > 0 ? '+' : ''}{formatTRY(s.net)}</p>
             <div className="mt-2"><Delta now={s.net} prev={p.net} dark label={prevLabel} /></div>
@@ -292,8 +292,8 @@ const CashPage = () => {
             <div className="h-20 -mx-6 -mb-6 mt-4" aria-hidden="true">
               <ResponsiveContainer width="100%" height="100%">
                 <AreaChart data={data.trend} margin={{ top: 4, right: 0, left: 0, bottom: 0 }}>
-                  <defs><linearGradient id="netFill" x1="0" y1="0" x2="0" y2="1"><stop offset="0%" stopColor="#a5b4fc" stopOpacity={0.35} /><stop offset="100%" stopColor="#a5b4fc" stopOpacity={0} /></linearGradient></defs>
-                  <Area type="monotone" dataKey="net" stroke="#a5b4fc" strokeWidth={2} fill="url(#netFill)" isAnimationActive={false} dot={false} />
+                  <defs><linearGradient id="netFill" x1="0" y1="0" x2="0" y2="1"><stop offset="0%" stopColor="#E4BB9B" stopOpacity={0.35} /><stop offset="100%" stopColor="#E4BB9B" stopOpacity={0} /></linearGradient></defs>
+                  <Area type="monotone" dataKey="net" stroke="#E4BB9B" strokeWidth={2} fill="url(#netFill)" isAnimationActive={false} dot={false} />
                 </AreaChart>
               </ResponsiveContainer>
             </div>
@@ -342,7 +342,7 @@ const CashPage = () => {
                     tickFormatter={(k) => (chartView === 'flow' && period === 'month' ? String(Number(k.slice(8, 10))) : monthName(k, { month: 'short' }))} />
                   <YAxis tickFormatter={short} tickLine={false} axisLine={false} tick={{ fontSize: 11, fill: '#6b7280' }} width={52} />
                   <ReferenceLine y={0} stroke="#d1d5db" />
-                  <Tooltip cursor={{ fill: 'rgba(99,102,241,0.06)' }} content={<FlowTip period={period} view={chartView} />} />
+                  <Tooltip cursor={{ fill: 'rgba(183,134,95,0.06)' }} content={<FlowTip period={period} view={chartView} />} />
                   <Legend iconType="circle" iconSize={8} wrapperStyle={{ fontSize: 12 }} />
                   <Bar name="Gelir" dataKey="income" fill={INCOME} radius={[4, 4, 0, 0]} maxBarSize={28} />
                   <Bar name="Gider" dataKey="expense" fill={EXPENSE} radius={[4, 4, 0, 0]} maxBarSize={28} />
@@ -356,7 +356,7 @@ const CashPage = () => {
           <div className="card-premium p-4 md:p-6 lg:col-span-2">
             <div className="flex items-center justify-between">
               <p className="text-sm font-black text-gray-900">Giderler ve bütçe</p>
-              <button onClick={() => setModal({ kind: 'budget' })} className="text-xs font-black text-indigo-600 hover:underline">Bütçe belirle</button>
+              <button onClick={() => setModal({ kind: 'budget' })} className="text-xs font-black text-brand-600 hover:underline">Bütçe belirle</button>
             </div>
             {data.categories.length === 0 ? <p className="text-sm text-gray-400 mt-10 text-center">Bu dönem gider yok.</p> : (
               <ul className="mt-4 space-y-3.5">
@@ -394,8 +394,8 @@ const CashPage = () => {
         <div className="grid gap-4 md:grid-cols-3">
           <div className="card-premium p-5">
             <div className="flex items-center justify-between">
-              <p className="text-sm font-black text-gray-900 flex items-center gap-2"><CalendarClock className="h-4 w-4 text-indigo-500" /> Yaklaşan düzenli kayıtlar</p>
-              <button onClick={() => setModal({ kind: 'recurring' })} className="text-xs font-black text-indigo-600 hover:underline">Yönet</button>
+              <p className="text-sm font-black text-gray-900 flex items-center gap-2"><CalendarClock className="h-4 w-4 text-brand-500" /> Yaklaşan düzenli kayıtlar</p>
+              <button onClick={() => setModal({ kind: 'recurring' })} className="text-xs font-black text-brand-600 hover:underline">Yönet</button>
             </div>
             {upcoming.length === 0 ? (
               <p className="text-xs text-gray-500 mt-4">Kira, maaş gibi her ay tekrar eden kalemleri ekleyin; günü gelince otomatik kaydedilir.</p>
@@ -415,7 +415,7 @@ const CashPage = () => {
             )}
           </div>
           <div className="card-premium p-5">
-            <p className="text-sm font-black text-gray-900 flex items-center gap-2"><Receipt className="h-4 w-4 text-indigo-500" /> KDV özeti</p>
+            <p className="text-sm font-black text-gray-900 flex items-center gap-2"><Receipt className="h-4 w-4 text-brand-500" /> KDV özeti</p>
             <dl className="mt-3 space-y-2 text-sm">
               <div className="flex justify-between"><dt className="text-gray-600">Giderlerdeki KDV <span className="text-gray-400">(indirilecek)</span></dt><dd className="font-black tabular-nums">{formatTRY(s.vat.input)}</dd></div>
               <div className="flex justify-between"><dt className="text-gray-600">Diğer gelirlerdeki KDV <span className="text-gray-400">(hesaplanan)</span></dt><dd className="font-black tabular-nums">{formatTRY(s.vat.output)}</dd></div>
@@ -423,7 +423,7 @@ const CashPage = () => {
             <p className="mt-3 text-[11px] text-gray-400">Yalnızca bu sayfaya girilen kayıtlar. Satış faturalarının KDV'si e-fatura ve raporlarda.</p>
           </div>
           <div className="card-premium p-5">
-            <p className="text-sm font-black text-gray-900 flex items-center gap-2"><Wallet className="h-4 w-4 text-indigo-500" /> Giderler nasıl ödendi?</p>
+            <p className="text-sm font-black text-gray-900 flex items-center gap-2"><Wallet className="h-4 w-4 text-brand-500" /> Giderler nasıl ödendi?</p>
             {byMethod.length === 0 ? <p className="text-xs text-gray-500 mt-4">Bu dönem gider kaydı yok.</p> : (
               <ul className="mt-3 space-y-2.5">
                 {byMethod.map(({ m, total }) => {
@@ -457,7 +457,7 @@ const CashPage = () => {
             </select>
             <div className="relative flex-1 min-w-48">
               <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-400" />
-              <input className="w-full h-9 rounded-xl bg-gray-50 pl-9 pr-3 text-sm outline-none focus:ring-2 focus:ring-indigo-100" placeholder="Kategori ya da açıklamada ara" value={filter.q} onChange={(e) => setFilter({ ...filter, q: e.target.value })} />
+              <input className="w-full h-9 rounded-xl bg-gray-50 pl-9 pr-3 text-sm outline-none focus:ring-2 focus:ring-brand-100" placeholder="Kategori ya da açıklamada ara" value={filter.q} onChange={(e) => setFilter({ ...filter, q: e.target.value })} />
             </div>
           </div>
           <p className="px-4 pt-3 text-[11px] text-gray-500 flex items-center gap-1.5"><Info className="h-3.5 w-3.5 shrink-0" /> Cari tahsilatları ve tedarikçi ödemeleri özete otomatik girer; buraya ayrıca girmeyin.</p>
@@ -489,16 +489,16 @@ const CashPage = () => {
                             {period === 'year' && <span>{formatDate(e.date)}</span>}
                             {e.method && <span>{METHOD_TR[e.method]}</span>}
                             {e.vatRate > 0 && <span>KDV %{e.vatRate} ({formatTRY(vatOf(e.amount, e.vatRate))})</span>}
-                            {e.recurringId && <span className="inline-flex items-center gap-0.5 text-indigo-600 font-bold"><Repeat className="h-3 w-3" /> Düzenli</span>}
+                            {e.recurringId && <span className="inline-flex items-center gap-0.5 text-brand-600 font-bold"><Repeat className="h-3 w-3" /> Düzenli</span>}
                             {e.createdByName && <span>{e.createdByName}</span>}
                           </p>
                         </div>
                         {e.hasFile && (
-                          <button onClick={() => downloadFile(`/cash/${e.id}/file`, null, e.fileName)} className="p-2 text-gray-400 hover:text-indigo-600 shrink-0" title={e.fileName || 'Belge'} aria-label="Belgeyi indir"><Paperclip className="h-4 w-4" /></button>
+                          <button onClick={() => downloadFile(`/cash/${e.id}/file`, null, e.fileName)} className="p-2 text-gray-400 hover:text-brand-600 shrink-0" title={e.fileName || 'Belge'} aria-label="Belgeyi indir"><Paperclip className="h-4 w-4" /></button>
                         )}
                         <p className={`text-sm font-black tabular-nums whitespace-nowrap ${e.type === 'IN' ? 'text-blue-700' : 'text-gray-900'}`}>{e.type === 'IN' ? '+' : '−'}{formatTRY(e.amount)}</p>
                         <div className="flex shrink-0 sm:opacity-0 sm:group-hover:opacity-100 sm:focus-within:opacity-100">
-                          <button onClick={() => editEntry(e)} className="p-2 text-gray-400 hover:text-indigo-600" aria-label="Düzenle"><Pencil className="h-4 w-4" /></button>
+                          <button onClick={() => editEntry(e)} className="p-2 text-gray-400 hover:text-brand-600" aria-label="Düzenle"><Pencil className="h-4 w-4" /></button>
                           <button onClick={() => removeEntry(e)} className="p-2 text-gray-400 hover:text-red-600" aria-label="Sil"><Trash2 className="h-4 w-4" /></button>
                         </div>
                       </li>

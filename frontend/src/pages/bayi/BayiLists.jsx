@@ -26,7 +26,7 @@ const ProductRow = ({ product, onAdd, onOpen, extra }) => {
       </div>
       <div className="flex-1 min-w-0">
         <p className="font-bold text-gray-900 text-sm truncate">{title}</p>
-        {product.variantLabel && <p className="text-[11px] font-black text-indigo-600">{product.variantLabel}</p>}
+        {product.variantLabel && <p className="text-[11px] font-black text-brand-600">{product.variantLabel}</p>}
         <p className="text-[11px] text-gray-400 font-semibold">{product.sku}{extra && ` · ${extra}`}</p>
       </div>
       <div className="text-right">
@@ -36,7 +36,7 @@ const ProductRow = ({ product, onAdd, onOpen, extra }) => {
         {!product.requiresVariant && !product.inStock && <p className="text-[10px] font-black text-red-500">{t('Tükendi')}</p>}
       </div>
       {product.requiresVariant ? (
-        <button onClick={() => onOpen(product)} className="flex items-center px-3 py-2 rounded-xl bg-indigo-50 text-indigo-700 text-[10px] font-black uppercase"><Layers className="h-3.5 w-3.5 mr-1" /> {t('Seç')}</button>
+        <button onClick={() => onOpen(product)} className="flex items-center px-3 py-2 rounded-xl bg-brand-50 text-brand-700 text-[10px] font-black uppercase"><Layers className="h-3.5 w-3.5 mr-1" /> {t('Seç')}</button>
       ) : (
         <button disabled={!product.inStock} onClick={() => onAdd(product)} className="flex items-center px-3 py-2 rounded-xl bg-gray-900 text-white text-[10px] font-black uppercase disabled:opacity-30"><ShoppingCart className="h-3.5 w-3.5 mr-1" /> {t('Ekle')}</button>
       )}
@@ -140,7 +140,7 @@ const BayiLists = () => {
 
       <div className="flex bg-gray-50 p-1 rounded-xl border border-gray-100 w-full sm:w-fit overflow-x-auto">
         {TABS.map(item => (
-          <button key={item.id} onClick={() => setTab(item.id)} className={`flex items-center px-4 py-2 text-xs font-black rounded-lg whitespace-nowrap ${tab === item.id ? 'bg-white shadow-sm text-indigo-600' : 'text-gray-400'}`}>
+          <button key={item.id} onClick={() => setTab(item.id)} className={`flex items-center px-4 py-2 text-xs font-black rounded-lg whitespace-nowrap ${tab === item.id ? 'bg-white shadow-sm text-brand-600' : 'text-gray-400'}`}>
             <item.icon className="h-4 w-4 mr-1.5" /> {item.label}
           </button>
         ))}
@@ -171,14 +171,14 @@ const BayiLists = () => {
                   {renaming?.id === tpl.id ? (
                     <div className="flex gap-2">
                       <input autoFocus className="premium-input !py-2" value={renaming.name} onChange={(e) => setRenaming({ ...renaming, name: e.target.value })} onKeyDown={(e) => e.key === 'Enter' && saveRename()} />
-                      <button onClick={saveRename} className="px-3 rounded-xl bg-indigo-600 text-white text-xs font-black">{t('Kaydet')}</button>
+                      <button onClick={saveRename} className="px-3 rounded-xl bg-brand-600 text-white text-xs font-black">{t('Kaydet')}</button>
                     </div>
                   ) : <p className="font-black text-gray-900">{tpl.name}</p>}
                   <p className="text-xs text-gray-400 font-semibold mt-1">{t('{n} kalem', { n: tpl.items.length })} · {tpl.user?.name} · {formatDate(tpl.updatedAt)}</p>
                   <p className="text-[11px] text-gray-500 mt-1 truncate">{tpl.items.map(i => `${i.sku} × ${i.quantity}`).join(', ')}</p>
                 </div>
                 <div className="flex gap-2 flex-shrink-0">
-                  <button onClick={() => setRenaming({ id: tpl.id, name: tpl.name })} className="p-2.5 rounded-xl text-gray-400 hover:text-indigo-600 hover:bg-indigo-50"><Pencil className="h-4 w-4" /></button>
+                  <button onClick={() => setRenaming({ id: tpl.id, name: tpl.name })} className="p-2.5 rounded-xl text-gray-400 hover:text-brand-600 hover:bg-brand-50"><Pencil className="h-4 w-4" /></button>
                   <button onClick={() => removeTemplate(tpl)} className="p-2.5 rounded-xl text-gray-400 hover:text-red-500 hover:bg-red-50"><Trash2 className="h-4 w-4" /></button>
                   <button onClick={() => applyTemplate(tpl)} className="flex items-center px-4 py-2.5 rounded-xl bg-gray-900 text-white text-xs font-black"><ShoppingCart className="h-4 w-4 mr-1.5" /> {t('Sepete Ekle')}</button>
                 </div>

@@ -41,7 +41,7 @@ const CompatibleProductsEditor = ({ productId, products, showAlert }) => {
   return (
     <div className="space-y-5 animate-in fade-in">
       <div>
-        <h4 className="text-sm font-black text-gray-900 flex items-center"><Link2 className="h-4 w-4 mr-2 text-indigo-600" /> Uyumlu Ürünler</h4>
+        <h4 className="text-sm font-black text-gray-900 flex items-center"><Link2 className="h-4 w-4 mr-2 text-brand-600" /> Uyumlu Ürünler</h4>
         <p className="text-[11px] font-semibold text-gray-400 mt-1">
           Bu ürünle birlikte kullanılabilen ürünleri seçin (örn. bardağa uyan kapak). Ana ürüne eklenen ilişki tüm varyantlarına geçerlidir; yalnızca belirli bir varyant uyumluysa o varyantı seçin.
           Teklif asistanı uyumluluğu yalnızca bu listeye göre doğrular.
@@ -50,9 +50,9 @@ const CompatibleProductsEditor = ({ productId, products, showAlert }) => {
       <div className="flex flex-wrap gap-2">
         {rows.length === 0 && <p className="text-xs text-gray-400">Tanımlı uyumlu ürün yok.</p>}
         {rows.map((r) => (
-          <span key={r.sku} className="inline-flex items-center gap-1.5 pl-3 pr-1.5 py-1.5 rounded-xl bg-indigo-50 text-xs font-bold text-indigo-700">
-            {r.name} <span className="font-mono text-[10px] text-indigo-400">{r.sku}</span>
-            <button type="button" onClick={() => setRows(rows.filter((x) => x.sku !== r.sku))} className="p-0.5 rounded hover:bg-indigo-100"><X className="h-3.5 w-3.5" /></button>
+          <span key={r.sku} className="inline-flex items-center gap-1.5 pl-3 pr-1.5 py-1.5 rounded-xl bg-brand-50 text-xs font-bold text-brand-700">
+            {r.name} <span className="font-mono text-[10px] text-brand-400">{r.sku}</span>
+            <button type="button" onClick={() => setRows(rows.filter((x) => x.sku !== r.sku))} className="p-0.5 rounded hover:bg-brand-100"><X className="h-3.5 w-3.5" /></button>
           </span>
         ))}
       </div>
@@ -61,7 +61,7 @@ const CompatibleProductsEditor = ({ productId, products, showAlert }) => {
         <datalist id="compat-options">
           {options.map((o) => <option key={o.sku} value={o.sku}>{o.label}</option>)}
         </datalist>
-        <button type="button" onClick={add} disabled={!options.some((o) => o.sku === pick)} className="flex items-center px-4 rounded-xl text-xs font-black text-indigo-700 bg-indigo-50 hover:bg-indigo-100 disabled:opacity-40 shrink-0"><Plus className="h-4 w-4 mr-1" /> Ekle</button>
+        <button type="button" onClick={add} disabled={!options.some((o) => o.sku === pick)} className="flex items-center px-4 rounded-xl text-xs font-black text-brand-700 bg-brand-50 hover:bg-brand-100 disabled:opacity-40 shrink-0"><Plus className="h-4 w-4 mr-1" /> Ekle</button>
       </div>
       <button type="button" onClick={save} className="btn-gradient"><Save className="h-4 w-4 mr-2" /> Uyumlu Ürünleri Kaydet</button>
     </div>

@@ -3,7 +3,7 @@ import { Megaphone, AlertTriangle, Wrench, X } from 'lucide-react';
 import api from '../services/api';
 
 const STYLE = {
-  INFO: { icon: Megaphone, className: 'bg-indigo-50 border-indigo-100 text-indigo-800' },
+  INFO: { icon: Megaphone, className: 'bg-brand-50 border-brand-100 text-brand-800' },
   WARNING: { icon: AlertTriangle, className: 'bg-amber-50 border-amber-200 text-amber-800' },
   MAINTENANCE: { icon: Wrench, className: 'bg-red-50 border-red-100 text-red-800' }
 };

@@ -112,14 +112,14 @@ const SalesReport = () => {
             <ResponsiveContainer width="100%" height="100%">
               <AreaChart data={report.trend} margin={{ left: 8, right: 8, top: 8 }}>
                 <defs>
-                  <linearGradient id="rev" x1="0" y1="0" x2="0" y2="1"><stop offset="0%" stopColor="#6366f1" stopOpacity={0.35} /><stop offset="100%" stopColor="#6366f1" stopOpacity={0} /></linearGradient>
+                  <linearGradient id="rev" x1="0" y1="0" x2="0" y2="1"><stop offset="0%" stopColor="#B7865F" stopOpacity={0.35} /><stop offset="100%" stopColor="#B7865F" stopOpacity={0} /></linearGradient>
                 </defs>
                 <CartesianGrid strokeDasharray="3 3" stroke="#eef2f7" vertical={false} />
                 <XAxis dataKey="period" tick={{ fontSize: 11, fill: '#94a3b8' }} tickLine={false} axisLine={false}
                   tickFormatter={(v) => (v.length === 7 ? new Date(`${v}-01`).toLocaleDateString('tr-TR', { month: 'short', year: '2-digit' }) : new Date(v).toLocaleDateString('tr-TR', { day: '2-digit', month: 'short' }))} />
                 <YAxis tick={{ fontSize: 11, fill: '#94a3b8' }} tickLine={false} axisLine={false} width={70} tickFormatter={(v) => `₺${(v / 1000).toLocaleString('tr-TR', { maximumFractionDigits: 1 })}b`} />
                 <Tooltip formatter={(v, n) => (n === 'revenue' ? [formatTRY(v), 'Ciro'] : [v, 'Sipariş'])} labelFormatter={(l) => l} contentStyle={{ borderRadius: 12, border: '1px solid #eef2f7', fontSize: 12 }} />
-                <Area type="monotone" dataKey="revenue" stroke="#6366f1" strokeWidth={2.5} fill="url(#rev)" />
+                <Area type="monotone" dataKey="revenue" stroke="#B7865F" strokeWidth={2.5} fill="url(#rev)" />
               </AreaChart>
             </ResponsiveContainer>
           ) : (
@@ -215,7 +215,7 @@ const ReportsPage = () => {
     <div className="space-y-6">
       <div className="flex flex-col md:flex-row justify-between md:items-center gap-4">
         <div className="flex items-center gap-4">
-          <div className="page-icon"><BarChart3 className="h-6 w-6 text-white" /></div>
+          <div className="page-icon"><BarChart3 className="h-6 w-6 text-brand-400" /></div>
           <div>
             <h1 className="text-3xl font-black text-gray-900 tracking-tight">Raporlar</h1>
             <p className="text-gray-500 text-sm mt-1">{tab === 'sales' ? 'Onaylanan siparişlere göre satış, kâr ve bayi performansı (KDV hariç).' : 'Haftalık ve aylık müşteri takibi: kim sipariş verdi, kim kayba gidiyor, kimi aramalısınız.'}</p>

@@ -26,7 +26,7 @@ export const SECTORS = [
   { icon: 'car', name: 'Otomotiv yedek parça', items: 'Filtre, fren, aydınlatma', color: '#dc2626' },
   { icon: 'plug', name: 'Elektrik malzemesi', items: 'Kablo, sigorta, aydınlatma', color: '#d97706' },
   { icon: 'medical', name: 'Medikal sarf', items: 'Eldiven, enjektör, pansuman', color: '#0d9488' },
-  { icon: 'shirt', name: 'Tekstil ve iş elbisesi', items: 'Tulum, iş ayakkabısı, yelek', color: '#4f46e5' },
+  { icon: 'shirt', name: 'Tekstil ve iş elbisesi', items: 'Tulum, iş ayakkabısı, yelek', color: '#986B47' },
   { icon: 'notebook', name: 'Kırtasiye', items: 'Defter, kalem, ofis sarf', color: '#7c3aed' },
   { icon: 'sprout', name: 'Tarım ve bahçe', items: 'Tohum, gübre, sulama', color: '#16a34a' },
   { icon: 'factory', name: 'Endüstriyel ekipman', items: 'Rulman, pnömatik, kaynak', color: '#334155' },
@@ -40,7 +40,7 @@ export const ROLES = [
 ];
 
 export const FEATURE_GROUPS = [
-  { title: 'Katalog ve fiyat', icon: 'catalog', accent: '#818cf8', desc: 'Her bayi kendi fiyatını, kendi kurallarıyla görür.', items: ['Varyantlı ürünler (beden, renk, gramaj…)', 'Bayi grubuna göre iskonto', 'Bayiye özel ve kademeli fiyat', 'Miktar indirimi, kupon ve kampanyalar', 'Minimum sipariş ve koli katsayısı', 'USD / EUR fiyat, TCMB kuruyla çevrim', 'Excel ile toplu ürün, fiyat ve stok yükleme'] },
+  { title: 'Katalog ve fiyat', icon: 'catalog', accent: '#CC9C77', desc: 'Her bayi kendi fiyatını, kendi kurallarıyla görür.', items: ['Varyantlı ürünler (beden, renk, gramaj…)', 'Bayi grubuna göre iskonto', 'Bayiye özel ve kademeli fiyat', 'Miktar indirimi, kupon ve kampanyalar', 'Minimum sipariş ve koli katsayısı', 'USD / EUR fiyat, TCMB kuruyla çevrim', 'Excel ile toplu ürün, fiyat ve stok yükleme'] },
   { title: 'Sipariş ve lojistik', icon: 'order', accent: '#38bdf8', desc: 'Siparişten kargoya, iadeye kadar tek akış.', items: ['Hızlı sipariş: SKU listesi ya da Excel\'den yapıştır', 'Favoriler, sık alınanlar, sipariş şablonları', 'Kalem bazında onay ve kısmi onay', 'Depo ve stok takibi, stok bildirimi', 'Yurtiçi Kargo ile gönderi ve etiket', 'Fotoğraflı iade / değişim süreci'] },
   { title: 'Finans ve cari', icon: 'finance', accent: '#34d399', desc: 'Bakiye, limit, vade ve tahsilat kontrol altında.', items: ['Bayi bakiyesi, risk limiti ve vade', 'Müşteri ve tedarikçi cari hesapları', 'Ekstre, paylaşım bağlantısı ve mutabakat', 'Sanal POS ile kartla tahsilat (iyzico, PayTR)', 'Gecikmiş alacaklar (yaşlandırma)', 'Dövizli cari hesap (USD, EUR)', 'Paraşüt ile e-fatura / e-arşiv'] },
   { title: 'Satış ve teklif', icon: 'sales', accent: '#fbbf24', desc: 'Satış ekibiniz telefon yerine teklif ve onayla uğraşır.', items: ['Yapay zekâ ile serbest metinden teklif', 'Teklif revizyonu, onay ve paylaşım bağlantısı', 'Onaylanan teklif tek tıkla siparişe döner', 'Bayi başvuru formu ve onay akışı', 'Plasiyer (satış temsilcisi) ve prim takibi', 'Satış, ürün ve bayi raporları'] },

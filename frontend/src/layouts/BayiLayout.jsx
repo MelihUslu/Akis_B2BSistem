@@ -35,7 +35,7 @@ const BayiLayout = () => {
   const { pathname } = useLocation();
 
   return (
-    <div className="flex min-h-screen bg-[#0f172a]">
+    <div className="flex min-h-screen bg-navy-900">
       <BayiSidebar />
       {menuOpen && (
         <div className="fixed inset-0 z-50 lg:hidden">
@@ -45,8 +45,8 @@ const BayiLayout = () => {
       )}
       
       {/* Main Content Area - The "Sheet" */}
-      <div className="flex-1 min-w-0 flex flex-col min-h-screen bg-white lg:rounded-l-[2.5rem] shadow-[0_-10px_60px_-15px_rgba(0,0,0,0.3)] overflow-clip relative">
-        <header className="px-4 md:px-8 lg:px-12 py-4 lg:py-5 flex justify-between items-center bg-white/80 backdrop-blur-md sticky top-0 z-40 gap-3"
+      <div className="flex-1 min-w-0 flex flex-col min-h-screen bg-navy-50 lg:rounded-l-[2.5rem] shadow-[0_-10px_60px_-15px_rgba(0,0,0,0.3)] overflow-clip relative">
+        <header className="px-4 md:px-8 lg:px-12 py-4 lg:py-5 flex justify-between items-center bg-navy-50/80 backdrop-blur-md sticky top-0 z-40 gap-3"
           style={{ paddingTop: 'max(1rem, env(safe-area-inset-top))' }}>
           <div className="flex-1 flex items-center gap-3 min-w-0">
              <button onClick={() => setMenuOpen(true)} className="lg:hidden p-2 -ml-2 rounded-xl text-gray-600 hover:bg-gray-100" aria-label={t('Menü')}><Menu className="h-6 w-6" /></button>
@@ -62,7 +62,7 @@ const BayiLayout = () => {
             <button 
               onClick={() => setIsCartOpen(true)}
               aria-label={t('Sepetim')}
-              className="relative p-2 bg-indigo-50 hover:bg-indigo-100 text-indigo-500 rounded-xl transition-all group"
+              className="relative p-2 bg-brand-50 hover:bg-brand-100 text-brand-500 rounded-xl transition-all group"
             >
               <ShoppingCart className="h-5 w-5" />
               {cartCount > 0 && (
@@ -82,7 +82,7 @@ const BayiLayout = () => {
           </div>
         </header>
 
-        <main className="flex-1 min-w-0 px-3 md:px-8 lg:px-12 py-4 md:py-8 pb-[calc(5rem+env(safe-area-inset-bottom))] lg:pb-8 bg-white">
+        <main className="flex-1 min-w-0 px-3 md:px-8 lg:px-12 py-4 md:py-8 pb-[calc(5rem+env(safe-area-inset-bottom))] lg:pb-8 bg-navy-50">
           <ErrorBoundary key={pathname}>
           <Suspense fallback={<PageLoader />}>
           <Routes>

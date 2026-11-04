@@ -50,10 +50,10 @@ const VariantEditor = ({ options, variants, onChange, masterSku, masterPrice, cu
       <div className="space-y-4">
         <div className="flex justify-between items-end">
           <div>
-            <h4 className="text-sm font-black text-gray-900 flex items-center"><Layers className="h-4 w-4 mr-2 text-indigo-600" /> 1. Varyant Özellikleri</h4>
+            <h4 className="text-sm font-black text-gray-900 flex items-center"><Layers className="h-4 w-4 mr-2 text-brand-600" /> 1. Varyant Özellikleri</h4>
             <p className="text-[11px] font-semibold text-gray-400 mt-1">Ürüne özel özellik tanımlayın: Gramaj, Ambalaj Türü, Uzunluk, Renk... Seçenekleri virgülle ayırarak ekleyebilirsiniz.</p>
           </div>
-          <button type="button" onClick={addOption} className="flex items-center px-4 py-2.5 rounded-xl bg-indigo-50 text-indigo-700 text-[10px] font-black uppercase tracking-widest hover:bg-indigo-100">
+          <button type="button" onClick={addOption} className="flex items-center px-4 py-2.5 rounded-xl bg-brand-50 text-brand-700 text-[10px] font-black uppercase tracking-widest hover:bg-brand-100">
             <Plus className="h-4 w-4 mr-1.5" /> Özellik Ekle
           </button>
         </div>
@@ -80,7 +80,7 @@ const VariantEditor = ({ options, variants, onChange, masterSku, masterPrice, cu
                 </span>
               ))}
               <div className="flex items-center">
-                <input className="bg-white border border-dashed border-gray-300 rounded-xl px-3 py-1.5 text-xs font-semibold outline-none focus:border-indigo-400 w-56"
+                <input className="bg-white border border-dashed border-gray-300 rounded-xl px-3 py-1.5 text-xs font-semibold outline-none focus:border-brand-400 w-56"
                   placeholder="Seçenek ekle: 500 g, 1 kg, 5 kg"
                   value={draftValues[option.key] || ''}
                   onChange={(e) => setDraftValues({ ...draftValues, [option.key]: e.target.value })}
@@ -109,7 +109,7 @@ const VariantEditor = ({ options, variants, onChange, masterSku, masterPrice, cu
                 <Wand2 className="h-4 w-4 mr-1.5" /> Kombinasyonları Oluştur ({comboCount})
               </button>
             )}
-            <button type="button" onClick={addVariantRow} className="flex items-center px-4 py-2.5 rounded-xl bg-indigo-50 text-indigo-700 text-[10px] font-black uppercase tracking-widest hover:bg-indigo-100">
+            <button type="button" onClick={addVariantRow} className="flex items-center px-4 py-2.5 rounded-xl bg-brand-50 text-brand-700 text-[10px] font-black uppercase tracking-widest hover:bg-brand-100">
               <Plus className="h-4 w-4 mr-1.5" /> Satır
             </button>
           </div>

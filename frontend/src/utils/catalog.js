@@ -45,7 +45,7 @@ export const itemMeta = (item, withBrand = true) => [
 
 // Kategoriye sabit renk (görseli olmayan kategorilerin ikon kutusu ve başlık şeridi için)
 const CATEGORY_COLORS = [
-  { tile: 'bg-indigo-100 text-indigo-600', bar: 'from-indigo-50 border-indigo-100', accent: 'text-indigo-700 dark:text-indigo-300' },
+  { tile: 'bg-brand-100 text-brand-600', bar: 'from-brand-50 border-brand-100', accent: 'text-brand-700 dark:text-brand-300' },
   { tile: 'bg-emerald-100 text-emerald-600', bar: 'from-emerald-50 border-emerald-100', accent: 'text-emerald-700 dark:text-emerald-300' },
   { tile: 'bg-amber-100 text-amber-600', bar: 'from-amber-50 border-amber-100', accent: 'text-amber-700 dark:text-amber-300' },
   { tile: 'bg-sky-100 text-sky-600', bar: 'from-sky-50 border-sky-100', accent: 'text-sky-700 dark:text-sky-300' },

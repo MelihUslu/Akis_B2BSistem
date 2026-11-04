@@ -129,7 +129,7 @@ const WhatsAppSettings = ({ data, reload, showAlert, confirm, canEdit }) => {
           <>
             <ol className="space-y-3">
               <Step n={1} title="Meta uygulaması">
-                <a href="https://developers.facebook.com/apps" target="_blank" rel="noreferrer" className="text-indigo-600 font-semibold hover:underline">developers.facebook.com</a> adresinde "İşletme" türünde bir uygulama oluşturup WhatsApp ürününü ekleyin ve numaranızı kaydedin.
+                <a href="https://developers.facebook.com/apps" target="_blank" rel="noreferrer" className="text-brand-600 font-semibold hover:underline">developers.facebook.com</a> adresinde "İşletme" türünde bir uygulama oluşturup WhatsApp ürününü ekleyin ve numaranızı kaydedin.
               </Step>
               <Step n={2} title="Bilgileri kopyalayın">
                 <b>Phone number ID</b> ve <b>WhatsApp Business Account ID</b>: WhatsApp → API Setup. <b>Kalıcı erişim anahtarı</b>: Business Settings → System users → Generate token (whatsapp_business_messaging izniyle). <b>App secret</b>: App settings → Basic.
@@ -155,7 +155,7 @@ const WhatsAppSettings = ({ data, reload, showAlert, confirm, canEdit }) => {
       {/* Yapay zekâ */}
       <div className="card-premium p-5 md:p-6 space-y-5">
         <div className="flex items-start gap-3">
-          <span className="p-2.5 rounded-xl bg-indigo-50 text-indigo-600 shrink-0"><Sparkles className="h-5 w-5" /></span>
+          <span className="p-2.5 rounded-xl bg-brand-50 text-brand-600 shrink-0"><Sparkles className="h-5 w-5" /></span>
           <div>
             <h2 className="font-black text-gray-900">Yapay zekâ cevapları</h2>
             <p className="text-sm text-gray-500 mt-0.5">Müşteri yazınca yapay zekâ aşağıdaki bilgiler ve ürün kataloğunuzla hemen cevap verir. Bilmediği konuda uydurmaz, konuşmayı ekibinize devreder.</p>
@@ -164,9 +164,9 @@ const WhatsAppSettings = ({ data, reload, showAlert, confirm, canEdit }) => {
         {!data.ai.enabled && <p className="text-xs font-bold text-red-700 bg-red-50 rounded-xl p-3">{data.ai.reason}</p>}
         {data.ai.mock && <p className="text-xs font-bold text-amber-800 bg-amber-50 rounded-xl p-3">{data.ai.reason}</p>}
 
-        <label className={`flex items-center justify-between gap-4 rounded-2xl border p-4 ${ai.aiEnabled ? 'border-indigo-200 bg-indigo-50/40' : 'border-gray-200'}`}>
+        <label className={`flex items-center justify-between gap-4 rounded-2xl border p-4 ${ai.aiEnabled ? 'border-brand-200 bg-brand-50/40' : 'border-gray-200'}`}>
           <span className="flex items-center gap-3">
-            {ai.aiEnabled ? <Bot className="h-5 w-5 text-indigo-600" /> : <UserRound className="h-5 w-5 text-gray-400" />}
+            {ai.aiEnabled ? <Bot className="h-5 w-5 text-brand-600" /> : <UserRound className="h-5 w-5 text-gray-400" />}
             <span>
               <span className="block text-sm font-black text-gray-900">{ai.aiEnabled ? 'Yapay zekâ otomatik cevaplıyor' : 'Tüm mesajları ekip cevaplıyor'}</span>
               <span className="block text-xs text-gray-500">Kapatırsanız gelen her mesaj ekibe düşer.</span>

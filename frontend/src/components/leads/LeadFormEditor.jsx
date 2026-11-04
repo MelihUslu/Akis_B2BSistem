@@ -23,7 +23,7 @@ const optionList = (v) => (Array.isArray(v) ? v : String(v || '').split(',')).ma
 const Toggle = ({ on, onChange, disabled, label }) => (
   <button type="button" onClick={() => !disabled && onChange(!on)} aria-pressed={on} disabled={disabled}
     className={`flex items-center gap-2 text-xs font-bold ${disabled ? 'text-gray-300 cursor-not-allowed' : 'text-gray-600'}`}>
-    <span className={`h-5 w-9 rounded-full p-0.5 transition-colors ${on ? (disabled ? 'bg-indigo-300' : 'bg-indigo-600') : 'bg-gray-200'}`}>
+    <span className={`h-5 w-9 rounded-full p-0.5 transition-colors ${on ? (disabled ? 'bg-brand-300' : 'bg-brand-600') : 'bg-gray-200'}`}>
       <span className={`block h-4 w-4 rounded-full bg-white shadow transition-transform ${on ? 'translate-x-4' : ''}`} />
     </span>
     {label}
@@ -148,8 +148,8 @@ const LeadFormEditor = ({ onClose, onSaved, companyName }) => {
                   </div>
                 ))}
                 <button type="button" onClick={addField} disabled={customCount >= maxCustom}
-                  className="w-full h-12 rounded-2xl border-2 border-dashed border-indigo-200 text-sm font-black text-indigo-600 hover:bg-indigo-50 flex items-center justify-center gap-2 disabled:opacity-40">
-                  <Plus className="h-4 w-4" /> Soru ekle {customCount > 0 && <span className="text-indigo-400 font-bold">({customCount}/{maxCustom})</span>}
+                  className="w-full h-12 rounded-2xl border-2 border-dashed border-brand-200 text-sm font-black text-brand-600 hover:bg-brand-50 flex items-center justify-center gap-2 disabled:opacity-40">
+                  <Plus className="h-4 w-4" /> Soru ekle {customCount > 0 && <span className="text-brand-400 font-bold">({customCount}/{maxCustom})</span>}
                 </button>
               </section>
             </div>

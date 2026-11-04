@@ -49,20 +49,20 @@ const CartDrawer = ({ isOpen, onClose }) => {
       />
       
       {/* Drawer */}
-      <div role="dialog" aria-modal="true" aria-label={t('Sepetim')} className="relative flex flex-col w-full max-w-md bg-[#0f172a] h-full shadow-[0_0_60px_-15px_rgba(0,0,0,0.7)] animate-in slide-in-from-right duration-500 border-l border-white/10">
+      <div role="dialog" aria-modal="true" aria-label={t('Sepetim')} className="relative flex flex-col w-full max-w-md bg-navy-900 h-full shadow-[0_0_60px_-15px_rgba(0,0,0,0.7)] animate-in slide-in-from-right duration-500 border-l border-white/10">
         
         {/* Header */}
         <div className="flex items-center justify-between p-8 border-b border-white/5 relative overflow-hidden">
           {/* Subtle glow effect behind header */}
-          <div className="absolute top-0 right-0 w-32 h-32 bg-indigo-500/20 blur-3xl rounded-full" />
+          <div className="absolute top-0 right-0 w-32 h-32 bg-brand-500/20 blur-3xl rounded-full" />
           
           <div className="flex items-center space-x-4 relative z-10">
-            <div className="w-12 h-12 bg-gradient-to-br from-indigo-500 to-purple-600 rounded-2xl flex items-center justify-center shadow-lg shadow-indigo-500/30">
+            <div className="w-12 h-12 bg-gradient-to-br from-brand-500 to-brand-700 rounded-2xl flex items-center justify-center shadow-lg shadow-brand-500/30">
               <ShoppingBag className="h-6 w-6 text-white" />
             </div>
             <div>
               <h2 className="text-2xl font-black text-white tracking-tight leading-none">{t('Sepetim')}</h2>
-              <p className="text-[10px] font-black text-indigo-400 uppercase tracking-widest mt-1.5 flex items-center">
+              <p className="text-[10px] font-black text-brand-400 uppercase tracking-widest mt-1.5 flex items-center">
                  <Zap className="h-3 w-3 mr-1" /> {t('Premium Sipariş')}
               </p>
             </div>
@@ -101,13 +101,13 @@ const CartDrawer = ({ isOpen, onClose }) => {
                 <div className="flex-1 flex flex-col justify-between py-1">
                   <div>
                     <h3 className="font-bold text-gray-900 text-sm leading-tight line-clamp-2 pr-8">{item.name}</h3>
-                    {item.variantLabel && <p className="text-[11px] font-black text-indigo-600 mt-1">{item.variantLabel}</p>}
+                    {item.variantLabel && <p className="text-[11px] font-black text-brand-600 mt-1">{item.variantLabel}</p>}
                     <p className="text-[10px] font-black text-gray-400 uppercase tracking-widest mt-1.5">{t('SKU:')} {item.sku}</p>
                   </div>
                   
                   <div className="flex items-center justify-between mt-3">
                     <div className="flex items-center bg-white rounded-xl border border-gray-200 p-0.5 shadow-sm">
-                      <button onClick={() => updateQuantity(item.id, item.quantity - (item.stepQuantity || 1))} className="p-1.5 hover:text-indigo-600 text-gray-400 transition-colors">
+                      <button onClick={() => updateQuantity(item.id, item.quantity - (item.stepQuantity || 1))} className="p-1.5 hover:text-brand-600 text-gray-400 transition-colors">
                         <Minus className="h-3 w-3" />
                       </button>
                       <input 
@@ -116,11 +116,11 @@ const CartDrawer = ({ isOpen, onClose }) => {
                         onChange={(e) => updateQuantity(item.id, e.target.value)}
                         className="w-12 bg-transparent text-center font-black text-gray-900 text-xs outline-none"
                       />
-                      <button onClick={() => updateQuantity(item.id, item.quantity + (item.stepQuantity || 1))} className="p-1.5 hover:text-indigo-600 text-gray-400 transition-colors">
+                      <button onClick={() => updateQuantity(item.id, item.quantity + (item.stepQuantity || 1))} className="p-1.5 hover:text-brand-600 text-gray-400 transition-colors">
                         <Plus className="h-3 w-3" />
                       </button>
                     </div>
-                    <p className="text-sm font-black text-indigo-600">
+                    <p className="text-sm font-black text-brand-600">
                       {formatTRY(item.price * item.quantity)}
                     </p>
                   </div>
@@ -139,14 +139,14 @@ const CartDrawer = ({ isOpen, onClose }) => {
 
         {/* Footer / Summary */}
         {cart.length > 0 && (
-          <div className="p-8 bg-gradient-to-t from-[#0b1120] to-[#0f172a] border-t border-white/5 space-y-6 relative">
+          <div className="p-8 bg-gradient-to-t from-navy-950 to-navy-900 border-t border-white/5 space-y-6 relative">
             <div className="space-y-3 relative z-10">
               <div className="flex justify-between items-end">
                 <div>
-                   <span className="text-[10px] font-black text-indigo-400 uppercase tracking-widest">{t('Genel Toplam')}</span>
+                   <span className="text-[10px] font-black text-brand-400 uppercase tracking-widest">{t('Genel Toplam')}</span>
                    <p className="text-[10px] text-gray-500 mt-1">({cartCount} Ürün · KDV dahil tahmini)</p>
                 </div>
-                <span className="text-3xl font-black text-white tracking-tighter shadow-indigo-500/50 drop-shadow-lg">
+                <span className="text-3xl font-black text-white tracking-tighter shadow-brand-500/50 drop-shadow-lg">
                   {formatTRY(cartTotal + cartVat)}
                 </span>
               </div>
@@ -156,7 +156,7 @@ const CartDrawer = ({ isOpen, onClose }) => {
               <div className="flex gap-2 relative z-10">
                 <input autoFocus className="flex-1 bg-white/10 border border-white/10 rounded-xl px-4 py-2.5 text-sm text-white placeholder:text-gray-500 outline-none" placeholder={t('Şablon adı (örn. Haftalık sipariş)')}
                   value={templateName} onChange={(e) => setTemplateName(e.target.value)} onKeyDown={(e) => e.key === 'Enter' && templateName.trim() && saveTemplate()} />
-                <button disabled={!templateName.trim()} onClick={saveTemplate} className="px-4 rounded-xl bg-indigo-500 text-white text-xs font-black disabled:opacity-40">{t('Kaydet')}</button>
+                <button disabled={!templateName.trim()} onClick={saveTemplate} className="px-4 rounded-xl bg-brand-600 text-white text-xs font-black disabled:opacity-40">{t('Kaydet')}</button>
                 <button onClick={() => setTemplateName(null)} className="px-3 rounded-xl text-gray-400 hover:text-white"><X className="h-4 w-4" /></button>
               </div>
             ) : (
@@ -174,8 +174,8 @@ const CartDrawer = ({ isOpen, onClose }) => {
               onClick={handleCheckout}
               className="w-full relative group overflow-hidden rounded-[1.5rem] p-[1px]"
             >
-              <span className="absolute inset-0 bg-gradient-to-r from-indigo-500 via-purple-500 to-indigo-500 rounded-[1.5rem] opacity-70 group-hover:opacity-100 transition-opacity duration-500 animate-gradient-xy"></span>
-              <div className="relative bg-[#0f172a] hover:bg-transparent transition-colors duration-500 py-5 rounded-[1.5rem] flex items-center justify-center">
+              <span className="absolute inset-0 bg-gradient-to-r from-brand-500 via-brand-400 to-brand-500 rounded-[1.5rem] opacity-70 group-hover:opacity-100 transition-opacity duration-500 animate-gradient-xy"></span>
+              <div className="relative bg-navy-900 hover:bg-transparent transition-colors duration-500 py-5 rounded-[1.5rem] flex items-center justify-center">
                 <span className="text-sm font-black text-white uppercase tracking-widest flex items-center">
                    {t('SİPARİŞİ TAMAMLA')} <ArrowRight className="inline-block ml-3 h-5 w-5 group-hover:translate-x-2 transition-transform" />
                 </span>

@@ -39,7 +39,7 @@ const QuoteManagement = () => {
     <div className="space-y-6">
       <div className="flex flex-col md:flex-row justify-between md:items-end gap-4">
         <div className="flex items-center gap-4">
-          <div className="page-icon"><FileSignature className="h-6 w-6 text-white" /></div>
+          <div className="page-icon"><FileSignature className="h-6 w-6 text-brand-400" /></div>
           <div>
             <h1 className="text-3xl font-black text-gray-900 tracking-tight">Teklifler</h1>
             <p className="text-gray-500 text-sm mt-1">Müşteriye teklif hazırlayın (isteğe bağlı yapay zekâ ile), onaylatın, gönderin ve kabul edilenleri siparişe dönüştürün.</p>
@@ -77,11 +77,11 @@ const QuoteManagement = () => {
             const status = QUOTE_STATUS[q.status] || QUOTE_STATUS.DRAFT;
             return (
               <button key={q.id} onClick={() => navigate(`/admin/quotes/${q.id}`)}
-                className="w-full text-left grid grid-cols-2 @[40rem]:grid-cols-[5rem_minmax(0,1fr)_8.5rem_8rem] @[64rem]:grid-cols-[5rem_minmax(12rem,1fr)_6.5rem_6.5rem_8.5rem_8rem_8rem] gap-x-4 gap-y-1 px-5 py-4 border-b border-gray-50 last:border-0 hover:bg-indigo-50/40 items-center">
+                className="w-full text-left grid grid-cols-2 @[40rem]:grid-cols-[5rem_minmax(0,1fr)_8.5rem_8rem] @[64rem]:grid-cols-[5rem_minmax(12rem,1fr)_6.5rem_6.5rem_8.5rem_8rem_8rem] gap-x-4 gap-y-1 px-5 py-4 border-b border-gray-50 last:border-0 hover:bg-brand-50/40 items-center">
                 <span className="font-black text-gray-900">{q.code}{q.revision > 1 && <span className="text-[10px] text-gray-400 font-bold"> · R{q.revision}</span>}</span>
                 <span className="min-w-0 col-span-2 @[40rem]:col-span-1 order-first @[40rem]:order-none">
                   <span className="block font-bold text-gray-900 truncate">{q.title || (q.source === 'DEALER' ? 'Bayi teklif talebi' : 'Başlıksız teklif')}</span>
-                  <span className="block text-xs text-indigo-600 font-semibold truncate">{q.company.name}</span>
+                  <span className="block text-xs text-brand-600 font-semibold truncate">{q.company.name}</span>
                   <span className="hidden @[40rem]:block @[64rem]:hidden text-[11px] text-gray-400 truncate">{formatDate(q.createdAt)}{q.validUntil && ` → ${formatDate(q.validUntil)}`}{q.preparedBy && ` · ${q.preparedBy}`}</span>
                 </span>
                 <span className="text-xs text-gray-500 @[40rem]:hidden @[64rem]:block">{formatDate(q.createdAt)}</span>

@@ -99,7 +99,7 @@ const CouponManagement = () => {
       <div className="flex flex-col md:flex-row justify-between md:items-end gap-4">
         <div>
           <div className="flex items-center gap-4">
-          <div className="page-icon"><TicketPercent className="h-6 w-6 text-white" /></div>
+          <div className="page-icon"><TicketPercent className="h-6 w-6 text-brand-400" /></div>
           <div>
             <h1 className="text-3xl font-black text-gray-900 tracking-tight">Kampanyalar & Kuponlar</h1>
             <p className="text-gray-500 text-sm mt-1">Bayilerin sipariş özetinde gireceği indirim kodları. Ürüne özel fiyatlar için ürün düzenleme ekranındaki "Özel Fiyatlar" sekmesini kullanın.</p>

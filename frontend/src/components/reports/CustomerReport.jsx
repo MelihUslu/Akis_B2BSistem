@@ -81,9 +81,9 @@ const TrendCharts = ({ trend }) => {
               <CartesianGrid vertical={false} stroke="#eef0f3" />
               <XAxis dataKey="label" {...axis} />
               <YAxis allowDecimals={false} {...axis} width={40} />
-              <Tooltip cursor={{ fill: 'rgba(99,102,241,0.06)' }} content={<ChartTip />} />
+              <Tooltip cursor={{ fill: 'rgba(183,134,95,0.06)' }} content={<ChartTip />} />
               <Bar dataKey="customers" radius={[4, 4, 0, 0]}>
-                {trend.points.map((p, i) => <Cell key={p.label} fill={i === last ? '#4f46e5' : '#c7d2fe'} />)}
+                {trend.points.map((p, i) => <Cell key={p.label} fill={i === last ? '#986B47' : '#F3D6C0'} />)}
               </Bar>
             </BarChart>
           </ResponsiveContainer>
@@ -96,13 +96,13 @@ const TrendCharts = ({ trend }) => {
           <ResponsiveContainer width="100%" height="100%">
             <AreaChart data={trend.points} margin={{ top: 8, right: 8, left: 4, bottom: 0 }}>
               <defs>
-                <linearGradient id="revFill" x1="0" y1="0" x2="0" y2="1"><stop offset="0%" stopColor="#4f46e5" stopOpacity={0.22} /><stop offset="100%" stopColor="#4f46e5" stopOpacity={0} /></linearGradient>
+                <linearGradient id="revFill" x1="0" y1="0" x2="0" y2="1"><stop offset="0%" stopColor="#986B47" stopOpacity={0.22} /><stop offset="100%" stopColor="#986B47" stopOpacity={0} /></linearGradient>
               </defs>
               <CartesianGrid vertical={false} stroke="#eef0f3" />
               <XAxis dataKey="label" {...axis} />
               <YAxis {...axis} width={56} tickFormatter={(v) => (v >= 1e6 ? `${(v / 1e6).toLocaleString('tr-TR', { maximumFractionDigits: 1 })} Mn` : v >= 1e3 ? `${Math.round(v / 1e3)} B` : v)} />
               <Tooltip cursor={{ stroke: '#9ca3af', strokeDasharray: '3 3' }} content={<ChartTip money />} />
-              <Area type="monotone" dataKey="revenue" stroke="#4f46e5" strokeWidth={2} fill="url(#revFill)" dot={{ r: 3, fill: '#4f46e5', stroke: '#fff', strokeWidth: 2 }} activeDot={{ r: 5, stroke: '#fff', strokeWidth: 2 }} />
+              <Area type="monotone" dataKey="revenue" stroke="#986B47" strokeWidth={2} fill="url(#revFill)" dot={{ r: 3, fill: '#986B47', stroke: '#fff', strokeWidth: 2 }} activeDot={{ r: 5, stroke: '#fff', strokeWidth: 2 }} />
             </AreaChart>
           </ResponsiveContainer>
         </div>
@@ -333,7 +333,7 @@ const CustomerDetail = ({ x, range, canPartner, onClose }) => {
         </div>
 
         <div className="p-4 md:p-5 border-t border-gray-100 flex flex-wrap gap-2">
-          {x.phone && <a href={`tel:+${intl(x.phone)}`} className="h-11 px-4 rounded-xl bg-indigo-600 text-white text-sm font-black flex items-center gap-2 hover:bg-indigo-700"><Phone className="h-4 w-4" /> Ara · {x.phone}</a>}
+          {x.phone && <a href={`tel:+${intl(x.phone)}`} className="h-11 px-4 rounded-xl bg-brand-600 text-white text-sm font-black flex items-center gap-2 hover:bg-brand-700"><Phone className="h-4 w-4" /> Ara · {x.phone}</a>}
           {x.phone && <a href={`https://wa.me/${intl(x.phone)}`} target="_blank" rel="noreferrer" className="h-11 px-4 rounded-xl bg-emerald-50 text-emerald-700 text-sm font-black flex items-center gap-2 hover:bg-emerald-100"><MessageCircle className="h-4 w-4" /> WhatsApp</a>}
           {canPartner && <Link to={`/admin/partners?id=${x.id}`} className="h-11 px-4 rounded-xl bg-white ring-1 ring-gray-200 text-sm font-black text-gray-700 flex items-center gap-2 hover:bg-gray-50 ml-auto"><BookUser className="h-4 w-4" /> Cari kartını aç</Link>}
         </div>
@@ -479,7 +479,7 @@ const CustomerReport = () => {
                       <td className="px-5 py-3 text-right font-bold tabular-nums whitespace-nowrap">{formatTRY(x.revenue12m)}{x.receivableTRY > 0 && <span className="block text-[11px] font-semibold text-amber-700">açık: {formatTRY(x.receivableTRY)}</span>}</td>
                       <td className="px-5 py-3 whitespace-nowrap text-right" onClick={(e) => e.stopPropagation()}>
                         {x.phone && <>
-                          <a href={`tel:+${intl(x.phone)}`} className="inline-flex p-2 rounded-lg text-indigo-600 hover:bg-indigo-50" title={`Ara: ${x.phone}`}><Phone className="h-4 w-4" /></a>
+                          <a href={`tel:+${intl(x.phone)}`} className="inline-flex p-2 rounded-lg text-brand-600 hover:bg-brand-50" title={`Ara: ${x.phone}`}><Phone className="h-4 w-4" /></a>
                           <a href={`https://wa.me/${intl(x.phone)}`} target="_blank" rel="noreferrer" className="inline-flex p-2 rounded-lg text-emerald-600 hover:bg-emerald-50" title="WhatsApp'tan yaz"><MessageCircle className="h-4 w-4" /></a>
                         </>}
                       </td>
@@ -546,7 +546,7 @@ const CustomerReport = () => {
                 <tbody className="divide-y divide-gray-100/70">
                   {pageRows.map((x) => (
                     <tr key={x.id} className="hover:bg-slate-50/70 cursor-pointer" onClick={() => setDetail(x)}>
-                      <td className="px-5 py-2.5"><p className="font-bold text-gray-900 hover:text-indigo-700">{x.name}</p><p className="text-[11px] text-gray-400 max-w-xs truncate" title={x.reason}>{x.reason}</p></td>
+                      <td className="px-5 py-2.5"><p className="font-bold text-gray-900 hover:text-brand-700">{x.name}</p><p className="text-[11px] text-gray-400 max-w-xs truncate" title={x.reason}>{x.reason}</p></td>
                       <td className="px-5 py-2.5"><Pill s={x.status} /></td>
                       <td className="px-5 py-2.5 whitespace-nowrap text-xs text-gray-600">{x.lastOrderAt ? <>{formatDate(x.lastOrderAt)} <b className="text-gray-900">· {x.daysSince >= 60 ? `${Math.floor(x.daysSince / 30)} ay` : `${x.daysSince} gün`}</b></> : '—'}</td>
                       <td className="px-5 py-2.5 text-xs text-gray-600">{x.typicalDays ? `~${x.typicalDays} gün` : '—'}</td>

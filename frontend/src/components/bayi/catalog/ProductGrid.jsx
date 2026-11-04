@@ -32,7 +32,7 @@ const Card = ({ product, row }) => {
   const selected = row.isSelected(item);
 
   return (
-    <div className={`@container bg-white rounded-2xl border overflow-hidden flex flex-col transition-all ${selected ? 'border-indigo-500 ring-2 ring-indigo-500/30' : 'border-gray-200 hover:border-indigo-200 hover:shadow-lg hover:shadow-gray-200/60'}`}>
+    <div className={`@container bg-white rounded-2xl border overflow-hidden flex flex-col transition-all ${selected ? 'border-brand-500 ring-2 ring-brand-500/30' : 'border-gray-200 hover:border-brand-200 hover:shadow-lg hover:shadow-gray-200/60'}`}>
       <div className="relative">
         <Image product={product} onClick={() => row.open(product)} />
         {canSelect(item) && <div className="absolute top-3 left-3 h-6 w-6 rounded-md bg-white/90 shadow-sm flex items-center justify-center"><Check item={item} row={row} /></div>}
@@ -42,14 +42,14 @@ const Card = ({ product, row }) => {
 
       <div className="flex-1 flex flex-col p-4 gap-2">
         <p className="text-[11px] text-gray-400 truncate">
-          {product.brand && <span className="font-bold text-indigo-600 dark:text-indigo-300">{product.brand}</span>}
+          {product.brand && <span className="font-bold text-brand-600 dark:text-brand-300">{product.brand}</span>}
           {product.brand && ' · '}{summary ? t('{n} seçenek', { n: summary.count }) : product.sku}
         </p>
-        <button type="button" onClick={() => row.open(product)} className="text-left text-sm font-bold text-gray-900 leading-snug line-clamp-2 min-h-[2.5rem] hover:text-indigo-600">{product.name}</button>
+        <button type="button" onClick={() => row.open(product)} className="text-left text-sm font-bold text-gray-900 leading-snug line-clamp-2 min-h-[2.5rem] hover:text-brand-600">{product.name}</button>
 
         {summary && (
           <select value={variantId ?? ''} onChange={(e) => setVariantId(Number(e.target.value))} aria-label={t('Seçenek')}
-            className="h-9 w-full px-2.5 rounded-lg border border-gray-200 bg-white text-xs font-semibold text-gray-700 outline-none focus:border-indigo-400 cursor-pointer">
+            className="h-9 w-full px-2.5 rounded-lg border border-gray-200 bg-white text-xs font-semibold text-gray-700 outline-none focus:border-brand-400 cursor-pointer">
             {variants.map((v) => (
               <option key={v.id} value={v.id}>
                 {v.variantLabel || v.sku}{v.priceHidden ? '' : ` — ${formatTRY(v.netPrice)}`}{v.inStock ? '' : ` (${t('Tükendi')})`}
