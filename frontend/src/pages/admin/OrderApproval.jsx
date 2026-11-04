@@ -1,9 +1,10 @@
 import { useState, useEffect, useCallback } from 'react';
+import ActAsDealer from '../../components/admin/ActAsDealer';
 import api, { errorMessage } from '../../services/api';
 import {
   ShoppingCart, CheckCircle, Truck, AlertCircle, PackageCheck, Search, FileSpreadsheet, Printer, ExternalLink,
   X, Clock, Hourglass, Package, CheckCheck, ChevronLeft, ChevronRight, CalendarRange, ArrowDownUp, Ban, Building2,
-  CreditCard, Landmark, Inbox, TicketPercent, Undo2, MapPin, RefreshCw, Warehouse as WarehouseIcon, Store
+  CreditCard, Landmark, Inbox, TicketPercent, Undo2, MapPin, RefreshCw, Warehouse as WarehouseIcon, Store, MessageSquareText, FileText
 } from 'lucide-react';
 import { useSearchParams, Link } from 'react-router-dom';
 import { downloadFile } from '../../utils/download';
@@ -28,6 +29,8 @@ const EDITABLE = ['PENDING', 'PARTIAL_APPROVED', 'APPROVED'];
 const SHIPPABLE = ['APPROVED', 'PARTIAL_APPROVED', 'SHIPPED'];
 // Gel-Al siparişi kargoya verilmez: onaylanınca "Teslim almaya hazır", sonra "Teslim edildi"
 const isPickup = (o) => o.deliveryMethod === 'PICKUP';
+// Siparişi kim girdi (bayi kendisi değilse detayda gösterilir)
+const CHANNEL_LABEL = { STAFF: 'Yönetici (bayi adına)', PLASIYER: 'Plasiyer (bayi adına)', QUOTE: 'Tekliften' };
 const canShip = (o) => !isPickup(o) && SHIPPABLE.includes(o.status);
 const canReady = (o) => isPickup(o) && ['APPROVED', 'PARTIAL_APPROVED'].includes(o.status);
 const canHandOver = (o) => isPickup(o) && ['APPROVED', 'PARTIAL_APPROVED', 'READY_FOR_PICKUP'].includes(o.status);
@@ -67,6 +70,8 @@ const OrderApproval = () => {
   const [checked, setChecked] = useState(new Set());
   const [busy, setBusy] = useState(false);
   const [trackingNumber, setTrackingNumber] = useState('');
+  const [partialQty, setPartialQty] = useState(null); // kısmi gönderi: { [kalemId]: adet } · null = kapalı
+  const [despatch, setDespatch] = useState({ number: '', date: '' });
   const [cargoCompany, setCargoCompany] = useState('');
   const [errorMsg, setErrorMsg] = useState(null);
   const [urlParams] = useSearchParams();
@@ -96,6 +101,33 @@ const OrderApproval = () => {
     setTrackingNumber(order.trackingNumber || '');
     setCargoCompany(order.cargoCompany || '');
     setWarehouseId(order.warehouseId || null);
+    setPartialQty(null);
+    setDespatch({ number: order.despatchNumber || '', date: order.despatchDate ? String(order.despatchDate).slice(0, 10) : '' });
+  };
+
+  // Kısmi gönderi: seçilen kalem / miktarlar bu takip numarasıyla kargoya verilir; kalanlar sonra gönderilir
+  const sendPartial = async (order) => {
+    const items = Object.entries(partialQty || {}).map(([itemId, quantity]) => ({ itemId: Number(itemId), quantity: Number(quantity) })).filter((i) => i.quantity > 0);
+    if (!trackingNumber.trim()) { showAlert({ type: 'warning', title: 'Takip No Gerekli', message: 'Lütfen kargo takip numarasını girin.' }); return; }
+    if (!items.length) { showAlert({ type: 'warning', title: 'Kalem seçin', message: 'Gönderilecek en az bir kalem için miktar girin.' }); return; }
+    try {
+      const res = await api.post(`/orders/${order.id}/shipments`, { items, trackingNumber, cargoCompany });
+      showAlert({ type: 'success', title: 'Gönderi kaydedildi', message: res.data.message });
+      setSelectedOrder(null);
+      fetchOrders();
+    } catch (error) {
+      showAlert({ type: 'error', title: 'Gönderilemedi', message: errorMessage(error, 'Gönderi kaydedilemedi.') });
+    }
+  };
+
+  const saveDespatch = async (order) => {
+    try {
+      const res = await api.patch(`/orders/${order.id}/despatch`, { despatchNumber: despatch.number, despatchDate: despatch.date || undefined });
+      setSelectedOrder((o) => ({ ...o, despatchNumber: res.data.order.despatchNumber, despatchDate: res.data.order.despatchDate }));
+      showAlert({ type: 'success', title: 'İrsaliye', message: res.data.message });
+    } catch (error) {
+      showAlert({ type: 'error', title: 'İrsaliye', message: errorMessage(error, 'Kaydedilemedi.') });
+    }
   };
 
   const fetchOrders = async () => {
@@ -320,9 +352,12 @@ const OrderApproval = () => {
             <p className="text-gray-500 text-sm mt-1">Onaylayın, kalem bazında karar verin, kargoya verin. Satıra tıklayınca detay açılır.</p>
           </div>
         </div>
-        <button onClick={exportExcel} className="flex items-center h-11 px-4 rounded-2xl bg-white border border-gray-100 shadow-sm text-xs font-bold text-gray-600 hover:text-emerald-700 hover:border-emerald-200 shrink-0">
-          <FileSpreadsheet className="h-4 w-4 mr-1.5" /> Excel'e Aktar
-        </button>
+        <div className="flex flex-wrap items-center gap-2 shrink-0">
+          <button onClick={exportExcel} className="flex items-center h-11 px-4 rounded-2xl bg-white border border-gray-100 shadow-sm text-xs font-bold text-gray-600 hover:text-emerald-700 hover:border-emerald-200">
+            <FileSpreadsheet className="h-4 w-4 mr-1.5" /> Excel'e Aktar
+          </button>
+          <ActAsDealer />
+        </div>
       </div>
 
       {/* Özet kartları: tıklayınca o duruma filtrelenir */}
@@ -412,10 +447,37 @@ const OrderApproval = () => {
           </div>
         )}
 
-        <div className="overflow-x-auto">
+        {/* Telefonda tablo yerine kart: tutar, durum ve işlem düğmesi yana kaydırmadan görünür */}
+        <ul className="md:hidden divide-y divide-gray-100">
+          {!isLoading && orders.length === 0 && <li className="text-center py-14 text-sm font-bold text-gray-500">Bu filtrede sipariş yok</li>}
+          {orders.map((order) => {
+            const waitingHours = order.status === 'PENDING' ? (now - new Date(order.createdAt).getTime()) / HOUR : 0;
+            return (
+              <li key={order.id}>
+                <div role="button" tabIndex={0} onClick={() => openOrder(order)} onKeyDown={(e) => { if (e.key === 'Enter') openOrder(order); }}
+                  className="w-full text-left px-4 py-3.5 flex flex-col gap-2 active:bg-brand-50/50 cursor-pointer" aria-label={`#AK-${order.id} detayı`}>
+                  <div className="flex items-center justify-between gap-2">
+                    <span className="font-mono text-sm font-bold text-gray-900">#AK-{order.id}</span>
+                    <StatusPill status={order.status} />
+                  </div>
+                  <div className="flex items-end justify-between gap-3">
+                    <div className="min-w-0">
+                      <p className="text-sm font-semibold text-gray-800 truncate">{order.company?.name}</p>
+                      <p className={`text-xs ${waitingHours >= 24 ? 'text-red-500 font-bold' : 'text-gray-400'}`}>{timeAgo(order.createdAt, now)} · {order.items.length} kalem · {order.paymentMethod === 'WIRE_TRANSFER' ? 'Havale/EFT' : 'Cari'}{isPickup(order) ? ' · Gel-Al' : ''}</p>
+                    </div>
+                    <p className="text-base font-black text-gray-900 tabular-nums shrink-0">{formatTRY(order.totalAmount)}</p>
+                  </div>
+                  {rowAction(order) && <div className="flex justify-end">{rowAction(order)}</div>}
+                </div>
+              </li>
+            );
+          })}
+        </ul>
+
+        <div className="hidden md:block overflow-x-auto">
           <table className="w-full text-left">
             <thead className="list-head">
-              <tr className="text-[10px] font-black text-gray-500 uppercase tracking-[0.15em] whitespace-nowrap">
+              <tr className="text-[11px] font-black text-gray-500 uppercase tracking-[0.15em] whitespace-nowrap">
                 <th className="pl-4 pr-2 py-3 w-8"><input type="checkbox" className="h-4 w-4 rounded accent-brand-600 cursor-pointer" checked={allChecked} onChange={toggleAll} aria-label="Tümünü seç" /></th>
                 <th className="px-3 py-3">Sipariş</th>
                 <th className="px-3 py-3">Bayi</th>
@@ -444,7 +506,7 @@ const OrderApproval = () => {
                 const cancelledItems = order.items.filter((i) => i.status === 'CANCELLED').length;
                 return (
                   <tr key={order.id} onClick={() => openOrder(order)}
-                    className={`group cursor-pointer transition-colors ${isOpen ? 'bg-brand-50/70 shadow-[inset_3px_0_0_0_var(--color-brand-500)]' : isChecked ? 'bg-brand-50/40' : `${idx % 2 ? 'bg-slate-50/80' : 'bg-white'} hover:bg-brand-50/40 hover:shadow-[inset_3px_0_0_0_#6366f1]`}`}>
+                    className={`group cursor-pointer transition-colors ${isOpen ? 'bg-brand-50/70 shadow-[inset_3px_0_0_0_var(--color-brand-500)]' : isChecked ? 'bg-brand-50/40' : `${idx % 2 ? 'bg-slate-50/80' : 'bg-white'} hover:bg-brand-50/40 hover:shadow-[inset_3px_0_0_0_var(--color-brand-500)]`}`}>
                     <td className="pl-4 pr-2 py-3" onClick={(e) => e.stopPropagation()}>
                       <input type="checkbox" className="h-4 w-4 rounded accent-brand-600 cursor-pointer" checked={isChecked} onChange={() => toggleCheck(order.id)} aria-label={`#AK-${order.id} seç`} />
                     </td>
@@ -533,6 +595,15 @@ const OrderApproval = () => {
               </div>
 
               <div className="flex-1 overflow-y-auto custom-scrollbar p-6 space-y-5">
+                {(order.note || order.customerRef || order.channel !== 'PORTAL' || order.autoApproved || order.cancelledBy === 'DEALER') && (
+                  <div className="rounded-2xl ring-1 ring-gray-100 p-4 grid gap-2.5 sm:grid-cols-2 text-sm">
+                    {order.customerRef && <p><span className="block text-[11px] font-bold text-gray-400">Bayi referans no</span><b className="font-mono">{order.customerRef}</b></p>}
+                    {order.channel && order.channel !== 'PORTAL' && <p><span className="block text-[11px] font-bold text-gray-400">Giren</span>{CHANNEL_LABEL[order.channel]}{order.channel !== 'QUOTE' && order.user?.name && <> · <b>{order.user.name}</b></>}</p>}
+                    {order.note && <p className="sm:col-span-2"><span className="block text-[11px] font-bold text-gray-400">Sipariş notu</span><span className="flex items-start gap-1.5"><MessageSquareText className="h-4 w-4 text-brand-500 mt-0.5 shrink-0" />{order.note}</span></p>}
+                    {order.autoApproved && <p className="text-xs font-bold text-emerald-700">Otomatik onay kuralıyla onaylandı.</p>}
+                    {order.cancelledBy === 'DEALER' && <p className="text-xs font-bold text-red-600">Bayi siparişi iptal etti{order.cancelledAt ? ` · ${formatDate(order.cancelledAt, true)}` : ''}.</p>}
+                  </div>
+                )}
                 {warehouses.length > 1 && (
                   <div className="flex flex-wrap items-center gap-3 rounded-2xl bg-brand-50/50 ring-1 ring-brand-100 px-4 py-3">
                     <WarehouseIcon className="h-4 w-4 text-brand-600" />
@@ -565,13 +636,14 @@ const OrderApproval = () => {
                         <div className="min-w-0 flex-1">
                           <p className={`text-sm font-semibold truncate ${off ? 'text-gray-400 line-through' : 'text-gray-900'}`}>{item.product?.parent?.name || item.product?.name}</p>
                           <div className="flex items-center gap-2 flex-wrap mt-0.5">
-                            <span className="font-mono text-[10px] font-semibold text-gray-500 bg-gray-100/80 px-1.5 py-0.5 rounded-md">{item.product?.sku}</span>
+                            <span className="font-mono text-[11px] font-semibold text-gray-500 bg-gray-100/80 px-1.5 py-0.5 rounded-md">{item.product?.sku}</span>
                             {item.variantLabel && <span className="text-[11px] font-bold text-brand-600">{item.variantLabel}</span>}
                           </div>
                         </div>
                         <div className="text-right shrink-0">
                           <p className="text-sm font-bold text-gray-900 tabular-nums">{item.quantity} {item.product?.unit}</p>
                           <p className="text-[11px] text-gray-400 tabular-nums">× {formatTRY(item.price)}</p>
+                          {item.shippedQty > 0 && <p className="text-[11px] font-bold text-orange-600 tabular-nums">{item.shippedQty}/{item.quantity} gönderildi</p>}
                         </div>
                         <p className={`w-24 text-right text-sm font-black tabular-nums shrink-0 ${off ? 'text-gray-300 line-through' : 'text-gray-900'}`}>{formatTRY(item.price * item.quantity)}</p>
                         {editable ? (
@@ -582,7 +654,7 @@ const OrderApproval = () => {
                               className={`p-1.5 rounded-md transition-all ${off ? 'bg-red-500 text-white shadow' : 'text-gray-400 hover:text-red-600'}`}><Ban className="h-4 w-4" /></button>
                           </div>
                         ) : (
-                          <span className={`shrink-0 px-2 py-0.5 rounded-full text-[10px] font-bold ${off ? 'bg-red-100 text-red-600' : 'bg-emerald-100 text-emerald-700'}`}>{off ? 'İptal' : 'Onaylı'}</span>
+                          <span className={`shrink-0 px-2 py-0.5 rounded-full text-[11px] font-bold ${off ? 'bg-red-100 text-red-600' : 'bg-emerald-100 text-emerald-700'}`}>{off ? 'İptal' : 'Onaylı'}</span>
                         )}
                       </div>
                     );
@@ -592,7 +664,8 @@ const OrderApproval = () => {
                 <div className="rounded-2xl bg-gray-50 p-4 space-y-1.5 text-sm">
                   <div className="flex justify-between text-gray-600"><span>Ara toplam ({approved.length} kalem)</span><span className="tabular-nums">{formatTRY(net)}</span></div>
                   {order.couponCode && <div className="flex justify-between text-pink-600 font-semibold"><span>Kupon {order.couponCode}</span><span className="tabular-nums">−{formatTRY(order.discountAmount)}</span></div>}
-                  <div className="flex justify-between text-gray-600"><span>KDV</span><span className="tabular-nums">{formatTRY(vat)}</span></div>
+                  {order.shippingFee > 0 && approved.length > 0 && <div className="flex justify-between text-gray-600"><span>Kargo ücreti (KDV hariç)</span><span className="tabular-nums">{formatTRY(order.shippingFee)}</span></div>}
+                  <div className="flex justify-between text-gray-600"><span>KDV</span><span className="tabular-nums">{formatTRY(vat + (approved.length ? order.shippingVat || 0 : 0))}</span></div>
                   <div className="flex justify-between pt-2 border-t border-gray-200 font-black text-gray-900"><span>Kayıtlı sipariş tutarı</span><span className="tabular-nums">{formatTRY(order.totalAmount)}</span></div>
                   {editable && <p className="text-[11px] text-gray-400 pt-1">Kalem iptal ederseniz tutar ve kupon indirimi kaydettiğinizde yeniden hesaplanır.</p>}
                 </div>
@@ -652,12 +725,51 @@ const OrderApproval = () => {
                       </p>
                     )}
                     <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
-                      <select value={cargoCompany} onChange={(e) => setCargoCompany(e.target.value)} className="h-10 rounded-xl bg-white border border-gray-200 px-3 text-sm outline-none focus:ring-4 focus:ring-orange-100 focus:border-orange-300">
+                      <select value={cargoCompany} onChange={(e) => setCargoCompany(e.target.value)} aria-label="Kargo firması" className="h-10 rounded-xl bg-white border border-gray-200 px-3 text-sm outline-none focus:ring-4 focus:ring-orange-100 focus:border-orange-300">
                         <option value="">Kargo firması</option>
                         {Object.entries(CARRIERS).map(([code, cr]) => <option key={code} value={code}>{cr.name}</option>)}
                       </select>
-                      <input type="text" placeholder="Takip numarası" value={trackingNumber} onChange={(e) => setTrackingNumber(e.target.value)}
+                      <input type="text" placeholder="Takip numarası" aria-label="Takip numarası" value={trackingNumber} onChange={(e) => setTrackingNumber(e.target.value)}
                         className="h-10 rounded-xl bg-white border border-gray-200 px-3 text-sm font-mono outline-none focus:ring-4 focus:ring-orange-100 focus:border-orange-300" />
+                    </div>
+                    {order.shipments?.length > 0 && (
+                      <ul className="space-y-1 text-xs text-gray-600">
+                        {order.shipments.map((sh, i) => <li key={sh.id}>{i + 1}. gönderi · {carrierName(sh.cargoCompany) || 'Kargo'} <b className="font-mono text-gray-900">{sh.trackingNumber}</b> · {(sh.items || []).reduce((n, x) => n + x.quantity, 0)} adet · {formatDate(sh.createdAt, true)}</li>)}
+                      </ul>
+                    )}
+                    {order.status !== 'SHIPPED' && (partialQty === null ? (
+                      <button type="button" onClick={() => setPartialQty(Object.fromEntries(approved.map((i) => [i.id, i.quantity - (i.shippedQty || 0)])))} className="text-xs font-bold text-orange-700 hover:underline">
+                        Bir kısmını gönder (kalem / miktar seçerek)
+                      </button>
+                    ) : (
+                      <div className="rounded-xl bg-white ring-1 ring-orange-100 p-3 space-y-2">
+                        <p className="text-xs font-bold text-gray-700">Bu gönderideki miktarlar (kalanlar sonra gönderilir)</p>
+                        {approved.filter((i) => i.quantity > (i.shippedQty || 0)).map((i) => (
+                          <label key={i.id} className="flex items-center gap-3 text-sm">
+                            <span className="flex-1 min-w-0 truncate">{i.product?.parent?.name || i.product?.name} <span className="text-xs text-gray-400">· kalan {i.quantity - (i.shippedQty || 0)}</span></span>
+                            <input type="number" min="0" max={i.quantity - (i.shippedQty || 0)} value={partialQty[i.id] ?? 0} aria-label={`${i.product?.name} gönderilecek miktar`}
+                              onChange={(e) => setPartialQty({ ...partialQty, [i.id]: Math.max(0, Math.min(i.quantity - (i.shippedQty || 0), parseInt(e.target.value) || 0)) })}
+                              className="w-20 h-9 rounded-lg border border-gray-200 px-2 text-right tabular-nums" />
+                          </label>
+                        ))}
+                        <div className="flex gap-2 pt-1">
+                          <button type="button" onClick={() => sendPartial(order)} className="h-9 px-4 rounded-lg bg-orange-500 text-white text-xs font-bold hover:bg-orange-600">Seçilenleri kargoya ver</button>
+                          <button type="button" onClick={() => setPartialQty(null)} className="h-9 px-3 rounded-lg text-xs font-bold text-gray-500 hover:bg-gray-100">Vazgeç</button>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                )}
+
+                {/* İrsaliye numarası (ERP'den / elle); yazdırılan irsaliyede ve bayi ekranında görünür */}
+                {!['PENDING', 'CANCELLED'].includes(order.status) && (
+                  <div className="rounded-2xl ring-1 ring-gray-100 p-4 space-y-2">
+                    <h4 className="text-sm font-black text-gray-900 flex items-center gap-2"><FileText className="h-4 w-4 text-brand-500" /> İrsaliye</h4>
+                    <div className="flex flex-wrap gap-2">
+                      <input value={despatch.number} onChange={(e) => setDespatch({ ...despatch, number: e.target.value })} placeholder="İrsaliye no" aria-label="İrsaliye numarası" className="flex-1 min-w-[10rem] h-10 rounded-xl border border-gray-200 px-3 text-sm font-mono" />
+                      <input type="date" value={despatch.date} onChange={(e) => setDespatch({ ...despatch, date: e.target.value })} aria-label="İrsaliye tarihi" className="h-10 rounded-xl border border-gray-200 px-3 text-sm" />
+                      <button type="button" onClick={() => saveDespatch(order)} className="h-10 px-4 rounded-xl bg-gray-900 text-white text-xs font-bold">Kaydet</button>
+                      <Link to={`/print/order/${order.id}?belge=irsaliye`} className="h-10 px-3 rounded-xl bg-gray-100 text-gray-700 text-xs font-bold flex items-center gap-1.5 hover:bg-gray-200"><Printer className="h-3.5 w-3.5" /> İrsaliye yazdır</Link>
                     </div>
                   </div>
                 )}
@@ -667,30 +779,30 @@ const OrderApproval = () => {
               <div className="modal-footer items-center flex-wrap">
                 {editable && (
                   <button onClick={() => handlePartialApprove(selectedOrder)} className="btn-gradient h-12 py-0 px-6 flex-1">
-                    <CheckCircle className="h-4 w-4 mr-2" /> {order.status === 'PENDING' ? 'KARARI KAYDET' : 'GÜNCELLE'}
+                    <CheckCircle className="h-4 w-4 mr-2" /> {order.status === 'PENDING' ? 'Kararı kaydet' : 'Güncelle'}
                   </button>
                 )}
                 {canReady(order) && (
-                  <button onClick={() => handleReady(order.id)} className="h-12 px-5 rounded-2xl bg-violet-600 hover:bg-violet-700 text-white text-[10px] font-black uppercase tracking-widest flex items-center justify-center flex-1">
+                  <button onClick={() => handleReady(order.id)} className="h-12 px-5 rounded-2xl bg-violet-600 hover:bg-violet-700 text-white text-xs font-black flex items-center justify-center flex-1">
                     <Store className="h-4 w-4 mr-2" /> Teslim Almaya Hazır
                   </button>
                 )}
                 {canHandOver(order) && (
-                  <button onClick={() => handleComplete(order.id)} className="h-12 px-5 rounded-2xl bg-emerald-600 hover:bg-emerald-700 text-white text-[10px] font-black uppercase tracking-widest flex items-center justify-center flex-1">
+                  <button onClick={() => handleComplete(order.id)} className="h-12 px-5 rounded-2xl bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-black flex items-center justify-center flex-1">
                     <PackageCheck className="h-4 w-4 mr-2" /> Teslim Edildi
                   </button>
                 )}
                 {canShip(order) && (
-                  <button onClick={() => handleShip(order.id)} className="h-12 px-5 rounded-2xl bg-orange-500 hover:bg-orange-600 text-white text-[10px] font-black uppercase tracking-widest flex items-center justify-center flex-1">
+                  <button onClick={() => handleShip(order.id)} className="h-12 px-5 rounded-2xl bg-orange-500 hover:bg-orange-600 text-white text-xs font-black flex items-center justify-center flex-1">
                     <Truck className="h-4 w-4 mr-2" /> {order.status === 'SHIPPED' ? 'Takip No Güncelle' : 'Kargoya Ver'}
                   </button>
                 )}
                 {order.status === 'SHIPPED' && (
-                  <button onClick={() => handleComplete(order.id)} className="h-12 px-5 rounded-2xl bg-emerald-600 hover:bg-emerald-700 text-white text-[10px] font-black uppercase tracking-widest flex items-center justify-center flex-1">
+                  <button onClick={() => handleComplete(order.id)} className="h-12 px-5 rounded-2xl bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-black flex items-center justify-center flex-1">
                     <PackageCheck className="h-4 w-4 mr-2" /> Teslim Edildi
                   </button>
                 )}
-                {!editable && !canShip(order) && !canHandOver(order) && <button onClick={closeDetail} className="btn-secondary flex-1">KAPAT</button>}
+                {!editable && !canShip(order) && !canHandOver(order) && <button onClick={closeDetail} className="btn-secondary flex-1">Kapat</button>}
               </div>
             </aside>
           </div>

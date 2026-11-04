@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { Zap, ClipboardPaste, Plus, Trash2, ShoppingCart, AlertTriangle, Search, FileSignature } from 'lucide-react';
+import { Zap, ClipboardPaste, Plus, Trash2, ShoppingCart, AlertTriangle, Search, FileSignature, ScanBarcode } from 'lucide-react';
 import api, { errorMessage } from '../../services/api';
 import { useCart } from '../../context/CartContext';
 import useAlert from '../../hooks/useAlert';
@@ -8,6 +8,7 @@ import { t } from '../../i18n';
 import PageHeader from '../../components/shared/PageHeader';
 import QuoteRequestModal from '../../components/bayi/QuoteRequestModal';
 import usePortalSettings from '../../hooks/usePortalSettings';
+import BarcodeScanner from '../../components/bayi/BarcodeScanner';
 
 let rowSeq = 0;
 const nextKey = () => ++rowSeq;
@@ -37,7 +38,17 @@ const QuickOrder = () => {
   const { quoteOutOfStock } = usePortalSettings();
   const [quoteItems, setQuoteItems] = useState(null);
 
+  const [scanning, setScanning] = useState(false);
   const updateRow = (key, field, value) => setRows((prev) => prev.map((r) => (r.key === key ? { ...r, [field]: value } : r)));
+
+  // Kamerayla okutulan kod: listede varsa miktarı 1 artar, yoksa ilk boş satıra (ya da yeni satıra) yazılır
+  const addScanned = (code) => setRows((prev) => {
+    const same = prev.find((r) => r.sku.trim() === code);
+    if (same) return prev.map((r) => (r === same ? { ...r, quantity: String((parseInt(r.quantity) || 0) + 1) } : r));
+    const empty = prev.find((r) => !r.sku.trim());
+    if (empty) return prev.map((r) => (r === empty ? { ...r, sku: code, quantity: r.quantity || '1' } : r));
+    return [...prev, { ...emptyRow(), sku: code, quantity: '1' }];
+  });
 
   const applyPaste = () => {
     const parsed = parsePaste(paste);
@@ -93,26 +104,32 @@ const QuickOrder = () => {
   return (
     <div className="space-y-6 md:space-y-8">
       {alertElement}
+      {scanning && <BarcodeScanner onCode={addScanned} onClose={() => setScanning(false)} />}
       <PageHeader icon={Zap} title={t('Hızlı Sipariş')} subtitle={t("SKU / barkod ve miktar girin ya da Excel'den iki sütunu (SKU, Miktar) kopyalayıp yapıştırın.")} />
 
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
         <div className="card-premium p-6 space-y-3">
-          <div className="grid grid-cols-[minmax(0,1fr)_8rem_2.5rem] gap-3 text-[10px] font-black text-gray-400 uppercase tracking-widest px-1">
+          <div className="grid grid-cols-[minmax(0,1fr)_8rem_2.5rem] gap-3 text-[11px] font-black text-gray-400 uppercase tracking-widest px-1">
             <span>{t('SKU / Barkod')}</span><span>{t('Miktar')}</span><span />
           </div>
-          {rows.map((row) => (
+          {rows.map((row, i) => (
             <div key={row.key} className="grid grid-cols-[minmax(0,1fr)_8rem_2.5rem] gap-3">
-              <input className="premium-input font-mono" placeholder="AK-18-MATKAP" value={row.sku} onChange={(e) => updateRow(row.key, 'sku', e.target.value)} />
-              <input className="premium-input" type="number" min="1" placeholder={t('Adet')} value={row.quantity} onChange={(e) => updateRow(row.key, 'quantity', e.target.value)} />
-              <button onClick={() => setRows(rows.length > 1 ? rows.filter((r) => r.key !== row.key) : [emptyRow()])} className="text-gray-300 hover:text-red-500 flex items-center justify-center">
+              <input className="premium-input font-mono" placeholder="AK-18-MATKAP" aria-label={t('{n}. satır SKU / barkod', { n: i + 1 })} value={row.sku} onChange={(e) => updateRow(row.key, 'sku', e.target.value)} />
+              <input className="premium-input" type="number" min="1" placeholder={t('Adet')} aria-label={t('{n}. satır miktar', { n: i + 1 })} value={row.quantity} onChange={(e) => updateRow(row.key, 'quantity', e.target.value)} />
+              <button onClick={() => setRows(rows.length > 1 ? rows.filter((r) => r.key !== row.key) : [emptyRow()])} aria-label={t('Satırı sil')} className="text-gray-300 hover:text-red-500 flex items-center justify-center">
                 <Trash2 className="h-4 w-4" />
               </button>
             </div>
           ))}
-          <div className="flex justify-between pt-3">
-            <button onClick={() => setRows([...rows, emptyRow()])} className="flex items-center text-xs font-black text-brand-600 hover:underline">
-              <Plus className="h-4 w-4 mr-1" /> {t('Satır Ekle')}
-            </button>
+          <div className="flex flex-wrap justify-between gap-3 pt-3">
+            <span className="flex flex-wrap items-center gap-4">
+              <button onClick={() => setRows([...rows, emptyRow()])} className="flex items-center text-xs font-black text-brand-600 hover:underline">
+                <Plus className="h-4 w-4 mr-1" /> {t('Satır Ekle')}
+              </button>
+              <button onClick={() => setScanning(true)} className="flex items-center h-10 px-3 rounded-xl bg-navy-900 text-white text-xs font-bold hover:bg-navy-950">
+                <ScanBarcode className="h-4 w-4 mr-1.5" /> {t('Kamerayla okut')}
+              </button>
+            </span>
             <button onClick={resolve} disabled={loading} className="btn-gradient disabled:opacity-60">
               <Search className="h-4 w-4 mr-2" /> {loading ? t('Aranıyor...') : t('Ürünleri Getir')}
             </button>
@@ -127,7 +144,7 @@ const QuickOrder = () => {
             value={paste}
             onChange={(e) => setPaste(e.target.value)}
           />
-          <button onClick={applyPaste} className="w-full py-3 rounded-2xl bg-gray-900 text-white text-xs font-black uppercase tracking-widest hover:bg-gray-800">
+          <button onClick={applyPaste} className="w-full py-3 rounded-2xl bg-gray-900 text-white text-xs font-black hover:bg-gray-800">
             {t('Listeye Aktar')}
           </button>
         </div>

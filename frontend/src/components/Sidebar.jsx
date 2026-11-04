@@ -41,7 +41,7 @@ const COUNTS_MS = 60000;
 const Badge = ({ n, dot }) => (n > 0
   ? (dot
     ? <span className="absolute top-2 right-2 h-2.5 w-2.5 rounded-full bg-rose-500 ring-2 ring-navy-900" />
-    : <span className="ml-auto h-5 min-w-5 px-1.5 rounded-full bg-rose-500 text-white text-[10px] font-black flex items-center justify-center">{n > 99 ? '99+' : n}</span>)
+    : <span className="ml-auto h-5 min-w-5 px-1.5 rounded-full bg-rose-500 text-white text-[11px] font-black flex items-center justify-center">{n > 99 ? '99+' : n}</span>)
   : null);
 
 // Açık bırakılan gruplar tarayıcıda hatırlanır
@@ -169,9 +169,9 @@ const Sidebar = ({ mobile = false, onNavigate }) => {
       {planBox && !isCollapsed && can(user, 'SETTINGS') && (
         <div className="px-6 mb-6 animate-in fade-in duration-500">
           <div className={`rounded-2xl p-5 border transition-all duration-700 bg-gradient-to-br from-brand-600/20 to-brand-800/20 border-brand-500/20`}>
-            <p className="text-[10px] font-black text-brand-500 uppercase tracking-widest mb-1">{planBox.title}</p>
+            <p className="text-[11px] font-black text-brand-500 uppercase tracking-widest mb-1">{planBox.title}</p>
             <p className={`text-[11px] leading-relaxed mb-3 transition-colors duration-700 text-gray-400`}>{planBox.text}</p>
-            <button onClick={() => { onNavigate?.(); navigate('/admin/subscription'); }} className="w-full py-2.5 bg-brand-600 text-white text-[10px] font-black rounded-lg hover:bg-brand-700 transition-colors">{planBox.cta}</button>
+            <button onClick={() => { onNavigate?.(); navigate('/admin/subscription'); }} className="w-full py-2.5 bg-brand-600 text-white text-[11px] font-black rounded-lg hover:bg-brand-700 transition-colors">{planBox.cta}</button>
           </div>
         </div>
       )}

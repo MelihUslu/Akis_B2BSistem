@@ -110,7 +110,7 @@ const QuoteView = ({ quote, onReload, showAlert, confirm }) => {
           <div className="min-w-0">
             <h1 className="text-2xl md:text-3xl font-black text-gray-900 tracking-tight">{quote.code}{quote.title && <span className="text-gray-400 font-bold text-lg"> · {quote.title}</span>}</h1>
             <div className="flex flex-wrap items-center gap-2 mt-1 text-xs">
-              <span className={`px-2.5 py-0.5 rounded-full text-[10px] font-black uppercase ${status.className}`}>{status.label}</span>
+              <span className={`px-2.5 py-0.5 rounded-full text-[11px] font-black uppercase ${status.className}`}>{status.label}</span>
               <span className="font-bold text-brand-600">{quote.company?.name}</span>
               {quote.sentRevision && <span className="text-gray-400 font-bold">Gönderilen sürüm: {quote.sentRevision}{quote.revision !== quote.sentRevision && ` · çalışılan: ${quote.revision}`}</span>}
               {quote.order && <span className="font-black text-emerald-600">Sipariş #AK-{quote.order.id}</span>}

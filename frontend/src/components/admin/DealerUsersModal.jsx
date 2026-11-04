@@ -50,14 +50,14 @@ const DealerUsersModal = ({ title, base, isAdmin, onClose, showAlert, confirm, i
           {users.map(u => (
             <div key={u.id} className={`p-4 flex flex-col sm:flex-row sm:items-center gap-3 ${u.isActive ? '' : 'opacity-50'}`}>
               <div className="flex-1 min-w-0">
-                <p className="text-sm font-bold text-gray-900 flex items-center">{u.name}{u.isOwner && <span className="ml-2 inline-flex items-center text-[10px] font-black text-amber-600"><Crown className="h-3 w-3 mr-0.5" /> {t('Ana kullanıcı')}</span>}</p>
+                <p className="text-sm font-bold text-gray-900 flex items-center">{u.name}{u.isOwner && <span className="ml-2 inline-flex items-center text-[11px] font-black text-amber-600"><Crown className="h-3 w-3 mr-0.5" /> {t('Ana kullanıcı')}</span>}</p>
                 <p className="text-xs text-gray-400">{u.email} · Son giriş: {u.lastLoginAt ? formatDate(u.lastLoginAt, true) : '—'}</p>
               </div>
               <div className="flex items-center gap-2">
-                {isAdmin && !u.isOwner && u.isActive && <button onClick={() => patch(u, { isOwner: true })} className="px-2.5 py-1.5 rounded-lg text-[10px] font-black text-amber-700 bg-amber-50">{t('Ana Kullanıcı Yap')}</button>}
+                {isAdmin && !u.isOwner && u.isActive && <button onClick={() => patch(u, { isOwner: true })} className="px-2.5 py-1.5 rounded-lg text-[11px] font-black text-amber-700 bg-amber-50">{t('Ana Kullanıcı Yap')}</button>}
                 <button onClick={() => reset(u)} className="p-2 rounded-lg text-gray-400 hover:text-orange-500 hover:bg-orange-50" title={t('Şifre sıfırla')}><KeyRound className="h-4 w-4" /></button>
                 {!u.isOwner && (
-                  <button onClick={() => patch(u, { isActive: !u.isActive })} className={`px-2.5 py-1.5 rounded-lg text-[10px] font-black ${u.isActive ? 'bg-red-50 text-red-600' : 'bg-emerald-50 text-emerald-700'}`}>
+                  <button onClick={() => patch(u, { isActive: !u.isActive })} className={`px-2.5 py-1.5 rounded-lg text-[11px] font-black ${u.isActive ? 'bg-red-50 text-red-600' : 'bg-emerald-50 text-emerald-700'}`}>
                     {u.isActive ? t('Erişimi Kapat') : t('Erişimi Aç')}
                   </button>
                 )}

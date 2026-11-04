@@ -1,3 +1,4 @@
+import { homeOf } from '../utils/roles';
 import { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
@@ -21,7 +22,7 @@ const LoginHandoff = () => {
     if (!code) { fail('Giriş bağlantısı geçersiz. Lütfen tekrar giriş yapın.'); return; }
     logout(); // bu tarayıcıda başka bir hesap açıksa kapanır
     loginWithHandoff(code).then((r) => {
-      if (r.success) navigate(r.user.role === 'ADMIN' ? '/admin' : '/bayi', { replace: true });
+      if (r.success) navigate(homeOf(r.user.role), { replace: true });
       else if (r.twoFactorRequired) navigate('/login', { replace: true, state: { challenge: r.challenge } });
       else fail(r.message);
     });

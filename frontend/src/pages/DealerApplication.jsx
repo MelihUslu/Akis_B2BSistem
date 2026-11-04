@@ -31,7 +31,7 @@ const DealerApplication = () => {
   return (
     <div className="min-h-screen bg-navy-50 flex items-center justify-center p-4 md:p-6">
       <div className="bg-white rounded-[2rem] shadow-xl border border-slate-100 w-full max-w-2xl p-6 md:p-10">
-        <Link to="/login" className="inline-flex items-center text-xs font-black text-gray-400 hover:text-brand-600 uppercase tracking-widest mb-6"><ArrowLeft className="h-4 w-4 mr-1.5" /> {t('Girişe dön')}</Link>
+        <Link to="/login" className="inline-flex items-center text-xs font-black text-gray-400 hover:text-brand-600 mb-6"><ArrowLeft className="h-4 w-4 mr-1.5" /> {t('Girişe dön')}</Link>
         {done ? (
           <div className="text-center space-y-4 py-8">
             <CheckCircle2 className="h-14 w-14 mx-auto text-emerald-500" />

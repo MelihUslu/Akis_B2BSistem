@@ -9,7 +9,7 @@ import prisma, { runAsPlatform } from '../utils/prisma.js';
  */
 export const exportTenantWorkbook = (tenantId) => runAsPlatform(async () => {
   const w = { tenantId };
-  const [tenant, users, companies, categories, products, orders, items, transactions, payments, quotes, returns, coupons, specials, cash] = await Promise.all([
+  const [tenant, users, companies, categories, products, orders, items, transactions, payments, quotes, returns, coupons, specials, cash, shipments, targets] = await Promise.all([
     prisma.tenant.findUnique({ where: { id: tenantId }, include: { plan: true } }),
     prisma.user.findMany({ where: w, select: { id: true, name: true, email: true, role: true, companyId: true, isOwner: true, isActive: true, createdAt: true, lastLoginAt: true } }),
     prisma.company.findMany({ where: w }),
@@ -23,7 +23,9 @@ export const exportTenantWorkbook = (tenantId) => runAsPlatform(async () => {
     prisma.returnRequest.findMany({ where: w }),
     prisma.coupon.findMany({ where: w }),
     prisma.specialPrice.findMany({ where: w }),
-    prisma.cashEntry.findMany({ where: w })
+    prisma.cashEntry.findMany({ where: w }),
+    prisma.orderShipment.findMany({ where: w }),
+    prisma.dealerTarget.findMany({ where: w })
   ]);
 
   const flat = (rows) => rows.map(r => Object.fromEntries(Object.entries(r).map(([k, v]) => [k, v instanceof Date ? v.toISOString() : (v && typeof v === 'object' ? JSON.stringify(v) : v)])));
@@ -44,6 +46,8 @@ export const exportTenantWorkbook = (tenantId) => runAsPlatform(async () => {
   sheet('Kuponlar', coupons);
   sheet('Özel Fiyatlar', specials);
   sheet('Gelir-Gider', cash);
+  sheet('Sevkiyatlar', shipments);
+  sheet('Bayi Hedefleri', targets);
   return { buffer: xlsx.write(wb, { type: 'buffer', bookType: 'xlsx' }), tenant };
 });
 
@@ -148,6 +152,8 @@ const purgeTenantRecords = (tenantId) => runAsPlatform(() => prisma.$transaction
   await tx.cashRecurring.deleteMany(w);
   await tx.transferNotice.deleteMany(w);
   await tx.warehouseStock.deleteMany(w);
+  await tx.orderShipment.deleteMany(w);
+  await tx.dealerTarget.deleteMany(w);
   await tx.orderItem.deleteMany(w);
   await tx.order.deleteMany(w);
   await tx.warehouse.deleteMany(w);

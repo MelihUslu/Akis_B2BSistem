@@ -7,8 +7,12 @@ import {
 } from '../services/pricingService.js';
 import { syncOptionsAndVariants, VariantError } from '../services/variantService.js';
 import { notifyRestocked, safeNotify } from '../services/notificationService.js';
+import { accessFor, visibleProductWhere, isVisibleTo, reservedQuantities } from '../services/catalogAccess.js';
 
 const isTrue = (v) => v === true || v === 'true';
+export const DEALER_GROUPS = ['STANDART', 'GOLD', 'VIP'];
+// Görünür bayi grupları: boş liste = tüm bayiler
+export const groupList = (v) => [...new Set((Array.isArray(v) ? v : []).map((g) => String(g).toUpperCase()))].filter((g) => DEALER_GROUPS.includes(g));
 
 const loadCompany = (req) =>
   req.user.companyId ? prisma.company.findUnique({ where: { id: req.user.companyId } }) : null;
@@ -16,10 +20,14 @@ const loadCompany = (req) =>
 const OPTIONS_INCLUDE = { options: { include: { values: { orderBy: { sortOrder: 'asc' } } }, orderBy: { sortOrder: 'asc' } } };
 
 // Bayi görünümü için ürünleri fiyatlandırır (özel fiyatlar dahil) ve kullanıcıya özel bayrakları ekler
-const presentForDealer = async (req, products, extraFor = () => ({})) => {
+// Bayinin grubunun göremediği ürünler elenir; gösterilen stok, onay bekleyen siparişlerde ayrılan miktar düşülmüş haldedir
+const presentForDealer = async (req, all, extraFor = () => ({})) => {
   const company = await loadCompany(req);
+  const access = await accessFor(prisma, company);
+  const products = all.filter((p) => isVisibleTo(p, access));
   const ids = products.flatMap(p => [p.id, p.parentId, ...(p.variants || []).map(v => v.id)]);
   const ctx = await buildPricingContext(company, await loadSpecialPrices(prisma, company, ids));
+  ctx.reserved = await reservedQuantities(prisma, products.flatMap(p => [p.id, ...(p.variants || []).map(v => v.id)]));
   const favorites = await prisma.favorite.findMany({ where: { userId: req.user.id, productId: { in: products.map(p => p.id) } }, select: { productId: true } });
   const favSet = new Set(favorites.map(f => f.productId));
   return {
@@ -85,6 +93,7 @@ export const getProducts = async (req, res) => {
 
     // Üst kategori seçilince alt kategorilerin ürünleri de gelir
     const categoryIds = categoryId ? await categoryWithDescendants(parseInt(categoryId)) : null;
+    const visibility = isAdmin ? {} : visibleProductWhere(await accessFor(prisma, await loadCompany(req)));
 
     const where = {
       isMaster: true,
@@ -100,7 +109,8 @@ export const getProducts = async (req, res) => {
           ]
         }] : []),
         // Yalnızca stoktakiler: varyantsız üründe kendi stoğu, varyantlıda en az bir aktif varyantın stoğu
-        ...(isTrue(req.query.inStock) ? [{ OR: [{ stock: { gt: 0 } }, { variants: { some: { isActive: true, stock: { gt: 0 } } } }] }] : [])
+        ...(isTrue(req.query.inStock) ? [{ OR: [{ stock: { gt: 0 } }, { variants: { some: { isActive: true, stock: { gt: 0 } } } }] }] : []),
+        ...(visibility.AND || [])
       ],
       ...(categoryIds && { categoryId: { in: categoryIds } }),
       ...(brand && { brand }),
@@ -139,7 +149,11 @@ export const getProducts = async (req, res) => {
 
     let data = products;
     let rules;
-    if (!isAdmin) {
+    if (isAdmin) {
+      // Yönetici listesinde onay bekleyen siparişlerde ayrılmış miktar da görünür
+      const reserved = await reservedQuantities(prisma, products.flatMap(p => [p.id, ...(p.variants || []).map(v => v.id)]));
+      data = products.map(p => ({ ...p, reserved: reserved.get(p.id) || 0, variants: p.variants?.map(v => ({ ...v, reserved: reserved.get(v.id) || 0 })) }));
+    } else {
       const alerts = await prisma.stockAlert.findMany({
         where: { userId: req.user.id, notifiedAt: null, productId: { in: products.map(p => p.id) } },
         select: { productId: true }
@@ -177,7 +191,7 @@ export const resolveSkus = async (req, res) => {
     });
 
     const { data: found } = await presentForDealer(req, products);
-    const matched = new Set(products.flatMap(p => [p.sku, p.barcode]).filter(Boolean));
+    const matched = new Set(found.flatMap(p => [p.sku, p.barcode]).filter(Boolean));
 
     res.json({ found, notFound: skus.filter(s => !matched.has(s)) });
   } catch (error) {
@@ -191,7 +205,7 @@ export const createProduct = async (req, res) => {
     const {
       name, sku, barcode, brand, price, costPrice, currency, vatRate,
       stock, unit, moq, stepQuantity, packUnit, packSize, shortDesc, longDesc, categoryId,
-      images, pdfUrl, videoUrl, variants, hidePrice, alternativeToId
+      images, pdfUrl, videoUrl, variants, hidePrice, alternativeToId, visibleGroups
     } = req.body;
 
     await assertWithinLimit(req.tenant, 'products');
@@ -218,7 +232,8 @@ export const createProduct = async (req, res) => {
         alternativeToId: alternativeToId ? parseInt(alternativeToId) : null,
         isMaster: true,
         isActive: true,
-        hidePrice: isTrue(hidePrice)
+        hidePrice: isTrue(hidePrice),
+        visibleGroups: groupList(visibleGroups)
       }
     });
 
@@ -253,7 +268,7 @@ const UPDATABLE = {
   pdfUrl: (v) => v || null, videoUrl: (v) => v || null,
   categoryId: (v) => (v ? parseInt(v) : null),
   alternativeToId: (v) => (v ? parseInt(v) : null),
-  hidePrice: isTrue, isActive: isTrue
+  hidePrice: isTrue, isActive: isTrue, visibleGroups: groupList
 };
 
 // Excel stok satırı: depo kodu verilmişse o deponun, yoksa toplam stoğun değeri
@@ -429,15 +444,16 @@ export const linkAlternative = async (req, res) => {
 
 export const getFilters = async (req, res) => {
   try {
+    const visibility = req.user.role === 'BAYI' ? visibleProductWhere(await accessFor(prisma, await loadCompany(req))) : {};
     const brands = await prisma.product.findMany({
       select: { brand: true },
       distinct: ['brand'],
-      where: { brand: { not: null }, isActive: true }
+      where: { brand: { not: null }, isActive: true, ...visibility }
     });
 
     // Varyant özellikleri (aynı adlı özellikler birleştirilir): [{ name, values: [...] }]
     const options = await prisma.productOption.findMany({
-      where: { product: { isActive: true, isMaster: true } },
+      where: { product: { isActive: true, isMaster: true, ...visibility } },
       include: { values: { where: { variants: { some: { variant: { isActive: true } } } }, orderBy: { sortOrder: 'asc' } } },
       orderBy: { sortOrder: 'asc' }
     });
@@ -528,12 +544,19 @@ export const replaceSpecialPrices = async (req, res) => {
       const minQty = parseInt(r.minQty) || 1;
       if (!Number.isFinite(price) || price < 0) throw new VariantError('Özel fiyat geçerli bir sayı olmalıdır.');
       if (minQty < 1) throw new VariantError('Minimum miktar en az 1 olmalıdır.');
+      // Tarihler gün olarak girilir: başlangıç günün başı, bitiş günün sonu (firma saatiyle)
+      const day = (v, end) => (/^\d{4}-\d{2}-\d{2}$/.test(String(v || '')) ? new Date(`${v}T${end ? '23:59:59.999' : '00:00:00'}`) : null);
+      const validFrom = day(r.validFrom, false);
+      const validUntil = day(r.validUntil, true);
+      if (validFrom && validUntil && validFrom > validUntil) throw new VariantError('Özel fiyatın bitiş tarihi başlangıçtan önce olamaz.');
       return {
         productId,
         companyId: r.companyId ? parseInt(r.companyId) : null,
         dealerGroup: !r.companyId && r.dealerGroup ? r.dealerGroup : null,
         minQty,
-        price
+        price,
+        validFrom,
+        validUntil
       };
     });
 

@@ -45,7 +45,7 @@ const QuoteLines = ({ lines, calc, canPrice, companyId, onChange, disabled }) =>
               <span className="mt-0.5 text-xs font-black text-gray-300 w-5 shrink-0">{idx + 1}</span>
               <div className="min-w-0 flex-1 space-y-1">
                 <div className="flex flex-wrap items-center gap-2">
-                  <span className={`px-2 py-0.5 rounded-md text-[10px] font-black uppercase ring-1 ${status.className}`}>{status.label}</span>
+                  <span className={`px-2 py-0.5 rounded-md text-[11px] font-black uppercase ring-1 ${status.className}`}>{status.label}</span>
                   {line.productId ? (
                     <span className="font-bold text-gray-900 break-words">{c.name || '…'}</span>
                   ) : (
@@ -92,7 +92,7 @@ const QuoteLines = ({ lines, calc, canPrice, companyId, onChange, disabled }) =>
                   <div className="relative">
                     <input type="number" min="0" step="1" disabled={disabled} className="premium-input !py-2 !pr-14" value={line.quantity}
                       onChange={(e) => update(line.key, { quantity: e.target.value === '' ? '' : Math.max(0, parseInt(e.target.value) || 0) })} />
-                    <span className="absolute right-3 top-1/2 -translate-y-1/2 text-[10px] font-bold text-gray-400">{c.unit}</span>
+                    <span className="absolute right-3 top-1/2 -translate-y-1/2 text-[11px] font-bold text-gray-400">{c.unit}</span>
                   </div>
                 </div>
                 <div>
@@ -105,7 +105,7 @@ const QuoteLines = ({ lines, calc, canPrice, companyId, onChange, disabled }) =>
                     <input type="number" min="0" max="100" step="0.5" className="premium-input !py-2 !pr-8" disabled={disabled || !canPrice || line.manualPrice}
                       title={!canPrice ? 'Teklifte iskonto yetkiniz yok' : undefined}
                       value={line.manualPrice ? (c.discountRate ?? 0) : line.discountRate} onChange={(e) => update(line.key, { discountRate: num(e.target.value) })} />
-                    <span className="absolute right-3 top-1/2 -translate-y-1/2 text-[10px] font-bold text-gray-400">%</span>
+                    <span className="absolute right-3 top-1/2 -translate-y-1/2 text-[11px] font-bold text-gray-400">%</span>
                   </div>
                 </div>
                 <div>
@@ -135,7 +135,7 @@ const QuoteLines = ({ lines, calc, canPrice, companyId, onChange, disabled }) =>
                 <div className="text-right col-span-2 sm:col-span-1">
                   <p className="premium-label">Tutar</p>
                   <p className="h-10 flex items-center justify-end text-base font-black text-gray-900">{formatTRY(c.lineTotal)}</p>
-                  {c.belowCost && <p className="text-[10px] font-black text-red-500 -mt-1">Maliyetin altında</p>}
+                  {c.belowCost && <p className="text-[11px] font-black text-red-500 -mt-1">Maliyetin altında</p>}
                 </div>
               </div>
             )}

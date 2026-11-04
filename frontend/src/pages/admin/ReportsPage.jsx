@@ -36,7 +36,7 @@ const Bar = ({ value, tone = 'bg-blue-500' }) => (
 const Table = ({ head, children, empty }) => (
   <div className="overflow-x-auto">
     <table className="w-full min-w-[40rem] text-left text-sm">
-      <thead className="list-head"><tr className="text-[10px] font-black uppercase tracking-[0.15em] whitespace-nowrap">{head.map((h, i) => <th key={h} className={`px-4 py-3 ${i > 0 && typeof h === 'string' && /Ciro|Miktar|Sipariş|Pay|Marj|Maliyet|Stok/.test(h) ? 'text-right' : ''}`}>{h}</th>)}</tr></thead>
+      <thead className="list-head"><tr className="text-[11px] font-black uppercase tracking-[0.15em] whitespace-nowrap">{head.map((h, i) => <th key={h} className={`px-4 py-3 ${i > 0 && typeof h === 'string' && /Ciro|Miktar|Sipariş|Pay|Marj|Maliyet|Stok/.test(h) ? 'text-right' : ''}`}>{h}</th>)}</tr></thead>
       <tbody className="divide-y divide-gray-100/70">
         {children}
         {empty && <tr><td colSpan={head.length} className="py-14 text-center text-sm text-gray-400">{empty}</td></tr>}
@@ -143,7 +143,7 @@ const SalesReport = () => {
               <tr key={p.id} className={zebra(i)}>
                 <td className="px-4 py-3">
                   <p className="font-bold text-gray-900">{p.name}</p>
-                  <span className="font-mono text-[10px] text-gray-500 bg-gray-100/80 px-1.5 py-0.5 rounded-md">{p.sku}</span>
+                  <span className="font-mono text-[11px] text-gray-500 bg-gray-100/80 px-1.5 py-0.5 rounded-md">{p.sku}</span>
                 </td>
                 <td className="px-4 py-3 text-xs text-gray-600">{p.category}</td>
                 <td className="px-4 py-3 text-right tabular-nums font-semibold">{p.quantity.toLocaleString('tr-TR')} <span className="text-gray-400 text-xs">{p.unit}</span></td>
@@ -189,7 +189,7 @@ const SalesReport = () => {
             <Table head={['Ürün', 'Kategori', 'Stok', 'Eklenme']} empty={!report?.unsold.length && 'Tüm ürünler satılmış. 🎉'}>
               {report?.unsold.map((p, i) => (
                 <tr key={p.id} className={zebra(i)}>
-                  <td className="px-4 py-3"><p className="font-bold text-gray-900">{p.name}</p><span className="font-mono text-[10px] text-gray-500">{p.sku}</span></td>
+                  <td className="px-4 py-3"><p className="font-bold text-gray-900">{p.name}</p><span className="font-mono text-[11px] text-gray-500">{p.sku}</span></td>
                   <td className="px-4 py-3 text-xs text-gray-600">{p.category}</td>
                   <td className="px-4 py-3 text-right tabular-nums font-semibold">{p.stock.toLocaleString('tr-TR')}</td>
                   <td className="px-4 py-3 text-xs text-gray-500">{formatDate(p.createdAt)}</td>

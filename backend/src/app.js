@@ -40,6 +40,9 @@ import teamRoutes from './routes/teamRoutes.js';
 import customerLeadRoutes from './routes/customerLeadRoutes.js';
 import cashRoutes from './routes/cashRoutes.js';
 import whatsappRoutes from './routes/whatsappRoutes.js';
+import plasiyerRoutes from './routes/plasiyerRoutes.js';
+import cartRoutes from './routes/cartRoutes.js';
+import targetRoutes from './routes/targetRoutes.js';
 import { verifyWebhook, receiveWebhook } from './controllers/whatsappController.js';
 import { submitLeadForm, getPublicForm } from './controllers/customerLeadController.js';
 import { integrationAdminRoutes, integrationApiRoutes } from './routes/integrationRoutes.js';
@@ -66,7 +69,7 @@ app.use(cors({
     if (isAllowedOrigin(origin)) return cb(null, true);
     try { cb(null, Boolean(await loadTenantByHost(new URL(origin).hostname))); } catch { cb(null, false); }
   },
-  allowedHeaders: ['Content-Type', 'Authorization', 'X-Tenant', 'X-Tenant-Host', 'X-Lang']
+  allowedHeaders: ['Content-Type', 'Authorization', 'X-Tenant', 'X-Tenant-Host', 'X-Lang', 'X-Act-As-Company'] // X-Act-As-Company: bayi adına işlem (authMiddleware)
 }));
 app.use(requestMetrics); // Platform → İzleme: uç bazında istek sayısı, süre, hata oranı
 // WhatsApp webhook imzası ham gövde üzerinden doğrulanır
@@ -127,6 +130,9 @@ tenantApi.use('/warehouses', warehouseRoutes);
 tenantApi.use('/customer-leads', customerLeadRoutes);
 tenantApi.use('/cash', cashRoutes);
 tenantApi.use('/whatsapp', whatsappRoutes);
+tenantApi.use('/plasiyer', plasiyerRoutes);
+tenantApi.use('/cart', cartRoutes);
+tenantApi.use('/targets', targetRoutes);
 tenantApi.get('/search', verifyToken, checkRole(['ADMIN']), globalSearch);
 tenantApi.post('/dealer-applications', rateLimit({ windowMs: 60 * 60 * 1000, max: 5, message: 'Çok fazla başvuru denemesi. Lütfen daha sonra tekrar deneyin.' }), applyAsDealer);
 // Reklamdan gelen kişinin doldurduğu talep formu (oturum gerektirmez)

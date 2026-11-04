@@ -36,7 +36,7 @@ const OrderTimeline = ({ order, compact = false }) => {
             </div>
             <div>
               <p className={`text-xs font-black ${step.done ? 'text-gray-900' : 'text-gray-300'}`}>{t(step.label)}</p>
-              {!compact && step.done && step.date && <p className="text-[10px] font-bold text-gray-400 mt-1">{formatDate(step.date, true)}</p>}
+              {!compact && step.done && step.date && <p className="text-[11px] font-bold text-gray-400 mt-1">{formatDate(step.date, true)}</p>}
             </div>
           </div>
           {!compact && i < steps.length - 1 && (

@@ -1,4 +1,5 @@
 import { useState, useEffect } from 'react';
+import GroupVisibility from '../../components/admin/GroupVisibility';
 import api, { errorMessage } from '../../services/api';
 import useAlert from '../../hooks/useAlert';
 import VariantEditor from '../../components/admin/VariantEditor';
@@ -122,7 +123,7 @@ const SortableProductRow = ({ product, settings, onEdit, onView, onDelete }) => 
       : { pill: 'bg-emerald-50 text-emerald-700 ring-emerald-100', dot: 'bg-emerald-500', label: 'Stokta' };
 
   return (
-    <tr ref={setNodeRef} style={style} className={`group transition-colors hover:bg-slate-50/80 hover:shadow-[inset_3px_0_0_0_#3b82f6] ${product.isActive === false ? 'opacity-60' : ''}`}>
+    <tr ref={setNodeRef} style={style} className={`group transition-colors hover:bg-slate-50/80 hover:shadow-[inset_3px_0_0_0_var(--color-brand-500)] ${product.isActive === false ? 'opacity-60' : ''}`}>
       <td className="px-10 py-6">
         <div className="flex items-center space-x-5">
           <div {...attributes} {...listeners} title="Sürükleyerek sırala" className="p-1.5 -ml-1.5 rounded-lg text-gray-200 group-hover:text-gray-400 hover:text-gray-600! hover:bg-gray-100 cursor-grab active:cursor-grabbing transition-colors">
@@ -134,13 +135,13 @@ const SortableProductRow = ({ product, settings, onEdit, onView, onDelete }) => 
           <div className="min-w-0">
             <div className="flex items-center gap-2 flex-wrap">
               <span className="font-bold text-gray-900 text-[15px] leading-snug tracking-tight group-hover:text-brand-700 transition-colors">{product.name}</span>
-              {product.isActive === false && <span className="px-2 py-0.5 rounded-md bg-gray-100 text-gray-500 text-[9px] font-black uppercase tracking-wider">Pasif</span>}
+              {product.isActive === false && <span className="px-2 py-0.5 rounded-md bg-gray-100 text-gray-500 text-[10px] font-black uppercase tracking-wider">Pasif</span>}
             </div>
             <div className="flex items-center gap-2 mt-1.5 flex-wrap">
-              <span className="font-mono text-[10px] font-semibold text-gray-500 bg-gray-100/80 px-1.5 py-0.5 rounded-md">{product.sku}</span>
+              <span className="font-mono text-[11px] font-semibold text-gray-500 bg-gray-100/80 px-1.5 py-0.5 rounded-md">{product.sku}</span>
               {product.brand && <span className="text-[11px] font-semibold text-gray-400">{product.brand}</span>}
               {variantCount > 0 && (
-                <span className="inline-flex items-center gap-1 text-[10px] font-bold text-violet-600 bg-violet-50 px-1.5 py-0.5 rounded-md">
+                <span className="inline-flex items-center gap-1 text-[11px] font-bold text-violet-600 bg-violet-50 px-1.5 py-0.5 rounded-md">
                   <Layers className="h-3 w-3" /> {variantCount} varyant
                 </span>
               )}
@@ -158,9 +159,9 @@ const SortableProductRow = ({ product, settings, onEdit, onView, onDelete }) => 
       <td className="px-10 py-6">
         <div className="flex items-baseline gap-1 tabular-nums">
           <span className="text-[15px] font-black text-gray-900">{product.price.toLocaleString('tr-TR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span>
-          <span className="text-[10px] font-bold text-gray-400">{product.currency}</span>
+          <span className="text-[11px] font-bold text-gray-400">{product.currency}</span>
         </div>
-        <span className={`inline-flex items-center gap-1 mt-1.5 text-[10px] font-bold ${hidden ? 'text-red-500' : 'text-emerald-600'}`}>
+        <span className={`inline-flex items-center gap-1 mt-1.5 text-[11px] font-bold ${hidden ? 'text-red-500' : 'text-emerald-600'}`}>
           {hidden ? <EyeOff className="h-3 w-3" /> : <Eye className="h-3 w-3" />}
           {product.hidePrice ? 'Ürüne özel gizli' : settings.global_hide_price === 'true' ? 'Genel ayarla gizli' : 'Bayiye açık'}
         </span>
@@ -170,6 +171,8 @@ const SortableProductRow = ({ product, settings, onEdit, onView, onDelete }) => 
           <span className={`h-1.5 w-1.5 rounded-full ${stockTone.dot}`} />
           {stock.toLocaleString('tr-TR')} {product.unit}
         </span>
+        {product.reserved > 0 && <span className="block mt-1 text-[11px] font-bold text-orange-600" title="Onay bekleyen siparişlerde ayrılan miktar; bayiye stoktan düşülmüş gösterilir">{product.reserved} ayrıldı (onay bekliyor)</span>}
+        {product.visibleGroups?.length > 0 && <span className="block mt-1 text-[11px] font-bold text-violet-600">Yalnızca {product.visibleGroups.join(', ')}</span>}
       </td>
       <td className="px-10 py-6 text-right">
         <div className="inline-flex items-center gap-1 p-1 rounded-xl bg-white ring-1 ring-gray-100 shadow-sm">
@@ -226,7 +229,7 @@ const ProductManagement = () => {
     stock: 0, unit: 'Adet', moq: 1, stepQuantity: 1,
     shortDesc: '', longDesc: '', categoryId: '',
     images: [], pdfUrl: '', videoUrl: '',
-    options: [], variants: [], hidePrice: false
+    options: [], variants: [], hidePrice: false, visibleGroups: []
   });
 
   // Kayıttan sonra da çağrılır; liste yerinde güncellenir (tablo "yükleniyor"a dönüp yanıp sönmez)
@@ -329,7 +332,7 @@ const ProductManagement = () => {
         stock: 0, unit: 'Adet', moq: 1, stepQuantity: 1,
         shortDesc: '', longDesc: '', categoryId: '',
         images: [], pdfUrl: '', videoUrl: '',
-        options: [], variants: [], hidePrice: false
+        options: [], variants: [], hidePrice: false, visibleGroups: []
       });
       await fetchInitialData();
     } catch (error) {
@@ -354,6 +357,7 @@ const ProductManagement = () => {
     ...p,
     images: JSON.parse(p.images || '[]'),
     hidePrice: p.hidePrice || false,
+    visibleGroups: p.visibleGroups || [],
     costPrice: p.costPrice ?? '',
     barcode: p.barcode || '', brand: p.brand || '', shortDesc: p.shortDesc || '',
     pdfUrl: p.pdfUrl || '', videoUrl: p.videoUrl || '',
@@ -384,7 +388,7 @@ const ProductManagement = () => {
                 {settings.global_hide_price === 'true' ? <EyeOff className="h-4 w-4" /> : <DollarSign className="h-4 w-4" />}
              </div>
              <div className="whitespace-nowrap">
-                <p className="text-[9px] font-black text-gray-400 uppercase tracking-widest leading-none mb-1">Fiyatlar</p>
+                <p className="text-[10px] font-black text-gray-400 uppercase tracking-widest leading-none mb-1">Fiyatlar</p>
                 <p className="text-xs font-bold text-gray-700 leading-none">{settings.global_hide_price === 'true' ? 'Bayiye gizli' : 'Bayiye açık'}</p>
              </div>
              <button 
@@ -420,11 +424,11 @@ const ProductManagement = () => {
               stock: 0, unit: 'Adet', moq: 1, stepQuantity: 1,
               shortDesc: '', longDesc: '', categoryId: '',
               images: [], pdfUrl: '', videoUrl: '',
-              options: [], variants: [], hidePrice: false
+              options: [], variants: [], hidePrice: false, visibleGroups: []
             }); setActiveTab('general'); setTriedSave(false); setIsDrawerOpen(true); }}
             className="btn-gradient h-12 px-5 py-0 whitespace-nowrap shrink-0"
           >
-            <Plus className="mr-1.5 h-4 w-4" /> YENİ ÜRÜN
+            <Plus className="mr-1.5 h-4 w-4" /> Yeni ürün
           </button>
         </div>
       </div>
@@ -439,11 +443,11 @@ const ProductManagement = () => {
           <table className="w-full min-w-[52rem] text-left">
             <thead className="list-head">
               <tr>
-                <th className="px-10 py-4 text-[10px] font-black text-gray-500 uppercase tracking-[0.15em] whitespace-nowrap">Ürün Detayı</th>
-                <th className="px-10 py-4 text-[10px] font-black text-gray-500 uppercase tracking-[0.15em] whitespace-nowrap">Kategori</th>
-                <th className="px-10 py-4 text-[10px] font-black text-gray-500 uppercase tracking-[0.15em] whitespace-nowrap">Fiyat Durumu</th>
-                <th className="px-10 py-4 text-[10px] font-black text-gray-500 uppercase tracking-[0.15em] whitespace-nowrap">Stok</th>
-                <th className="px-10 py-4 text-[10px] font-black text-gray-500 uppercase tracking-[0.15em] whitespace-nowrap text-right">İşlem</th>
+                <th className="px-10 py-4 text-[11px] font-black text-gray-500 uppercase tracking-[0.15em] whitespace-nowrap">Ürün Detayı</th>
+                <th className="px-10 py-4 text-[11px] font-black text-gray-500 uppercase tracking-[0.15em] whitespace-nowrap">Kategori</th>
+                <th className="px-10 py-4 text-[11px] font-black text-gray-500 uppercase tracking-[0.15em] whitespace-nowrap">Fiyat Durumu</th>
+                <th className="px-10 py-4 text-[11px] font-black text-gray-500 uppercase tracking-[0.15em] whitespace-nowrap">Stok</th>
+                <th className="px-10 py-4 text-[11px] font-black text-gray-500 uppercase tracking-[0.15em] whitespace-nowrap text-right">İşlem</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-gray-100/70">
@@ -529,8 +533,8 @@ const ProductManagement = () => {
               <div className="relative aspect-square rounded-2xl bg-white ring-1 ring-gray-100 shadow-sm overflow-hidden flex items-center justify-center">
                 {mainImage ? <img src={mainImage} alt={p.name} className="w-full h-full object-contain" /> : <Package className="h-20 w-20 text-gray-200" />}
                 <div className="absolute top-3 left-3 flex gap-1.5">
-                  {p.isActive === false && <span className="px-2 py-1 rounded-lg bg-gray-900/80 text-white text-[10px] font-bold backdrop-blur">Pasif</span>}
-                  {hidden && <span className="px-2 py-1 rounded-lg bg-red-500/90 text-white text-[10px] font-bold backdrop-blur flex items-center gap-1"><EyeOff className="h-3 w-3" /> Fiyat gizli</span>}
+                  {p.isActive === false && <span className="px-2 py-1 rounded-lg bg-gray-900/80 text-white text-[11px] font-bold backdrop-blur">Pasif</span>}
+                  {hidden && <span className="px-2 py-1 rounded-lg bg-red-500/90 text-white text-[11px] font-bold backdrop-blur flex items-center gap-1"><EyeOff className="h-3 w-3" /> Fiyat gizli</span>}
                 </div>
               </div>
               {images.length > 1 && (
@@ -584,7 +588,7 @@ const ProductManagement = () => {
                 <div className="grid grid-cols-2 sm:grid-cols-4 gap-2.5">
                   {tiles.map((t) => (
                     <div key={t.label} className="rounded-xl ring-1 ring-gray-100 p-3">
-                      <p className="flex items-center gap-1 text-[10px] font-bold text-gray-400 uppercase tracking-wider"><t.icon className="h-3 w-3" /> {t.label}</p>
+                      <p className="flex items-center gap-1 text-[11px] font-bold text-gray-400 uppercase tracking-wider"><t.icon className="h-3 w-3" /> {t.label}</p>
                       <p className={`text-sm font-black mt-1 tabular-nums ${t.tone || 'text-gray-900'}`}>{t.value}</p>
                     </div>
                   ))}
@@ -595,7 +599,7 @@ const ProductManagement = () => {
                     <h4 className="text-sm font-black text-gray-900 mb-2">Varyantlar</h4>
                     <div className="rounded-xl ring-1 ring-gray-100 overflow-hidden">
                       <table className="w-full text-sm">
-                        <thead className="bg-gray-50 text-[10px] font-black text-gray-500 uppercase tracking-wider">
+                        <thead className="bg-gray-50 text-[11px] font-black text-gray-500 uppercase tracking-wider">
                           <tr><th className="text-left px-3 py-2">Seçenek</th><th className="text-left px-3 py-2">SKU</th><th className="text-right px-3 py-2">Fiyat</th><th className="text-right px-3 py-2">Stok</th></tr>
                         </thead>
                         <tbody className="divide-y divide-gray-100">
@@ -620,9 +624,9 @@ const ProductManagement = () => {
               </div>
 
               <div className="modal-footer items-center">
-                <button onClick={() => setIsViewOpen(false)} className="btn-secondary px-6">KAPAT</button>
+                <button onClick={() => setIsViewOpen(false)} className="btn-secondary px-6">Kapat</button>
                 <button onClick={() => { setIsViewOpen(false); setFormData(productToForm(p)); loadWarehouseStocks(p.id); setActiveTab('general'); setTriedSave(false); setIsDrawerOpen(true); }} className="btn-gradient h-12 py-0 flex-1">
-                  <Edit3 className="h-4 w-4 mr-2" /> DÜZENLE
+                  <Edit3 className="h-4 w-4 mr-2" /> Düzenle
                 </button>
               </div>
             </div>
@@ -708,6 +712,10 @@ const ProductManagement = () => {
                     </Field>
                   </Section>
 
+                  <Section icon={Eye} title="Kimler görsün?" description="Ürünü yalnızca belirli bayi gruplarına açabilirsiniz (ör. yalnızca VIP bayiler). Kategoriye verilen kısıt da geçerlidir." color="violet">
+                    <GroupVisibility value={formData.visibleGroups || []} onChange={(visibleGroups) => setFormData({ ...formData, visibleGroups })} />
+                  </Section>
+
                   <Section icon={BoxSelect} title="Satış Kuralları" description="Bayinin hangi birimle ve kaçar kaçar sipariş verebileceği." color="violet">
                     <Field label="Satış Birimi">
                       <Segmented size="sm" value={formData.unit} onChange={(v) => setFormData({ ...formData, unit: v })}
@@ -758,11 +766,11 @@ const ProductManagement = () => {
                     </div>
                     <div className="grid grid-cols-2 gap-3">
                       <div className="rounded-xl bg-gray-50 p-3.5">
-                        <p className="text-[10px] font-bold text-gray-400 uppercase tracking-wider">KDV dahil</p>
+                        <p className="text-[11px] font-bold text-gray-400 uppercase tracking-wider">KDV dahil</p>
                         <p className="text-lg font-black text-gray-900 tabular-nums">{fmt(price * (1 + Number(formData.vatRate || 0) / 100))} {symbol}</p>
                       </div>
                       <div className="rounded-xl bg-gray-50 p-3.5">
-                        <p className="text-[10px] font-bold text-gray-400 uppercase tracking-wider">Kâr marjı</p>
+                        <p className="text-[11px] font-bold text-gray-400 uppercase tracking-wider">Kâr marjı</p>
                         <p className={`text-lg font-black tabular-nums ${cost && price ? (price > cost ? 'text-emerald-600' : 'text-red-500') : 'text-gray-300'}`}>
                           {cost && price ? `%${(((price - cost) / price) * 100).toFixed(1)} · ${fmt(price - cost)} ${symbol}` : '—'}
                         </p>
@@ -779,7 +787,7 @@ const ProductManagement = () => {
                         {warehouses.map((w) => (
                           <div key={w.id} className="flex items-center gap-3">
                             <span className="w-40 text-sm font-semibold text-gray-700 flex items-center gap-2 truncate">
-                              <span className="font-mono text-[10px] font-black text-brand-700 bg-brand-50 px-1.5 py-0.5 rounded">{w.code}</span> {w.name}
+                              <span className="font-mono text-[11px] font-black text-brand-700 bg-brand-50 px-1.5 py-0.5 rounded">{w.code}</span> {w.name}
                             </span>
                             <div className="w-40"><IconInput type="number" icon={Boxes} suffix={formData.unit} value={formData.warehouseStocks?.[w.id] ?? 0}
                               onChange={(e) => setFormData({ ...formData, warehouseStocks: { ...(formData.warehouseStocks || {}), [w.id]: e.target.value } })} /></div>
@@ -827,7 +835,7 @@ const ProductManagement = () => {
                       {formData.images.map((img, i) => (
                         <div key={i} className="relative group aspect-square rounded-xl overflow-hidden ring-1 ring-gray-100 bg-gray-50">
                           <img src={img} alt="" className="w-full h-full object-cover" />
-                          {i === 0 && <span className="absolute top-2 left-2 px-2 py-0.5 rounded-md bg-brand-600 text-white text-[10px] font-bold shadow">Kapak</span>}
+                          {i === 0 && <span className="absolute top-2 left-2 px-2 py-0.5 rounded-md bg-brand-600 text-white text-[11px] font-bold shadow">Kapak</span>}
                           <div className="absolute inset-x-0 bottom-0 p-2 flex justify-end gap-1 bg-gradient-to-t from-black/50 to-transparent opacity-0 group-hover:opacity-100 transition-opacity">
                             {i > 0 && (
                               <button type="button" title="Kapak yap" onClick={() => setFormData({ ...formData, images: [img, ...formData.images.filter((_, idx) => idx !== i)] })}
@@ -841,7 +849,7 @@ const ProductManagement = () => {
                       <label className="aspect-square rounded-xl border-2 border-dashed border-gray-200 flex flex-col items-center justify-center gap-1.5 cursor-pointer text-gray-400 hover:border-brand-400 hover:bg-brand-50/50 hover:text-brand-600 transition-all">
                         <UploadCloud className="h-7 w-7" />
                         <span className="text-xs font-bold">Görsel yükle</span>
-                        <span className="text-[10px]">PNG, JPG, WEBP</span>
+                        <span className="text-[11px]">PNG, JPG, WEBP</span>
                         <input type="file" className="hidden" onChange={handleImageUpload} accept="image/*" />
                       </label>
                     </div>
@@ -863,7 +871,7 @@ const ProductManagement = () => {
             <div className="modal-footer items-center">
               <p className="hidden md:block text-[11px] text-gray-400 mr-auto"><span className="text-red-500">*</span> zorunlu alanlar</p>
               <button type="button" onClick={() => (stepIndex > 0 ? setActiveTab(steps[stepIndex - 1].id) : setIsDrawerOpen(false))} className="btn-secondary px-5">
-                {stepIndex > 0 ? <><ChevronLeft className="h-4 w-4 mr-1" /> GERİ</> : 'VAZGEÇ'}
+                {stepIndex > 0 ? <><ChevronLeft className="h-4 w-4 mr-1" /> Geri</> : 'Vazgeç'}
               </button>
               {!selectedProduct && stepIndex < steps.length - 1 && (
                 <button type="button" onClick={() => setActiveTab(steps[stepIndex + 1].id)} className="btn-secondary px-5">
@@ -871,7 +879,7 @@ const ProductManagement = () => {
                 </button>
               )}
               <button onClick={handleSubmit} className="btn-gradient h-12 py-0 px-8">
-                <Save className="h-4 w-4 mr-2" /> {selectedProduct ? 'KAYDET' : 'ÜRÜNÜ OLUŞTUR'}
+                <Save className="h-4 w-4 mr-2" /> {selectedProduct ? 'Kaydet' : 'Ürünü oluştur'}
               </button>
             </div>
           </div>

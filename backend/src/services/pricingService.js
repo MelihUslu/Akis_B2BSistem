@@ -1,5 +1,6 @@
 import { getExchangeRates, toTRY } from './exchangeRateService.js';
 import { getSettingsMap, num } from './settingsService.js';
+import { accessFor, isVisibleTo, reservedQuantities } from './catalogAccess.js';
 
 // Kuruşa yuvarlama (yarım yukarı). Kayan nokta hatası (81.2249999… gibi) önce 15 anlamlı basamakta temizlenir.
 const round2 = (n) => Math.round(Number((Number(n) * 100).toPrecision(15))) / 100;
@@ -54,12 +55,18 @@ export const loadSpecialPrices = async (prisma, company, productIds) => {
   const map = new Map();
   if (ids.length === 0) return map;
 
+  const now = new Date();
   const rows = await prisma.specialPrice.findMany({
     where: {
       productId: { in: ids },
       OR: [
         ...(company ? [{ companyId: company.id }, { dealerGroup: company.dealerGroup, companyId: null }] : []),
         { companyId: null, dealerGroup: null }
+      ],
+      // Süreli fiyat: başlangıcı gelmemiş ya da bitişi geçmiş olan uygulanmaz
+      AND: [
+        { OR: [{ validFrom: null }, { validFrom: { lte: now } }] },
+        { OR: [{ validUntil: null }, { validUntil: { gte: now } }] }
       ]
     }
   });
@@ -84,8 +91,28 @@ export const buildPricingContext = async (company, specialPrices = new Map()) =>
     qtyThreshold: num(settings.qty_discount_threshold, 0),
     qtyRate: num(settings.qty_discount_rate, 0),
     globalHide: settings.global_hide_price === 'true',
-    specialPrices
+    shipping: shippingRule(settings),
+    specialPrices,
+    reserved: new Map() // onay bekleyen siparişlerde ayrılmış miktarlar (presentForDealer doldurur)
   };
+};
+
+// Kargo ücreti kuralı: fee (KDV hariç TL), freeOver (bu KDV hariç tutar ve üstü ücretsiz; 0 = eşik yok)
+export const SHIPPING_VAT_RATE = 20;
+export const shippingRule = (settings) => ({ fee: Math.max(0, num(settings.shipping_fee, 0)), freeOver: Math.max(0, num(settings.shipping_free_over, 0)) });
+
+/** Sipariş için kargo ücreti (KDV hariç). Gel-Al'da ve ücretsiz kargo eşiğinin üstünde 0. */
+export const shippingFeeFor = (rule, netSubtotal, delivery = 'SHIPPING') => {
+  if (delivery === 'PICKUP' || !rule || !(rule.fee > 0)) return 0;
+  if (rule.freeOver > 0 && netSubtotal >= rule.freeOver) return 0;
+  return round2(rule.fee);
+};
+
+/** Toplamlara kargo ücretini ekler (KDV dahil toplam ve KDV tutarı kargonun KDV'siyle artar). */
+export const withShipping = (totals, fee) => {
+  const shippingFee = round2(fee || 0);
+  const shippingVat = round2(shippingFee * SHIPPING_VAT_RATE / 100);
+  return { ...totals, shippingFee, shippingVat, vatAmount: round2(totals.vatAmount + shippingVat), total: round2(totals.total + shippingFee + shippingVat) };
 };
 
 // KDV hariç, TL cinsinden, bayi iskontoları uygulanmış birim fiyat (miktar indirimi hariç).
@@ -130,7 +157,8 @@ export const presentProductForDealer = (raw, ctx, extra = {}, parent = null) => 
   const listTRY = toTRY(p.price, p.currency, ctx.rates);
   const rateMissing = listTRY === null;
   const hidden = ctx.globalHide || p.hidePrice || rateMissing;
-  const { costPrice, stock, variantValues, options, ...rest } = p;
+  const { costPrice, stock: rawStock, variantValues, options, ...rest } = p;
+  const stock = rawStock - (ctx.reserved?.get(raw.id) || 0);
   const startQty = Math.max(1, p.moq || 1);
   const price = hidden ? null : unitPriceFor(p, startQty, ctx);
 
@@ -217,15 +245,22 @@ export const loadOrderableProducts = async (prisma, ids) => {
  * Sepet tutarını sunucu tarafında hesaplar ve kuralları doğrular.
  * items: [{ productId, quantity }] — istemciden gelen fiyat asla kullanılmaz.
  */
-export const quoteCart = async (prisma, company, items, { couponCode } = {}) => {
+export const quoteCart = async (prisma, company, items, { couponCode, delivery = 'SHIPPING' } = {}) => {
   if (!Array.isArray(items) || items.length === 0) {
-    return { errors: ['Sepetiniz boş.'], lines: [], subtotal: 0, discountAmount: 0, vatAmount: 0, total: 0 };
+    return { errors: ['Sepetiniz boş.'], lines: [], subtotal: 0, discountAmount: 0, vatAmount: 0, total: 0, shippingFee: 0, shippingVat: 0 };
   }
 
   const ids = [...new Set(items.map(i => parseInt(i.productId)).filter(Boolean))];
   const byId = await loadOrderableProducts(prisma, ids);
-  const specialPrices = await loadSpecialPrices(prisma, company, [...ids, ...[...byId.values()].map(p => p.parentId)]);
+  const [specialPrices, access, reserved] = await Promise.all([
+    loadSpecialPrices(prisma, company, [...ids, ...[...byId.values()].map(p => p.parentId)]),
+    accessFor(prisma, company),
+    reservedQuantities(prisma, ids)
+  ]);
   const ctx = await buildPricingContext(company, specialPrices);
+  // Aynı ürün sepette birden fazla satırda olabilir: stok kontrolü toplam miktarla yapılır
+  const wanted = new Map();
+  for (const i of items) wanted.set(parseInt(i.productId), (wanted.get(parseInt(i.productId)) || 0) + (parseInt(i.quantity) || 0));
 
   const errors = [];
   const lines = [];
@@ -236,7 +271,7 @@ export const quoteCart = async (prisma, company, items, { couponCode } = {}) => 
     const product = raw && effectiveProduct(raw, raw.parent);
     const displayName = raw?.parent ? raw.parent.name : raw?.name;
 
-    if (!product || !product.isActive) {
+    if (!product || !product.isActive || !isVisibleTo(raw, access)) {
       errors.push(`Ürün bulunamadı veya satışa kapalı (ID: ${item.productId}).`);
       continue;
     }
@@ -257,6 +292,13 @@ export const quoteCart = async (prisma, company, items, { couponCode } = {}) => 
     }
     if ((product.stepQuantity || 1) > 1 && quantity % product.stepQuantity !== 0) {
       errors.push(`${displayName}: Sipariş miktarı ${product.stepQuantity}'in katları olmalıdır.`);
+    }
+    // Stok: onay bekleyen siparişlerde ayrılmış miktar düşülür (aynı son ürünleri iki bayi birden alamasın)
+    const available = Math.max(0, raw.stock - (reserved.get(raw.id) || 0));
+    if (wanted.get(raw.id) > available) {
+      errors.push(available > 0
+        ? `${displayName}${raw.parent ? ` (${variantLabelOf(raw) || raw.sku})` : ''}: stokta ${available} ${product.unit} var.`
+        : `${displayName}: stokta yok.`);
     }
 
     const price = unitPriceFor(product, quantity, ctx);
@@ -290,7 +332,8 @@ export const quoteCart = async (prisma, company, items, { couponCode } = {}) => 
     if (result.error) errors.push(result.error);
     else coupon = result.coupon;
   }
-  const totals = computeTotals(lines, coupon);
+  const itemTotals = computeTotals(lines, coupon);
+  const totals = withShipping(itemTotals, shippingFeeFor(ctx.shipping, itemTotals.subtotal - itemTotals.discountAmount, delivery));
 
   if (company?.minOrderAmount > 0 && totals.subtotal < company.minOrderAmount) {
     errors.push(`Minimum sipariş tutarı ₺${company.minOrderAmount.toLocaleString('tr-TR')} (KDV hariç). Sepetiniz: ₺${totals.subtotal.toLocaleString('tr-TR')}.`);
@@ -302,7 +345,7 @@ export const quoteCart = async (prisma, company, items, { couponCode } = {}) => 
     coupon: coupon && { code: coupon.code, type: coupon.type, value: coupon.value, description: coupon.description },
     couponRecord: coupon,
     errors,
-    rules: { qtyThreshold: ctx.qtyThreshold, qtyRate: ctx.qtyRate },
+    rules: { qtyThreshold: ctx.qtyThreshold, qtyRate: ctx.qtyRate, shipping: ctx.shipping },
     rates: ctx.rates // sipariş anındaki kurlar (dövizli cariye bu kurla yazılır)
   };
 };

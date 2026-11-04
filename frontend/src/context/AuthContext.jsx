@@ -1,6 +1,7 @@
 import { createContext, useContext, useState, useEffect } from 'react';
 import api from '../services/api';
 import { disablePushOnLogout } from '../utils/push';
+import { stopActing } from '../utils/acting';
 
 const AuthContext = createContext();
 
@@ -80,6 +81,7 @@ export const AuthProvider = ({ children }) => {
     disablePushOnLogout(); // token'ı hemen okur; abonelik arkada silinir
     localStorage.removeItem('akis_token');
     localStorage.removeItem('akis_user');
+    stopActing();
     setUser(null);
   };
 

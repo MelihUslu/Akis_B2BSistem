@@ -107,7 +107,7 @@ const build = () => ({
         tags: ['Siparişler'], summary: 'Kargoya verildi / teslim edildi',
         description: 'Onay ve iptal yalnızca panelden yapılır. Bayiye bildirim ve order.updated webhook\'u gider; firma ayarlıysa fatura otomatik kesilir.',
         parameters: [{ name: 'id', in: 'path', required: true, schema: { type: 'integer' } }],
-        requestBody: { required: true, ...json({ type: 'object', required: ['status'], properties: { status: { type: 'string', enum: ['SHIPPED', 'READY_FOR_PICKUP', 'COMPLETED'], description: 'Kargo siparişinde SHIPPED/COMPLETED; Gel-Al (deliveryMethod=PICKUP) siparişinde READY_FOR_PICKUP/COMPLETED' }, trackingNumber: { type: 'string' }, cargoCompany: { type: 'string', enum: ['YURTICI', 'ARAS', 'MNG', 'SURAT', 'PTT', 'UPS', 'DHL', 'DIGER'] } } }, { status: 'SHIPPED', trackingNumber: '1234567890', cargoCompany: 'ARAS' }) },
+        requestBody: { required: true, ...json({ type: 'object', properties: { status: { type: 'string', enum: ['SHIPPED', 'READY_FOR_PICKUP', 'COMPLETED'], description: 'Kargo siparişinde SHIPPED/COMPLETED; Gel-Al (deliveryMethod=PICKUP) siparişinde READY_FOR_PICKUP/COMPLETED. Yalnızca irsaliye numarası gönderiliyorsa verilmez.' }, trackingNumber: { type: 'string' }, cargoCompany: { type: 'string', enum: ['YURTICI', 'ARAS', 'MNG', 'SURAT', 'PTT', 'UPS', 'DHL', 'DIGER'] }, despatchNumber: { type: 'string', description: 'İrsaliye numarası (boş gönderilirse kaldırılır)' }, despatchDate: { type: 'string', format: 'date' } } }, { status: 'SHIPPED', trackingNumber: '1234567890', cargoCompany: 'ARAS', despatchNumber: 'IRS2026000042' }) },
         responses: { 200: { description: 'Tamam', ...json({ type: 'object', properties: { ok: { type: 'boolean' }, status: { type: 'string' } } }) }, 409: { description: 'Sipariş bu işlem için uygun durumda değil' }, ...errors }
       }
     },
@@ -154,6 +154,11 @@ const build = () => ({
           paymentMethod: { type: 'string', enum: ['CURRENT_ACCOUNT', 'WIRE_TRANSFER'] },
           subtotal: { type: 'number' }, discountAmount: { type: 'number' }, vatAmount: { type: 'number' }, total: { type: 'number', description: 'KDV dahil' },
           couponCode: { type: ['string', 'null'] }, dueDate: { type: ['string', 'null'] }, cargoCompany: { type: ['string', 'null'] }, trackingNumber: { type: ['string', 'null'] },
+          shippingFee: { type: 'number', description: 'Kargo ücreti (KDV hariç; toplam tutara dahil)' },
+          note: { type: ['string', 'null'], description: 'Bayinin sipariş notu' }, customerRef: { type: ['string', 'null'], description: 'Bayinin kendi sipariş / satın alma numarası' },
+          channel: { type: 'string', enum: ['PORTAL', 'STAFF', 'PLASIYER', 'QUOTE'], description: 'Siparişi kim girdi: bayi, yönetici (bayi adına), plasiyer (bayi adına), tekliften' },
+          despatchNumber: { type: ['string', 'null'] }, despatchDate: { type: ['string', 'null'] },
+          shipments: { type: 'array', description: 'Kısmi sevkiyatlar', items: { type: 'object', properties: { trackingNumber: { type: ['string', 'null'] }, cargoCompany: { type: ['string', 'null'] }, items: { type: 'array', items: { type: 'object', properties: { orderItemId: { type: 'integer' }, quantity: { type: 'integer' } } } }, createdAt: { type: 'string' } } } },
           company: { type: 'object', properties: { id: { type: 'integer' }, externalCode: { type: ['string', 'null'] }, name: { type: 'string' }, taxNumber: { type: ['string', 'null'] }, taxOffice: { type: ['string', 'null'] } } },
           shippingAddress: ref('Address'),
           deliveryMethod: { type: 'string', enum: ['SHIPPING', 'PICKUP'], description: 'PICKUP: Gel-Al, bayi siparişi depodan teslim alır (shippingAddress boştur)' },

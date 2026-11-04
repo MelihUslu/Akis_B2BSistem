@@ -33,12 +33,12 @@ const ProductRow = ({ product, onAdd, onOpen, extra }) => {
         {product.requiresVariant ? null : product.priceHidden
           ? <p className="text-xs font-bold text-gray-400">{t('Teklif')}</p>
           : <p className="text-sm font-black text-gray-900">{formatTRY(product.netPrice)}</p>}
-        {!product.requiresVariant && !product.inStock && <p className="text-[10px] font-black text-red-500">{t('Tükendi')}</p>}
+        {!product.requiresVariant && !product.inStock && <p className="text-[11px] font-black text-red-500">{t('Tükendi')}</p>}
       </div>
       {product.requiresVariant ? (
-        <button onClick={() => onOpen(product)} className="flex items-center px-3 py-2 rounded-xl bg-brand-50 text-brand-700 text-[10px] font-black uppercase"><Layers className="h-3.5 w-3.5 mr-1" /> {t('Seç')}</button>
+        <button onClick={() => onOpen(product)} className="flex items-center px-3 py-2 rounded-xl bg-brand-50 text-brand-700 text-xs font-black"><Layers className="h-3.5 w-3.5 mr-1" /> {t('Seç')}</button>
       ) : (
-        <button disabled={!product.inStock} onClick={() => onAdd(product)} className="flex items-center px-3 py-2 rounded-xl bg-gray-900 text-white text-[10px] font-black uppercase disabled:opacity-30"><ShoppingCart className="h-3.5 w-3.5 mr-1" /> {t('Ekle')}</button>
+        <button disabled={!product.inStock} onClick={() => onAdd(product)} className="flex items-center px-3 py-2 rounded-xl bg-gray-900 text-white text-xs font-black disabled:opacity-30"><ShoppingCart className="h-3.5 w-3.5 mr-1" /> {t('Ekle')}</button>
       )}
     </div>
   );

@@ -8,6 +8,7 @@ Tek kurulumda çok sayıda firma (kiracı) çalışır. Her firmanın kendi adre
 | **Platform sahibi** | `platform.ROOT_DOMAIN` | Müşteri firmaları, paketleri, abonelik ödemelerini, duyuruları ve destek taleplerini yönetir |
 | **Firma yöneticisi** (müşteri) | `<firma>.ROOT_DOMAIN/admin` | Ürün, bayi, sipariş, finans, kampanya, ekip, entegrasyon ve sanal POS ayarları |
 | **Bayi** | `<firma>.ROOT_DOMAIN/bayi` | Katalog, sepet, sipariş, teklif isteme, iade, cari ekstre, kartla ödeme |
+| **Plasiyer** (saha satış) | `<firma>.ROOT_DOMAIN/plasiyer` | Sorumlu olduğu bayileri, bakiyelerini ve primlerini görür; bayi adına sipariş verir |
 | **Tanıtım / kayıt** | `ROOT_DOMAIN` | Paketler ve kendi kendine kayıt (deneme süresiyle) |
 
 ## Teknolojiler
@@ -122,6 +123,21 @@ frontend/src
 ### Teslimat adresleri ve kargo
 
 Bayi, profilinden birden fazla teslimat adresi (il / ilçe ayrı) tanımlar ve siparişte seçer; seçilen adres siparişe kopyalanır. Firma, Ayarlar → Kargo'dan **Yurtiçi Kargo** web servisini bağlarsa sipariş ekranından tek tıkla gönderi oluşturur ve 10×15 barkodlu etiketi yazdırır. Kargo paketi teslim alınca takip numarası (yarım saatte bir ya da "Durumu güncelle" ile) otomatik gelir, sipariş "Kargoda", teslimde "Teslim edildi" olur ve bayiye bildirilir. Diğer kargo firmalarında takip numarası elle girilir. Yurtiçi istemcisi, Yurtiçi'nin herkese açık test servisine karşı denenmiştir (`YURTICI_LIVE=1 npm run test:integration`).
+
+### Sipariş kuralları
+
+- **Stok ayırma:** onay bekleyen siparişlerdeki miktar stoktan ayrılmış sayılır. Bayiye gösterilen ve sipariş edilebilen miktar "stok − bekleyen siparişler"dir; stok onayda düşer. Aynı son ürünleri iki bayi birden sipariş edemez (sipariş anında ürün satırları kilitlenir). Yönetici ürün listesinde ayrılan miktar görünür.
+- **Bayi iptali:** bayi, onay bekleyen siparişini kendisi iptal eder; ayrılan stok ve limit serbest kalır, kupon kullanılmamış sayılır. Onaylanmış sipariş yalnızca yönetici kararıyla değişir.
+- **Sipariş notu ve referans no:** bayi siparişe not ve kendi sipariş numarasını yazar; yönetici ekranında, çıktıda, Excel'de ve ERP API'sinde görünür.
+- **Kargo ücreti:** Ayarlar → Sipariş ve Teslimat'tan sabit ücret (KDV hariç) ve "bu tutar üstü ücretsiz" eşiği. Adrese teslim siparişlere KDV ile eklenir, cariye ve faturaya (ayrı satır) dahildir; Gel-Al'da uygulanmaz. Kısmi onayda ücret kalır, tüm kalemler iptal edilirse sıfırlanır.
+- **Otomatik onay:** açıksa cari hesapla verilen ve limiti yeten siparişler (isteğe bağlı üst tutara kadar) beklemeden onaylanır: stok düşer, borç yazılır, bayiye bildirim gider. Stok yetmezse sipariş onay bekler; Havale/EFT her zaman bekler. Onay mantığı tektir (`decideOrder`): elle ve otomatik onay aynı kurallarla işler.
+- **Süreli özel fiyat:** özel / kademeli fiyatlara başlangıç ve bitiş tarihi verilebilir; aralık dışında uygulanmaz.
+- **Görünürlük:** ürün ve kategori yalnızca seçilen bayi gruplarına açılabilir (kategori kısıtı alt kategorilere geçer). Gruba kapalı ürün katalogda, aramada, filtrelerde, hızlı siparişte ve teklif talebinde çıkmaz, sipariş edilemez.
+- **Kısmi sevkiyat ve irsaliye:** onaylanan sipariş kalem / miktar seçilerek parça parça kargoya verilir (her gönderinin kendi takip numarası); tamamı gidince "Kargoda" olur. Kısmen gönderilen kalem iptal edilemez (iade olarak işlenir). İrsaliye numarası elle ya da ERP'den (`PATCH /api/v1/orders/:id/status` gövdesinde `despatchNumber`) girilir; sipariş fiyatsız sevk irsaliyesi olarak yazdırılabilir.
+- **Bayi adına sipariş:** yönetici (sipariş yetkili) ve plasiyer (yalnızca kendi bayileri) bir bayi seçip portalını o bayinin fiyat, limit ve adresleriyle kullanır (`X-Act-As-Company` başlığı; seçim sekmeye özeldir). Sipariş girenin adıyla kaydedilir (`channel`: STAFF / PLASIYER), bayiye bildirim gider. Bu modda iade, profil ve yönetim uçları açılmaz.
+- **Bayi hedefi ve ciro primi:** Finans ve Prim'den bayiye dönem hedefi (KDV hariç ciro) ve prim yüzdesi tanımlanır. Gerçekleşen: dönemde onaylanan siparişler eksi iadeler. Bayi ilerlemeyi Finansal Durum'da görür; dönem kapatılınca hedef tuttuysa prim cariye alacak yazılır (bir kez).
+- **Sepet:** kullanıcıya özeldir, çıkışta tarayıcıdan silinir; bayinin sepeti sunucuda da saklanır, telefonda başlanan sepet bilgisayarda devam eder.
+- **Barkod okutma:** Hızlı Sipariş'te telefon kamerasıyla barkod okutulur (https gerekir).
 
 ### Çoklu depo
 

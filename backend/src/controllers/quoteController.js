@@ -3,6 +3,7 @@ import { resolveShippingAddress } from './addressController.js';
 import prisma, { runAsPlatform } from '../utils/prisma.js';
 import { loadOrderableProducts, effectiveProduct, variantLabelOf, availableCredit, round2, loadSpecialPrices, buildPricingContext, unitPriceFor } from '../services/pricingService.js';
 import { createOrderRecord, OrderError } from './orderController.js';
+import { accessFor, isVisibleTo } from '../services/catalogAccess.js';
 import { notifyAdmins, notifyCompany, notifyUser, safeNotify } from '../services/notificationService.js';
 import { emitEvent } from '../services/webhookService.js';
 import { getSettingsMap, num, flag } from '../services/settingsService.js';
@@ -570,9 +571,10 @@ export const createQuote = async (req, res) => {
     if (items.length === 0) return res.status(400).json({ message: 'Teklif için en az bir ürün ve miktar girin.' });
 
     const products = await loadOrderableProducts(prisma, items.map(i => i.productId));
+    const access = req.user.companyId ? await accessFor(prisma, await prisma.company.findUnique({ where: { id: req.user.companyId } })) : null;
     for (const item of items) {
       const raw = products.get(item.productId);
-      if (!raw || !effectiveProduct(raw, raw.parent).isActive) return res.status(400).json({ message: 'Ürün bulunamadı veya satışa kapalı.' });
+      if (!raw || !effectiveProduct(raw, raw.parent).isActive || !isVisibleTo(raw, access)) return res.status(400).json({ message: 'Ürün bulunamadı veya satışa kapalı.' });
       if (raw.isMaster && raw._count.variants > 0) return res.status(400).json({ message: `${raw.name}: Lütfen bir varyant seçin.` });
     }
 

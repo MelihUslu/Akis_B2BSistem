@@ -10,9 +10,19 @@ export const orderEvent = (o) => ({ id: o.id, number: `AK-${o.id}`, status: o.st
  * Elle girilen takip numarasında ve kargo firmasından gelen otomatik güncellemede kullanılır.
  */
 export const markShipped = async (tenant, existing, { trackingNumber, cargoCompany, extra = {} }) => {
-  const order = await prisma.order.update({
-    where: { id: existing.id },
-    data: { status: 'SHIPPED', trackingNumber, cargoCompany: cargoCompany || null, shippedAt: existing.shippedAt || new Date(), ...extra }
+  const order = await prisma.$transaction(async (tx) => {
+    // Henüz gönderilmemiş onaylı miktarlar bu takip numarasıyla gönderilmiş sayılır (kısmi sevkiyatın son parçası
+    // ya da siparişin tek seferde kargoya verilmesi)
+    const items = await tx.orderItem.findMany({ where: { orderId: existing.id, status: 'APPROVED' }, select: { id: true, quantity: true, shippedQty: true } });
+    const rest = items.filter((it) => it.quantity > it.shippedQty);
+    if (rest.length) {
+      await tx.orderShipment.create({ data: { orderId: existing.id, trackingNumber, cargoCompany: cargoCompany || null, items: rest.map((it) => ({ orderItemId: it.id, quantity: it.quantity - it.shippedQty })) } });
+      for (const it of rest) await tx.orderItem.update({ where: { id: it.id }, data: { shippedQty: it.quantity } });
+    }
+    return tx.order.update({
+      where: { id: existing.id },
+      data: { status: 'SHIPPED', trackingNumber, cargoCompany: cargoCompany || null, shippedAt: existing.shippedAt || new Date(), ...extra }
+    });
   });
   if (existing.status !== 'SHIPPED' || existing.trackingNumber !== trackingNumber) {
     safeNotify(notifyCompany(order.companyId, {

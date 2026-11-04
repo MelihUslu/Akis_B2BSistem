@@ -48,7 +48,7 @@ const AiDraftPanel = ({ ai, companyId, initialText = '', initialPreferences, onD
             <p className="text-xs text-gray-500 mt-0.5">İhtiyacı doğal dille yazın; katalogdan uygun ürünler, miktarlar ve eksik bilgi soruları gelsin. Her öneriyi kontrol edip düzenleyebilirsiniz.</p>
           </div>
         </div>
-        {ai.mock && <span className="flex items-center text-[10px] font-black uppercase text-amber-700 bg-amber-100 px-2.5 py-1 rounded-full"><FlaskConical className="h-3 w-3 mr-1" /> Geliştirme modu · örnek yanıt</span>}
+        {ai.mock && <span className="flex items-center text-[11px] font-black uppercase text-amber-700 bg-amber-100 px-2.5 py-1 rounded-full"><FlaskConical className="h-3 w-3 mr-1" /> Geliştirme modu · örnek yanıt</span>}
       </div>
 
       {!ai.enabled ? (

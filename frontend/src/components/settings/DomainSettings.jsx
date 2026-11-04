@@ -98,7 +98,7 @@ const DomainSettings = ({ showAlert, confirm }) => {
             <div className="flex items-center gap-2">
               <span className={`h-4 w-4 rounded-full border-2 ${mode === key ? 'border-brand-500 bg-brand-500 ring-2 ring-inset ring-white' : 'border-gray-300'}`} />
               <span className="font-black text-sm text-gray-900">{m.title}</span>
-              {m.tag && <span className="text-[10px] font-black uppercase tracking-wider text-emerald-700 bg-emerald-50 px-2 py-0.5 rounded-full">{m.tag}</span>}
+              {m.tag && <span className="text-[11px] font-black uppercase tracking-wider text-emerald-700 bg-emerald-50 px-2 py-0.5 rounded-full">{m.tag}</span>}
             </div>
             <p className="font-mono text-xs text-brand-600 mt-2">{m.example}</p>
             <p className="text-xs text-gray-500 mt-1">{m.text}</p>
@@ -126,12 +126,12 @@ const DomainSettings = ({ showAlert, confirm }) => {
             <p className="text-sm font-black text-gray-900 mb-2">{info.verified ? 'DNS kayıtlarınız' : 'Alan adı sağlayıcınızda eklemeniz gereken kayıtlar'}</p>
             <div className="overflow-x-auto">
               <table className="w-full text-left min-w-[560px]">
-                <thead><tr className="text-[10px] font-black text-gray-400 uppercase tracking-widest border-b border-gray-100"><th className="py-2 pr-4">Tür</th><th className="pr-4">Ad (Host)</th><th className="pr-4">Değer</th><th>Açıklama</th></tr></thead>
+                <thead><tr className="text-[11px] font-black text-gray-400 uppercase tracking-widest border-b border-gray-100"><th className="py-2 pr-4">Tür</th><th className="pr-4">Ad (Host)</th><th className="pr-4">Değer</th><th>Açıklama</th></tr></thead>
                 <tbody>
                   {info.records.map((r) => (
                     <tr key={r.type + r.host} className="border-b border-gray-50 align-top">
                       <td className="py-3 pr-4 text-xs font-black text-gray-500">{r.type}</td>
-                      <td className="py-3 pr-4"><Copyable value={r.host} /><p className="text-[10px] text-gray-400 mt-0.5 break-all">{r.name}</p></td>
+                      <td className="py-3 pr-4"><Copyable value={r.host} /><p className="text-[11px] text-gray-400 mt-0.5 break-all">{r.name}</p></td>
                       <td className="py-3 pr-4">{r.value ? <Copyable value={r.value} /> : <span className="text-xs text-red-600 font-semibold">Sunucu IP'si tanımlı değil</span>}</td>
                       <td className="py-3 text-[11px] text-gray-500">{RECORD_NOTE[r.type]}</td>
                     </tr>

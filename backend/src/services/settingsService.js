@@ -19,6 +19,10 @@ export const SETTING_DEFAULTS = {
   pickup_address: '',           // Teslim alma adresi (boşsa firma adresi)
   pickup_hours: '',             // Teslim alma saatleri (bayiye bilgi, örn. "Hafta içi 09:00–18:00")
   pickup_lead_hours: '2',       // Teslim alma zamanı en erken kaç saat sonrası seçilebilir
+  shipping_fee: '0',            // Kargo ücreti (KDV hariç TL; 0 = kargo ücreti alınmaz)
+  shipping_free_over: '0',      // Bu KDV hariç sepet tutarı ve üstünde kargo ücretsiz (0 = eşik yok)
+  auto_approve: 'false',        // Limiti yeten, stoktaki cari hesaplı siparişler otomatik onaylansın
+  auto_approve_max: '0',        // Otomatik onayın üst sınırı (KDV dahil TL; 0 = sınırsız)
   usd_try: '',                  // TCMB'ye ulaşılamazsa kullanılacak manuel kurlar
   eur_try: ''
 };
@@ -45,5 +49,6 @@ export const portalSettings = (map, tenant) => ({
     address: map.pickup_address || tenant?.address || '',
     hours: map.pickup_hours || '',
     leadHours: Math.max(0, num(map.pickup_lead_hours, 2))
-  }
+  },
+  shipping: { fee: Math.max(0, num(map.shipping_fee, 0)), freeOver: Math.max(0, num(map.shipping_free_over, 0)) }
 });

@@ -6,7 +6,7 @@ import { t } from '../../i18n';
 // Telefonda alt sekme çubuğu (uygulama hissi): katalog, hızlı sipariş, sepet, siparişler, menü
 const MobileTabBar = ({ onMenu }) => {
   const { cartCount, setIsCartOpen } = useCart();
-  const item = 'flex-1 h-16 flex flex-col items-center justify-center gap-0.5 text-[10px] font-bold';
+  const item = 'flex-1 h-16 flex flex-col items-center justify-center gap-0.5 text-[11px] font-bold';
   const link = ({ isActive }) => `${item} ${isActive ? 'text-brand-600' : 'text-gray-400'}`;
 
   return (
@@ -17,7 +17,7 @@ const MobileTabBar = ({ onMenu }) => {
       <button type="button" onClick={() => setIsCartOpen(true)} className={`${item} text-gray-400 relative`}>
         <span className="relative">
           <ShoppingCart className="h-5 w-5" />
-          {cartCount > 0 && <span className="absolute -top-1.5 -right-2.5 bg-red-500 text-white text-[9px] font-black min-w-[16px] h-4 px-1 rounded-full flex items-center justify-center">{cartCount}</span>}
+          {cartCount > 0 && <span className="absolute -top-1.5 -right-2.5 bg-red-500 text-white text-[10px] font-black min-w-[16px] h-4 px-1 rounded-full flex items-center justify-center">{cartCount}</span>}
         </span>
         {t('Sepet')}
       </button>

@@ -17,7 +17,7 @@ const InstallAppButton = () => {
         <span className="w-9 h-9 rounded-xl bg-brand-500 flex items-center justify-center shrink-0"><Smartphone className="h-4 w-4 text-white" /></span>
         <span className="min-w-0">
           <span className="block text-xs font-black text-white">{t('Uygulamayı Yükle')}</span>
-          <span className="block text-[10px] text-gray-400 leading-snug mt-0.5">{t('Ana ekrana ekleyin, uygulama gibi açılsın.')}</span>
+          <span className="block text-[11px] text-gray-400 leading-snug mt-0.5">{t('Ana ekrana ekleyin, uygulama gibi açılsın.')}</span>
         </span>
       </button>
 

@@ -84,9 +84,6 @@ const finishLogin = async (req, res, user) => {
     });
   }
 
-  if (user.role === 'PLASIYER') {
-    return res.status(403).json({ message: 'Plasiyer hesapları için panel girişi henüz aktif değil.' });
-  }
   if (user.role === 'BAYI') {
     if (user.company?.status === 'PENDING') {
       return res.status(403).json({ message: 'Bayilik başvurunuz henüz onaylanmadı.' });
@@ -140,8 +137,12 @@ export const getMe = async (req, res) => {
       return res.status(404).json({ message: 'Kullanıcı bulunamadı.' });
     }
 
-    const { password, twoFactorSecretEnc, twoFactorRecovery, emailVerifyToken, ...userData } = user;
-    res.json({ ...userData, impersonatedBy: req.user.impersonatedBy || null });
+    const { password, twoFactorSecretEnc, twoFactorRecovery, emailVerifyToken, passwordResetHash, passwordResetExpires, cart, cartUpdatedAt, ...userData } = user;
+    // Bayi adına işlem: kişi kendi kimliğiyle kalır, "company" işlem yapılan bayidir (katalog başlığı, sorumlu plasiyer)
+    const company = req.user.actingAs
+      ? await prisma.company.findUnique({ where: { id: req.user.companyId }, include: { plasiyer: { select: { name: true, email: true } } } })
+      : userData.company;
+    res.json({ ...userData, company, actingAs: req.user.actingAs || null, impersonatedBy: req.user.impersonatedBy || null });
   } catch (error) {
     res.status(500).json({ message: 'Kullanıcı bilgileri alınamadı.' });
   }

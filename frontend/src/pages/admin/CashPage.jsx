@@ -153,7 +153,7 @@ const Forecast = ({ f }) => {
                 <li key={`${x.source}-${x.label}-${x.date}-${i}`} className="flex items-center gap-3 py-2 text-sm">
                   <span className="w-14 shrink-0 text-[11px] font-bold text-gray-500">{new Date(x.date).toLocaleDateString('tr-TR', { day: 'numeric', month: 'short' })}</span>
                   <span className="flex-1 min-w-0 truncate text-gray-800">{x.label}</span>
-                  <span className="hidden sm:inline shrink-0 rounded-md bg-gray-100 px-1.5 py-0.5 text-[10px] font-bold text-gray-600">{SOURCE[x.source]}</span>
+                  <span className="hidden sm:inline shrink-0 rounded-md bg-gray-100 px-1.5 py-0.5 text-[11px] font-bold text-gray-600">{SOURCE[x.source]}</span>
                   <span className={`shrink-0 font-black tabular-nums ${x.type === 'IN' ? 'text-blue-700' : 'text-gray-900'}`}>{x.type === 'IN' ? '+' : '−'}{formatTRY(x.amount)}</span>
                 </li>
               ))}

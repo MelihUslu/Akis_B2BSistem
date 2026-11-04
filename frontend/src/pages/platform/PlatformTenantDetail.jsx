@@ -124,7 +124,7 @@ const PlatformTenantDetail = () => {
   return (
     <div className="space-y-8 max-w-6xl">
       {alertElement}
-      <Link to="/tenants" className="inline-flex items-center text-xs font-black text-gray-400 hover:text-brand-600 uppercase tracking-widest"><ArrowLeft className="h-4 w-4 mr-2" /> Müşteriler</Link>
+      <Link to="/tenants" className="inline-flex items-center text-xs font-black text-gray-400 hover:text-brand-600"><ArrowLeft className="h-4 w-4 mr-2" /> Müşteriler</Link>
 
       <div className="flex flex-col md:flex-row justify-between md:items-end gap-4">
         <div>
@@ -161,7 +161,7 @@ const PlatformTenantDetail = () => {
       <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
         {[['Bayi', tenant.usage.dealers, tenant.plan.maxDealers], ['Ürün', tenant.usage.products, tenant.plan.maxProducts], ['Yönetici', tenant.usage.admins, tenant.plan.maxAdmins], ['Sipariş', tenant.usage.orders, -1]].map(([label, used, max]) => (
           <div key={label} className="card-premium p-5">
-            <p className="text-[10px] font-black text-gray-400 uppercase tracking-widest">{label}</p>
+            <p className="text-[11px] font-black text-gray-400 uppercase tracking-widest">{label}</p>
             <p className="text-2xl font-black text-gray-900">{used}<span className="text-sm text-gray-400"> / {limitLabel(max)}</span></p>
           </div>
         ))}
@@ -199,8 +199,8 @@ const PlatformTenantDetail = () => {
           <div><label className="premium-label">Tutar (boşsa {formatTRY(suggested)})</label><input type="number" step="0.01" className="premium-input" value={payment.amount} onChange={(e) => setPayment({ ...payment, amount: e.target.value })} /></div>
           <div><label className="premium-label">Dekont / Fatura No</label><input className="premium-input" value={payment.reference} onChange={(e) => setPayment({ ...payment, reference: e.target.value })} /></div>
           <div><label className="premium-label">Not</label><input className="premium-input" value={payment.note} onChange={(e) => setPayment({ ...payment, note: e.target.value })} /></div>
-          <button type="submit" className="w-full py-3 rounded-xl bg-emerald-500 hover:bg-emerald-600 text-white text-xs font-black uppercase tracking-widest">Ödemeyi Kaydet ve Uzat</button>
-          <p className="text-[10px] text-gray-400 font-semibold">Süre, mevcut bitiş tarihinden (geçmişse bugünden) itibaren uzatılır.</p>
+          <button type="submit" className="w-full py-3 rounded-xl bg-emerald-500 hover:bg-emerald-600 text-white text-xs font-black">Ödemeyi Kaydet ve Uzat</button>
+          <p className="text-[11px] text-gray-400 font-semibold">Süre, mevcut bitiş tarihinden (geçmişse bugünden) itibaren uzatılır.</p>
         </form>
       </div>
 

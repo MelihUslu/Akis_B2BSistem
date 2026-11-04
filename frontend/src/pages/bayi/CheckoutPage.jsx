@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react';
 import { useCart } from '../../context/CartContext';
-import { Truck, CreditCard, Landmark, ArrowRight, ShieldCheck, AlertTriangle, Tag, TicketPercent, X, Store, MapPin, Clock } from 'lucide-react';
+import { Truck, CreditCard, Landmark, ArrowRight, ShieldCheck, AlertTriangle, Tag, TicketPercent, X, Store, MapPin, Clock, MessageSquareText } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import api, { errorMessage } from '../../services/api';
 import useAlert from '../../hooks/useAlert';
@@ -31,6 +31,8 @@ const CheckoutPage = () => {
   const [couponInput, setCouponInput] = useState('');
   const [couponCode, setCouponCode] = useState('');
   const [couponError, setCouponError] = useState(null);
+  const [note, setNote] = useState('');
+  const [customerRef, setCustomerRef] = useState('');
   const navigate = useNavigate();
   const { alertElement, showAlert } = useAlert();
 
@@ -39,7 +41,7 @@ const CheckoutPage = () => {
   // Tutarlar sunucuda hesaplanır: bayi iskontosu, miktar indirimi, döviz kuru ve ürün bazlı KDV
   useEffect(() => {
     if (cart.length === 0) return;
-    api.post('/orders/quote', { items: payloadItems, couponCode: couponCode || undefined })
+    api.post('/orders/quote', { items: payloadItems, couponCode: couponCode || undefined, deliveryMethod: isPickup ? 'PICKUP' : 'SHIPPING' })
       .then((res) => {
         // Geçersiz kupon: hatayı kupon alanında göster ve kuponsuz hesapla
         if (couponCode && !res.data.coupon) {
@@ -51,7 +53,7 @@ const CheckoutPage = () => {
         setQuoteError(null);
       })
       .catch((error) => setQuoteError(errorMessage(error, t('Sipariş özeti hesaplanamadı.'))));
-  }, [cart, couponCode]); // eslint-disable-line react-hooks/exhaustive-deps
+  }, [cart, couponCode, isPickup]); // eslint-disable-line react-hooks/exhaustive-deps
 
   const creditShort = paymentMethod === 'CURRENT_ACCOUNT' && quote && quote.total > quote.credit.available;
   const blocked = !quote || quote.errors.length > 0 || creditShort || (isPickup && !pickupAt);
@@ -69,7 +71,7 @@ const CheckoutPage = () => {
     setIsSubmitting(true);
     try {
       const res = await api.post('/orders', {
-        items: payloadItems, paymentMethod, couponCode: quote?.coupon?.code,
+        items: payloadItems, paymentMethod, couponCode: quote?.coupon?.code, note: note.trim() || undefined, customerRef: customerRef.trim() || undefined,
         ...(isPickup ? { deliveryMethod: 'PICKUP', pickupAt: new Date(pickupAt).toISOString() } : { addressId })
       });
       clearCart();
@@ -174,7 +176,7 @@ const CheckoutPage = () => {
 
             {isPickup ? (
               <div className="bg-gray-50 p-4 md:p-8 rounded-[2rem] border border-gray-100 space-y-4">
-                <h4 className="text-[10px] font-black text-gray-400 uppercase tracking-widest flex items-center">
+                <h4 className="text-[11px] font-black text-gray-400 uppercase tracking-widest flex items-center">
                   <Store className="mr-2 h-4 w-4" /> {t('Gel-Al Bilgileri')}
                 </h4>
                 {pickup.address && <p className="text-sm font-bold text-gray-800 flex items-start"><MapPin className="h-4 w-4 mr-2 mt-0.5 text-brand-600 shrink-0" /> {pickup.address}</p>}
@@ -189,12 +191,27 @@ const CheckoutPage = () => {
               </div>
             ) : (
               <div className="bg-gray-50 p-4 md:p-8 rounded-[2rem] border border-gray-100 space-y-4">
-                <h4 className="text-[10px] font-black text-gray-400 uppercase tracking-widest flex items-center">
+                <h4 className="text-[11px] font-black text-gray-400 uppercase tracking-widest flex items-center">
                   <Truck className="mr-2 h-4 w-4" /> {t('Teslimat Adresi')}
                 </h4>
                 <AddressBook selectable compact value={addressId} onSelect={setAddressId} showAlert={showAlert} />
               </div>
             )}
+
+            {/* Sipariş notu ve bayinin kendi sipariş numarası (muhasebesinde eşleştirmek için) */}
+            <div className="bg-white p-4 md:p-6 rounded-[2rem] border border-gray-100 space-y-4">
+              <h4 className="text-[11px] font-black text-gray-400 uppercase tracking-widest flex items-center">
+                <MessageSquareText className="mr-2 h-4 w-4" /> {t('Sipariş notu (isteğe bağlı)')}
+              </h4>
+              <div>
+                <label htmlFor="order-ref" className="premium-label">{t('Sipariş / referans numaranız')}</label>
+                <input id="order-ref" className="premium-input" maxLength={60} value={customerRef} onChange={(e) => setCustomerRef(e.target.value)} placeholder={t('Örn. SAS-2026-118')} />
+              </div>
+              <div>
+                <label htmlFor="order-note" className="premium-label">{t('Not')}</label>
+                <textarea id="order-note" className="premium-input h-20 resize-none" maxLength={500} value={note} onChange={(e) => setNote(e.target.value)} placeholder={t('Örn. Pazartesi teslim olsun, depoya haber verin.')} />
+              </div>
+            </div>
           </div>
 
           {/* Final Summary */}
@@ -242,15 +259,25 @@ const CheckoutPage = () => {
                   <form onSubmit={(e) => { e.preventDefault(); setCouponError(null); setCouponCode(couponInput.trim().toUpperCase()); }} className="space-y-1">
                     <div className="flex gap-2">
                       <input className="premium-input !py-2.5 font-mono uppercase" placeholder={t('Kupon kodu')} value={couponInput} onChange={(e) => setCouponInput(e.target.value)} />
-                      <button disabled={!couponInput.trim()} className="px-4 rounded-2xl bg-gray-900 text-white text-[10px] font-black uppercase tracking-widest disabled:opacity-40">{t('Uygula')}</button>
+                      <button disabled={!couponInput.trim()} className="px-4 rounded-2xl bg-gray-900 text-white text-xs font-black disabled:opacity-40">{t('Uygula')}</button>
                     </div>
                     {couponError && <p className="text-[11px] font-bold text-red-500 normal-case tracking-normal">{couponError}</p>}
                   </form>
                 )}
-                {isPickup && (
+                {isPickup ? (
                   <div className="flex justify-between items-center text-sm font-bold text-gray-500 uppercase tracking-widest">
                     <span className="flex items-center"><Store className="h-4 w-4 mr-1.5" /> {t('Gel-Al')}</span>
                     <span className="text-emerald-600">{t('Kargo ücreti yok')}</span>
+                  </div>
+                ) : quote?.rules?.shipping?.fee > 0 && (
+                  <div className="space-y-1">
+                    <div className="flex justify-between items-center text-sm font-bold text-gray-500 uppercase tracking-widest">
+                      <span className="flex items-center"><Truck className="h-4 w-4 mr-1.5" /> {t('Kargo (KDV hariç)')}</span>
+                      <span className={quote.shippingFee > 0 ? 'text-gray-900' : 'text-emerald-600'}>{quote.shippingFee > 0 ? formatTRY(quote.shippingFee) : t('Ücretsiz')}</span>
+                    </div>
+                    {quote.shippingFee > 0 && quote.rules.shipping.freeOver > 0 && (
+                      <p className="text-[11px] font-semibold text-gray-400">{t('{amount} (KDV hariç) ve üzeri siparişlerde kargo ücretsiz. Kalan: {left}', { amount: formatTRY(quote.rules.shipping.freeOver), left: formatTRY(Math.max(0, quote.rules.shipping.freeOver - (quote.subtotal - quote.discountAmount))) })}</p>
+                    )}
                   </div>
                 )}
                 <div className="flex justify-between items-center text-sm font-bold text-gray-500 uppercase tracking-widest">
@@ -259,7 +286,7 @@ const CheckoutPage = () => {
                 </div>
                 <div className="pt-8 border-t border-gray-50 flex justify-between items-end">
                   <div>
-                    <p className="text-[10px] font-black text-brand-600 uppercase tracking-widest">
+                    <p className="text-[11px] font-black text-brand-600 uppercase tracking-widest">
                       {t('GENEL TOPLAM')}
                     </p>
                     <p className="text-4xl md:text-5xl font-black text-gray-900 tracking-tighter">
@@ -297,11 +324,11 @@ const CheckoutPage = () => {
                     <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
                     <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v8H4z" />
                   </svg>
-                  {t('İŞLENİYOR...')}
+                  {t('İşleniyor...')}
                 </span>
               ) : (
                 <>
-                  {t('SİPARİŞİ ONAYLA')}{' '}
+                  {t('Siparişi onayla')}{' '}
                   <ArrowRight className="inline-block ml-2 h-6 w-6 group-hover:translate-x-2 transition-transform" />
                 </>
               )}

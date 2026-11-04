@@ -27,16 +27,16 @@ export const PortalMockup = () => (
       </div>
       <div className="col-span-2 sm:col-span-1 p-4 space-y-3 min-w-0">
         <div className="flex items-center gap-2 h-9 px-3 rounded-xl bg-white border border-slate-200 text-[11px] text-slate-400"><Search className="h-3.5 w-3.5" /> Ürün adı, SKU veya barkod</div>
-        <div className="flex gap-1.5">{['Kategoriler', 'Marka', 'Stoktakiler'].map((c, i) => <span key={c} className={`text-[10px] font-semibold px-2.5 py-1.5 rounded-lg border ${i === 0 ? 'bg-brand-50 border-brand-200 text-brand-700' : 'bg-white border-slate-200 text-slate-600'}`}>{c}</span>)}</div>
+        <div className="flex gap-1.5">{['Kategoriler', 'Marka', 'Stoktakiler'].map((c, i) => <span key={c} className={`text-[11px] font-semibold px-2.5 py-1.5 rounded-lg border ${i === 0 ? 'bg-brand-50 border-brand-200 text-brand-700' : 'bg-white border-slate-200 text-slate-600'}`}>{c}</span>)}</div>
         <div className="grid grid-cols-2 md:grid-cols-3 gap-2.5">
           {PRODUCTS.map((p, i) => (
             <div key={p.sku} className={`bg-white rounded-xl border border-slate-200 overflow-hidden ${i === 2 ? 'hidden md:block' : ''}`}>
               <div className={`aspect-[4/3] bg-gradient-to-br ${p.hue} flex items-center justify-center text-3xl`}>{p.icon}</div>
               <div className="p-2.5 space-y-1">
-                <p className="text-[9px] text-slate-400 font-semibold">{p.sku}</p>
+                <p className="text-[10px] text-slate-400 font-semibold">{p.sku}</p>
                 <p className="text-[11px] font-bold text-slate-900 truncate">{p.name}</p>
-                <div className="flex items-center justify-between"><p className="text-[13px] font-black text-slate-900">{tl(p.price)}</p><span className="text-[9px] font-bold text-emerald-600">● {p.stock}</span></div>
-                <div className="flex gap-1.5 pt-1"><span className="flex-1 h-6 rounded-md border border-slate-200 text-[10px] font-bold flex items-center justify-center">1</span><span className="flex-1 h-6 rounded-md bg-brand-600 text-white text-[10px] font-bold flex items-center justify-center gap-1"><ShoppingCart className="h-3 w-3" />Ekle</span></div>
+                <div className="flex items-center justify-between"><p className="text-[13px] font-black text-slate-900">{tl(p.price)}</p><span className="text-[10px] font-bold text-emerald-600">● {p.stock}</span></div>
+                <div className="flex gap-1.5 pt-1"><span className="flex-1 h-6 rounded-md border border-slate-200 text-[11px] font-bold flex items-center justify-center">1</span><span className="flex-1 h-6 rounded-md bg-brand-600 text-white text-[11px] font-bold flex items-center justify-center gap-1"><ShoppingCart className="h-3 w-3" />Ekle</span></div>
               </div>
             </div>
           ))}
@@ -54,18 +54,18 @@ export const CatalogMock = () => (
       {PRODUCTS.slice(0, 2).map((p) => (
         <div key={p.sku} className="flex items-center gap-3">
           <span className={`h-10 w-10 rounded-lg bg-gradient-to-br ${p.hue} flex items-center justify-center`}>{p.icon}</span>
-          <span className="flex-1 min-w-0"><span className="block text-xs font-bold text-slate-900 truncate">{p.name}</span><span className="block text-[10px] text-slate-400">Liste {tl(p.price)} · Gold −%12</span></span>
+          <span className="flex-1 min-w-0"><span className="block text-xs font-bold text-slate-900 truncate">{p.name}</span><span className="block text-[11px] text-slate-400">Liste {tl(p.price)} · Gold −%12</span></span>
           <span className="text-sm font-black text-slate-900">{tl(p.price * 0.88)}</span>
         </div>
       ))}
-      <p className="text-[10px] font-bold text-emerald-700 bg-emerald-50 rounded-lg px-2.5 py-1.5">10 ve üzeri alımlarda sepette ekstra %5</p>
+      <p className="text-[11px] font-bold text-emerald-700 bg-emerald-50 rounded-lg px-2.5 py-1.5">10 ve üzeri alımlarda sepette ekstra %5</p>
     </div>
   </div>
 );
 
 export const ApprovalMock = () => (
   <div className="rounded-2xl border border-slate-200 bg-white p-4 shadow-sm space-y-3">
-    <div className="flex items-center justify-between"><p className="text-sm font-black text-slate-900">#AK-1042 · Yıldız Hırdavat</p><span className="text-[10px] font-black text-orange-600 bg-orange-50 px-2 py-1 rounded-full">Onay bekliyor</span></div>
+    <div className="flex items-center justify-between"><p className="text-sm font-black text-slate-900">#AK-1042 · Yıldız Hırdavat</p><span className="text-[11px] font-black text-orange-600 bg-orange-50 px-2 py-1 rounded-full">Onay bekliyor</span></div>
     {[['Akülü Matkap × 2', true], ['Anahtar Takımı × 10', true], ['Çelik Burunlu Bot × 6', false]].map(([n, ok]) => (
       <div key={n} className="flex items-center justify-between text-xs">
         <span className="font-semibold text-slate-700">{n}</span>
@@ -79,8 +79,8 @@ export const ApprovalMock = () => (
 export const CreditMock = () => (
   <div className="rounded-2xl border border-slate-200 bg-white p-4 shadow-sm space-y-3">
     <div className="grid grid-cols-2 gap-3">
-      <div><p className="text-[10px] font-bold text-slate-400 uppercase">Bakiye</p><p className="text-lg font-black text-red-600">₺42.350</p></div>
-      <div><p className="text-[10px] font-bold text-slate-400 uppercase">Risk limiti</p><p className="text-lg font-black text-slate-900">₺100.000</p></div>
+      <div><p className="text-[11px] font-bold text-slate-400 uppercase">Bakiye</p><p className="text-lg font-black text-red-600">₺42.350</p></div>
+      <div><p className="text-[11px] font-bold text-slate-400 uppercase">Risk limiti</p><p className="text-lg font-black text-slate-900">₺100.000</p></div>
     </div>
     <span className="block h-2 rounded-full bg-slate-100"><span className="block h-full w-[42%] rounded-full bg-gradient-to-r from-sky-400 to-brand-600" /></span>
     <p className="text-[11px] text-slate-500">Vadesi 5 gün içinde dolan 2 fatura · otomatik hatırlatma gönderildi</p>
@@ -95,11 +95,11 @@ export const AiQuoteMock = () => (
       <p className="flex items-center gap-1.5 text-[11px] font-black text-brand-600"><Sparkles className="h-3.5 w-3.5" /> Taslak teklif hazır</p>
       {[['8 oz Karton Bardak', '20 koli × 50 = 1.000 adet', 'Eşleşti'], ['8 oz Bardak Kapağı', 'Katalogda uyumlu', 'Eşleşti']].map(([n, d, s]) => (
         <div key={n} className="flex items-center justify-between gap-2 text-xs">
-          <span className="min-w-0"><span className="block font-bold text-slate-800 truncate">{n}</span><span className="block text-[10px] text-slate-400">{d}</span></span>
-          <span className="shrink-0 text-[10px] font-black text-emerald-700 bg-emerald-50 px-2 py-0.5 rounded-full">{s}</span>
+          <span className="min-w-0"><span className="block font-bold text-slate-800 truncate">{n}</span><span className="block text-[11px] text-slate-400">{d}</span></span>
+          <span className="shrink-0 text-[11px] font-black text-emerald-700 bg-emerald-50 px-2 py-0.5 rounded-full">{s}</span>
         </div>
       ))}
-      <p className="text-[10px] text-slate-500 pt-1 border-t border-slate-100">Fiyatlar bayinin iskontosuyla hesaplandı · göndermeden önce siz onaylarsınız</p>
+      <p className="text-[11px] text-slate-500 pt-1 border-t border-slate-100">Fiyatlar bayinin iskontosuyla hesaplandı · göndermeden önce siz onaylarsınız</p>
     </div>
   </div>
 );
@@ -118,12 +118,12 @@ export const ReturnMock = () => (
   <div className="rounded-2xl border border-slate-200 bg-white p-4 shadow-sm space-y-3">
     <div className="flex items-center gap-3">
       <span className="h-12 w-12 rounded-xl bg-gradient-to-br from-emerald-100 to-teal-100 flex items-center justify-center text-xl">🥾</span>
-      <span className="min-w-0 flex-1"><span className="block text-xs font-bold text-slate-900">Çelik Burunlu Bot × 2</span><span className="block text-[10px] text-slate-400">Neden: Yanlış beden</span></span>
-      <span className="flex items-center gap-1 text-[10px] font-bold text-slate-500"><Camera className="h-3.5 w-3.5" />2 foto</span>
+      <span className="min-w-0 flex-1"><span className="block text-xs font-bold text-slate-900">Çelik Burunlu Bot × 2</span><span className="block text-[11px] text-slate-400">Neden: Yanlış beden</span></span>
+      <span className="flex items-center gap-1 text-[11px] font-bold text-slate-500"><Camera className="h-3.5 w-3.5" />2 foto</span>
     </div>
     <div className="flex items-center gap-1">
       {['Talep', 'İnceleme', 'Onay', 'Alacak'].map((s, i) => (
-        <span key={s} className="flex-1"><span className={`block h-1.5 rounded-full ${i < 3 ? 'bg-gradient-to-r from-sky-400 to-brand-600' : 'bg-slate-200'}`} /><span className="block text-[9px] text-slate-500 mt-1 text-center">{s}</span></span>
+        <span key={s} className="flex-1"><span className={`block h-1.5 rounded-full ${i < 3 ? 'bg-gradient-to-r from-sky-400 to-brand-600' : 'bg-slate-200'}`} /><span className="block text-[10px] text-slate-500 mt-1 text-center">{s}</span></span>
       ))}
     </div>
     <p className="flex items-center gap-1.5 text-[11px] text-slate-500"><RotateCcw className="h-3.5 w-3.5 text-brand-500" /> Onaylanınca tutar bayinin cari hesabına alacak yazılır</p>
@@ -191,8 +191,8 @@ export const StepMock = ({ step }) => {
       {[['Yıldız Hırdavat', 'Gold · %12', true], ['Kaya Yapı Market', 'Standart', true], ['Demir Teknik', 'Başvuru', false]].map(([n, g, ok], i) => (
         <div key={n} className="step-rise flex items-center gap-3 rounded-xl bg-slate-50 px-3 py-2.5" style={at(250 + i * 550)}>
           <span className="h-8 w-8 rounded-lg bg-brand-100 text-brand-600 text-[11px] font-black flex items-center justify-center">{n.split(' ').map((w) => w[0]).join('').slice(0, 2)}</span>
-          <span className="flex-1 min-w-0"><span className="block text-xs font-bold text-slate-800 truncate">{n}</span><span className="block text-[10px] text-slate-400">{g}</span></span>
-          <span className={`step-pop text-[10px] font-black px-2 py-0.5 rounded-full ${ok ? 'bg-emerald-50 text-emerald-700' : 'bg-orange-50 text-orange-600'}`} style={at(550 + i * 550)}>{ok ? 'Aktif' : 'Onay bekliyor'}</span>
+          <span className="flex-1 min-w-0"><span className="block text-xs font-bold text-slate-800 truncate">{n}</span><span className="block text-[11px] text-slate-400">{g}</span></span>
+          <span className={`step-pop text-[11px] font-black px-2 py-0.5 rounded-full ${ok ? 'bg-emerald-50 text-emerald-700' : 'bg-orange-50 text-orange-600'}`} style={at(550 + i * 550)}>{ok ? 'Aktif' : 'Onay bekliyor'}</span>
         </div>
       ))}
       <p className="step-rise text-[11px] text-slate-500 pt-1" style={at(2100)}>Davet e-postaları gönderildi · <b className="text-slate-800">3 bayi</b></p>
@@ -209,7 +209,7 @@ export const StepMock = ({ step }) => {
       </svg>
       <div className="grid grid-cols-3 gap-2 text-center">
         {[['Sipariş', 128, (n) => Math.round(n)], ['Ciro', 1.2, (n) => `₺${n.toLocaleString('tr-TR', { minimumFractionDigits: 1, maximumFractionDigits: 1 })} M`], ['Aktif bayi', 34, (n) => Math.round(n)]].map(([k, v, f], i) => (
-          <div key={k} className="step-rise rounded-xl bg-slate-50 py-2" style={at(300 + i * 150)}><p className="text-sm font-black text-slate-900 tabular-nums"><CountUp to={v} delay={300 + i * 150} format={f} /></p><p className="text-[10px] text-slate-500">{k}</p></div>
+          <div key={k} className="step-rise rounded-xl bg-slate-50 py-2" style={at(300 + i * 150)}><p className="text-sm font-black text-slate-900 tabular-nums"><CountUp to={v} delay={300 + i * 150} format={f} /></p><p className="text-[11px] text-slate-500">{k}</p></div>
         ))}
       </div>
     </div>
@@ -239,27 +239,27 @@ export const PhoneMockup = () => (
     <div className="rounded-[2.1rem] bg-[#f7f8fb] overflow-hidden h-[33rem] flex flex-col">
       <div className="px-4 pt-9 pb-3 bg-white flex items-center justify-between">
         <span className="text-[13px] font-black text-slate-900">Yıldız Hırdavat</span>
-        <span className="relative"><ShoppingCart className="h-5 w-5 text-brand-600" /><span className="absolute -top-1.5 -right-2 h-4 min-w-4 px-1 rounded-full bg-red-500 text-white text-[9px] font-black flex items-center justify-center">3</span></span>
+        <span className="relative"><ShoppingCart className="h-5 w-5 text-brand-600" /><span className="absolute -top-1.5 -right-2 h-4 min-w-4 px-1 rounded-full bg-red-500 text-white text-[10px] font-black flex items-center justify-center">3</span></span>
       </div>
       <div className="mx-3 mt-3 rounded-2xl bg-gradient-to-br from-brand-600 to-violet-600 p-3.5 text-white">
-        <p className="text-[10px] opacity-80">Kullanılabilir limit</p>
+        <p className="text-[11px] opacity-80">Kullanılabilir limit</p>
         <p className="text-xl font-black">₺57.650</p>
         <span className="mt-2 block h-1.5 rounded-full bg-white/25"><span className="block h-full w-[42%] rounded-full bg-white" /></span>
       </div>
       <div className="mx-3 mt-3 rounded-2xl bg-white p-3 border border-slate-100 flex items-center gap-2.5">
         <span className="h-8 w-8 rounded-xl bg-emerald-100 text-emerald-600 flex items-center justify-center"><Truck className="h-4 w-4" /></span>
-        <span className="min-w-0"><span className="block text-[11px] font-bold text-slate-900">#AK-1038 kargoda</span><span className="block text-[10px] text-slate-400">Yurtiçi · yarın teslim</span></span>
+        <span className="min-w-0"><span className="block text-[11px] font-bold text-slate-900">#AK-1038 kargoda</span><span className="block text-[11px] text-slate-400">Yurtiçi · yarın teslim</span></span>
       </div>
       <p className="px-4 mt-4 text-[11px] font-black text-slate-500">Sık aldıklarınız</p>
       <div className="px-3 mt-2 grid grid-cols-2 gap-2">
         {PRODUCTS.slice(0, 2).map((p) => (
           <div key={p.sku} className="rounded-xl bg-white border border-slate-100 overflow-hidden">
             <div className={`h-16 bg-gradient-to-br ${p.hue} flex items-center justify-center text-2xl`}>{p.icon}</div>
-            <div className="p-2"><p className="text-[10px] font-bold text-slate-800 truncate">{p.name}</p><p className="text-[11px] font-black text-slate-900">{tl(p.price * 0.88)}</p></div>
+            <div className="p-2"><p className="text-[11px] font-bold text-slate-800 truncate">{p.name}</p><p className="text-[11px] font-black text-slate-900">{tl(p.price * 0.88)}</p></div>
           </div>
         ))}
       </div>
-      <div className="mt-auto grid grid-cols-4 bg-white border-t border-slate-100 py-2.5 text-[9px] font-bold text-slate-400">
+      <div className="mt-auto grid grid-cols-4 bg-white border-t border-slate-100 py-2.5 text-[10px] font-bold text-slate-400">
         {['Katalog', 'Sepet', 'Siparişler', 'Cari'].map((x, i) => <span key={x} className={`text-center ${i === 0 ? 'text-brand-600' : ''}`}>{x}</span>)}
       </div>
     </div>
@@ -272,7 +272,7 @@ export const DashboardMockup = () => (
     <div className="flex items-center justify-between"><p className="font-semibold text-slate-950">Bu ayın özeti</p><span className="text-[11px] font-bold text-slate-400">Ekim</span></div>
     <div className="grid grid-cols-3 gap-2.5">
       {[['Ciro', '₺1,24 M', 'from-brand-500 to-violet-600'], ['Sipariş', '128', 'from-emerald-500 to-teal-600'], ['Onay bekleyen', '6', 'from-orange-400 to-rose-500']].map(([k, v, g]) => (
-        <div key={k} className={`rounded-xl bg-gradient-to-br ${g} p-3 text-white`}><p className="text-[10px] opacity-80">{k}</p><p className="text-lg font-black">{v}</p></div>
+        <div key={k} className={`rounded-xl bg-gradient-to-br ${g} p-3 text-white`}><p className="text-[11px] opacity-80">{k}</p><p className="text-lg font-black">{v}</p></div>
       ))}
     </div>
     <svg viewBox="0 0 400 120" preserveAspectRatio="none" className="w-full h-28" aria-hidden="true">

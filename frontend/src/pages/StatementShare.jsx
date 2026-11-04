@@ -49,12 +49,12 @@ const StatementShare = () => {
       subtitle={<>{t('Tarih')}: {formatDate(data.periodEnd)}</>}>
       <div className="grid grid-cols-1 sm:grid-cols-2 print:grid-cols-2 gap-6 mb-6">
         <div className="min-w-0">
-          <p className="text-[10px] font-black text-gray-500 uppercase mb-1">{t('Sayın')}</p>
+          <p className="text-[11px] font-black text-gray-500 uppercase mb-1">{t('Sayın')}</p>
           <p className="font-bold break-words">{c.name}</p>
           <p className="text-gray-600 leading-snug break-words">{c.address}{c.address && <br />}{[c.taxOffice, c.taxNumber].filter(Boolean).join(' V.D. / ')}{c.externalCode && ` · ${t('Cari kodu')}: ${c.externalCode}`}</p>
         </div>
         <div className="sm:text-right print:text-right">
-          <p className="text-[10px] font-black text-gray-500 uppercase mb-1">{t('Bakiye')} ({formatDate(data.periodEnd)})</p>
+          <p className="text-[11px] font-black text-gray-500 uppercase mb-1">{t('Bakiye')} ({formatDate(data.periodEnd)})</p>
           <p className={`text-2xl font-black ${data.balance < 0 ? 'text-red-600' : 'text-emerald-600'}`}>{formatTRY(Math.abs(data.balance))}</p>
           <p className="text-xs font-bold text-gray-500">{balanceLabel(data.balance)}</p>
         </div>
@@ -77,7 +77,7 @@ const StatementShare = () => {
       <div className="hidden sm:block print:block">
         <table className="w-full border-collapse">
           <thead>
-            <tr className="border-y border-gray-900 text-[10px] uppercase">
+            <tr className="border-y border-gray-900 text-[11px] uppercase">
               <th className="py-2 text-left">{t('Tarih')}</th><th className="py-2 text-left">{t('Açıklama')}</th>
               <th className="py-2 text-right">{t('Borç')}</th><th className="py-2 text-right">{t('Alacak')}</th><th className="py-2 text-right">{t('Bakiye')}</th>
             </tr>

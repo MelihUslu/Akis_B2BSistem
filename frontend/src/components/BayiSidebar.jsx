@@ -16,6 +16,7 @@ import TenantBrand from './TenantBrand';
 import InstallAppButton from './InstallAppButton';
 import LanguageSwitcher from './LanguageSwitcher';
 import { t } from '../i18n';
+import { getActing } from '../utils/acting';
 
 // mobile: telefonda açılır menü olarak gösterilir; onNavigate menüyü kapatır
 const BayiSidebar = ({ mobile = false, onNavigate }) => {
@@ -32,7 +33,7 @@ const BayiSidebar = ({ mobile = false, onNavigate }) => {
     { name: t('İade / Değişim'), path: '/bayi/returns', icon: RotateCcw },
     { name: t('Finansal Durum'), path: '/bayi/finance', icon: CreditCard },
     { name: t('Profilim'), path: '/bayi/profile', icon: UserIcon },
-  ];
+  ].filter((i) => !getActing() || !['/bayi/returns', '/bayi/profile'].includes(i.path)); // bayi adına modunda bayinin kendi işleri
 
   const handleLogout = () => {
     logout();
@@ -45,7 +46,7 @@ const BayiSidebar = ({ mobile = false, onNavigate }) => {
       <div className="px-8 mb-8 flex justify-between items-start">
         <div className="flex flex-col items-start">
           <TenantBrand onDark />
-          <span className="text-[9px] font-black text-brand-400 uppercase tracking-[0.2em] mt-2">{t('BAYİ PANELİ')}</span>
+          <span className="text-[10px] font-black text-brand-400 uppercase tracking-[0.2em] mt-2">{t('BAYİ PANELİ')}</span>
         </div>
         {mobile && <button onClick={onNavigate} className="p-2 text-gray-400 hover:text-white"><X className="h-5 w-5" /></button>}
       </div>

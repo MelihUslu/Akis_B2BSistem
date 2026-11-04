@@ -37,6 +37,8 @@ model User {
   passwordChangedAt    DateTime?
   // E-posta bildirim tercihleri: { ORDER: true, PAYMENT: false, … } (yoksa varsayılanlar)
   notificationPrefs    Json?
+  cart                 Json? // Sunucuda saklanan sepet: [{ id, quantity }] (cihazlar arasında taşınır)
+  cartUpdatedAt        DateTime?
   companyId            Int?
   company              Company?  @relation(fields: [companyId], references: [id])
   createdAt            DateTime  @default(now())
@@ -112,6 +114,7 @@ model Company {
   partnerNotes    PartnerNote[]
   documents       PartnerDocument[]
   statementLinks  StatementRequest[]
+  targets         DealerTarget[]
 
   @@unique([tenantId, taxNumber])
   @@unique([tenantId, externalCode])
@@ -201,17 +204,18 @@ model CompanyContact {
 }
 
 model Category {
-  id        Int        @id @default(autoincrement())
-  tenantId  Int
-  tenant    Tenant     @relation(fields: [tenantId], references: [id])
-  name      String
-  imageUrl  String?
-  sortOrder Int        @default(0)
-  isActive  Boolean    @default(true)
-  parentId  Int?
-  parent    Category?  @relation("CategoryHierarchy", fields: [parentId], references: [id])
-  children  Category[] @relation("CategoryHierarchy")
-  products  Product[]
+  id            Int        @id @default(autoincrement())
+  tenantId      Int
+  tenant        Tenant     @relation(fields: [tenantId], references: [id])
+  name          String
+  imageUrl      String?
+  sortOrder     Int        @default(0)
+  isActive      Boolean    @default(true)
+  parentId      Int?
+  parent        Category?  @relation("CategoryHierarchy", fields: [parentId], references: [id])
+  visibleGroups String[]   @default([]) // Boşsa tüm bayiler; doluysa yalnızca bu gruplar (alt kategoriler de gizlenir)
+  children      Category[] @relation("CategoryHierarchy")
+  products      Product[]
 
   @@index([tenantId])
 }
@@ -262,11 +266,12 @@ model Product {
   alternativeTo   Product?  @relation("AlternativeProducts", fields: [alternativeToId], references: [id])
   alternatives    Product[] @relation("AlternativeProducts")
 
-  hidePrice Boolean  @default(false) // Fiyat gizlensin mi?
-  isActive  Boolean  @default(true) // Ürün aktif mi?
-  sortOrder Int      @default(0) // Sıralama önceliği
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
+  hidePrice     Boolean  @default(false) // Fiyat gizlensin mi?
+  visibleGroups String[] @default([]) // Boşsa tüm bayiler görür; doluysa yalnızca bu bayi grupları (varyantlar ana üründen alır)
+  isActive      Boolean  @default(true) // Ürün aktif mi?
+  sortOrder     Int      @default(0) // Sıralama önceliği
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
 
   orderItems      OrderItem[]
   stockAlerts     StockAlert[]
@@ -316,10 +321,21 @@ model Order {
   couponType     String? // PERCENT, AMOUNT
   couponValue    Float?
   discountAmount Float     @default(0) // KDV hariç kupon indirimi
+  note           String? // Bayinin sipariş notu ("Pazartesi teslim olsun")
+  customerRef    String? // Bayinin kendi sipariş / satın alma numarası
+  shippingFee    Float     @default(0) // Kargo ücreti (KDV hariç); toplam tutara dahildir
+  shippingVat    Float     @default(0) // Kargo ücretinin KDV'si
+  channel        String    @default("PORTAL") // PORTAL (bayi), STAFF (yönetici bayi adına), PLASIYER (plasiyer bayi adına), QUOTE (tekliften)
+  autoApproved   Boolean   @default(false) // Otomatik onay kuralıyla onaylandı
+  cancelledAt    DateTime?
+  cancelledBy    String? // DEALER (bayi iptal etti), ADMIN (yönetici kararı)
+  despatchNumber String? // İrsaliye numarası (ERP'den / elle)
+  despatchDate   DateTime?
   createdAt      DateTime  @default(now())
   updatedAt      DateTime  @updatedAt
 
   invoice          Invoice?
+  shipments        OrderShipment[]
   warehouseId      Int? // Siparişi karşılayan depo (depo tanımlıysa)
   warehouse        Warehouse?             @relation(fields: [warehouseId], references: [id])
   shippingAddress  Json? // Sipariş anındaki teslimat adresi: { title, contactName, phone, city, district, line, postalCode }
@@ -433,6 +449,7 @@ model OrderItem {
   isStockDeducted  Boolean @default(false)
   stockWarehouseId Int? // Stok hangi depodan düşüldü (iptal / iadede oraya geri döner)
   variantLabel     String? // Sipariş anındaki varyant seçimi, örn. "Gramaj: 1 kg · Ambalaj: Kutu"
+  shippedQty       Int     @default(0) // Kısmi sevkiyat: kargoya verilen miktar
 
   returnRequests ReturnRequest[]
 
@@ -749,6 +766,8 @@ model Tenant {
   cashEntries            CashEntry[]
   cashRecurrings         CashRecurring[]
   transferNotices        TransferNotice[]
+  orderShipments         OrderShipment[]
+  dealerTargets          DealerTarget[]
 }
 
 // Kiracının platforma yaptığı abonelik ödemeleri (iyzico veya manuel)
@@ -826,19 +845,61 @@ model ProductVariantValue {
 // Özel / kademeli fiyat. companyId → o bayiye, dealerGroup → o gruba, ikisi de boş → herkese.
 // minQty: bu miktar ve üzerinde geçerli (kademeli fiyat). Fiyat ürünün döviz cinsinden, KDV hariç nettir.
 model SpecialPrice {
-  id          Int      @id @default(autoincrement())
+  id          Int       @id @default(autoincrement())
   tenantId    Int
-  tenant      Tenant   @relation(fields: [tenantId], references: [id])
+  tenant      Tenant    @relation(fields: [tenantId], references: [id])
   productId   Int
-  product     Product  @relation(fields: [productId], references: [id], onDelete: Cascade)
+  product     Product   @relation(fields: [productId], references: [id], onDelete: Cascade)
   companyId   Int?
-  company     Company? @relation(fields: [companyId], references: [id], onDelete: Cascade)
+  company     Company?  @relation(fields: [companyId], references: [id], onDelete: Cascade)
   dealerGroup String?
-  minQty      Int      @default(1)
+  minQty      Int       @default(1)
   price       Float
-  createdAt   DateTime @default(now())
+  validFrom   DateTime? // Kampanya / sözleşme fiyatı başlangıcı (boşsa hemen geçerli)
+  validUntil  DateTime? // Bitişi (boşsa süresiz)
+  createdAt   DateTime  @default(now())
 
   @@index([tenantId, productId])
+}
+
+// Kısmi sevkiyat: onaylanan siparişin kargoya verilen her parçası (items: [{ orderItemId, quantity }])
+model OrderShipment {
+  id             Int      @id @default(autoincrement())
+  tenantId       Int
+  tenant         Tenant   @relation(fields: [tenantId], references: [id])
+  orderId        Int
+  order          Order    @relation(fields: [orderId], references: [id])
+  trackingNumber String?
+  cargoCompany   String?
+  items          Json
+  createdById    Int?
+  createdAt      DateTime @default(now())
+
+  @@index([tenantId])
+  @@index([orderId])
+}
+
+// Bayi hedefi ve ciro primi: dönem içindeki onaylı satış (KDV hariç) hedefe ulaşırsa bonusRate kadarı cariye alacak yazılır
+model DealerTarget {
+  id             Int       @id @default(autoincrement())
+  tenantId       Int
+  tenant         Tenant    @relation(fields: [tenantId], references: [id])
+  companyId      Int
+  company        Company   @relation(fields: [companyId], references: [id])
+  name           String? // "2026 4. çeyrek"
+  periodStart    DateTime
+  periodEnd      DateTime
+  targetAmount   Float // KDV hariç TL
+  bonusRate      Float // Hedefe ulaşınca satışın yüzde kaçı prim olarak cariye yazılır
+  status         String    @default("OPEN") // OPEN, PAID (prim cariye yazıldı), CLOSED (hedef tutmadı / kapatıldı)
+  achievedAmount Float? // Kapanıştaki gerçekleşen
+  paidAmount     Float?
+  paidAt         DateTime?
+  createdAt      DateTime  @default(now())
+  updatedAt      DateTime  @updatedAt
+
+  @@index([tenantId])
+  @@index([companyId])
 }
 
 // Kupon / kampanya kodu
@@ -1360,41 +1421,41 @@ model CustomerLead {
 
 // Firmanın WhatsApp Business (Cloud API) bağlantısı. Gizli bilgiler şifreli saklanır (secretBox).
 model WhatsappChannel {
-  id              Int       @id @default(autoincrement())
-  tenantId        Int       @unique
-  tenant          Tenant    @relation(fields: [tenantId], references: [id])
-  phoneNumberId   String    @unique // Meta'daki telefon numarası kimliği (gelen mesaj bu kimlikle eşleşir)
-  wabaId          String    @default("")
-  displayPhone    String    @default("")
-  verifiedName    String    @default("")
-  accessTokenEnc  String
-  appSecretEnc    String // Meta'dan gelen isteklerin imzasını doğrulamak için
-  webhookKey      String    @unique // Firmaya özel webhook adresi: /api/whatsapp/webhook/<webhookKey>
-  verifyToken     String // Meta webhook doğrulama anahtarı
-  aiEnabled       Boolean   @default(true)
-  knowledge       String    @default("") // Yapay zekânın kullanacağı firma bilgileri (kargo, ödeme, saatler…)
-  handoffMessage  String    @default("")
-  lastWebhookAt   DateTime?
-  lastError       String    @default("")
-  createdAt       DateTime  @default(now())
-  updatedAt       DateTime  @updatedAt
+  id             Int       @id @default(autoincrement())
+  tenantId       Int       @unique
+  tenant         Tenant    @relation(fields: [tenantId], references: [id])
+  phoneNumberId  String    @unique // Meta'daki telefon numarası kimliği (gelen mesaj bu kimlikle eşleşir)
+  wabaId         String    @default("")
+  displayPhone   String    @default("")
+  verifiedName   String    @default("")
+  accessTokenEnc String
+  appSecretEnc   String // Meta'dan gelen isteklerin imzasını doğrulamak için
+  webhookKey     String    @unique // Firmaya özel webhook adresi: /api/whatsapp/webhook/<webhookKey>
+  verifyToken    String // Meta webhook doğrulama anahtarı
+  aiEnabled      Boolean   @default(true)
+  knowledge      String    @default("") // Yapay zekânın kullanacağı firma bilgileri (kargo, ödeme, saatler…)
+  handoffMessage String    @default("")
+  lastWebhookAt  DateTime?
+  lastError      String    @default("")
+  createdAt      DateTime  @default(now())
+  updatedAt      DateTime  @updatedAt
 }
 
 // WhatsApp konuşması (müşteri numarası başına bir tane)
 model WaConversation {
-  id             Int          @id @default(autoincrement())
+  id             Int         @id @default(autoincrement())
   tenantId       Int
-  tenant         Tenant       @relation(fields: [tenantId], references: [id])
+  tenant         Tenant      @relation(fields: [tenantId], references: [id])
   waId           String // Müşterinin WhatsApp numarası (90532…)
-  name           String       @default("") // WhatsApp profil adı
-  status         String       @default("BOT") // BOT (yapay zekâ cevaplar), HUMAN (ekip devraldı), CLOSED
-  needsHuman     Boolean      @default(false) // Ekip yanıtı bekleniyor
-  unread         Int          @default(0)
-  lastMessageAt  DateTime     @default(now())
+  name           String      @default("") // WhatsApp profil adı
+  status         String      @default("BOT") // BOT (yapay zekâ cevaplar), HUMAN (ekip devraldı), CLOSED
+  needsHuman     Boolean     @default(false) // Ekip yanıtı bekleniyor
+  unread         Int         @default(0)
+  lastMessageAt  DateTime    @default(now())
   lastInboundAt  DateTime? // 24 saatlik serbest mesaj penceresi buna göre
-  lastPreview    String       @default("")
+  lastPreview    String      @default("")
   customerLeadId Int?
-  createdAt      DateTime     @default(now())
+  createdAt      DateTime    @default(now())
   messages       WaMessage[]
 
   @@unique([tenantId, waId])
@@ -1436,15 +1497,15 @@ model PeriodicReport {
 
 // Gelir-gider: cariye bağlı olmayan giderler (kira, maaş, fatura…) ve satış dışı gelirler. Tutar TL, KDV dahil.
 model CashEntry {
-  id            Int      @id @default(autoincrement())
+  id            Int            @id @default(autoincrement())
   tenantId      Int
-  tenant        Tenant   @relation(fields: [tenantId], references: [id])
+  tenant        Tenant         @relation(fields: [tenantId], references: [id])
   type          String // IN: gelir, OUT: gider
   category      String
   amount        Float
   date          DateTime
   method        String? // CASH, BANK, CARD
-  vatRate       Float    @default(0) // Tutarın içindeki KDV oranı (%)
+  vatRate       Float          @default(0) // Tutarın içindeki KDV oranı (%)
   description   String?
   // Fiş / fatura (uploads/private/cash, yalnızca yetkiyle indirilir)
   fileName      String?
@@ -1453,8 +1514,8 @@ model CashEntry {
   recurringId   Int? // Düzenli gider/gelirden otomatik oluştuysa
   recurring     CashRecurring? @relation(fields: [recurringId], references: [id], onDelete: SetNull)
   createdByName String?
-  createdAt     DateTime @default(now())
-  updatedAt     DateTime @updatedAt
+  createdAt     DateTime       @default(now())
+  updatedAt     DateTime       @updatedAt
 
   @@index([tenantId, date])
 }

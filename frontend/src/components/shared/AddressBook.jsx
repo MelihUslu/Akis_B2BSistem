@@ -95,7 +95,7 @@ const AddressBook = ({ base = '/addresses', showAlert, selectable = false, value
                 <div className="min-w-0 flex-1">
                   <p className="text-sm font-black text-gray-900 flex items-center gap-2">
                     {a.title}
-                    {a.isDefault && <span className="px-1.5 py-0.5 rounded-md bg-amber-100 text-amber-700 text-[10px] font-bold">{t('Varsayılan')}</span>}
+                    {a.isDefault && <span className="px-1.5 py-0.5 rounded-md bg-amber-100 text-amber-700 text-[11px] font-bold">{t('Varsayılan')}</span>}
                   </p>
                   <p className="text-xs text-gray-600 mt-0.5 leading-relaxed">{formatAddress(a)}</p>
                   <p className="text-[11px] text-gray-400 mt-1">{a.contactName} · {a.phone}</p>

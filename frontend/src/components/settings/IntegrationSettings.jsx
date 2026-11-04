@@ -119,7 +119,7 @@ const IntegrationSettings = ({ showAlert, confirm }) => {
           {data.keys.map(k => (
             <div key={k.id} className="py-3 flex items-center justify-between">
               <div><p className="text-sm font-bold text-gray-800">{k.name} <code className="text-xs text-gray-400 font-mono">{k.prefix}…</code>
-                {k.isTest && <span className="ml-2 px-1.5 py-0.5 rounded-md bg-amber-100 text-amber-700 text-[10px] font-bold">TEST · yazmaz</span>}</p>
+                {k.isTest && <span className="ml-2 px-1.5 py-0.5 rounded-md bg-amber-100 text-amber-700 text-[11px] font-bold">TEST · yazmaz</span>}</p>
                 <p className="text-[11px] text-gray-400">Oluşturma: {formatDate(k.createdAt)} · Son kullanım: {k.lastUsedAt ? formatDate(k.lastUsedAt, true) : 'hiç'}</p></div>
               <button onClick={() => revoke(k)} className="p-2 text-gray-300 hover:text-red-500"><Trash2 className="h-4 w-4" /></button>
             </div>

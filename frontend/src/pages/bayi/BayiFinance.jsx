@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react';
+import TargetProgress from '../../components/finance/TargetProgress';
 import api, { errorMessage } from '../../services/api';
-import { CreditCard, Wallet, ArrowUpRight, ArrowDownLeft, Info, CheckCircle2, X, CalendarClock, Lock } from 'lucide-react';
+import { CreditCard, Wallet, ArrowUpRight, ArrowDownLeft, Info, CheckCircle2, X, CalendarClock, Lock, Target } from 'lucide-react';
 import useAlert from '../../hooks/useAlert';
 import { Link, useSearchParams } from 'react-router-dom';
 import { FileSpreadsheet, Printer } from 'lucide-react';
@@ -36,7 +37,7 @@ const CardPayModal = ({ suggested, provider, onClose }) => {
         </div>
         {error && <p className="text-xs font-bold text-red-600 bg-red-50 p-3 rounded-xl">{error}</p>}
         <button type="submit" disabled={loading} className="w-full btn-gradient py-4 disabled:opacity-60"><Lock className="h-4 w-4 mr-2" /> {loading ? t('Yönlendiriliyor...') : t('Güvenli Ödeme Sayfasına Git')}</button>
-        <p className="text-[10px] text-center text-gray-400">{t('Kart bilgileriniz')} {provider === 'PAYTR' ? 'PayTR' : 'iyzico'} güvenli ödeme sayfasında işlenir, firmamızda saklanmaz.</p>
+        <p className="text-[11px] text-center text-gray-400">{t('Kart bilgileriniz')} {provider === 'PAYTR' ? 'PayTR' : 'iyzico'} güvenli ödeme sayfasında işlenir, firmamızda saklanmaz.</p>
       </form>
     </div>
   );
@@ -78,7 +79,7 @@ const PosModal = ({ suggested, onClose, onPaid }) => {
         <div className="p-6 bg-gradient-to-br from-brand-600 to-brand-800 text-white">
           <div className="flex justify-between items-start">
             <div>
-              <p className="text-[10px] font-black uppercase tracking-widest text-brand-200">{t('Sanal POS · Demo')}</p>
+              <p className="text-[11px] font-black uppercase tracking-widest text-brand-200">{t('Sanal POS · Demo')}</p>
               <h3 className="text-xl font-black mt-1">{t('Kartla Ödeme')}</h3>
             </div>
             <button type="button" onClick={onClose} className="p-2 rounded-xl hover:bg-white/10"><X className="h-5 w-5" /></button>
@@ -119,7 +120,7 @@ const PosModal = ({ suggested, onClose, onPaid }) => {
           <button type="submit" disabled={submitting} className="w-full btn-gradient py-4 disabled:opacity-60">
             <Lock className="h-4 w-4 mr-2" /> {submitting ? t('İşleniyor...') : t('{amount} Öde', { amount: formatTRY(form.amount) })}
           </button>
-          <p className="text-[10px] text-center text-gray-400 font-semibold">{t('Demo ortamıdır, gerçek tahsilat yapılmaz. Kart bilgileriniz saklanmaz (sadece son 4 hane).')}</p>
+          <p className="text-[11px] text-center text-gray-400 font-semibold">{t('Demo ortamıdır, gerçek tahsilat yapılmaz. Kart bilgileriniz saklanmaz (sadece son 4 hane).')}</p>
         </div>
       </form>
     </div>
@@ -131,6 +132,7 @@ const BayiFinance = () => {
   const [isLoading, setIsLoading] = useState(true);
   const [isPosOpen, setIsPosOpen] = useState(false);
   const [posMode, setPosMode] = useState(null); // IYZICO | PAYTR | DEMO | NONE
+  const [targets, setTargets] = useState([]);
   const [params, setParams] = useSearchParams();
   const { alertElement, showAlert, confirm } = useAlert();
 
@@ -143,6 +145,7 @@ const BayiFinance = () => {
   useEffect(() => {
     fetchStatement();
     api.get('/payments/pos-info').then((r) => setPosMode(r.data.mode)).catch(() => setPosMode('NONE'));
+    api.get('/targets/mine').then((r) => setTargets(r.data)).catch(() => setTargets([]));
     // iyzico ödeme sayfasından dönüş
     const result = params.get('pos');
     if (result) {
@@ -217,7 +220,7 @@ const BayiFinance = () => {
       <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
         <div className="bg-white p-5 md:p-6 rounded-2xl border border-gray-100 shadow-sm relative overflow-hidden">
           <div className="relative z-10">
-            <p className="text-[10px] font-black text-gray-400 uppercase tracking-wider mb-2">{t('Güncel Bakiyeniz')}</p>
+            <p className="text-[11px] font-black text-gray-400 uppercase tracking-wider mb-2">{t('Güncel Bakiyeniz')}</p>
             <h2 className={`text-3xl font-black ${balance >= 0 ? 'text-green-600' : 'text-red-600'}`}>
               {money(Math.abs(balance))}
             </h2>
@@ -232,7 +235,7 @@ const BayiFinance = () => {
         </div>
 
         <div className="bg-white p-5 md:p-6 rounded-2xl border border-gray-100 shadow-sm">
-          <p className="text-[10px] font-black text-gray-400 uppercase tracking-wider mb-2">{t('Risk Limitiniz')}</p>
+          <p className="text-[11px] font-black text-gray-400 uppercase tracking-wider mb-2">{t('Risk Limitiniz')}</p>
           <h2 className="text-3xl font-black text-gray-900">{money(riskLimit)}</h2>
           <div className="mt-4 w-full bg-gray-100 h-2 rounded-full overflow-hidden">
             <div
@@ -240,15 +243,15 @@ const BayiFinance = () => {
               style={{ width: `${usage}%` }}
             ></div>
           </div>
-          <p className="text-[10px] text-gray-400 mt-2 font-bold uppercase">
+          <p className="text-[11px] text-gray-400 mt-2 font-bold uppercase">
             {t('LİMİT KULLANIMI: %{pct} · KULLANILABİLİR: {amount}', { pct: usage.toFixed(1), amount: money(Math.max(0, credit.available)) })}
           </p>
-          {credit.reserved > 0 && <p className="text-[10px] text-amber-600 mt-1 font-bold uppercase">{t('Onay bekleyen siparişler:')} {money(credit.reserved)}</p>}
+          {credit.reserved > 0 && <p className="text-[11px] text-amber-600 mt-1 font-bold uppercase">{t('Onay bekleyen siparişler:')} {money(credit.reserved)}</p>}
         </div>
 
         <div className="bg-white p-5 md:p-6 rounded-2xl border border-gray-100 shadow-sm flex flex-col justify-between">
           <div>
-            <p className="text-[10px] font-black text-gray-400 uppercase tracking-wider mb-2">{t('Cari Mutabakat')}</p>
+            <p className="text-[11px] font-black text-gray-400 uppercase tracking-wider mb-2">{t('Cari Mutabakat')}</p>
             {lastReconciliation ? (
               <p className="text-sm font-bold text-gray-700">
                 {t('Son onay:')} {formatDate(lastReconciliation.createdAt)}<br />
@@ -258,7 +261,7 @@ const BayiFinance = () => {
               <p className="text-sm font-bold text-gray-500">{t('Henüz mutabakat onayı vermediniz.')}</p>
             )}
           </div>
-          <button onClick={handleReconcile} className="mt-4 w-full py-3 rounded-2xl bg-emerald-500 hover:bg-emerald-600 text-white text-xs font-black uppercase tracking-widest flex items-center justify-center shadow-lg shadow-emerald-500/20 transition-all">
+          <button onClick={handleReconcile} className="mt-4 w-full py-3 rounded-2xl bg-emerald-500 hover:bg-emerald-600 text-white text-xs font-black flex items-center justify-center shadow-lg shadow-emerald-500/20 transition-all">
             <CheckCircle2 className="h-4 w-4 mr-2" /> {t('Mutabıkım')}
           </button>
         </div>
@@ -274,15 +277,37 @@ const BayiFinance = () => {
         </div>
       )}
 
+      {/* Satış hedefi ve ciro primi: hedefe ulaşılırsa prim cariye alacak yazılır */}
+      {targets.length > 0 && (
+        <div className="card-premium p-5 md:p-6 space-y-4">
+          <h3 className="font-black text-gray-900 flex items-center"><Target className="h-5 w-5 mr-2 text-brand-500" /> {t('Satış hedefleriniz')}</h3>
+          {targets.map((tg) => (
+            <div key={tg.id} className="space-y-2">
+              <div className="flex flex-wrap justify-between gap-x-4 gap-y-1 text-sm">
+                <span className="font-bold text-gray-800">{tg.name || t('Dönem hedefi')} <span className="text-xs text-gray-400 font-semibold">· {formatDate(tg.periodStart)} – {formatDate(tg.periodEnd)}</span></span>
+                <span className="text-xs font-bold text-gray-500">{t('Ciro primi %{rate}', { rate: tg.bonusRate })}</span>
+              </div>
+              <TargetProgress t={tg} />
+              <p className="text-xs font-semibold text-gray-500">
+                {tg.status === 'PAID' ? <span className="text-emerald-700 font-bold">{t('{amount} ciro primi carinize alacak olarak yazıldı.', { amount: formatTRY(tg.paidAmount) })}</span>
+                  : tg.status === 'CLOSED' ? t('Dönem kapandı.')
+                  : tg.remaining > 0 ? t('Hedefe {left} (KDV hariç) kaldı. Ulaşırsanız en az {bonus} prim carinize yazılır.', { left: formatTRY(tg.remaining), bonus: formatTRY(tg.potentialBonus) })
+                  : <span className="text-emerald-700 font-bold">{t('Hedefe ulaştınız! Dönem sonunda {bonus} prim carinize yazılacak.', { bonus: formatTRY(tg.bonus) })}</span>}
+              </p>
+            </div>
+          ))}
+        </div>
+      )}
+
       <div className="card-premium">
         <div className="p-6 border-b border-gray-50 flex justify-between items-center">
           <h3 className="font-black text-gray-900">{t('Cari Hesap Ekstresi')}</h3>
-          <span className="text-[10px] font-black text-gray-400 uppercase tracking-widest">{transactions.length} hareket</span>
+          <span className="text-[11px] font-black text-gray-400 uppercase tracking-widest">{transactions.length} hareket</span>
         </div>
         <div className="overflow-x-auto">
           <table className="w-full text-sm">
             <thead className="list-head">
-              <tr className="text-left text-[10px] font-black text-gray-500 uppercase tracking-[0.15em] whitespace-nowrap">
+              <tr className="text-left text-[11px] font-black text-gray-500 uppercase tracking-[0.15em] whitespace-nowrap">
                 <th className="px-6 py-4">{t('Tarih')}</th>
                 <th className="px-6 py-4">{t('Açıklama')}</th>
                 <th className="px-6 py-4 text-right">{t('Borç')}</th>
@@ -294,7 +319,7 @@ const BayiFinance = () => {
               {transactions.length === 0 ? (
                 <tr><td colSpan={5} className="text-center py-10 text-gray-400 font-bold">{t('Henüz cari hareket yok.')}</td></tr>
               ) : transactions.map((tx) => (
-                <tr key={tx.id} className="transition-colors hover:bg-slate-50/80 hover:shadow-[inset_3px_0_0_0_#3b82f6]">
+                <tr key={tx.id} className="transition-colors hover:bg-slate-50/80 hover:shadow-[inset_3px_0_0_0_var(--color-brand-500)]">
                   <td className="px-6 py-4 text-gray-500 font-semibold whitespace-nowrap">{formatDate(tx.date, true)}</td>
                   <td className="px-6 py-4 font-semibold text-gray-800">
                     <span className="inline-flex items-center">

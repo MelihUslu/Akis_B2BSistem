@@ -29,7 +29,7 @@ const Card = ({ title, children, action }) => (
 const Empty = ({ children = 'Bu dönemde kayıt yok.' }) => <p className="text-sm text-gray-400 py-4 text-center">{children}</p>;
 const Stat = ({ label, value, sub, tone = 'text-gray-900' }) => (
   <div className="rounded-2xl bg-white ring-1 ring-gray-100 p-4">
-    <p className="text-[10px] font-black text-gray-400 uppercase tracking-wider">{label}</p>
+    <p className="text-[11px] font-black text-gray-400 uppercase tracking-wider">{label}</p>
     <p className={`text-2xl font-black mt-1 ${tone}`}>{value}</p>
     {sub && <p className="text-xs text-gray-500 mt-0.5">{sub}</p>}
   </div>
@@ -37,7 +37,7 @@ const Stat = ({ label, value, sub, tone = 'text-gray-900' }) => (
 const Table = ({ head, children }) => (
   <div className="overflow-x-auto -mx-5 px-5">
     <table className="w-full text-sm">
-      <thead><tr className="text-left text-[10px] font-black text-gray-400 uppercase tracking-wider">{head.map((h, i) => <th key={i} className={`py-2 pr-4 whitespace-nowrap ${i > 0 && typeof h === 'string' && h.startsWith('#') ? 'text-right' : ''}`}>{typeof h === 'string' ? h.replace(/^#/, '') : h}</th>)}</tr></thead>
+      <thead><tr className="text-left text-[11px] font-black text-gray-400 uppercase tracking-wider">{head.map((h, i) => <th key={i} className={`py-2 pr-4 whitespace-nowrap ${i > 0 && typeof h === 'string' && h.startsWith('#') ? 'text-right' : ''}`}>{typeof h === 'string' ? h.replace(/^#/, '') : h}</th>)}</tr></thead>
       <tbody className="divide-y divide-gray-50">{children}</tbody>
     </table>
   </div>
@@ -270,7 +270,7 @@ const ApiTab = ({ tenants, version }) => {
         <tr key={r.id}>
           <Td className="whitespace-nowrap text-gray-500">{formatDate(r.createdAt, true)}</Td>
           <Td className="font-semibold text-gray-800">{r.tenantName}</Td>
-          <Td className="text-gray-500">{r.apiKeyName || '—'}{r.isTest && <span className="ml-1.5 px-1.5 py-0.5 rounded bg-amber-100 text-amber-700 text-[10px] font-black">TEST</span>}</Td>
+          <Td className="text-gray-500">{r.apiKeyName || '—'}{r.isTest && <span className="ml-1.5 px-1.5 py-0.5 rounded bg-amber-100 text-amber-700 text-[11px] font-black">TEST</span>}</Td>
           <RouteCell method={r.method} route={r.path} />
           <Td><Status code={r.statusCode} /></Td>
           <Td right>{ms(r.durationMs)}</Td>

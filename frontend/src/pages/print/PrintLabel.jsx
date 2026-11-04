@@ -41,7 +41,7 @@ const PrintLabel = () => {
         </div>
         <div className="py-3 flex justify-center border-b-2 border-black"><svg ref={svg} /></div>
         <div className="py-2 border-b-2 border-black flex-1">
-          <p className="text-[10px] font-black uppercase">Alıcı</p>
+          <p className="text-[11px] font-black uppercase">Alıcı</p>
           <p className="text-[15px] font-black">{order.company?.name}</p>
           {a.contactName && <p className="font-bold">{a.contactName} · {a.phone}</p>}
           <p className="mt-1">{a.line}</p>
@@ -49,7 +49,7 @@ const PrintLabel = () => {
           {!a.city && <p className="mt-1">{formatAddress(a) || order.company?.address}</p>}
         </div>
         <div className="pt-2">
-          <p className="text-[10px] font-black uppercase">Gönderici</p>
+          <p className="text-[11px] font-black uppercase">Gönderici</p>
           <p className="font-bold">{tenant?.name}</p>
           <p>{[tenant?.address, tenant?.phone].filter(Boolean).join(' · ')}</p>
         </div>

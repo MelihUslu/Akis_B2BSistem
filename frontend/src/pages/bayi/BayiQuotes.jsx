@@ -75,11 +75,11 @@ const BayiQuotes = () => {
           <div key={q.id} className={`bg-white rounded-2xl border shadow-sm overflow-hidden ${open ? 'border-brand-300' : 'border-gray-100'}`}>
             <button onClick={() => setOpenId(open ? null : q.id)} className="w-full p-5 md:p-6 flex justify-between items-center gap-3 text-left">
               <div className="flex flex-wrap gap-x-8 gap-y-2 items-center min-w-0">
-                <div><p className="text-[10px] font-black text-gray-400 uppercase">{t('Teklif')}</p><p className="font-black text-gray-900">{q.code}{q.revision > 1 && <span className="text-xs text-gray-400"> · Rev. {q.revision}</span>}</p></div>
-                <div><p className="text-[10px] font-black text-gray-400 uppercase">{t('Tarih')}</p><p className="text-sm text-gray-700">{formatDate(doc?.issuedAt || q.createdAt)}</p></div>
-                {doc && <div><p className="text-[10px] font-black text-gray-400 uppercase">{t('Toplam (KDV dahil)')}</p><p className="font-black text-brand-600">{formatTRY(doc.totals.total)}</p></div>}
+                <div><p className="text-[11px] font-black text-gray-400 uppercase">{t('Teklif')}</p><p className="font-black text-gray-900">{q.code}{q.revision > 1 && <span className="text-xs text-gray-400"> · Rev. {q.revision}</span>}</p></div>
+                <div><p className="text-[11px] font-black text-gray-400 uppercase">{t('Tarih')}</p><p className="text-sm text-gray-700">{formatDate(doc?.issuedAt || q.createdAt)}</p></div>
+                {doc && <div><p className="text-[11px] font-black text-gray-400 uppercase">{t('Toplam (KDV dahil)')}</p><p className="font-black text-brand-600">{formatTRY(doc.totals.total)}</p></div>}
                 {doc?.validUntil && q.status === 'QUOTED' && <p className="text-xs font-bold text-amber-600 flex items-center"><Clock className="h-3.5 w-3.5 mr-1" /> {t('Son geçerlilik:')} {formatDate(doc.validUntil)}</p>}
-                <span className={`px-3 py-1 rounded-full text-[10px] font-black uppercase ${status.className}`}>{t(status.label)}</span>
+                <span className={`px-3 py-1 rounded-full text-[11px] font-black uppercase ${status.className}`}>{t(status.label)}</span>
                 {q.order && <span className="text-xs font-black text-emerald-600">{t('Sipariş')} #AK-{q.order.id}</span>}
               </div>
               <ChevronDown className={`h-5 w-5 text-gray-400 shrink-0 transition-transform ${open ? 'rotate-180' : ''}`} />

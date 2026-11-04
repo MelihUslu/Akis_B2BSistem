@@ -2,6 +2,8 @@ import { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
 import { CreditCard, Award, CheckCircle2, AlertTriangle, CalendarClock, ArrowDownLeft, ArrowUpRight, BookUser, Banknote, ChevronRight, Hourglass, FileSpreadsheet, HelpCircle } from 'lucide-react';
 import { downloadFile } from '../../utils/download';
+import useAlert from '../../hooks/useAlert';
+import DealerTargets from '../../components/finance/DealerTargets';
 import api from '../../services/api';
 import { formatTRY, formatDate, formatMoney } from '../../utils/format';
 import { PARTNER_KINDS, AGING_LABELS, AGING_TONE, agingSentence } from '../../utils/partner';
@@ -17,7 +19,7 @@ const Stat = ({ icon: Icon, tone, label, value, sub }) => (
   <div className="bg-white rounded-2xl border border-gray-100 shadow-sm p-5 flex items-start gap-4">
     <div className={`p-3 rounded-xl shrink-0 ${tone}`}><Icon className="h-5 w-5" /></div>
     <div className="min-w-0">
-      <p className="text-[10px] font-black text-gray-400 uppercase tracking-widest">{label}</p>
+      <p className="text-[11px] font-black text-gray-400 uppercase tracking-widest">{label}</p>
       <p className="text-xl font-black text-gray-900 tabular-nums mt-0.5">{value}</p>
       {sub && <p className="text-xs text-gray-400 mt-0.5">{sub}</p>}
     </div>
@@ -48,6 +50,7 @@ const FinanceManagement = () => {
   const [reconciliations, setReconciliations] = useState([]);
   const [aging, setAging] = useState(null);
   const [agingHelp, setAgingHelp] = useState(false);
+  const { alertElement, showAlert, confirm } = useAlert();
 
   useEffect(() => {
     Promise.all([api.get('/finance/summary'), api.get('/finance/plasiyer-points'), api.get('/finance/reconciliations'), api.get('/finance/aging')])
@@ -59,6 +62,7 @@ const FinanceManagement = () => {
 
   return (
     <div className="space-y-8">
+      {alertElement}
       <div className="flex flex-col md:flex-row justify-between md:items-end gap-4">
         <div className="flex items-center gap-4">
           <div className="page-icon"><CreditCard className="h-6 w-6 text-brand-400" /></div>
@@ -144,7 +148,7 @@ const FinanceManagement = () => {
             {aging.rows.length === 0 ? <p className="text-center py-8 text-gray-400 text-sm">Borçlu cari yok.</p> : (
               <div className="overflow-x-auto">
                 <table className="w-full text-xs min-w-[56rem]">
-                  <thead className="bg-gray-50 text-[10px] font-black text-gray-500 uppercase">
+                  <thead className="bg-gray-50 text-[11px] font-black text-gray-500 uppercase">
                     <tr>
                       <th className="px-4 py-2 text-left">Cari</th>
                       {AGING_LABELS.map(([k, l]) => <th key={k} className="px-3 py-2 text-right leading-tight">{l}</th>)}
@@ -187,6 +191,8 @@ const FinanceManagement = () => {
             )}
           </div>
         )}
+
+        <DealerTargets showAlert={showAlert} confirm={confirm} />
 
         <Card icon={Award} iconClass="text-orange-500" title={`Plasiyer primleri${plasiyerPoints.length ? ` · toplam ${primTotal.toLocaleString('tr-TR', { maximumFractionDigits: 2 })} puan` : ''}`} empty={!plasiyerPoints.length && 'Henüz prim puanı bulunmuyor.'}>
           {plasiyerPoints.map((point) => (

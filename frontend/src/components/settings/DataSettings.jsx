@@ -52,14 +52,14 @@ const DataSettings = ({ showAlert }) => {
         {!user?.isOwner ? (
           <p className="text-xs font-bold text-gray-400">Hesabı yalnızca firma sahibi kapatabilir.</p>
         ) : !close ? (
-          <button onClick={() => setClose({ password: '', confirm: '', reason: '' })} className="px-5 py-3 rounded-2xl bg-red-50 text-red-600 text-[10px] font-black uppercase tracking-widest">Hesabı kapatmak istiyorum</button>
+          <button onClick={() => setClose({ password: '', confirm: '', reason: '' })} className="px-5 py-3 rounded-2xl bg-red-50 text-red-600 text-xs font-black">Hesabı kapatmak istiyorum</button>
         ) : (
           <form onSubmit={submitClose} className="grid grid-cols-1 md:grid-cols-3 gap-4 items-end">
             <div><label className="premium-label">Onay: “{tenant?.slug}” yazın</label><input required className="premium-input" value={close.confirm} onChange={(e) => setClose({ ...close, confirm: e.target.value })} /></div>
             <div><label className="premium-label">Şifreniz</label><input type="password" required className="premium-input" value={close.password} onChange={(e) => setClose({ ...close, password: e.target.value })} /></div>
             <div><label className="premium-label">Neden ayrılıyorsunuz? (isteğe bağlı)</label><input className="premium-input" value={close.reason} onChange={(e) => setClose({ ...close, reason: e.target.value })} /></div>
             <div className="md:col-span-3 flex gap-3">
-              <button className="px-5 py-3 rounded-2xl bg-red-600 text-white text-[10px] font-black uppercase tracking-widest">Hesabı Kalıcı Olarak Kapat</button>
+              <button className="px-5 py-3 rounded-2xl bg-red-600 text-white text-xs font-black">Hesabı Kalıcı Olarak Kapat</button>
               <button type="button" onClick={() => setClose(null)} className="text-xs font-black text-gray-400">Vazgeç</button>
             </div>
           </form>

@@ -51,7 +51,7 @@ const ContactCard = ({ sessionId, onDone, onClose }) => {
       <button disabled={busy} className="w-full h-10 rounded-xl bg-navy-900 text-white text-sm font-semibold flex items-center justify-center gap-2 disabled:opacity-60">
         {busy ? <Loader2 className="h-4 w-4 animate-spin" /> : <PhoneCall className="h-4 w-4" />} Beni arayın
       </button>
-      <p className="text-[10px] text-slate-400 leading-snug">Bilgileriniz yalnızca sizinle iletişim için <a href="/kvkk" className="underline">KVKK metni</a> kapsamında kullanılır.</p>
+      <p className="text-[11px] text-slate-400 leading-snug">Bilgileriniz yalnızca sizinle iletişim için <a href="/kvkk" className="underline">KVKK metni</a> kapsamında kullanılır.</p>
     </form>
   );
 };
@@ -209,7 +209,7 @@ const ChatWidget = ({ chatbot, company, raised = false, hideLauncher = false }) 
               {sending ? <Loader2 className="h-4 w-4 animate-spin" /> : <Send className="h-4 w-4" />}
             </button>
           </form>
-          <p className="pb-2 text-center text-[10px] text-slate-400">Yanıtlar otomatik asistan tarafından verilir. Yazdıklarınız <a href="/kvkk" className="underline">KVKK metni</a> kapsamında işlenir.</p>
+          <p className="pb-2 text-center text-[11px] text-slate-400">Yanıtlar otomatik asistan tarafından verilir. Yazdıklarınız <a href="/kvkk" className="underline">KVKK metni</a> kapsamında işlenir.</p>
         </div>
       )}
 

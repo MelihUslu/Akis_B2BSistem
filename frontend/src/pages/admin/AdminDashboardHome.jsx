@@ -80,17 +80,17 @@ const AdminDashboardHome = () => {
             <div className="p-8 space-y-8">
               <div className="grid grid-cols-2 gap-6">
                 <div className="space-y-1">
-                  <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Bayi Bilgisi</span>
+                  <span className="text-[11px] font-black text-slate-400 uppercase tracking-widest">Bayi Bilgisi</span>
                   <p className="text-sm font-bold text-slate-800">{selectedOrder.company?.name}</p>
                 </div>
                 <div className="space-y-1 text-right">
-                  <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Zaman</span>
+                  <span className="text-[11px] font-black text-slate-400 uppercase tracking-widest">Zaman</span>
                   <p className="text-sm font-bold text-slate-800">{formatDate(selectedOrder.createdAt, true)}</p>
                 </div>
               </div>
 
               <div className="space-y-4">
-                <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Sipariş İçeriği</span>
+                <span className="text-[11px] font-black text-slate-400 uppercase tracking-widest">Sipariş İçeriği</span>
                 <div className="bg-slate-50 rounded-2xl p-4 space-y-3 max-h-60 overflow-y-auto custom-scrollbar">
                   <div className="flex justify-between items-center text-xs font-bold text-slate-600 border-b border-slate-200/50 pb-2">
                     <span>Ürün</span>
@@ -148,7 +148,7 @@ const AdminDashboardHome = () => {
               <stat.icon className="h-4 w-4" />
             </div>
             <div>
-              <p className="text-[9px] text-white/70 font-black uppercase tracking-[0.2em] mb-1">{stat.title}</p>
+              <p className="text-[10px] text-white/70 font-black uppercase tracking-[0.2em] mb-1">{stat.title}</p>
               <h3 className="text-xl font-black mb-1 leading-tight tracking-tighter">{stat.value}</h3>
               <p className="text-[8px] text-white/60 font-bold leading-relaxed">{stat.desc}</p>
             </div>
@@ -216,7 +216,7 @@ const AdminDashboardHome = () => {
               </div>
             )}
           </div>
-          <div className="space-y-3 mt-8 text-[10px] font-black text-gray-400 uppercase tracking-widest">
+          <div className="space-y-3 mt-8 text-[11px] font-black text-gray-400 uppercase tracking-widest">
             {statusData.map((s) => (
               <div key={s.status} className="flex justify-between items-center">
                 <span className="flex items-center"><span className="w-2 h-2 rounded-full mr-2" style={{ backgroundColor: STATUS_COLORS[s.status] }} />{s.name}</span>
@@ -284,7 +284,7 @@ const AdminDashboardHome = () => {
                 <div className="w-full bg-gray-100 h-2 rounded-full overflow-hidden">
                   <div className={`h-full rounded-full ${c.usage >= 90 ? 'bg-red-500' : 'bg-amber-500'}`} style={{ width: `${Math.min(100, c.usage)}%` }} />
                 </div>
-                <p className="text-[10px] font-bold text-gray-400 mt-1">{formatTRY(-c.currentBalance)} / {formatTRY(c.riskLimit)}</p>
+                <p className="text-[11px] font-bold text-gray-400 mt-1">{formatTRY(-c.currentBalance)} / {formatTRY(c.riskLimit)}</p>
               </div>
             ))}
           </div>
@@ -301,7 +301,7 @@ const AdminDashboardHome = () => {
               </div>
               <h3 className="text-base font-black text-slate-900 tracking-tight">Son Bekleyen Siparişler</h3>
             </div>
-            <Link to="/admin/orders" className="text-[10px] font-black text-brand-600 uppercase tracking-widest hover:underline">Hepsini Gör</Link>
+            <Link to="/admin/orders" className="text-xs font-black text-brand-600 hover:underline">Hepsini Gör</Link>
           </div>
 
           <div className="w-full overflow-x-auto">
@@ -311,10 +311,10 @@ const AdminDashboardHome = () => {
               <table className="w-full">
                 <thead>
                   <tr className="text-left border-b border-slate-50">
-                    <th className="pb-4 text-[10px] font-black text-slate-400 uppercase tracking-widest px-2">Bayi Adı</th>
-                    <th className="pb-4 text-[10px] font-black text-slate-400 uppercase tracking-widest px-2 text-center">Zaman</th>
-                    <th className="pb-4 text-[10px] font-black text-slate-400 uppercase tracking-widest px-2 text-center">Tutar</th>
-                    <th className="pb-4 text-[10px] font-black text-slate-400 uppercase tracking-widest px-2 text-right">Durum</th>
+                    <th className="pb-4 text-[11px] font-black text-slate-400 uppercase tracking-widest px-2">Bayi Adı</th>
+                    <th className="pb-4 text-[11px] font-black text-slate-400 uppercase tracking-widest px-2 text-center">Zaman</th>
+                    <th className="pb-4 text-[11px] font-black text-slate-400 uppercase tracking-widest px-2 text-center">Tutar</th>
+                    <th className="pb-4 text-[11px] font-black text-slate-400 uppercase tracking-widest px-2 text-right">Durum</th>
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-slate-50/50">
@@ -326,7 +326,7 @@ const AdminDashboardHome = () => {
                     >
                       <td className="py-5 px-2">
                         <div className="flex items-center space-x-3">
-                          <div className={`w-8 h-8 rounded-full flex items-center justify-center text-[10px] font-black text-white shadow-sm ${
+                          <div className={`w-8 h-8 rounded-full flex items-center justify-center text-[11px] font-black text-white shadow-sm ${
                             ['bg-navy-700', 'bg-brand-500', 'bg-navy-500'][idx % 3]
                           }`}>
                             {order.company?.name?.substring(0, 1)}
@@ -342,7 +342,7 @@ const AdminDashboardHome = () => {
                       </td>
                       <td className="py-5 px-2 text-right">
                         <div className="flex items-center justify-end space-x-2">
-                          <span className="text-[10px] font-bold uppercase tracking-wider text-orange-500">Beklemede</span>
+                          <span className="text-[11px] font-bold uppercase tracking-wider text-orange-500">Beklemede</span>
                           <div className="w-2 h-2 rounded-full bg-orange-500"></div>
                         </div>
                       </td>
@@ -366,7 +366,7 @@ const AdminDashboardHome = () => {
               <p className="text-center text-xs font-bold text-gray-300 uppercase tracking-widest py-6">Kritik stok yok</p>
             ) : data.lowStock.map((item) => (
               <Link to="/admin/products" key={item.id} className="p-3 bg-gray-50 rounded-xl border border-gray-100 flex justify-between items-center hover:bg-white transition-colors">
-                <span className="text-[10px] font-black text-gray-700">{item.name}</span>
+                <span className="text-[11px] font-black text-gray-700">{item.name}</span>
                 <span className={`pill-badge ${item.stock <= 0 ? 'bg-red-100 text-red-600' : 'bg-orange-100 text-orange-600'} text-[8px]`}>{item.stock <= 0 ? 'BİTTİ' : `${item.stock} ADET`}</span>
               </Link>
             ))}
@@ -385,11 +385,11 @@ const AdminDashboardHome = () => {
           <div className="flex space-x-4">
             <div className="flex items-center space-x-2">
               <div className="w-2 h-2 rounded-full bg-red-500"></div>
-              <span className="text-[9px] font-black text-gray-400 uppercase tracking-widest">Vadesi Geçen</span>
+              <span className="text-[10px] font-black text-gray-400 uppercase tracking-widest">Vadesi Geçen</span>
             </div>
             <div className="flex items-center space-x-2">
               <div className="w-2 h-2 rounded-full bg-brand-500"></div>
-              <span className="text-[9px] font-black text-gray-400 uppercase tracking-widest">Ödeme Bekleyen</span>
+              <span className="text-[10px] font-black text-gray-400 uppercase tracking-widest">Ödeme Bekleyen</span>
             </div>
           </div>
         </div>
@@ -406,20 +406,20 @@ const AdminDashboardHome = () => {
                     {overdue ? <AlertCircle className="h-4 w-4" /> : <Clock className="h-4 w-4" />}
                   </div>
                   <div className="mb-4">
-                    <p className="text-[9px] font-black text-gray-400 uppercase tracking-widest mb-1">{overdue ? 'VADESİ GEÇTİ' : 'BEKLEYEN'}</p>
+                    <p className="text-[10px] font-black text-gray-400 uppercase tracking-widest mb-1">{overdue ? 'VADESİ GEÇTİ' : 'BEKLEYEN'}</p>
                     <h4 className="text-sm font-black text-gray-900 leading-tight pr-10">{d.name}</h4>
                   </div>
                   <div className="flex items-end justify-between">
                     <div>
                       <p className="text-lg font-black text-gray-900 tracking-tighter">{formatMoney(-d.balance, d.currency)}</p>
-                      <p className="text-[9px] font-black text-brand-500 uppercase tracking-widest mt-1">{d.phone || 'Telefon yok'}</p>
+                      <p className="text-[10px] font-black text-brand-500 uppercase tracking-widest mt-1">{d.phone || 'Telefon yok'}</p>
                     </div>
                     <div className="text-right">
                       <span className="text-[8px] font-black text-gray-300 block mb-1 uppercase">En Yakın Vade</span>
-                      <span className="text-[10px] font-black text-gray-500">{d.nextDue ? formatDate(d.nextDue) : '-'}</span>
+                      <span className="text-[11px] font-black text-gray-500">{d.nextDue ? formatDate(d.nextDue) : '-'}</span>
                     </div>
                   </div>
-                  <Link to={`/admin/partners?id=${d.id}`} className="block text-center w-full mt-6 py-3 bg-white border border-gray-100 text-[9px] font-black text-gray-400 uppercase tracking-widest rounded-xl group-hover:bg-brand-600 group-hover:text-white group-hover:border-brand-600 transition-all">
+                  <Link to={`/admin/partners?id=${d.id}`} className="block text-center w-full mt-6 py-3 bg-white border border-gray-100 text-xs font-black text-gray-400 rounded-xl group-hover:bg-brand-600 group-hover:text-white group-hover:border-brand-600 transition-all">
                     Ekstreyi Gör
                   </Link>
                 </div>

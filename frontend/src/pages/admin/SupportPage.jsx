@@ -138,7 +138,7 @@ const SupportPage = () => {
             <p className="text-gray-500 text-sm mt-1">Sistemle ilgili soru ve sorunlarınızı bize iletin; yanıtlar burada ve bildirimlerde görünür.</p>
           </div>
         </div>
-        <button onClick={startNew} className="btn-gradient h-12 px-5 py-0"><Plus className="h-4 w-4 mr-1.5" /> YENİ TALEP</button>
+        <button onClick={startNew} className="btn-gradient h-12 px-5 py-0"><Plus className="h-4 w-4 mr-1.5" /> Yeni talep</button>
       </div>
 
       {count('ANSWERED') > 0 && filter !== 'ANSWERED' && (
@@ -238,8 +238,8 @@ const SupportPage = () => {
             </div>
             <div className="modal-footer items-center">
               <p className="hidden md:flex items-center gap-1.5 text-[11px] text-gray-400 mr-auto"><Clock className="h-3.5 w-3.5" /> Genellikle aynı iş günü içinde yanıtlıyoruz.</p>
-              <button type="button" onClick={() => setForm(null)} className="btn-secondary px-6">VAZGEÇ</button>
-              <button className="btn-gradient h-12 py-0 px-8"><Send className="h-4 w-4 mr-2" /> GÖNDER</button>
+              <button type="button" onClick={() => setForm(null)} className="btn-secondary px-6">Vazgeç</button>
+              <button className="btn-gradient h-12 py-0 px-8"><Send className="h-4 w-4 mr-2" /> Gönder</button>
             </div>
           </form>
         ) : selected ? (

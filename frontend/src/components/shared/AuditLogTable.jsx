@@ -31,7 +31,7 @@ const AuditLogTable = ({ fetchPage, showTenant = false, extraFilters = null, dep
       <div className="overflow-x-auto">
         <table className="w-full text-left text-sm">
           <thead>
-            <tr className="text-[10px] font-black text-gray-400 uppercase tracking-widest border-b border-gray-100">
+            <tr className="text-[11px] font-black text-gray-400 uppercase tracking-widest border-b border-gray-100">
               <th className="py-3 pr-4">Zaman</th>
               {showTenant && <th className="py-3 pr-4">Firma</th>}
               <th className="py-3 pr-4">Kişi</th>

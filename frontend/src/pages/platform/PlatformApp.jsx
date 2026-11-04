@@ -117,13 +117,13 @@ const PlatformNav = ({ user, onLogout, mobile = false, onNavigate }) => (
     <div className="px-8 mb-10 flex justify-between items-start">
       <div>
         <span className="text-2xl font-black text-white tracking-tighter uppercase">{import.meta.env.VITE_PLATFORM_NAME || 'Akis B2B'}</span>
-        <span className="block text-[9px] font-black text-brand-400 uppercase tracking-[0.2em] mt-0.5">PLATFORM YÖNETİMİ</span>
+        <span className="block text-[10px] font-black text-brand-400 uppercase tracking-[0.2em] mt-0.5">PLATFORM YÖNETİMİ</span>
       </div>
       {mobile && <button onClick={onNavigate} className="p-2 -mr-4 text-gray-400 hover:text-white" aria-label="Menüyü kapat"><X className="h-5 w-5" /></button>}
     </div>
     <nav className="flex-1 px-4 space-y-1">
       {MENU.map((item) => item.group ? (
-        <p key={item.group} className="px-5 pt-5 pb-1 text-[10px] font-black text-gray-500 uppercase tracking-[0.2em]">{item.group}</p>
+        <p key={item.group} className="px-5 pt-5 pb-1 text-[11px] font-black text-gray-500 uppercase tracking-[0.2em]">{item.group}</p>
       ) : (
         <NavLink key={item.path} to={item.path} end={item.end} onClick={onNavigate}
           className={({ isActive }) => `flex items-center px-5 py-4 rounded-xl text-sm font-bold transition-all ${isActive ? 'bg-gradient-to-r from-brand-600 to-brand-700 text-white shadow-lg shadow-black/20' : 'text-white/70 hover:text-white hover:bg-white/5'}`}>

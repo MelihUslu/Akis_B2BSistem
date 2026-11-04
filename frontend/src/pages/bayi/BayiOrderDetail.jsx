@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react';
 import { Link, useParams } from 'react-router-dom';
-import { ArrowLeft, Truck, RotateCcw, RotateCw, Package, Camera, X, Loader2, Printer, ExternalLink, MapPin, Store, Clock } from 'lucide-react';
+import { ArrowLeft, Truck, RotateCcw, RotateCw, Package, Camera, X, Loader2, Printer, ExternalLink, MapPin, Store, Clock, Ban, MessageSquareText, UserCheck, FileText } from 'lucide-react';
 import { trackingUrl, carrierName } from '../../utils/cargo';
 import api, { errorMessage } from '../../services/api';
 import OrderTimeline from '../../components/OrderTimeline';
@@ -141,7 +141,7 @@ const BayiOrderDetail = () => {
   const [error, setError] = useState(null);
   const [returnItem, setReturnItem] = useState(null);
   const reorder = useReorder();
-  const { alertElement, showAlert } = useAlert();
+  const { alertElement, showAlert, confirm } = useAlert();
 
   const load = () =>
     api.get(`/orders/${id}`)
@@ -156,6 +156,21 @@ const BayiOrderDetail = () => {
   const status = ORDER_STATUS[order.status] || ORDER_STATUS.PENDING;
   const requestedQty = (itemId) =>
     order.returnRequests.filter((r) => r.orderItemId === itemId && r.status !== 'REJECTED').reduce((s, r) => s + r.quantity, 0);
+
+  // Onay bekleyen sipariş bayi tarafından iptal edilebilir (stok ve cari henüz işlenmedi)
+  const handleCancel = async () => {
+    if (!(await confirm({ title: t('Sipariş iptal edilsin mi?'), message: t('#AK-{id} numaralı sipariş iptal edilecek. Bu işlem geri alınamaz; gerekirse yeniden sipariş verebilirsiniz.', { id: order.id }), confirmText: t('Siparişi iptal et'), cancelText: t('Vazgeç') }))) return;
+    try {
+      const res = await api.patch(`/orders/${order.id}/cancel`);
+      showAlert({ type: 'success', title: t('Sipariş iptal edildi'), message: res.data.message });
+      load();
+    } catch (err) {
+      showAlert({ type: 'error', title: t('İptal edilemedi'), message: errorMessage(err, t('Sipariş iptal edilemedi.')) });
+    }
+  };
+
+  // Kısmi sevkiyat: kalem bazında kaç adet gönderildi
+  const shippedOf = (itemId) => (order.shipments || []).reduce((sum, sh) => sum + ((sh.items || []).find((x) => x.orderItemId === itemId)?.quantity || 0), 0);
 
   const handleReorder = async () => {
     try {
@@ -184,7 +199,7 @@ const BayiOrderDetail = () => {
         />
       )}
 
-      <Link to="/bayi/orders" className="inline-flex items-center text-xs font-black text-gray-400 hover:text-brand-600 uppercase tracking-widest">
+      <Link to="/bayi/orders" className="inline-flex items-center text-xs font-black text-gray-400 hover:text-brand-600">
         <ArrowLeft className="h-4 w-4 mr-2" /> {t('Siparişlerim')}
       </Link>
 
@@ -201,8 +216,27 @@ const BayiOrderDetail = () => {
               <RotateCw className="h-3.5 w-3.5 mr-1.5" /> {t('Yeniden Sipariş Ver')}
             </button>
           )}
+          {order.status === 'PENDING' && (
+            <button onClick={handleCancel} className="flex items-center px-4 py-2 rounded-xl text-xs font-black text-red-600 bg-red-50 hover:bg-red-100">
+              <Ban className="h-3.5 w-3.5 mr-1.5" /> {t('Siparişi iptal et')}
+            </button>
+          )}
         </div>
       </div>
+
+      {order.status === 'CANCELLED' && order.cancelledBy === 'DEALER' && (
+        <p className="text-sm font-bold text-red-600 bg-red-50 rounded-2xl px-5 py-3">{t('Bu siparişi siz iptal ettiniz')}{order.cancelledAt ? ` · ${formatDate(order.cancelledAt, true)}` : ''}.</p>
+      )}
+
+      {(order.note || order.customerRef || (order.channel && order.channel !== 'PORTAL')) && (
+        <div className="card-premium p-5 grid gap-3 sm:grid-cols-2 text-sm">
+          {order.customerRef && <p className="flex items-start gap-2"><FileText className="h-4 w-4 text-brand-500 mt-0.5 shrink-0" /><span><span className="block text-[11px] font-bold text-gray-400 uppercase tracking-wider">{t('Referans numaranız')}</span><b className="font-mono">{order.customerRef}</b></span></p>}
+          {order.note && <p className="flex items-start gap-2"><MessageSquareText className="h-4 w-4 text-brand-500 mt-0.5 shrink-0" /><span><span className="block text-[11px] font-bold text-gray-400 uppercase tracking-wider">{t('Sipariş notu')}</span>{order.note}</span></p>}
+          {order.channel && order.channel !== 'PORTAL' && order.channel !== 'QUOTE' && (
+            <p className="flex items-start gap-2"><UserCheck className="h-4 w-4 text-brand-500 mt-0.5 shrink-0" /><span><span className="block text-[11px] font-bold text-gray-400 uppercase tracking-wider">{t('Siparişi giren')}</span>{order.user?.name} ({order.channel === 'PLASIYER' ? t('plasiyer') : t('firma yetkilisi')}, {t('sizin adınıza')})</span></p>
+          )}
+        </div>
+      )}
 
       {order.deliveryMethod === 'PICKUP' && <PickupCard order={order} />}
 
@@ -223,11 +257,25 @@ const BayiOrderDetail = () => {
 
       <div className="card-premium p-5 md:p-8 overflow-x-auto">
         <OrderTimeline order={order} />
-        {order.trackingNumber && (
+        {/* Birden fazla gönderi (kısmi sevkiyat): her birinin takip numarası */}
+        {(order.shipments?.length > 1 || (order.shipments?.length === 1 && order.status !== 'SHIPPED' && order.status !== 'COMPLETED')) ? (
+          <div className="mt-8 space-y-2">
+            <p className="text-[11px] font-black text-gray-400 uppercase tracking-widest">{t('Gönderiler')}</p>
+            {order.shipments.map((sh, i) => (
+              <div key={sh.id} className="flex flex-wrap items-center gap-x-4 gap-y-1 bg-brand-50 px-5 py-3 rounded-2xl border border-brand-100 text-sm">
+                <Truck className="h-4 w-4 text-brand-600" />
+                <b>{t('{n}. gönderi', { n: i + 1 })}</b>
+                <span className="text-gray-600">{carrierName(sh.cargoCompany) || t('Kargo')} · <span className="font-mono font-bold text-brand-700">{sh.trackingNumber}</span></span>
+                <span className="text-xs text-gray-500">{formatDate(sh.createdAt, true)} · {t('{n} kalem', { n: (sh.items || []).length })}</span>
+                {trackingUrl(sh.cargoCompany, sh.trackingNumber) && <a href={trackingUrl(sh.cargoCompany, sh.trackingNumber)} target="_blank" rel="noreferrer" className="ml-auto inline-flex items-center text-xs font-black text-brand-600 hover:underline">{t('Kargom nerede?')} <ExternalLink className="h-3 w-3 ml-1" /></a>}
+              </div>
+            ))}
+          </div>
+        ) : order.trackingNumber && (
           <div className="mt-8 flex items-center bg-brand-50 px-5 py-4 rounded-2xl border border-brand-100">
             <Truck className="h-5 w-5 text-brand-600 mr-3" />
             <div>
-              <p className="text-[10px] font-black text-brand-400 uppercase tracking-widest">{carrierName(order.cargoCompany) || t('Kargo')} · Takip No</p>
+              <p className="text-[11px] font-black text-brand-400 uppercase tracking-widest">{carrierName(order.cargoCompany) || t('Kargo')} · Takip No</p>
               <p className="text-sm font-black text-brand-700">{order.trackingNumber}</p>
               {trackingUrl(order.cargoCompany, order.trackingNumber) && (
                 <a href={trackingUrl(order.cargoCompany, order.trackingNumber)} target="_blank" rel="noreferrer" className="inline-flex items-center text-xs font-black text-brand-600 mt-1 hover:underline">{t('Kargom nerede?')} <ExternalLink className="h-3 w-3 ml-1" /></a>
@@ -237,6 +285,9 @@ const BayiOrderDetail = () => {
         )}
         {order.dueDate && (
           <p className="mt-4 text-xs font-bold text-gray-500">{t('Ödeme vadesi:')} <span className="text-gray-900">{formatDate(order.dueDate)}</span></p>
+        )}
+        {order.despatchNumber && (
+          <p className="mt-2 text-xs font-bold text-gray-500">{t('İrsaliye No:')} <span className="text-gray-900 font-mono">{order.despatchNumber}</span>{order.despatchDate && ` · ${formatDate(order.despatchDate)}`}</p>
         )}
       </div>
 
@@ -259,6 +310,9 @@ const BayiOrderDetail = () => {
                   {item.variantLabel && <p className="text-xs font-black text-brand-600 mt-0.5">{item.variantLabel}</p>}
                   <p className="text-xs text-gray-400 font-semibold mt-1">{t('SKU:')} {item.product.sku} · {item.quantity} {item.product.unit} × {formatTRY(item.price)} + KDV %{item.vatRate}</p>
                   {item.status === 'CANCELLED' && <p className="text-xs font-black text-red-500 mt-1">{t('Bu kalem stok yetersizliği nedeniyle iptal edildi.')}</p>}
+                  {item.status === 'APPROVED' && shippedOf(item.id) > 0 && shippedOf(item.id) < item.quantity && (
+                    <p className="text-xs font-black text-brand-600 mt-1">{t('{sent} / {total} {unit} kargoya verildi; kalanı ayrıca gönderilecek.', { sent: shippedOf(item.id), total: item.quantity, unit: item.product.unit })}</p>
+                  )}
                   {returns.map((r) => (
                     <p key={r.id} className="text-[11px] font-bold mt-1">
                       <span className={`px-2 py-0.5 rounded-full ${RETURN_STATUS[r.status].className}`}>#RMA-{r.id} · {r.quantity} adet · {t(RETURN_STATUS[r.status].label)}</span>
@@ -280,6 +334,7 @@ const BayiOrderDetail = () => {
         <div className="p-6 bg-gray-50/60 space-y-2 text-sm">
           <div className="flex justify-between font-bold text-gray-500"><span>{t('Ara Toplam (KDV hariç)')}</span><span className="text-gray-900">{formatTRY(order.subtotal || order.totalAmount / 1.2)}</span></div>
           {order.discountAmount > 0 && <div className="flex justify-between font-bold text-pink-600"><span>{t('Kupon')} {order.couponCode}</span><span>−{formatTRY(order.discountAmount)}</span></div>}
+          {order.shippingFee > 0 && <div className="flex justify-between font-bold text-gray-500"><span>{t('Kargo (KDV hariç)')}</span><span className="text-gray-900">{formatTRY(order.shippingFee)}</span></div>}
           <div className="flex justify-between font-bold text-gray-500"><span>{t('KDV')}</span><span className="text-gray-900">{formatTRY(order.vatAmount || order.totalAmount - order.totalAmount / 1.2)}</span></div>
           <div className="flex justify-between font-black text-gray-900 text-lg pt-2"><span>{t('Genel Toplam')}</span><span>{formatTRY(order.totalAmount)}</span></div>
         </div>

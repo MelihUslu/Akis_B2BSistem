@@ -104,7 +104,7 @@ const PosSettings = ({ showAlert, confirm }) => {
             {Object.entries(PROVIDERS).map(([id, p]) => (
               <button type="button" key={id} onClick={() => setForm(emptyForm(id, form.mode))}
                 className={`text-left p-4 rounded-2xl border-2 transition-all ${form.provider === id ? 'border-brand-600 bg-brand-50/50' : 'border-gray-100 hover:border-gray-200'}`}>
-                <p className="font-black text-gray-900 flex items-center justify-between">{p.name}{pos.configured && pos.provider === id && <span className="text-[10px] font-black text-emerald-600 uppercase">Aktif</span>}</p>
+                <p className="font-black text-gray-900 flex items-center justify-between">{p.name}{pos.configured && pos.provider === id && <span className="text-[11px] font-black text-emerald-600 uppercase">Aktif</span>}</p>
                 <p className="text-[11px] text-gray-500 mt-1">{p.desc}</p>
               </button>
             ))}

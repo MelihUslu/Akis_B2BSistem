@@ -10,7 +10,7 @@ const LEAD_STATUS = {
   LOST: ['Olumsuz', 'bg-gray-200 text-gray-600'],
 };
 const CHAT_STATUS = { BOT: ['Bot yanıtlıyor', 'bg-sky-100 text-sky-700'], HUMAN: ['Temsilcide', 'bg-violet-100 text-violet-700'], CLOSED: ['Kapalı', 'bg-gray-200 text-gray-600'] };
-const Pill = ({ map, value }) => <span className={`px-2 py-0.5 rounded-full text-[10px] font-black ${map[value]?.[1] || ''}`}>{map[value]?.[0] || value}</span>;
+const Pill = ({ map, value }) => <span className={`px-2 py-0.5 rounded-full text-[11px] font-black ${map[value]?.[1] || ''}`}>{map[value]?.[0] || value}</span>;
 const utmText = (u) => (u ? [u.utm_source, u.utm_campaign].filter(Boolean).join(' / ') || (u.gclid ? 'Google Ads' : u.fbclid ? 'Meta' : '') : '');
 
 // Sohbet ayrıntısı: mesajlar, devral / bota ver / kapat, temsilci yanıtı (açıkken 4 sn'de bir yenilenir)
@@ -64,7 +64,7 @@ const ChatThread = ({ id, onChanged }) => {
         {chat.messages.map((m) => (
           <div key={m.id} className={`flex ${m.role === 'USER' ? 'justify-start' : 'justify-end'}`}>
             <div className={`max-w-[80%] rounded-2xl px-4 py-2.5 text-sm whitespace-pre-line ${m.role === 'USER' ? 'bg-white ring-1 ring-gray-200 text-gray-800' : m.role === 'AGENT' ? 'bg-violet-600 text-white' : 'bg-sky-50 ring-1 ring-sky-100 text-gray-800'}`}>
-              <p className={`text-[10px] font-black mb-0.5 flex items-center gap-1 ${m.role === 'AGENT' ? 'text-violet-200' : 'text-gray-400'}`}>
+              <p className={`text-[11px] font-black mb-0.5 flex items-center gap-1 ${m.role === 'AGENT' ? 'text-violet-200' : 'text-gray-400'}`}>
                 {m.role === 'USER' ? <><UserRound className="h-3 w-3" />Ziyaretçi</> : m.role === 'BOT' ? <><Bot className="h-3 w-3" />Bot</> : 'Siz'} · {formatDate(m.createdAt, true)}
               </p>
               {m.text}
@@ -101,7 +101,7 @@ const Leads = () => {
           {data.data.map((l) => (
             <div key={l.id} className="p-4 md:p-5 grid md:grid-cols-[minmax(0,1fr)_14rem] gap-4">
               <div className="min-w-0">
-                <p className="font-black text-gray-900 flex flex-wrap items-center gap-2">{l.name || 'İsimsiz'}{l.company && <span className="font-semibold text-gray-500">· {l.company}</span>}<Pill map={LEAD_STATUS} value={l.status} /><span className="text-[10px] font-black text-gray-400">{l.source === 'CHAT' ? 'SOHBET' : 'FORM'}</span></p>
+                <p className="font-black text-gray-900 flex flex-wrap items-center gap-2">{l.name || 'İsimsiz'}{l.company && <span className="font-semibold text-gray-500">· {l.company}</span>}<Pill map={LEAD_STATUS} value={l.status} /><span className="text-[11px] font-black text-gray-400">{l.source === 'CHAT' ? 'SOHBET' : 'FORM'}</span></p>
                 <p className="mt-1 text-sm text-gray-600 flex flex-wrap gap-x-4">
                   {l.phone && <a href={`tel:${l.phone}`} className="text-brand-600 font-semibold">{l.phone}</a>}
                   {l.email && <a href={`mailto:${l.email}`} className="text-brand-600 font-semibold">{l.email}</a>}
@@ -173,13 +173,13 @@ const PlatformLiveChat = () => {
                   <div className="flex items-center gap-2">
                     {c.unread && <span className="h-2 w-2 rounded-full bg-violet-600 shrink-0" />}
                     <span className="font-bold text-gray-900 truncate flex-1">{c.lead?.name || c.lead?.company || c.lead?.phone || 'Ziyaretçi'}</span>
-                    <span className="text-[10px] text-gray-400 shrink-0">{formatDate(c.lastMessageAt, true)}</span>
+                    <span className="text-[11px] text-gray-400 shrink-0">{formatDate(c.lastMessageAt, true)}</span>
                   </div>
                   <p className="text-xs text-gray-500 truncate mt-0.5">{c.last?.text}</p>
                   <div className="flex flex-wrap gap-1.5 mt-1.5">
                     <Pill map={CHAT_STATUS} value={c.status} />
-                    {c.needsHuman && <span className="px-2 py-0.5 rounded-full text-[10px] font-black bg-red-100 text-red-700">Temsilci istiyor</span>}
-                    {c.lead && <span className="px-2 py-0.5 rounded-full text-[10px] font-black bg-emerald-100 text-emerald-700">İletişim bıraktı</span>}
+                    {c.needsHuman && <span className="px-2 py-0.5 rounded-full text-[11px] font-black bg-red-100 text-red-700">Temsilci istiyor</span>}
+                    {c.lead && <span className="px-2 py-0.5 rounded-full text-[11px] font-black bg-emerald-100 text-emerald-700">İletişim bıraktı</span>}
                   </div>
                 </button>
               ))}

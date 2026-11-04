@@ -30,7 +30,7 @@ const PrintReceipt = () => {
       )}
       <div className="grid grid-cols-2 gap-6 mb-8">
         <div>
-          <p className="text-[10px] font-black text-gray-500 uppercase mb-1">{inbound ? 'Ödeyen' : 'Ödenen'}</p>
+          <p className="text-[11px] font-black text-gray-500 uppercase mb-1">{inbound ? 'Ödeyen' : 'Ödenen'}</p>
           <p className="font-bold">{c.name}</p>
           <p className="text-gray-600 leading-snug">
             {c.address && <>{c.address}<br /></>}
@@ -38,7 +38,7 @@ const PrintReceipt = () => {
           </p>
         </div>
         <div className="text-right">
-          <p className="text-[10px] font-black text-gray-500 uppercase mb-1">Tutar</p>
+          <p className="text-[11px] font-black text-gray-500 uppercase mb-1">Tutar</p>
           <p className="text-2xl font-black">{paid}</p>
           {posted && <p className="text-[11px] text-gray-500">Cariye işlenen: {posted} (kur {p.rate})</p>}
         </div>

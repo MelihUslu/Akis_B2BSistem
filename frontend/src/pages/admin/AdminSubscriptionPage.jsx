@@ -23,7 +23,7 @@ const CopyRow = ({ label, value, mono }) => {
   return (
     <div className="flex items-center justify-between gap-3 py-2.5">
       <div className="min-w-0">
-        <p className="text-[10px] font-black text-gray-400 uppercase tracking-widest">{label}</p>
+        <p className="text-[11px] font-black text-gray-400 uppercase tracking-widest">{label}</p>
         <p className={`text-sm font-bold text-gray-900 break-all ${mono ? 'font-mono' : ''}`}>{value}</p>
       </div>
       <button type="button" onClick={copy} className={`shrink-0 h-8 px-2.5 rounded-lg text-xs font-bold flex items-center gap-1 ${done ? 'bg-emerald-50 text-emerald-700' : 'bg-gray-100 text-gray-600 hover:bg-gray-200'}`}>
@@ -150,7 +150,7 @@ const Checkout = ({ plan, cycle, data, onClose, onDone }) => {
                 ) : (
                   <div className="rounded-2xl ring-1 ring-gray-100 p-4 flex items-start justify-between gap-3">
                     <div className="text-sm min-w-0">
-                      <p className="text-[10px] font-black text-gray-400 uppercase tracking-widest">Fatura bilgileri</p>
+                      <p className="text-[11px] font-black text-gray-400 uppercase tracking-widest">Fatura bilgileri</p>
                       <p className="font-bold text-gray-900 truncate">{form.fullName} · {form.identityNumber}</p>
                       <p className="text-xs text-gray-500 truncate">{form.address}, {form.city} · {form.gsmNumber}</p>
                     </div>
@@ -170,7 +170,7 @@ const Checkout = ({ plan, cycle, data, onClose, onDone }) => {
                 <div className="rounded-2xl ring-1 ring-gray-100 px-4 divide-y divide-gray-50">
                   <CopyRow label="IBAN" value={bank.iban} mono />
                   <CopyRow label="Alıcı" value={bank.accountName} />
-                  {bank.bankName && <div className="py-2.5"><p className="text-[10px] font-black text-gray-400 uppercase tracking-widest">Banka</p><p className="text-sm font-bold text-gray-900">{bank.bankName}</p></div>}
+                  {bank.bankName && <div className="py-2.5"><p className="text-[11px] font-black text-gray-400 uppercase tracking-widest">Banka</p><p className="text-sm font-bold text-gray-900">{bank.bankName}</p></div>}
                   <CopyRow label="Tutar" value={formatTRY(amount)} />
                   <CopyRow label="Açıklamaya yazın" value={`${transferRef}-${plan.code}`} mono />
                 </div>
@@ -321,7 +321,7 @@ const AdminSubscriptionPage = () => {
           <div className="inline-flex items-center p-1 rounded-2xl bg-gray-100">
             {[['MONTHLY', 'Aylık'], ['YEARLY', 'Yıllık']].map(([id, label]) => (
               <button key={id} onClick={() => setCycle(id)} className={`h-10 px-5 rounded-xl text-sm font-black flex items-center gap-2 ${cycle === id ? 'bg-white shadow-sm text-gray-900' : 'text-gray-500'}`}>
-                {label}{id === 'YEARLY' && maxSaving > 0 && <span className="rounded-md bg-emerald-100 text-emerald-700 px-1.5 py-0.5 text-[10px]">%{maxSaving}'e varan indirim</span>}
+                {label}{id === 'YEARLY' && maxSaving > 0 && <span className="rounded-md bg-emerald-100 text-emerald-700 px-1.5 py-0.5 text-[11px]">%{maxSaving}'e varan indirim</span>}
               </button>
             ))}
           </div>
@@ -334,8 +334,8 @@ const AdminSubscriptionPage = () => {
             const saving = cycle === 'YEARLY' ? yearlySaving(p) : 0;
             return (
               <div key={p.code} className={`relative rounded-[1.75rem] p-6 flex flex-col bg-white ${featured ? 'ring-2 ring-brand-500 shadow-xl shadow-brand-500/10' : 'ring-1 ring-gray-100 shadow-sm'}`}>
-                {featured && !isCurrent && <span className="absolute -top-3 left-1/2 -translate-x-1/2 rounded-full bg-brand-600 px-3 py-1 text-[10px] font-black uppercase tracking-widest text-white flex items-center gap-1"><Sparkles className="h-3 w-3" /> Önerilen</span>}
-                {isCurrent && <span className="absolute -top-3 left-1/2 -translate-x-1/2 rounded-full bg-gray-900 px-3 py-1 text-[10px] font-black uppercase tracking-widest text-white">Mevcut paketiniz</span>}
+                {featured && !isCurrent && <span className="absolute -top-3 left-1/2 -translate-x-1/2 rounded-full bg-brand-600 px-3 py-1 text-[11px] font-black uppercase tracking-widest text-white flex items-center gap-1"><Sparkles className="h-3 w-3" /> Önerilen</span>}
+                {isCurrent && <span className="absolute -top-3 left-1/2 -translate-x-1/2 rounded-full bg-gray-900 px-3 py-1 text-[11px] font-black uppercase tracking-widest text-white">Mevcut paketiniz</span>}
                 <h3 className="text-lg font-black text-gray-900">{p.name}</h3>
                 {p.description && <p className="text-xs text-gray-500 mt-1 min-h-8">{p.description}</p>}
                 <div className="mt-5">
@@ -377,7 +377,7 @@ const AdminSubscriptionPage = () => {
               <button key={id} role="tab" aria-selected={tab === id} onClick={() => setTab(id)}
                 className={`h-8 flex-1 sm:flex-none justify-center px-2.5 sm:px-3 rounded-lg text-xs font-black flex items-center gap-1.5 transition-colors ${tab === id ? 'bg-white shadow-sm text-gray-900' : 'text-gray-500 hover:text-gray-700'}`}>
                 <Icon className="h-3.5 w-3.5" /> {label}
-                {id === 'payments' && payments.length > 0 && <span className="rounded bg-gray-200 px-1 text-[10px] text-gray-600">{payments.length}</span>}
+                {id === 'payments' && payments.length > 0 && <span className="rounded bg-gray-200 px-1 text-[11px] text-gray-600">{payments.length}</span>}
                 {id === 'usage' && nearLimit && <span className="h-1.5 w-1.5 rounded-full bg-red-500" aria-label="Sınıra yakın" />}
               </button>
             ))}
@@ -396,7 +396,7 @@ const AdminSubscriptionPage = () => {
                   ['Yenileme şekli', tenant.status === 'TRIAL' ? 'Paket seçilince' : tenant.hasIyzicoSubscription && !tenant.cancelAtPeriodEnd ? 'Otomatik (kart)' : 'Elle; hatırlatılır']
                 ].map(([k, v]) => (
                   <div key={k} className="rounded-2xl bg-gray-50 px-3.5 py-3">
-                    <dt className="text-[10px] font-black text-gray-400 uppercase tracking-widest">{k}</dt>
+                    <dt className="text-[11px] font-black text-gray-400 uppercase tracking-widest">{k}</dt>
                     <dd className="mt-0.5 text-sm font-black text-gray-900">{v}</dd>
                   </div>
                 ))}

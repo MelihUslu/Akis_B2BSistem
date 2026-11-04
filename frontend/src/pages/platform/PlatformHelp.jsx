@@ -66,7 +66,7 @@ const PlatformHelp = () => {
             <p className="text-gray-500 text-sm mt-1">Firmalar destek sayfasında bu yazıları arar; talep yazarken uygun yazılar önerilir.</p>
           </div>
         </div>
-        <button onClick={() => edit(null)} className="btn-gradient h-12 px-5 py-0"><Plus className="h-4 w-4 mr-1.5" /> YENİ YAZI</button>
+        <button onClick={() => edit(null)} className="btn-gradient h-12 px-5 py-0"><Plus className="h-4 w-4 mr-1.5" /> Yeni yazı</button>
       </div>
 
       <div className="grid grid-cols-3 gap-3">
@@ -106,7 +106,7 @@ const PlatformHelp = () => {
                         <td className="px-4 py-3 max-w-[28rem]">
                           <button onClick={() => edit(a)} className="text-left block w-full min-w-0">
                             <span className="font-bold text-gray-900 hover:text-brand-700">{a.title}</span>
-                            {!a.isPublished && <span className="ml-2 px-1.5 py-0.5 rounded-md bg-gray-200 text-gray-600 text-[10px] font-bold">Taslak</span>}
+                            {!a.isPublished && <span className="ml-2 px-1.5 py-0.5 rounded-md bg-gray-200 text-gray-600 text-[11px] font-bold">Taslak</span>}
                             {a.summary && <span className="block text-xs text-gray-500 truncate pr-4">{a.summary}</span>}
                           </button>
                         </td>
@@ -114,7 +114,7 @@ const PlatformHelp = () => {
                         <td className="px-4 py-3 text-right tabular-nums text-gray-700">{a.views}</td>
                         <td className="px-4 py-3 text-right tabular-nums">
                           {rate === null ? <span className="text-gray-300">—</span> : <span className={rate >= 70 ? 'text-emerald-600 font-bold' : rate < 40 ? 'text-red-600 font-bold' : 'text-amber-600 font-bold'}>%{rate}</span>}
-                          <span className="block text-[10px] text-gray-400">{a.helpfulYes} evet · {a.helpfulNo} hayır</span>
+                          <span className="block text-[11px] text-gray-400">{a.helpfulYes} evet · {a.helpfulNo} hayır</span>
                         </td>
                         <td className="px-4 py-3 text-xs text-gray-500 whitespace-nowrap">{formatDate(a.updatedAt)}</td>
                         <td className="px-4 py-3 text-right whitespace-nowrap">
@@ -173,8 +173,8 @@ const PlatformHelp = () => {
               </label>
             </div>
             <div className="modal-footer">
-              <button type="button" onClick={() => setForm(null)} className="btn-secondary px-6">VAZGEÇ</button>
-              <button className="btn-gradient h-12 py-0 px-8"><Save className="h-4 w-4 mr-2" /> KAYDET</button>
+              <button type="button" onClick={() => setForm(null)} className="btn-secondary px-6">Vazgeç</button>
+              <button className="btn-gradient h-12 py-0 px-8"><Save className="h-4 w-4 mr-2" /> Kaydet</button>
             </div>
           </form>
         </div>

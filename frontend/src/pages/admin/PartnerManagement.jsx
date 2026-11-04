@@ -19,14 +19,14 @@ import { PARTNER_KINDS, balanceText, PAYMENT_METHODS, AGING_LABELS, AGING_TONE, 
 
 const Badge = ({ kind }) => {
   const k = PARTNER_KINDS[kind] || PARTNER_KINDS.DEALER;
-  return <span className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-md text-[10px] font-black uppercase ${k.className}`}><k.icon className="h-3 w-3" />{k.label}</span>;
+  return <span className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-md text-[11px] font-black uppercase ${k.className}`}><k.icon className="h-3 w-3" />{k.label}</span>;
 };
 
 const Stat = ({ label, value, sub }) => (
   <div className="rounded-xl bg-gray-50 p-3">
-    <p className="text-[10px] font-black text-gray-400 uppercase tracking-wider">{label}</p>
+    <p className="text-[11px] font-black text-gray-400 uppercase tracking-wider">{label}</p>
     <p className="text-sm font-black text-gray-900 tabular-nums mt-0.5">{value}</p>
-    {sub && <p className="text-[10px] text-gray-400">{sub}</p>}
+    {sub && <p className="text-[11px] text-gray-400">{sub}</p>}
   </div>
 );
 
@@ -67,7 +67,7 @@ const SummaryTab = ({ p }) => {
             <div className="grid grid-cols-2 sm:grid-cols-3 gap-1.5">
               {AGING_LABELS.filter(([k]) => s.aging[k] > 0).map(([k, label]) => (
                 <div key={k} className={`rounded-lg p-2 ${AGING_TONE[k]}`}>
-                  <p className="text-[10px] font-bold leading-tight">{label}</p>
+                  <p className="text-[11px] font-bold leading-tight">{label}</p>
                   <p className="text-sm font-black tabular-nums">{formatMoney(s.aging[k], p.currency)}</p>
                 </div>
               ))}
@@ -155,15 +155,15 @@ const PartnerDrawer = ({ id, meta, onClose, onChanged, showAlert, confirm }) => 
             <div className="flex items-start justify-between gap-3">
               <span className="modal-icon"><BookUser className="h-5 w-5" /></span>
               <div className="min-w-0 flex-1">
-                <div className="flex items-center gap-2"><Badge kind={p.kind} />{p.currency !== 'TRY' && <span className="px-2 py-0.5 rounded-md text-[10px] font-black bg-brand-50 text-brand-700">{p.currency} cari</span>}{p.status === 'PASSIVE' && <span className="text-[10px] font-black uppercase text-gray-400">Pasif</span>}</div>
+                <div className="flex items-center gap-2"><Badge kind={p.kind} />{p.currency !== 'TRY' && <span className="px-2 py-0.5 rounded-md text-[11px] font-black bg-brand-50 text-brand-700">{p.currency} cari</span>}{p.status === 'PASSIVE' && <span className="text-[11px] font-black uppercase text-gray-400">Pasif</span>}</div>
                 <h2 className="modal-title mt-1 break-words">{p.name}</h2>
                 {p.externalCode && <p className="text-xs font-mono text-gray-400">Cari {p.externalCode}</p>}
               </div>
               <div className="text-right shrink-0">
                 <p className={`text-2xl font-black tabular-nums ${bal.className}`}>{formatMoney(Math.abs(p.currentBalance), p.currency)}</p>
                 <p className={`text-[11px] font-bold ${bal.className}`}>{bal.label}</p>
-                {p.kind === 'CUSTOMER' && p.riskLimit > 0 && <p className="text-[10px] text-gray-400">Limit {formatMoney(p.riskLimit, p.currency)}</p>}
-                {p.paymentTermDays > 0 && <p className="text-[10px] text-gray-400">Vade {p.paymentTermDays} gün</p>}
+                {p.kind === 'CUSTOMER' && p.riskLimit > 0 && <p className="text-[11px] text-gray-400">Limit {formatMoney(p.riskLimit, p.currency)}</p>}
+                {p.paymentTermDays > 0 && <p className="text-[11px] text-gray-400">Vade {p.paymentTermDays} gün</p>}
               </div>
               <button onClick={onClose} className="modal-close" aria-label="Kapat"><X className="h-5 w-5" /></button>
             </div>
@@ -313,7 +313,7 @@ const PartnerManagement = () => {
       ) : (
         // Sütunlar listenin kendi genişliğine göre: geniş → 6 sütun, orta → tür / vergi no ad altında, dar → kart düzeni
         <div className="@container bg-white rounded-2xl border border-gray-100 shadow-sm overflow-hidden">
-          <div className="hidden @[44rem]:grid @[44rem]:grid-cols-[minmax(0,1fr)_10rem_8rem_9rem] @[66rem]:grid-cols-[minmax(14rem,1fr)_7rem_9rem_10rem_8rem_10rem] gap-4 px-5 py-3 text-[10px] font-black text-gray-400 uppercase tracking-widest border-b border-gray-50">
+          <div className="hidden @[44rem]:grid @[44rem]:grid-cols-[minmax(0,1fr)_10rem_8rem_9rem] @[66rem]:grid-cols-[minmax(14rem,1fr)_7rem_9rem_10rem_8rem_10rem] gap-4 px-5 py-3 text-[11px] font-black text-gray-400 uppercase tracking-widest border-b border-gray-50">
             <span>Cari</span><span className="hidden @[66rem]:block">Tür</span><span className="hidden @[66rem]:block">Vergi no</span><span>İletişim</span><span>Sorumlu</span><span className="text-right">Bakiye</span>
           </div>
           {result.data.map((p) => {
@@ -328,7 +328,7 @@ const PartnerManagement = () => {
                   </span>
                   <span className="flex flex-wrap items-center gap-1 text-xs text-gray-400">
                     <span className="truncate">{[p.externalCode && `Cari ${p.externalCode}`, contact?.name || p.authorizedPerson, p.status === 'PASSIVE' && 'Pasif', p.status === 'PENDING' && 'Başvuru'].filter(Boolean).join(' · ') || '—'}</span>
-                    {p.tags.slice(0, 3).map((t) => <span key={t} className="px-1.5 rounded bg-teal-50 text-teal-700 text-[10px] font-bold">{t}</span>)}
+                    {p.tags.slice(0, 3).map((t) => <span key={t} className="px-1.5 rounded bg-teal-50 text-teal-700 text-[11px] font-bold">{t}</span>)}
                   </span>
                 </span>
                 <span className="@[44rem]:hidden @[66rem]:block"><Badge kind={p.kind} /></span>
@@ -337,7 +337,7 @@ const PartnerManagement = () => {
                 <span className="text-xs text-gray-500 truncate">{p.owner?.name || '—'}</span>
                 <span className="@[44rem]:text-right">
                   <span className={`block text-sm font-black tabular-nums ${bal.className}`}>{p.currentBalance ? formatMoney(Math.abs(p.currentBalance), p.currency) : '—'}</span>
-                  {p.currentBalance !== 0 && <span className={`block text-[10px] font-bold ${bal.className}`}>{bal.label}</span>}
+                  {p.currentBalance !== 0 && <span className={`block text-[11px] font-bold ${bal.className}`}>{bal.label}</span>}
                 </span>
               </button>
             );

@@ -93,7 +93,7 @@ const InvoiceSettings = ({ showAlert, confirm }) => {
               ) : <IconInput icon={Building2} className="font-mono" value={form.companyId} onChange={set('companyId')} placeholder="Örn. 123456" />}
             </Field>
             <div className="flex items-end">
-              <button type="button" disabled={busy} onClick={test} className="btn-secondary w-full"><PlugZap className="h-4 w-4 mr-1.5" /> BAĞLANTIYI TEST ET</button>
+              <button type="button" disabled={busy} onClick={test} className="btn-secondary w-full"><PlugZap className="h-4 w-4 mr-1.5" /> Bağlantıyı test et</button>
             </div>
           </div>
         </Section>
@@ -116,7 +116,7 @@ X-Api-Key: akb2b_…
       )}
 
       <div className="flex justify-end">
-        <button disabled={busy} onClick={save} className="btn-gradient h-12 px-8 py-0 disabled:opacity-50"><Save className="h-4 w-4 mr-2" /> KAYDET</button>
+        <button disabled={busy} onClick={save} className="btn-gradient h-12 px-8 py-0 disabled:opacity-50"><Save className="h-4 w-4 mr-2" /> Kaydet</button>
       </div>
     </div>
   );

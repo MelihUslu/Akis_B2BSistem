@@ -50,14 +50,14 @@ const CargoSettings = ({ showAlert }) => {
                 options={[{ value: 'TEST', label: 'Test' }, { value: 'LIVE', label: 'Canlı', activeClass: 'bg-emerald-600 border-emerald-600 text-white shadow-md' }]} />
             </Field>
             <div className="flex items-end">
-              <button type="button" disabled={busy} onClick={() => call(() => api.post('/cargo-settings/test', form), 'Bağlantı başarılı')} className="btn-secondary w-full"><PlugZap className="h-4 w-4 mr-1.5" /> BAĞLANTIYI TEST ET</button>
+              <button type="button" disabled={busy} onClick={() => call(() => api.post('/cargo-settings/test', form), 'Bağlantı başarılı')} className="btn-secondary w-full"><PlugZap className="h-4 w-4 mr-1.5" /> Bağlantıyı test et</button>
             </div>
           </div>
         </Section>
       )}
 
       <div className="flex justify-end">
-        <button disabled={busy} onClick={async () => { if (await call(() => api.put('/cargo-settings', form), 'Kaydedildi')) load(); }} className="btn-gradient h-12 px-8 py-0 disabled:opacity-50"><Save className="h-4 w-4 mr-2" /> KAYDET</button>
+        <button disabled={busy} onClick={async () => { if (await call(() => api.put('/cargo-settings', form), 'Kaydedildi')) load(); }} className="btn-gradient h-12 px-8 py-0 disabled:opacity-50"><Save className="h-4 w-4 mr-2" /> Kaydet</button>
       </div>
     </div>
   );

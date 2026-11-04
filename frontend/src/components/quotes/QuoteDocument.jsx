@@ -17,7 +17,7 @@ const QuoteDocument = ({ doc }) => {
     <div className="space-y-6 text-gray-900">
       <div className="grid grid-cols-1 sm:grid-cols-2 print:grid-cols-2 gap-6">
         <div className="min-w-0">
-          <p className="text-[10px] font-black text-gray-500 uppercase mb-1">{t('Sayın')}</p>
+          <p className="text-[11px] font-black text-gray-500 uppercase mb-1">{t('Sayın')}</p>
           <p className="font-bold break-words">{c.name}</p>
           <p className="text-gray-600 leading-snug break-words">
             {c.authorizedPerson && <>{c.authorizedPerson}<br /></>}
@@ -47,7 +47,7 @@ const QuoteDocument = ({ doc }) => {
               <span>{i.quantity.toLocaleString('tr-TR')} {i.unit} × {formatTRY(i.unitPrice)}{i.discountRate > 0 && <span className="text-gray-500"> ({t('isk.')} {pct(i.discountRate)})</span>}</span>
               <b>{formatTRY(i.lineTotal)}</b>
             </div>
-            <p className="text-[10px] text-gray-400">{t('KDV')} {pct(i.vatRate)}</p>
+            <p className="text-[11px] text-gray-400">{t('KDV')} {pct(i.vatRate)}</p>
           </div>
         ))}
       </div>
@@ -58,7 +58,7 @@ const QuoteDocument = ({ doc }) => {
           <col className="w-7" /><col /><col className="w-24" /><col className="w-24" />{hasDiscount && <col className="w-14" />}<col className="w-24" /><col className="w-12" /><col className="w-28" />
         </colgroup>
         <thead>
-          <tr className="border-y border-gray-900 text-[10px] uppercase">
+          <tr className="border-y border-gray-900 text-[11px] uppercase">
             <th className="py-2 text-left">#</th>
             <th className="py-2 text-left">{t('Ürün')}</th>
             <th className="py-2 text-right">{t('Miktar')}</th>
@@ -75,7 +75,7 @@ const QuoteDocument = ({ doc }) => {
               <td className="py-2">{idx + 1}</td>
               <td className="py-2 pr-2 break-words">
                 {i.name}
-                <div className="text-[10px] text-gray-500 break-words">{[i.variantLabel, i.sku, i.packInfo].filter(Boolean).join(' · ')}</div>
+                <div className="text-[11px] text-gray-500 break-words">{[i.variantLabel, i.sku, i.packInfo].filter(Boolean).join(' · ')}</div>
               </td>
               <td className="py-2 text-right">{i.quantity.toLocaleString('tr-TR')} {i.unit}</td>
               <td className="py-2 text-right">{formatTRY(i.listPrice)}</td>
@@ -104,13 +104,13 @@ const QuoteDocument = ({ doc }) => {
 
       {(doc.paymentTerms || doc.deliveryTerms || doc.note) && (
         <div className="grid grid-cols-1 sm:grid-cols-2 print:grid-cols-2 gap-4 break-inside-avoid">
-          {doc.paymentTerms && <div><p className="text-[10px] font-black text-gray-500 uppercase mb-1">{t('Ödeme koşulları')}</p><p className="whitespace-pre-line break-words">{doc.paymentTerms}</p></div>}
-          {doc.deliveryTerms && <div><p className="text-[10px] font-black text-gray-500 uppercase mb-1">{t('Teslimat koşulları')}</p><p className="whitespace-pre-line break-words">{doc.deliveryTerms}</p></div>}
-          {doc.note && <div className="sm:col-span-2 print:col-span-2"><p className="text-[10px] font-black text-gray-500 uppercase mb-1">{t('Açıklama')}</p><p className="whitespace-pre-line break-words">{doc.note}</p></div>}
+          {doc.paymentTerms && <div><p className="text-[11px] font-black text-gray-500 uppercase mb-1">{t('Ödeme koşulları')}</p><p className="whitespace-pre-line break-words">{doc.paymentTerms}</p></div>}
+          {doc.deliveryTerms && <div><p className="text-[11px] font-black text-gray-500 uppercase mb-1">{t('Teslimat koşulları')}</p><p className="whitespace-pre-line break-words">{doc.deliveryTerms}</p></div>}
+          {doc.note && <div className="sm:col-span-2 print:col-span-2"><p className="text-[11px] font-black text-gray-500 uppercase mb-1">{t('Açıklama')}</p><p className="whitespace-pre-line break-words">{doc.note}</p></div>}
         </div>
       )}
 
-      <p className="text-[10px] text-gray-500 break-inside-avoid">
+      <p className="text-[11px] text-gray-500 break-inside-avoid">
         {doc.validUntil
           ? t('Bu teklif {date} tarihine kadar geçerlidir. Fiyatlar KDV hariç birim fiyatlardır; KDV ayrıca gösterilmiştir. Teklif stok ayırması içermez.', { date: formatDate(doc.validUntil) })
           : t('Fiyatlar KDV hariç birim fiyatlardır; KDV ayrıca gösterilmiştir. Teklif stok ayırması içermez.')}

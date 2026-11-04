@@ -28,7 +28,7 @@ const PrintStatement = () => {
     <PrintLayout ready title="Cari Hesap Ekstresi" subtitle={<>{data.company.name}<br />Tarih: {formatDate(new Date())}{cur !== 'TRY' && <><br />Para birimi: {cur}</>}</>}>
       <table className="w-full border-collapse">
         <thead>
-          <tr className="border-y border-gray-900 text-[10px] uppercase">
+          <tr className="border-y border-gray-900 text-[11px] uppercase">
             <th className="py-2 text-left">Tarih</th><th className="py-2 text-left">Açıklama</th>
             <th className="py-2 text-right">Borç</th><th className="py-2 text-right">Alacak</th><th className="py-2 text-right">Bakiye</th>
           </tr>

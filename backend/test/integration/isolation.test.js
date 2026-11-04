@@ -245,6 +245,10 @@ test('teslimat adresi + kargo (Yurtiçi): adres, siparişe kopyalama, gönderi, 
   assert.ok(foreign.status >= 400);
   assert.ok(await runAsPlatform(() => prisma.deliveryAddress.findUnique({ where: { id: first.data.address.id } })));
 
+  // Stokta olmayan ürün sipariş edilemez (stok ayırma); kargo akışı için stok girilir
+  const { setStock } = await import('../../src/services/stockService.js');
+  const { runWithTenant } = await import('../../src/utils/prisma.js');
+  await runWithTenant(a.id, () => prisma.$transaction((tx) => setStock(tx, a.productId, 5)));
   const order = await api('/orders', { ...dealer, method: 'POST', body: { items: [{ productId: a.productId, quantity: 1 }], paymentMethod: 'WIRE_TRANSFER', addressId: first.data.address.id } });
   assert.equal(order.status, 201, order.data?.message);
   assert.equal(order.data.shippingAddress.city, 'İstanbul');
@@ -1217,9 +1221,12 @@ test('eşzamanlılık: aynı anda onaylar stoğu eksiye düşürmez, aynı sipar
   const approve = (o) => api(`/orders/${o.id}/partial-approve`, { ...admin, method: 'PATCH', body: { itemStatuses: o.items.map((i) => ({ itemId: i.id, status: 'APPROVED' })) } });
   const stockOf = async (id) => (await runAsPlatform(() => prisma.product.findUnique({ where: { id } }))).stock;
 
-  // 1) 10 stoklu üründen 3'er adetlik 6 sipariş aynı anda onaylanır: en fazla 3'ü geçer, stok eksiye düşmez
+  // 1) 3'er adetlik 6 sipariş verilir (18 stok ayrılır), sonra stok 10'a düşer (ör. ERP senkronu) ve
+  // siparişler aynı anda onaylanır: en fazla 3'ü geçer, stok eksiye düşmez
+  await runWithTenant(tenantId, () => prisma.$transaction((tx) => setStock(tx, scarce, 18)));
   const scarceOrders = [];
   for (let i = 0; i < 6; i++) scarceOrders.push(await order(scarce, 3));
+  await runWithTenant(tenantId, () => prisma.$transaction((tx) => setStock(tx, scarce, 10)));
   const results = await Promise.all(scarceOrders.map(approve));
   const ok = results.filter((r) => r.status === 200).length;
   assert.ok(results.every((r) => r.status === 200 || (r.status === 400 && /Yetersiz stok/.test(r.data.message))), JSON.stringify(results.map((r) => [r.status, r.data?.message])));

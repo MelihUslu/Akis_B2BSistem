@@ -14,7 +14,7 @@ export const PendingAttachments = ({ files, uploading, onRemove }) => {
           {isImage(f.type) ? <img src={f.url} alt="" className="h-10 w-10 rounded-lg object-cover" /> : <span className="h-10 w-10 rounded-lg bg-gray-100 flex items-center justify-center"><FileIcon type={f.type} className="h-5 w-5 text-gray-500" /></span>}
           <span className="min-w-0">
             <span className="block text-xs font-bold text-gray-700 truncate">{f.name}</span>
-            <span className="block text-[10px] text-gray-400">{formatSize(f.size)}</span>
+            <span className="block text-[11px] text-gray-400">{formatSize(f.size)}</span>
           </span>
           <button type="button" onClick={() => onRemove(f.url)} className="absolute top-1 right-1 p-1 rounded-md text-gray-400 hover:text-red-600 hover:bg-red-50" aria-label="Kaldır"><X className="h-3.5 w-3.5" /></button>
         </span>
@@ -54,7 +54,7 @@ export const MessageAttachments = ({ files, mine }) => {
           <FileIcon type={f.type} className="h-5 w-5 shrink-0" />
           <span className="min-w-0 flex-1">
             <span className="block text-xs font-bold truncate">{f.name}</span>
-            <span className={`block text-[10px] ${mine ? 'text-brand-100' : 'text-gray-400'}`}>{formatSize(f.size)}</span>
+            <span className={`block text-[11px] ${mine ? 'text-brand-100' : 'text-gray-400'}`}>{formatSize(f.size)}</span>
           </span>
           <Download className="h-4 w-4 shrink-0 opacity-70" />
         </a>

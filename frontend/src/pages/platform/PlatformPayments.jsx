@@ -87,18 +87,18 @@ const PlatformPayments = () => {
       <div className="card-premium overflow-x-auto">
         <table className="w-full text-sm">
           <thead className="list-head">
-            <tr className="text-left text-[10px] font-black text-gray-500 uppercase tracking-[0.15em] whitespace-nowrap">
+            <tr className="text-left text-[11px] font-black text-gray-500 uppercase tracking-[0.15em] whitespace-nowrap">
               <th className="px-6 py-4">Tarih</th><th className="px-6 py-4">Müşteri</th><th className="px-6 py-4">Paket</th>
               <th className="px-6 py-4">Yöntem</th><th className="px-6 py-4">Dönem</th><th className="px-6 py-4 text-right">Tutar</th><th className="px-6 py-4">Fatura</th>
             </tr>
           </thead>
           <tbody className="divide-y divide-gray-100/70">
             {payments.map((p) => (
-              <tr key={p.id} className="transition-colors hover:bg-slate-50/80 hover:shadow-[inset_3px_0_0_0_#3b82f6]">
+              <tr key={p.id} className="transition-colors hover:bg-slate-50/80 hover:shadow-[inset_3px_0_0_0_var(--color-brand-500)]">
                 <td className="px-6 py-4 text-gray-500 font-semibold">{formatDate(p.createdAt, true)}</td>
                 <td className="px-6 py-4"><Link to={`/tenants/${p.tenantId}`} className="font-bold text-gray-900 hover:text-brand-600">{p.tenant.name}</Link></td>
                 <td className="px-6 py-4 font-semibold">{p.planCode} · {p.billingCycle === 'YEARLY' ? 'Yıllık' : 'Aylık'}</td>
-                <td className="px-6 py-4 font-semibold">{p.method === 'IYZICO' ? 'iyzico' : p.reference?.startsWith('transfer:') ? 'Havale' : 'Manuel'}{p.reference && <span className="block text-[10px] text-gray-400">{p.reference}</span>}</td>
+                <td className="px-6 py-4 font-semibold">{p.method === 'IYZICO' ? 'iyzico' : p.reference?.startsWith('transfer:') ? 'Havale' : 'Manuel'}{p.reference && <span className="block text-[11px] text-gray-400">{p.reference}</span>}</td>
                 <td className="px-6 py-4 text-gray-500">{formatDate(p.periodStart)} – {formatDate(p.periodEnd)}</td>
                 <td className={`px-6 py-4 text-right font-black ${p.status === 'SUCCESS' ? 'text-emerald-600' : 'text-red-500'}`}>{p.status === 'SUCCESS' ? formatTRY(p.amount) : 'Başarısız'}</td>
                 <td className="px-6 py-4 whitespace-nowrap">

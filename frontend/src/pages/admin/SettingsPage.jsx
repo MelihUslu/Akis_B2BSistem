@@ -160,8 +160,44 @@ const OrderOptionsCard = ({ draft, setDraft }) => {
               <div>
                 <label className="premium-label">En erken (saat sonra)</label>
                 <input type="number" min="0" step="1" className="premium-input" value={draft.pickup_lead_hours ?? ''} onChange={set('pickup_lead_hours')} />
-                <p className="text-[10px] font-semibold text-gray-400 mt-1 ml-1">Hazırlık süresi; bayi bundan önceki bir zamanı seçemez</p>
+                <p className="text-[11px] font-semibold text-gray-400 mt-1 ml-1">Hazırlık süresi; bayi bundan önceki bir zamanı seçemez</p>
               </div>
+            </div>
+          )}
+        </div>
+
+        <div className="rounded-2xl ring-1 ring-gray-100 p-5 space-y-4">
+          <div>
+            <p className="font-black text-sm text-gray-900">Kargo ücreti</p>
+            <p className="text-xs text-gray-500 mt-1">Adrese teslim siparişlere eklenir (KDV %20 ile); sipariş tutarına ve cariye dahil olur, faturada ayrı satır olarak yer alır. Gel-Al siparişlerinde uygulanmaz.</p>
+          </div>
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+            <div>
+              <label className="premium-label" htmlFor="shipping-fee">Kargo ücreti (KDV hariç ₺)</label>
+              <input id="shipping-fee" type="number" min="0" step="0.01" className="premium-input" value={draft.shipping_fee ?? ''} onChange={set('shipping_fee')} />
+              <p className="text-[11px] font-semibold text-gray-400 mt-1 ml-1">0: kargo ücreti alınmaz</p>
+            </div>
+            <div>
+              <label className="premium-label" htmlFor="shipping-free">Bu tutar ve üstü ücretsiz (KDV hariç ₺)</label>
+              <input id="shipping-free" type="number" min="0" step="1" className="premium-input" value={draft.shipping_free_over ?? ''} onChange={set('shipping_free_over')} />
+              <p className="text-[11px] font-semibold text-gray-400 mt-1 ml-1">0: eşik yok, her siparişe eklenir</p>
+            </div>
+          </div>
+        </div>
+
+        <div className="rounded-2xl ring-1 ring-gray-100 p-5 space-y-4">
+          <div className="flex items-start justify-between gap-4">
+            <div>
+              <p className="font-black text-sm text-gray-900">Otomatik onay</p>
+              <p className="text-xs text-gray-500 mt-1">Cari hesapla verilen ve limiti yeten siparişler beklemeden onaylanır: stok düşer, tutar cariye yazılır, bayiye bildirim gider. Stok yetmezse sipariş onay bekler. Havale/EFT siparişleri her zaman onay bekler.</p>
+            </div>
+            <Switch on={on('auto_approve')} onChange={toggle('auto_approve')} label="Otomatik onay" />
+          </div>
+          {on('auto_approve') && (
+            <div>
+              <label className="premium-label" htmlFor="auto-max">Üst sınır (KDV dahil ₺)</label>
+              <input id="auto-max" type="number" min="0" step="1" className="premium-input" value={draft.auto_approve_max ?? ''} onChange={set('auto_approve_max')} />
+              <p className="text-[11px] font-semibold text-gray-400 mt-1 ml-1">Bu tutarın üstündeki siparişler yine sizin onayınızı bekler. 0: sınır yok</p>
             </div>
           )}
         </div>
@@ -207,7 +243,7 @@ const SettingsPage = () => {
     try {
       await api.post('/auth/register', { ...newPlasiyer, role: 'PLASIYER' });
       setNewPlasiyer({ name: '', email: '', password: '' });
-      showAlert({ type: 'success', title: 'Plasiyer Eklendi', message: 'Bayi Yönetimi ekranından bayilere atayabilirsiniz.' });
+      showAlert({ type: 'success', title: 'Plasiyer Eklendi', message: 'Plasiyer bu e-posta ve şifreyle giriş yapıp sorumlu olduğu bayiler adına sipariş verebilir, bakiyelerini ve primlerini görür. Bayileri Bayi Yönetimi ekranında bayi kartından atayın.' });
       load();
     } catch (error) {
       showAlert({ type: 'error', title: 'Hata', message: errorMessage(error, 'Plasiyer eklenemedi.') });
@@ -260,7 +296,7 @@ const SettingsPage = () => {
         <div className="flex items-center gap-3">
           <div className="p-3 bg-amber-50 rounded-2xl text-amber-500"><Coins className="h-5 w-5" /></div>
           <div>
-            <p className="text-[10px] font-black text-gray-400 uppercase tracking-widest">Güncel Kur ({rates?.source === 'TCMB' ? 'TCMB' : rates?.source === 'MANUAL' ? 'Manuel' : 'Alınamadı'})</p>
+            <p className="text-[11px] font-black text-gray-400 uppercase tracking-widest">Güncel Kur ({rates?.source === 'TCMB' ? 'TCMB' : rates?.source === 'MANUAL' ? 'Manuel' : 'Alınamadı'})</p>
             <p className="text-sm font-black text-gray-900">
               {rates?.rates?.USD ? `USD ${rates.rates.USD.toLocaleString('tr-TR')} · EUR ${rates.rates.EUR.toLocaleString('tr-TR')}` : 'Döviz kuru alınamadı — dövizli ürünlerin fiyatı bayilere gizlenir.'}
               {rates?.date && <span className="text-gray-400 font-semibold"> · {rates.date}</span>}
@@ -280,7 +316,7 @@ const SettingsPage = () => {
               <div key={f.key}>
                 <label className="premium-label">{f.label}</label>
                 <input type={f.text ? 'text' : 'number'} step="0.01" min="0" className="premium-input" value={draft[f.key] ?? ''} onChange={(e) => setDraft({ ...draft, [f.key]: e.target.value })} />
-                {f.hint && <p className="text-[10px] font-semibold text-gray-400 mt-1 ml-1">{f.hint}</p>}
+                {f.hint && <p className="text-[11px] font-semibold text-gray-400 mt-1 ml-1">{f.hint}</p>}
               </div>
             ))}
           </div>

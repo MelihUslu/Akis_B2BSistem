@@ -90,9 +90,9 @@ const TeamSettings = ({ showAlert, confirm }) => {
         {data.users.map((u) => (
           <div key={u.id} className={`p-6 flex flex-col lg:flex-row lg:items-center gap-4 ${u.isActive ? '' : 'opacity-50'}`}>
             <div className="lg:w-64">
-              <p className="font-bold text-gray-900 flex items-center">{u.name}{u.isOwner && <Crown className="h-4 w-4 ml-1.5 text-amber-500" title="Firma sahibi" />}{u.id === me?.id && <span className="ml-2 text-[10px] text-brand-500 font-black">SİZ</span>}</p>
+              <p className="font-bold text-gray-900 flex items-center">{u.name}{u.isOwner && <Crown className="h-4 w-4 ml-1.5 text-amber-500" title="Firma sahibi" />}{u.id === me?.id && <span className="ml-2 text-[11px] text-brand-500 font-black">SİZ</span>}</p>
               <p className="text-xs text-gray-400">{u.email}</p>
-              <p className="text-[10px] text-gray-400">Son giriş: {u.lastLoginAt ? formatDate(u.lastLoginAt, true) : '—'}</p>
+              <p className="text-[11px] text-gray-400">Son giriş: {u.lastLoginAt ? formatDate(u.lastLoginAt, true) : '—'}</p>
             </div>
             <div className="flex-1">
               {u.isOwner ? <p className="text-xs font-black text-amber-600">Firma sahibi · tüm yetkiler</p>

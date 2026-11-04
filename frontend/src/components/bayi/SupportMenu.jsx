@@ -46,11 +46,11 @@ const SupportMenu = () => {
           <div className="p-1.5">
             {rep && (
               <>
-                <p className="px-3 pt-2 pb-1 text-[10px] font-black text-gray-400 uppercase tracking-wider">{t('Müşteri temsilciniz')}</p>
+                <p className="px-3 pt-2 pb-1 text-[11px] font-black text-gray-400 uppercase tracking-wider">{t('Müşteri temsilciniz')}</p>
                 <Contact icon={UserRound} label={rep.name} value={rep.email} href={`mailto:${rep.email}`} close={close} />
               </>
             )}
-            {(phone || email) && <p className="px-3 pt-2 pb-1 text-[10px] font-black text-gray-400 uppercase tracking-wider">{tenant?.name}</p>}
+            {(phone || email) && <p className="px-3 pt-2 pb-1 text-[11px] font-black text-gray-400 uppercase tracking-wider">{tenant?.name}</p>}
             {phone && <Contact icon={Phone} label={t('Telefon')} value={phone} href={`tel:${phone.replace(/\s/g, '')}`} close={close} />}
             {phone && <Contact icon={MessageCircle} label="WhatsApp" value={t('Mesaj gönderin')} href={`https://wa.me/${waNumber(phone)}`} close={close} />}
             {email && <Contact icon={Mail} label={t('E-posta')} value={email} href={`mailto:${email}`} close={close} />}

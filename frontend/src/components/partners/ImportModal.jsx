@@ -72,7 +72,7 @@ const ImportModal = ({ onClose, onDone }) => {
           </div>
           <div className="max-h-80 overflow-auto rounded-xl ring-1 ring-gray-100">
             <table className="w-full text-xs">
-              <thead className="bg-gray-50 text-[10px] font-black text-gray-500 uppercase sticky top-0"><tr><th className="px-3 py-2 text-left">Satır</th><th className="px-3 py-2 text-left">İşlem</th><th className="px-3 py-2 text-left">Unvan</th><th className="px-3 py-2 text-left">Not</th></tr></thead>
+              <thead className="bg-gray-50 text-[11px] font-black text-gray-500 uppercase sticky top-0"><tr><th className="px-3 py-2 text-left">Satır</th><th className="px-3 py-2 text-left">İşlem</th><th className="px-3 py-2 text-left">Unvan</th><th className="px-3 py-2 text-left">Not</th></tr></thead>
               <tbody className="divide-y divide-gray-50">
                 {shown.results.map((r) => (
                   <tr key={r.line}>

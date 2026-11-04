@@ -40,11 +40,11 @@ const PlanCard = ({ plan, iyzicoEnabled, onSaved, showAlert }) => {
     <div className="card-premium p-6 space-y-4">
       <div className="flex justify-between items-start">
         <div>
-          <p className="text-[10px] font-black text-gray-400 uppercase tracking-widest">{isNew ? 'Yeni Paket' : `${plan.code} · ${plan._count?.tenants || 0} müşteri`}</p>
+          <p className="text-[11px] font-black text-gray-400 uppercase tracking-widest">{isNew ? 'Yeni Paket' : `${plan.code} · ${plan._count?.tenants || 0} müşteri`}</p>
           <h3 className="modal-title">{form.name || '—'}</h3>
         </div>
         {!isNew && (
-          <span className={`flex items-center text-[10px] font-black uppercase ${synced ? 'text-emerald-600' : 'text-amber-600'}`}>
+          <span className={`flex items-center text-[11px] font-black uppercase ${synced ? 'text-emerald-600' : 'text-amber-600'}`}>
             {synced ? <CheckCircle2 className="h-3.5 w-3.5 mr-1" /> : <AlertCircle className="h-3.5 w-3.5 mr-1" />} {synced ? 'iyzico hazır' : 'iyzico yok'}
           </span>
         )}
@@ -65,7 +65,7 @@ const PlanCard = ({ plan, iyzicoEnabled, onSaved, showAlert }) => {
       <div className="flex gap-3">
         <button onClick={save} className="flex-1 btn-gradient"><Save className="h-4 w-4 mr-2" /> Kaydet</button>
         {!isNew && iyzicoEnabled && !synced && (
-          <button onClick={sync} className="flex items-center px-4 rounded-2xl bg-gray-900 text-white text-[10px] font-black uppercase tracking-widest"><RefreshCw className="h-4 w-4 mr-2" /> iyzico</button>
+          <button onClick={sync} className="flex items-center px-4 rounded-2xl bg-gray-900 text-white text-xs font-black"><RefreshCw className="h-4 w-4 mr-2" /> iyzico</button>
         )}
       </div>
     </div>

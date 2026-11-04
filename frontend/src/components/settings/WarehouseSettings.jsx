@@ -54,7 +54,7 @@ const WarehouseSettings = ({ showAlert, confirm }) => {
             <div key={w.id} className={`flex items-center gap-3 px-4 py-3 ${i % 2 ? 'bg-slate-50/70' : 'bg-white'}`}>
               <span className="font-mono text-xs font-black text-brand-700 bg-brand-50 px-2 py-1 rounded-lg w-14 text-center">{w.code}</span>
               <div className="min-w-0 flex-1">
-                <p className="text-sm font-bold text-gray-900 flex items-center gap-2">{w.name}{w.isDefault && <span className="px-1.5 py-0.5 rounded-md bg-amber-100 text-amber-700 text-[10px] font-bold">Varsayılan</span>}</p>
+                <p className="text-sm font-bold text-gray-900 flex items-center gap-2">{w.name}{w.isDefault && <span className="px-1.5 py-0.5 rounded-md bg-amber-100 text-amber-700 text-[11px] font-bold">Varsayılan</span>}</p>
                 <p className="text-[11px] text-gray-400">{[w.city, `${w.productCount} ürün`, `${w.totalQuantity.toLocaleString('tr-TR')} adet`].filter(Boolean).join(' · ')}</p>
               </div>
               {!w.isDefault && <button onClick={() => run(() => api.patch(`/warehouses/${w.id}`, { isDefault: true }), 'Varsayılan depo değişti')} title="Varsayılan yap" className="p-2 rounded-lg text-gray-400 hover:text-amber-600 hover:bg-amber-50"><Star className="h-4 w-4" /></button>}

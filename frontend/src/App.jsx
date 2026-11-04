@@ -6,6 +6,8 @@ import { TenantProvider, useTenant } from './context/TenantContext';
 import PageLoader from './components/PageLoader';
 import { APP_MODE } from './utils/tenant';
 import { I18nProvider } from './i18n';
+import { getActing } from './utils/acting';
+import { homeOf } from './utils/roles';
 
 // Kod bölme: her mod / panel / sayfa yalnızca gerektiğinde indirilir
 const Login = lazy(() => import('./pages/Login'));
@@ -26,19 +28,22 @@ const PrintReceipt = lazy(() => import('./pages/print/PrintReceipt'));
 const StatementShare = lazy(() => import('./pages/StatementShare'));
 const AdminLayout = lazy(() => import('./layouts/AdminLayout'));
 const BayiLayout = lazy(() => import('./layouts/BayiLayout'));
+const PlasiyerHome = lazy(() => import('./pages/plasiyer/PlasiyerHome'));
 const PlatformApp = lazy(() => import('./pages/platform/PlatformApp'));
 const RootApp = lazy(() => import('./pages/root/RootApp'));
 const TenantNotFound = lazy(() => import('./pages/root/TenantNotFound'));
 
-const ProtectedRoute = ({ children, allowedRoles }) => {
+// actAllowed: yönetici / plasiyer bir bayi seçtiyse (bayi adına işlem) bayi sayfalarını da açabilir
+const ProtectedRoute = ({ children, allowedRoles, actAllowed = false }) => {
   const { user } = useAuth();
 
   if (!user) {
     return <Navigate to="/login" replace />;
   }
 
-  if (allowedRoles && !allowedRoles.includes(user.role)) {
-    return <Navigate to={user.role === 'ADMIN' ? '/admin' : '/bayi'} replace />;
+  const acting = actAllowed && ['ADMIN', 'PLASIYER'].includes(user.role) && getActing();
+  if (allowedRoles && !allowedRoles.includes(user.role) && !acting) {
+    return <Navigate to={homeOf(user.role)} replace />;
   }
 
   return children;
@@ -56,7 +61,7 @@ const AppRoutes = () => {
     <Routes>
       <Route path="/impersonate" element={<Impersonate />} />
       <Route path="/giris-aktar" element={<LoginHandoff />} />
-      <Route path="/login" element={user ? <Navigate to={user.role === 'ADMIN' ? '/admin' : '/bayi'} /> : <Login />} />
+      <Route path="/login" element={user ? <Navigate to={homeOf(user.role)} /> : <Login />} />
       <Route path="/verify-email" element={<VerifyEmail />} />
       <Route path="/developer" element={<ApiDocs />} />
       <Route path="/forgot-password" element={<ForgotPassword />} />
@@ -64,7 +69,7 @@ const AppRoutes = () => {
       {/* Reklamdan gelen kişinin dolduracağı talep formu (Instagram bio, WhatsApp mesajı) */}
       <Route path="/talep" element={<LeadForm />} />
       <Route path="/basvuru" element={user ? <Navigate to="/" replace /> : <DealerApplication />} />
-      <Route path="/print/order/:id" element={<ProtectedRoute allowedRoles={['ADMIN', 'BAYI']}><PrintOrder /></ProtectedRoute>} />
+      <Route path="/print/order/:id" element={<ProtectedRoute allowedRoles={['ADMIN', 'BAYI']} actAllowed><PrintOrder /></ProtectedRoute>} />
       <Route path="/print/quote/:id" element={<ProtectedRoute allowedRoles={['ADMIN', 'BAYI']}><PrintQuote /></ProtectedRoute>} />
       {/* Müşteriye gönderilen teklif bağlantısı (giriş gerekmez) */}
       <Route path="/teklif/:token" element={<QuoteShare />} />
@@ -87,11 +92,13 @@ const AppRoutes = () => {
       <Route 
         path="/bayi/*" 
         element={
-          <ProtectedRoute allowedRoles={['BAYI']}>
+          <ProtectedRoute allowedRoles={['BAYI']} actAllowed>
             <BayiLayout />
           </ProtectedRoute>
         } 
       />
+
+      <Route path="/plasiyer" element={<ProtectedRoute allowedRoles={['PLASIYER']}><PlasiyerHome /></ProtectedRoute>} />
 
       <Route path="*" element={<Navigate to="/login" replace />} />
     </Routes>

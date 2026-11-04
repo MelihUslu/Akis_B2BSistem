@@ -300,6 +300,9 @@ const orderOut = (o) => ({
   id: o.id, number: `AK-${o.id}`, status: o.status, createdAt: o.createdAt, approvedAt: o.approvedAt, exportedAt: o.exportedAt,
   paymentMethod: o.paymentMethod, subtotal: o.subtotal, discountAmount: o.discountAmount, vatAmount: o.vatAmount, total: o.totalAmount,
   couponCode: o.couponCode, dueDate: o.dueDate, cargoCompany: o.cargoCompany, trackingNumber: o.trackingNumber,
+  shippingFee: o.shippingFee || 0, note: o.note || null, customerRef: o.customerRef || null, channel: o.channel || 'PORTAL',
+  despatchNumber: o.despatchNumber || null, despatchDate: o.despatchDate || null,
+  shipments: (o.shipments || []).map((s) => ({ trackingNumber: s.trackingNumber, cargoCompany: s.cargoCompany, items: s.items, createdAt: s.createdAt })),
   company: { id: o.company.id, externalCode: o.company.externalCode, name: o.company.name, taxNumber: o.company.taxNumber, taxOffice: o.company.taxOffice },
   shippingAddress: o.shippingAddress || null,
   deliveryMethod: o.deliveryMethod || 'SHIPPING',
@@ -308,11 +311,11 @@ const orderOut = (o) => ({
   invoice: o.invoice ? { status: o.invoice.status, number: o.invoice.number, documentType: o.invoice.documentType, issuedAt: o.invoice.issuedAt } : null,
   items: o.items.map(i => ({
     sku: i.product.sku, name: i.product.parent?.name || i.product.name, variantLabel: i.variantLabel,
-    quantity: i.quantity, unitPrice: i.price, vatRate: i.vatRate, status: i.status
+    quantity: i.quantity, unitPrice: i.price, vatRate: i.vatRate, status: i.status, shippedQuantity: i.shippedQty || 0
   }))
 });
 
-const ORDER_INCLUDE = { company: true, warehouse: true, invoice: true, items: { include: { product: { select: { sku: true, name: true, parent: { select: { name: true } } } } } } };
+const ORDER_INCLUDE = { company: true, warehouse: true, invoice: true, shipments: { orderBy: { createdAt: 'asc' } }, items: { include: { product: { select: { sku: true, name: true, parent: { select: { name: true } } } } } } };
 
 // ?exported=false → ERP'ye henüz aktarılmamış siparişler · ?status=APPROVED · ?since=2026-01-01
 export const apiListOrders = async (req, res) => {
@@ -351,6 +354,13 @@ export const apiUpdateOrderStatus = async (req, res) => {
   const order = await prisma.order.findUnique({ where: { id } });
   if (!order) return res.status(404).json({ error: 'Sipariş bulunamadı.' });
   const status = req.body.status;
+  // İrsaliye numarası durumdan bağımsız da gönderilebilir (status vermeden)
+  if (req.body.despatchNumber !== undefined && !status) {
+    if (dryRun(req)) return res.json(out(req, { ok: true }));
+    const despatchNumber = String(req.body.despatchNumber || '').trim().slice(0, 40) || null;
+    await prisma.order.update({ where: { id }, data: { despatchNumber, despatchDate: despatchNumber ? new Date(req.body.despatchDate || Date.now()) : null } });
+    return res.json({ ok: true, status: order.status, despatchNumber });
+  }
   // Gel-Al siparişi: READY_FOR_PICKUP (teslim almaya hazır) ya da COMPLETED (teslim edildi); kargoya verilmez
   if (order.deliveryMethod === 'PICKUP') {
     if (!['READY_FOR_PICKUP', 'COMPLETED'].includes(status)) return res.status(400).json({ error: 'Gel-Al siparişinde status READY_FOR_PICKUP veya COMPLETED olmalıdır.' });

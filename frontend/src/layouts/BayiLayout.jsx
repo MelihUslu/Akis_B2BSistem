@@ -1,5 +1,5 @@
 import { Suspense, lazy, useState } from 'react';
-import { Routes, Route, useLocation, useNavigate } from 'react-router-dom';
+import { Routes, Route, Navigate, useLocation, useNavigate } from 'react-router-dom';
 import ErrorBoundary from '../components/ErrorBoundary';
 import { ShoppingCart, Menu, UserRound, History, CreditCard, LogOut } from 'lucide-react';
 import { UserMenu } from '../components/shared/HeaderMenu';
@@ -15,6 +15,8 @@ import LanguageSwitcher from '../components/LanguageSwitcher';
 import MobileTabBar from '../components/bayi/MobileTabBar';
 import PageLoader from '../components/PageLoader';
 import { t } from '../i18n';
+import ActingBanner from '../components/bayi/ActingBanner';
+import { getActing, stopActing } from '../utils/acting';
 
 const ProductCatalog = lazy(() => import('../pages/bayi/ProductCatalog'));
 const BayiOrders = lazy(() => import('../pages/bayi/BayiOrders'));
@@ -33,6 +35,7 @@ const BayiLayout = () => {
   const navigate = useNavigate();
   const [menuOpen, setMenuOpen] = useState(false);
   const { pathname } = useLocation();
+  const acting = getActing();
 
   return (
     <div className="flex min-h-screen bg-navy-900">
@@ -46,6 +49,7 @@ const BayiLayout = () => {
       
       {/* Main Content Area - The "Sheet" */}
       <div className="flex-1 min-w-0 flex flex-col min-h-screen bg-navy-50 lg:rounded-l-[2.5rem] shadow-[0_-10px_60px_-15px_rgba(0,0,0,0.3)] overflow-clip relative">
+        <ActingBanner />
         <header className="px-4 md:px-8 lg:px-12 py-4 lg:py-5 flex justify-between items-center bg-navy-50/80 backdrop-blur-md sticky top-0 z-40 gap-3"
           style={{ paddingTop: 'max(1rem, env(safe-area-inset-top))' }}>
           <div className="flex-1 flex items-center gap-3 min-w-0">
@@ -66,13 +70,18 @@ const BayiLayout = () => {
             >
               <ShoppingCart className="h-5 w-5" />
               {cartCount > 0 && (
-                <span className="absolute -top-2 -right-2 bg-red-500 text-white text-[10px] font-black w-5 h-5 flex items-center justify-center rounded-full border-2 border-white shadow-lg animate-in zoom-in duration-300">
+                <span className="absolute -top-2 -right-2 bg-red-500 text-white text-[11px] font-black w-5 h-5 flex items-center justify-center rounded-full border-2 border-white shadow-lg animate-in zoom-in duration-300">
                   {cartCount}
                 </span>
               )}
             </button>
 
-            <UserMenu name={user?.name || t('Değerli Bayimiz')} role={t('Bayi Hesabı')} email={user?.email} items={[
+            <UserMenu name={user?.name || t('Değerli Bayimiz')} role={acting ? `${acting.name} adına` : t('Bayi Hesabı')} email={user?.email} items={acting ? [
+              { label: t('Siparişlerim'), icon: History, to: '/bayi/orders' },
+              { label: t('Finansal Durum'), icon: CreditCard, to: '/bayi/finance' },
+              { divider: true },
+              { label: 'Bayi adına moddan çık', icon: LogOut, onClick: () => { const back = acting.back || '/admin/orders'; stopActing(); navigate(back); } }
+            ] : [
               { label: t('Profilim'), icon: UserRound, to: '/bayi/profile' },
               { label: t('Siparişlerim'), icon: History, to: '/bayi/orders' },
               { label: t('Finansal Durum'), icon: CreditCard, to: '/bayi/finance' },
@@ -92,9 +101,10 @@ const BayiLayout = () => {
             <Route path="quotes" element={<BayiQuotes />} />
             <Route path="orders" element={<BayiOrders />} />
             <Route path="orders/:id" element={<BayiOrderDetail />} />
-            <Route path="returns" element={<BayiReturns />} />
+            {/* İade talebi ve profil bayinin kendisine aittir; bayi adına modunda açılmaz */}
+            <Route path="returns" element={acting ? <Navigate to="/bayi" replace /> : <BayiReturns />} />
             <Route path="finance" element={<BayiFinance />} />
-            <Route path="profile" element={<BayiProfile />} />
+            <Route path="profile" element={acting ? <Navigate to="/bayi" replace /> : <BayiProfile />} />
             <Route path="checkout" element={<CheckoutPage />} />
           </Routes>
           </Suspense>

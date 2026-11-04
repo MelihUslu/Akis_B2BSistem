@@ -51,7 +51,7 @@ const CompatibleProductsEditor = ({ productId, products, showAlert }) => {
         {rows.length === 0 && <p className="text-xs text-gray-400">Tanımlı uyumlu ürün yok.</p>}
         {rows.map((r) => (
           <span key={r.sku} className="inline-flex items-center gap-1.5 pl-3 pr-1.5 py-1.5 rounded-xl bg-brand-50 text-xs font-bold text-brand-700">
-            {r.name} <span className="font-mono text-[10px] text-brand-400">{r.sku}</span>
+            {r.name} <span className="font-mono text-[11px] text-brand-400">{r.sku}</span>
             <button type="button" onClick={() => setRows(rows.filter((x) => x.sku !== r.sku))} className="p-0.5 rounded hover:bg-brand-100"><X className="h-3.5 w-3.5" /></button>
           </span>
         ))}

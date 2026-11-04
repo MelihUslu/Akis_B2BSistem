@@ -211,7 +211,7 @@ const QuoteForm = ({ meta, companies, quote, onReload, onCompanyAdded, showAlert
           <div>
             <h1 className="text-2xl md:text-3xl font-black text-gray-900 tracking-tight">{quote ? `${quote.code}${quote.revision > 1 ? ` · Revizyon ${quote.revision}` : ''}` : 'Yeni Teklif'}</h1>
             <div className="flex flex-wrap items-center gap-2 mt-1">
-              <span className={`px-2.5 py-0.5 rounded-full text-[10px] font-black uppercase ${status.className}`}>{status.label}</span>
+              <span className={`px-2.5 py-0.5 rounded-full text-[11px] font-black uppercase ${status.className}`}>{status.label}</span>
               {fromDealer && <span className="text-xs font-bold text-orange-600">Bayinin teklif talebi · {quote.user?.name}</span>}
               {quote?.approvalNote && <span className="text-xs font-bold text-amber-700">Onay notu: {quote.approvalNote}</span>}
             </div>

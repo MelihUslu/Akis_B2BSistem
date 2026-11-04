@@ -75,7 +75,7 @@ export const LedgerTab = ({ partner, version, onChanged, showAlert }) => {
                 <div key={t.id} className={`py-2.5 flex gap-3 ${t.reversed ? 'opacity-50' : ''}`}>
                   <div className="min-w-0 flex-1">
                     <p className="text-xs font-semibold text-gray-800 break-words">{t.description || (t.type === 'DEBT' ? 'Borç' : 'Alacak')}</p>
-                    <p className="text-[10px] text-gray-400 flex flex-wrap items-center gap-1.5 mt-0.5">
+                    <p className="text-[11px] text-gray-400 flex flex-wrap items-center gap-1.5 mt-0.5">
                       <span>{formatDate(t.date)}</span>
                       <span className={`px-1.5 py-0.5 rounded font-black uppercase ${src.className}`}>{src.label}</span>
                       {t.reversed && <span className="font-black text-red-500">Ters kaydedildi</span>}
@@ -83,9 +83,9 @@ export const LedgerTab = ({ partner, version, onChanged, showAlert }) => {
                     </p>
                   </div>
                   <div className="text-right shrink-0">
-                    <p className={`text-sm font-black tabular-nums ${t.type === 'DEBT' ? 'text-red-600' : 'text-emerald-600'}`}>{money(t.amount)} <span className="text-[9px] uppercase">{t.type === 'DEBT' ? 'B' : 'A'}</span></p>
-                    {t.currency !== 'TRY' && <p className="text-[10px] text-gray-400 tabular-nums">kur {t.rate} · {formatTRY(t.amountTRY)}</p>}
-                    <p className="text-[10px] text-gray-400 tabular-nums">Bakiye {money(t.balanceAfter)}</p>
+                    <p className={`text-sm font-black tabular-nums ${t.type === 'DEBT' ? 'text-red-600' : 'text-emerald-600'}`}>{money(t.amount)} <span className="text-[10px] uppercase">{t.type === 'DEBT' ? 'B' : 'A'}</span></p>
+                    {t.currency !== 'TRY' && <p className="text-[11px] text-gray-400 tabular-nums">kur {t.rate} · {formatTRY(t.amountTRY)}</p>}
+                    <p className="text-[11px] text-gray-400 tabular-nums">Bakiye {money(t.balanceAfter)}</p>
                   </div>
                   <div className="flex flex-col gap-1 shrink-0 w-7">
                     {t.payment && <a href={`/print/receipt/${t.payment.id}`} target="_blank" rel="noreferrer" title={`Makbuz ${t.payment.receiptNo ?? ''}`} className="p-1 rounded-lg text-gray-400 hover:text-brand-600 hover:bg-brand-50"><Printer className="h-4 w-4" /></a>}
@@ -103,7 +103,7 @@ export const LedgerTab = ({ partner, version, onChanged, showAlert }) => {
             <button disabled={page >= data.pagination.pages} onClick={() => setPage(page + 1)} className="px-3 h-8 rounded-lg text-xs font-black bg-gray-100 disabled:opacity-40">Sonraki</button>
           </div>
         )}
-        {!query.from && <p className="text-[10px] text-gray-400">Açılış bakiyesi (hareket öncesi): {money(data.openingBalance)}</p>}
+        {!query.from && <p className="text-[11px] text-gray-400">Açılış bakiyesi (hareket öncesi): {money(data.openingBalance)}</p>}
       </>)}
     </div>
   );
@@ -135,14 +135,14 @@ export const NotesTab = ({ partner, notes, currentUserId, onChanged, showAlert }
           <input type="datetime-local" className="premium-input !bg-white !py-1.5 !w-auto text-xs" value={remindAt} onChange={(e) => setRemindAt(e.target.value)} />
           <button className="ml-auto px-4 h-9 rounded-xl text-xs font-black text-white bg-gray-900">Notu Ekle</button>
         </div>
-        <p className="text-[10px] text-gray-400">Hatırlatma zamanı gelince size bildirim gelir (saatlik kontrol edilir).</p>
+        <p className="text-[11px] text-gray-400">Hatırlatma zamanı gelince size bildirim gelir (saatlik kontrol edilir).</p>
       </form>
       {notes.length === 0 ? <p className="text-xs text-gray-400">Henüz not yok.</p> : notes.map((n) => {
         const due = n.remindAt && !n.doneAt && new Date(n.remindAt) <= now;
         return (
           <div key={n.id} className={`rounded-xl ring-1 p-3 ${n.doneAt ? 'ring-gray-100 opacity-60' : due ? 'ring-amber-300 bg-amber-50/40' : 'ring-gray-100'}`}>
             <p className={`text-sm text-gray-800 whitespace-pre-line ${n.doneAt ? 'line-through' : ''}`}>{n.body}</p>
-            <div className="flex flex-wrap items-center gap-2 mt-2 text-[10px] text-gray-400">
+            <div className="flex flex-wrap items-center gap-2 mt-2 text-[11px] text-gray-400">
               <span>{n.user?.name || '—'} · {formatDate(n.createdAt, true)}</span>
               {n.remindAt && <span className={`flex items-center font-bold ${due ? 'text-amber-700' : ''}`}><Bell className="h-3 w-3 mr-0.5" />{formatDate(n.remindAt, true)}</span>}
               <span className="ml-auto flex gap-1">
@@ -191,7 +191,7 @@ export const DocumentsTab = ({ partner, documents, onChanged, showAlert, confirm
           <Paperclip className="h-4 w-4 text-gray-300 shrink-0" />
           <div className="min-w-0 flex-1">
             <p className="text-sm font-bold text-gray-800 truncate">{d.name}</p>
-            <p className="text-[10px] text-gray-400">{kb(d.size)} · {d.uploadedBy || '—'} · {formatDate(d.createdAt)}</p>
+            <p className="text-[11px] text-gray-400">{kb(d.size)} · {d.uploadedBy || '—'} · {formatDate(d.createdAt)}</p>
           </div>
           <button type="button" onClick={() => downloadFile(`/partners/${partner.id}/documents/${d.id}`, {}, d.name)} className="p-2 rounded-lg text-gray-400 hover:text-brand-600 hover:bg-brand-50" title="İndir"><FileDown className="h-4 w-4" /></button>
           <button type="button" onClick={() => remove(d)} className="p-2 rounded-lg text-gray-400 hover:text-red-600 hover:bg-red-50" title="Sil"><Trash2 className="h-4 w-4" /></button>

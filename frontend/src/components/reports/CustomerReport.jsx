@@ -276,7 +276,7 @@ const ADVICE = {
 
 const Stat = ({ label, value, sub }) => (
   <div className="rounded-2xl bg-gray-50 px-4 py-3">
-    <p className="text-[10px] font-black text-gray-400 uppercase tracking-widest">{label}</p>
+    <p className="text-[11px] font-black text-gray-400 uppercase tracking-widest">{label}</p>
     <p className="mt-0.5 text-base font-black text-gray-900 tabular-nums">{value}</p>
     {sub && <p className="text-[11px] text-gray-500">{sub}</p>}
   </div>
@@ -462,7 +462,7 @@ const CustomerReport = () => {
             </div>
             <div className="overflow-x-auto">
               <table className="w-full min-w-[62rem] text-sm">
-                <thead className="list-head"><tr className="text-left text-[10px] font-black text-gray-500 uppercase tracking-[0.15em]"><th className="px-5 py-3">#</th><th className="px-5 py-3">Müşteri</th><th className="px-5 py-3">Neden</th><th className="px-5 py-3">Gecikme</th><th className="px-5 py-3">Son sipariş</th><th className="px-5 py-3 text-right">Son 12 ay</th><th className="px-5 py-3" /></tr></thead>
+                <thead className="list-head"><tr className="text-left text-[11px] font-black text-gray-500 uppercase tracking-[0.15em]"><th className="px-5 py-3">#</th><th className="px-5 py-3">Müşteri</th><th className="px-5 py-3">Neden</th><th className="px-5 py-3">Gecikme</th><th className="px-5 py-3">Son sipariş</th><th className="px-5 py-3 text-right">Son 12 ay</th><th className="px-5 py-3" /></tr></thead>
                 <tbody className="divide-y divide-gray-100/70">
                   {report.callList.map((x, i) => (
                     <tr key={x.id} className="align-top hover:bg-slate-50/70 cursor-pointer" onClick={() => setDetail(x)}>
@@ -509,7 +509,7 @@ const CustomerReport = () => {
                   <p className="text-[11px] font-black text-gray-400 uppercase tracking-widest mb-2">En yüksek açık alacak</p>
                   <ul className="divide-y divide-gray-50 text-sm">
                     {report.topDebtors.slice(0, 6).map((d) => (
-                      <li key={d.id} className="flex justify-between gap-3 py-1.5"><span className="truncate font-semibold text-gray-700">{d.name}{d.overLimit && <span className="ml-1.5 text-[10px] font-black text-rose-600">LİMİT AŞIMI</span>}</span><span className="tabular-nums font-bold">{formatTRY(d.receivableTRY)}</span></li>
+                      <li key={d.id} className="flex justify-between gap-3 py-1.5"><span className="truncate font-semibold text-gray-700">{d.name}{d.overLimit && <span className="ml-1.5 text-[11px] font-black text-rose-600">LİMİT AŞIMI</span>}</span><span className="tabular-nums font-bold">{formatTRY(d.receivableTRY)}</span></li>
                     ))}
                   </ul>
                 </div>
@@ -542,7 +542,7 @@ const CustomerReport = () => {
             </div>
             <div className="overflow-x-auto">
               <table className="w-full min-w-[56rem] text-sm">
-                <thead className="list-head"><tr className="text-left text-[10px] font-black text-gray-500 uppercase tracking-[0.15em]"><th className="px-5 py-3">Müşteri</th><th className="px-5 py-3">Durum</th><th className="px-5 py-3">Son sipariş</th><th className="px-5 py-3">Olağan aralık</th><th className="px-5 py-3 text-right">Dönem</th><th className="px-5 py-3 text-right">Son 90 gün</th><th className="px-5 py-3 text-right">Değişim</th></tr></thead>
+                <thead className="list-head"><tr className="text-left text-[11px] font-black text-gray-500 uppercase tracking-[0.15em]"><th className="px-5 py-3">Müşteri</th><th className="px-5 py-3">Durum</th><th className="px-5 py-3">Son sipariş</th><th className="px-5 py-3">Olağan aralık</th><th className="px-5 py-3 text-right">Dönem</th><th className="px-5 py-3 text-right">Son 90 gün</th><th className="px-5 py-3 text-right">Değişim</th></tr></thead>
                 <tbody className="divide-y divide-gray-100/70">
                   {pageRows.map((x) => (
                     <tr key={x.id} className="hover:bg-slate-50/70 cursor-pointer" onClick={() => setDetail(x)}>
@@ -552,7 +552,7 @@ const CustomerReport = () => {
                       <td className="px-5 py-2.5 text-xs text-gray-600">{x.typicalDays ? `~${x.typicalDays} gün` : '—'}</td>
                       <td className="px-5 py-2.5 text-right tabular-nums">{x.periodRevenue ? formatTRY(x.periodRevenue) : '—'}</td>
                       <td className="px-5 py-2.5 text-right tabular-nums">{formatTRY(x.rev90)}</td>
-                      <td className="px-5 py-2.5 text-right"><Change now={x.rev90} prev={x.prev90} /><span className="block text-[10px] text-gray-400 tabular-nums">önceki {formatTRY(x.prev90)}</span></td>
+                      <td className="px-5 py-2.5 text-right"><Change now={x.rev90} prev={x.prev90} /><span className="block text-[11px] text-gray-400 tabular-nums">önceki {formatTRY(x.prev90)}</span></td>
                     </tr>
                   ))}
                   {customers.length === 0 && <tr><td colSpan={7} className="text-center py-10 text-gray-400 font-bold">Müşteri bulunamadı.</td></tr>}

@@ -253,7 +253,7 @@ const LeadManagement = () => {
       <div className="card-premium overflow-x-auto">
         <table className="w-full text-sm">
           <thead className="list-head">
-            <tr className="text-left text-[10px] font-black text-gray-500 uppercase tracking-[0.15em] whitespace-nowrap">
+            <tr className="text-left text-[11px] font-black text-gray-500 uppercase tracking-[0.15em] whitespace-nowrap">
               <th className="px-5 py-4">Tarih</th><th className="px-5 py-4">Kişi</th><th className="px-5 py-4">Kanal</th>
               <th className="px-5 py-4">Ne istedi</th><th className="px-5 py-4">Durum</th><th />
             </tr>

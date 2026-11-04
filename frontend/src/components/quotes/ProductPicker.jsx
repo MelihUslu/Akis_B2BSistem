@@ -48,7 +48,7 @@ const ProductPicker = ({ companyId, onPick, placeholder = 'Ürün adı, SKU veya
               </span>
               <span className="text-right shrink-0">
                 <span className="block text-xs font-black text-gray-900">{p.unitPrice !== null ? formatTRY(p.unitPrice) : '—'}</span>
-                <span className={`block text-[10px] font-bold ${p.stock > 0 ? 'text-emerald-600' : 'text-red-500'}`}>Stok {p.stock} {p.unit}</span>
+                <span className={`block text-[11px] font-bold ${p.stock > 0 ? 'text-emerald-600' : 'text-red-500'}`}>Stok {p.stock} {p.unit}</span>
               </span>
             </button>
           ))}

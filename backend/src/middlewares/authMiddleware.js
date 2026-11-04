@@ -11,6 +11,18 @@ const ALLOWED_WHEN_INACTIVE = ['/api/billing', '/api/auth/me', '/api/tenant', '/
 
 const readToken = (req) => req.headers.authorization?.split(' ')[1];
 
+/**
+ * Bayi adına işlem: yönetici (sipariş yetkili) ya da plasiyer (yalnızca kendi bayileri) "X-Act-As-Company" başlığıyla
+ * bayinin portalını o bayinin fiyat, limit ve adresleriyle kullanır. Yalnızca katalog / sepet / sipariş / teklif ve
+ * cari ekstreyi okuma uçlarında geçerlidir; diğer uçlarda kişi kendi kimliğiyle işlem görür.
+ */
+const ACT_PATHS = ['/api/products', '/api/categories', '/api/orders', '/api/settings/portal', '/api/addresses', '/api/lists', '/api/quotes'];
+const ACT_READ_ONLY = ['/api/finance/my-statement', '/api/targets/mine', '/api/auth/me'];
+const actingAllowed = (req) => ACT_PATHS.some((p) => req.originalUrl.startsWith(p))
+  || (req.method === 'GET' && ACT_READ_ONLY.some((p) => req.originalUrl.startsWith(p)));
+// Plasiyerin kendi kimliğiyle açabildiği uçlar (bayi seçmeden)
+const PLASIYER_PATHS = ['/api/plasiyer', '/api/auth/me', '/api/auth/change-password', '/api/notifications', '/api/tenant/public', '/api/settings/portal', '/api/push'];
+
 // Kiracı kullanıcıları (ADMIN, BAYI). resolveTenant'tan sonra çalışmalıdır.
 export const verifyToken = async (req, res, next) => {
   const token = readToken(req);
@@ -68,6 +80,17 @@ export const verifyToken = async (req, res, next) => {
       // Platform destek oturumu ise yöneticinin adı (işlem kaydına yazılır)
       impersonatedBy: decoded.impersonatedBy || null
     };
+
+    const actId = parseInt(req.headers['x-act-as-company']);
+    if (actId && ['ADMIN', 'PLASIYER'].includes(user.role) && actingAllowed(req)) {
+      const company = await prisma.company.findUnique({ where: { id: actId }, select: { id: true, kind: true, status: true, plasiyerId: true } });
+      const allowed = company && company.kind === 'DEALER' && company.status === 'ACTIVE'
+        && (user.role === 'PLASIYER' ? company.plasiyerId === user.id : hasPermission(req.user, 'ORDERS'));
+      if (!allowed) return res.status(403).json({ message: 'Bu bayi adına işlem yetkiniz yok.' });
+      req.user = { ...req.user, role: 'BAYI', companyId: company.id, isOwner: false, permissions: [], actingAs: { role: user.role, id: user.id, name: user.name } };
+    } else if (user.role === 'PLASIYER' && !PLASIYER_PATHS.some((p) => req.originalUrl.startsWith(p))) {
+      return res.status(403).json({ message: 'Bu işlem için bir bayi seçin.' });
+    }
     next();
   } catch (error) {
     console.error('Auth middleware error:', error);

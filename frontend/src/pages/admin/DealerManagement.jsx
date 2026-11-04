@@ -1,4 +1,5 @@
 import { useState, useEffect } from 'react';
+import useActAsDealer from '../../hooks/useActAsDealer';
 import { CURRENCY_SYMBOL } from '../../utils/format';
 import api, { errorMessage } from '../../services/api';
 import useAlert from '../../hooks/useAlert';
@@ -12,6 +13,7 @@ import {
 } from 'lucide-react';
 
 const DealerManagement = () => {
+  const actAs = useActAsDealer();
   const [dealers, setDealers] = useState([]);
   const [isLoading, setIsLoading] = useState(true);
   const [triedSave, setTriedSave] = useState(false); // kaydet'e basılınca eksik alanlar kırmızı gösterilir
@@ -111,9 +113,9 @@ const DealerManagement = () => {
 
   const getStatusBadge = (status) => {
     switch (status) {
-      case 'ACTIVE': return <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-emerald-50 text-emerald-700 ring-1 ring-emerald-100 text-[10px] font-bold"><span className="h-1.5 w-1.5 rounded-full bg-emerald-500" /> Aktif</span>;
-      case 'PASSIVE': return <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-gray-100 text-gray-500 ring-1 ring-gray-200 text-[10px] font-bold"><span className="h-1.5 w-1.5 rounded-full bg-gray-400" /> Pasif</span>;
-      default: return <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-amber-50 text-amber-700 ring-1 ring-amber-100 text-[10px] font-bold"><span className="h-1.5 w-1.5 rounded-full bg-amber-500 animate-pulse" /> Onay bekliyor</span>;
+      case 'ACTIVE': return <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-emerald-50 text-emerald-700 ring-1 ring-emerald-100 text-[11px] font-bold"><span className="h-1.5 w-1.5 rounded-full bg-emerald-500" /> Aktif</span>;
+      case 'PASSIVE': return <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-gray-100 text-gray-500 ring-1 ring-gray-200 text-[11px] font-bold"><span className="h-1.5 w-1.5 rounded-full bg-gray-400" /> Pasif</span>;
+      default: return <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-amber-50 text-amber-700 ring-1 ring-amber-100 text-[11px] font-bold"><span className="h-1.5 w-1.5 rounded-full bg-amber-500 animate-pulse" /> Onay bekliyor</span>;
     }
   };
 
@@ -146,7 +148,7 @@ const DealerManagement = () => {
             onClick={() => { setSelectedDealer(null); setFormData(emptyForm); setTriedSave(false); setIsDrawerOpen(true); }}
             className="btn-gradient h-12 px-5 py-0 whitespace-nowrap shrink-0"
           >
-            <Plus className="mr-1.5 h-4 w-4" /> YENİ BAYİ
+            <Plus className="mr-1.5 h-4 w-4" /> Yeni bayi
           </button>
         </div>
       </div>
@@ -167,12 +169,12 @@ const DealerManagement = () => {
         <table className="w-full text-left">
           <thead className="list-head">
             <tr>
-              <th className="px-8 py-4 text-[10px] font-black text-gray-500 uppercase tracking-[0.15em] whitespace-nowrap">NO</th>
-              <th className="px-8 py-4 text-[10px] font-black text-gray-500 uppercase tracking-[0.15em] whitespace-nowrap">Kurumsal Kimlik</th>
-              <th className="px-8 py-4 text-[10px] font-black text-gray-500 uppercase tracking-[0.15em] whitespace-nowrap">Yetkili</th>
-              <th className="px-8 py-4 text-[10px] font-black text-gray-500 uppercase tracking-[0.15em] whitespace-nowrap">Finansal Limitler</th>
-              <th className="px-8 py-4 text-[10px] font-black text-gray-500 uppercase tracking-[0.15em] whitespace-nowrap">Grup & Durum</th>
-              <th className="px-8 py-4 text-[10px] font-black text-gray-500 uppercase tracking-[0.15em] whitespace-nowrap text-right">Aksiyon</th>
+              <th className="px-8 py-4 text-[11px] font-black text-gray-500 uppercase tracking-[0.15em] whitespace-nowrap">NO</th>
+              <th className="px-8 py-4 text-[11px] font-black text-gray-500 uppercase tracking-[0.15em] whitespace-nowrap">Kurumsal Kimlik</th>
+              <th className="px-8 py-4 text-[11px] font-black text-gray-500 uppercase tracking-[0.15em] whitespace-nowrap">Yetkili</th>
+              <th className="px-8 py-4 text-[11px] font-black text-gray-500 uppercase tracking-[0.15em] whitespace-nowrap">Finansal Limitler</th>
+              <th className="px-8 py-4 text-[11px] font-black text-gray-500 uppercase tracking-[0.15em] whitespace-nowrap">Grup & Durum</th>
+              <th className="px-8 py-4 text-[11px] font-black text-gray-500 uppercase tracking-[0.15em] whitespace-nowrap text-right">Aksiyon</th>
             </tr>
           </thead>
           <tbody className="divide-y divide-gray-100/70">
@@ -192,22 +194,22 @@ const DealerManagement = () => {
                 <p className="text-xs text-gray-400 mt-1">{search ? 'Arama ifadesini değiştirmeyi deneyin.' : 'İlk bayinizi “Yeni Bayi” ile ekleyin.'}</p>
               </td></tr>
             ) : dealers.map((dealer, index) => (
-              <tr key={dealer.id} className={`group relative transition-colors hover:bg-slate-50/80 hover:shadow-[inset_3px_0_0_0_#3b82f6] ${dealer.status === 'PENDING' ? 'bg-amber-50/30' : ''}`}>
+              <tr key={dealer.id} className={`group relative transition-colors hover:bg-slate-50/80 hover:shadow-[inset_3px_0_0_0_var(--color-brand-500)] ${dealer.status === 'PENDING' ? 'bg-amber-50/30' : ''}`}>
                 <td className="px-8 py-6">
                   <span className="text-[11px] font-bold text-gray-400 tabular-nums">{(page - 1) * 20 + index + 1}</span>
                 </td>
                 <td className="px-8 py-6">
                   <div className="font-bold text-gray-900 group-hover:text-brand-700 transition-colors text-[15px] tracking-tight">{dealer.name}</div>
                   <div className="flex items-center gap-2 mt-1.5 flex-wrap">
-                    <span className="font-mono text-[10px] font-semibold text-gray-500 bg-gray-100/80 px-1.5 py-0.5 rounded-md">VKN {dealer.taxNumber || '—'}</span>
-                    {dealer.externalCode && <span className="font-mono text-[10px] font-semibold text-brand-600 bg-brand-50 px-1.5 py-0.5 rounded-md">Cari {dealer.externalCode}</span>}
+                    <span className="font-mono text-[11px] font-semibold text-gray-500 bg-gray-100/80 px-1.5 py-0.5 rounded-md">VKN {dealer.taxNumber || '—'}</span>
+                    {dealer.externalCode && <span className="font-mono text-[11px] font-semibold text-brand-600 bg-brand-50 px-1.5 py-0.5 rounded-md">Cari {dealer.externalCode}</span>}
                   </div>
                   {dealer.status === 'PENDING' && (
                     <div className="mt-3 space-y-2">
                       {dealer.applicationNote && <p className="text-xs text-gray-600 bg-orange-50 rounded-xl px-3 py-2 max-w-sm">"{dealer.applicationNote}"</p>}
                       <div className="flex gap-2">
-                        <button onClick={() => decideApplication(dealer, true)} className="px-3 py-1.5 rounded-lg bg-emerald-500 text-white text-[10px] font-black">ONAYLA</button>
-                        <button onClick={() => decideApplication(dealer, false)} className="px-3 py-1.5 rounded-lg bg-red-50 text-red-600 text-[10px] font-black">REDDET</button>
+                        <button onClick={() => decideApplication(dealer, true)} className="px-3 py-1.5 rounded-lg bg-emerald-500 text-white text-[11px] font-black">Onayla</button>
+                        <button onClick={() => decideApplication(dealer, false)} className="px-3 py-1.5 rounded-lg bg-red-50 text-red-600 text-[11px] font-black">Reddet</button>
                       </div>
                     </div>
                   )}
@@ -217,13 +219,13 @@ const DealerManagement = () => {
                   <div className="flex items-center text-[11px] text-gray-500 font-medium mt-1">
                     <Mail className="h-3 w-3 mr-1.5 text-gray-400" /> {(dealer.users?.find(u => u.isOwner) || dealer.users?.[0])?.email || '-'}
                   </div>
-                  {dealer.users?.length > 1 && <div className="text-[10px] font-black text-brand-500 mt-1">+{dealer.users.length - 1} kullanıcı</div>}
+                  {dealer.users?.length > 1 && <div className="text-[11px] font-black text-brand-500 mt-1">+{dealer.users.length - 1} kullanıcı</div>}
                 </td>
                 <td className="px-8 py-6">
                   <div className="flex items-baseline gap-1 tabular-nums">
                     <span className={`text-[15px] font-black ${dealer.currentBalance < 0 ? 'text-gray-900' : 'text-emerald-600'}`}>{(dealer.currentBalance || 0).toLocaleString('tr-TR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span>
-                    <span className="text-[10px] font-bold text-gray-400">{CURRENCY_SYMBOL[dealer.currency] || '₺'}</span>
-                    <span className={`ml-1 text-[10px] font-bold ${dealer.currentBalance < 0 ? 'text-red-500' : 'text-emerald-600'}`}>{dealer.currentBalance < 0 ? 'borç' : dealer.currentBalance > 0 ? 'alacak' : ''}</span>
+                    <span className="text-[11px] font-bold text-gray-400">{CURRENCY_SYMBOL[dealer.currency] || '₺'}</span>
+                    <span className={`ml-1 text-[11px] font-bold ${dealer.currentBalance < 0 ? 'text-red-500' : 'text-emerald-600'}`}>{dealer.currentBalance < 0 ? 'borç' : dealer.currentBalance > 0 ? 'alacak' : ''}</span>
                   </div>
                   {dealer.riskLimit > 0 && (() => {
                     // Eksi bakiye = bayinin borcu; limit doluluğu borca göre hesaplanır
@@ -233,7 +235,7 @@ const DealerManagement = () => {
                         <div className="h-1.5 rounded-full bg-gray-100 overflow-hidden">
                           <div className={`h-full rounded-full ${used >= 90 ? 'bg-red-500' : used >= 70 ? 'bg-amber-500' : 'bg-emerald-500'}`} style={{ width: `${used}%` }} />
                         </div>
-                        <p className="text-[10px] text-gray-400 font-semibold mt-1 tabular-nums">Limit {dealer.riskLimit.toLocaleString('tr-TR')} {CURRENCY_SYMBOL[dealer.currency] || '₺'}</p>
+                        <p className="text-[11px] text-gray-400 font-semibold mt-1 tabular-nums">Limit {dealer.riskLimit.toLocaleString('tr-TR')} {CURRENCY_SYMBOL[dealer.currency] || '₺'}</p>
                       </div>
                     );
                   })()}
@@ -246,6 +248,12 @@ const DealerManagement = () => {
                 </td>
                 <td className="px-8 py-6 text-right">
                   <div className="inline-flex items-center gap-1 p-1 rounded-xl bg-white ring-1 ring-gray-100 shadow-sm">
+                    {dealer.status === 'ACTIVE' && (
+                      <button onClick={() => actAs(dealer)} title="Bayi adına sipariş ver" aria-label={`${dealer.name} adına sipariş ver`}
+                        className="p-2 rounded-lg text-gray-400 hover:text-brand-600 hover:bg-brand-50 transition-colors">
+                        <ShoppingCart className="h-4 w-4" />
+                      </button>
+                    )}
                     <button 
                       onClick={() => { setSelectedDealer(dealer); setIsViewOpen(true); }}
                       title="Görüntüle"
@@ -333,7 +341,7 @@ const DealerManagement = () => {
               {/* Finans özeti */}
               <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
                 <div className="col-span-2 rounded-2xl bg-white ring-1 ring-gray-100 shadow-sm p-4">
-                  <p className="text-[10px] font-bold text-gray-400 uppercase tracking-wider flex items-center gap-1"><Wallet className="h-3 w-3" /> Güncel bakiye</p>
+                  <p className="text-[11px] font-bold text-gray-400 uppercase tracking-wider flex items-center gap-1"><Wallet className="h-3 w-3" /> Güncel bakiye</p>
                   <p className={`text-2xl font-black tabular-nums mt-1 ${balance < 0 ? 'text-red-600' : 'text-emerald-600'}`}>{fmt(Math.abs(balance))} {sym}
                     <span className="ml-2 text-xs font-bold">{balance < 0 ? 'borç' : balance > 0 ? 'alacak' : ''}</span>
                   </p>
@@ -347,12 +355,12 @@ const DealerManagement = () => {
                   )}
                 </div>
                 <div className="rounded-2xl bg-white ring-1 ring-gray-100 shadow-sm p-4">
-                  <p className="text-[10px] font-bold text-gray-400 uppercase tracking-wider flex items-center gap-1"><Percent className="h-3 w-3" /> İskonto</p>
+                  <p className="text-[11px] font-bold text-gray-400 uppercase tracking-wider flex items-center gap-1"><Percent className="h-3 w-3" /> İskonto</p>
                   <p className="text-2xl font-black text-gray-900 tabular-nums mt-1">%{d.netDiscount || 0}</p>
                   <p className="text-[11px] text-gray-400">tüm liste fiyatlarına</p>
                 </div>
                 <div className="rounded-2xl bg-white ring-1 ring-gray-100 shadow-sm p-4">
-                  <p className="text-[10px] font-bold text-gray-400 uppercase tracking-wider flex items-center gap-1"><CalendarClock className="h-3 w-3" /> Vade</p>
+                  <p className="text-[11px] font-bold text-gray-400 uppercase tracking-wider flex items-center gap-1"><CalendarClock className="h-3 w-3" /> Vade</p>
                   <p className="text-2xl font-black text-gray-900 tabular-nums mt-1">{d.paymentTermDays ?? 0} <span className="text-sm text-gray-400">gün</span></p>
                   <p className="text-[11px] text-gray-400 tabular-nums">min. sipariş {fmt(d.minOrderAmount)} ₺</p>
                 </div>
@@ -392,7 +400,7 @@ const DealerManagement = () => {
                         <div key={u.id} className={`flex items-center gap-2.5 ${u.isActive === false ? 'opacity-50' : ''}`}>
                           <span className="h-8 w-8 rounded-full bg-brand-50 text-brand-700 text-[11px] font-black flex items-center justify-center shrink-0">{(u.name || u.email).slice(0, 2).toLocaleUpperCase('tr-TR')}</span>
                           <div className="min-w-0">
-                            <p className="text-xs font-bold text-gray-800 truncate">{u.name}{u.isOwner && <span className="ml-1.5 text-[10px] font-bold text-amber-600">ana kullanıcı</span>}</p>
+                            <p className="text-xs font-bold text-gray-800 truncate">{u.name}{u.isOwner && <span className="ml-1.5 text-[11px] font-bold text-amber-600">ana kullanıcı</span>}</p>
                             <p className="text-[11px] text-gray-400 truncate">{u.email}</p>
                           </div>
                         </div>
@@ -415,10 +423,10 @@ const DealerManagement = () => {
             </div>
 
             <div className="modal-footer items-center flex-wrap">
-              <Link to={`/print/statement/${d.id}`} className="btn-secondary px-5"><FileText className="h-4 w-4 mr-1.5" /> CARİ EKSTRE</Link>
-              <button onClick={() => { setIsViewOpen(false); setUsersOf(d); }} className="btn-secondary px-5"><Users className="h-4 w-4 mr-1.5" /> KULLANICILAR</button>
+              <Link to={`/print/statement/${d.id}`} className="btn-secondary px-5"><FileText className="h-4 w-4 mr-1.5" /> Cari ekstre</Link>
+              <button onClick={() => { setIsViewOpen(false); setUsersOf(d); }} className="btn-secondary px-5"><Users className="h-4 w-4 mr-1.5" /> Kullanıcılar</button>
               <button onClick={() => { setIsViewOpen(false); setFormData({ ...emptyForm, ...d, plasiyerId: d.plasiyerId || '', email: d.users?.[0]?.email || '' }); setTriedSave(false); setIsDrawerOpen(true); }} className="btn-gradient h-12 py-0 flex-1">
-                <Edit3 className="h-4 w-4 mr-2" /> DÜZENLE
+                <Edit3 className="h-4 w-4 mr-2" /> Düzenle
               </button>
             </div>
           </div>
@@ -537,9 +545,9 @@ const DealerManagement = () => {
 
             <div className="modal-footer items-center">
               <p className="hidden md:block text-[11px] text-gray-400 mr-auto"><span className="text-red-500">*</span> zorunlu alanlar</p>
-              <button onClick={() => setIsDrawerOpen(false)} className="btn-secondary px-6">VAZGEÇ</button>
+              <button onClick={() => setIsDrawerOpen(false)} className="btn-secondary px-6">Vazgeç</button>
               <button onClick={handleSubmit} className="btn-gradient h-12 py-0 px-8">
-                <Save className="h-4 w-4 mr-2" /> {selectedDealer ? 'KAYDET' : 'BAYİYİ OLUŞTUR'}
+                <Save className="h-4 w-4 mr-2" /> {selectedDealer ? 'Kaydet' : 'Bayiyi oluştur'}
               </button>
             </div>
           </div>

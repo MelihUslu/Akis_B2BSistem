@@ -36,7 +36,7 @@ const PlatformDashboard = () => {
           <div key={c.title} className={`${c.color} p-6 rounded-[2rem] text-white min-h-[150px] flex flex-col justify-between shadow-lg`}>
             <c.icon className="h-5 w-5 opacity-80" />
             <div>
-              <p className="text-[10px] font-black uppercase tracking-widest opacity-70">{c.title}</p>
+              <p className="text-[11px] font-black uppercase tracking-widest opacity-70">{c.title}</p>
               <p className="text-2xl font-black tracking-tighter mt-1">{c.value}</p>
             </div>
           </div>

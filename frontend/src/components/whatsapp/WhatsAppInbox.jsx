@@ -25,10 +25,10 @@ const Tick = ({ status }) => {
 };
 
 const StatusPill = ({ c }) => (c.status === 'BOT'
-  ? <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-md bg-brand-50 text-brand-700 text-[10px] font-black"><Bot className="h-3 w-3" /> Yapay zekâ</span>
+  ? <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-md bg-brand-50 text-brand-700 text-[11px] font-black"><Bot className="h-3 w-3" /> Yapay zekâ</span>
   : c.status === 'HUMAN'
-    ? <span className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-md text-[10px] font-black ${c.needsHuman ? 'bg-red-50 text-red-700' : 'bg-amber-50 text-amber-700'}`}><UserRound className="h-3 w-3" /> {c.needsHuman ? 'Ekip bekliyor' : 'Ekipte'}</span>
-    : <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-md bg-gray-100 text-gray-500 text-[10px] font-black">Kapalı</span>);
+    ? <span className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-md text-[11px] font-black ${c.needsHuman ? 'bg-red-50 text-red-700' : 'bg-amber-50 text-amber-700'}`}><UserRound className="h-3 w-3" /> {c.needsHuman ? 'Ekip bekliyor' : 'Ekipte'}</span>
+    : <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-md bg-gray-100 text-gray-500 text-[11px] font-black">Kapalı</span>);
 
 /**
  * WhatsApp gelen kutusu: solda konuşmalar, sağda mesajlar. Yapay zekânın cevapları, ekibin yazdıkları ve
@@ -125,7 +125,7 @@ const WhatsAppInbox = ({ aiEnabled, showAlert }) => {
                 </span>
                 <span className="flex items-center justify-between gap-2 mt-0.5">
                   <span className="text-xs text-gray-500 truncate">{c.lastPreview}</span>
-                  {c.unread > 0 && <span className="h-5 min-w-5 px-1.5 rounded-full bg-emerald-500 text-white text-[10px] font-black flex items-center justify-center">{c.unread}</span>}
+                  {c.unread > 0 && <span className="h-5 min-w-5 px-1.5 rounded-full bg-emerald-500 text-white text-[11px] font-black flex items-center justify-center">{c.unread}</span>}
                 </span>
                 <span className="mt-1 block"><StatusPill c={c} /></span>
               </span>
@@ -167,15 +167,15 @@ const WhatsAppInbox = ({ aiEnabled, showAlert }) => {
                   <div key={m.id} className={`flex ${mine ? 'justify-end' : 'justify-start'}`}>
                     <div className={`max-w-[85%] md:max-w-[70%] rounded-2xl px-3.5 py-2 shadow-sm ${mine ? 'rounded-tr-md bg-[#d9fdd3]' : 'rounded-tl-md bg-white'}`}>
                       {mine && (
-                        <p className={`text-[10px] font-black mb-0.5 flex items-center gap-1 ${m.author === 'AI' ? 'text-brand-600' : 'text-emerald-700'}`}>
+                        <p className={`text-[11px] font-black mb-0.5 flex items-center gap-1 ${m.author === 'AI' ? 'text-brand-600' : 'text-emerald-700'}`}>
                           {m.author === 'AI' ? <><Bot className="h-3 w-3" /> Yapay zekâ</> : <><UserRound className="h-3 w-3" /> {m.agentName || 'Ekip'}</>}
                         </p>
                       )}
                       <p className="text-sm text-gray-900 whitespace-pre-line break-words">{rich(m.body)}</p>
-                      <p className="mt-0.5 flex items-center justify-end gap-1 text-[10px] text-gray-400">
+                      <p className="mt-0.5 flex items-center justify-end gap-1 text-[11px] text-gray-400">
                         {time(m.createdAt)}{mine && <Tick status={m.status} />}
                       </p>
-                      {m.error && <p className="text-[10px] font-bold text-red-600">{m.error}</p>}
+                      {m.error && <p className="text-[11px] font-bold text-red-600">{m.error}</p>}
                     </div>
                   </div>
                 );

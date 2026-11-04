@@ -11,7 +11,7 @@ export const StatusPill = ({ status, access }) => {
   const s = TENANT_STATUS[status] || TENANT_STATUS.TRIAL;
   const expired = access && !access.active && ['TRIAL_EXPIRED', 'EXPIRED'].includes(access.reason);
   return (
-    <span className={`px-3 py-1 rounded-full text-[10px] font-black uppercase tracking-wider ${expired ? 'bg-red-100 text-red-600' : s.className}`}>
+    <span className={`px-3 py-1 rounded-full text-[11px] font-black uppercase tracking-wider ${expired ? 'bg-red-100 text-red-600' : s.className}`}>
       {expired ? (access.reason === 'TRIAL_EXPIRED' ? 'Deneme Bitti' : 'Süresi Doldu') : s.label}
     </span>
   );

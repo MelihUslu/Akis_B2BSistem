@@ -44,7 +44,8 @@ export const TX_SOURCES = {
   ERP: { label: 'ERP', className: 'bg-slate-100 text-slate-600' },
   OPENING: { label: 'Açılış', className: 'bg-slate-100 text-slate-600' },
   MANUAL: { label: 'Manuel', className: 'bg-gray-100 text-gray-600' },
-  REVERSAL: { label: 'Ters kayıt', className: 'bg-red-50 text-red-600' }
+  REVERSAL: { label: 'Ters kayıt', className: 'bg-red-50 text-red-600' },
+  BONUS: { label: 'Ciro primi', className: 'bg-emerald-50 text-emerald-700' }
 };
 
 // Borç yaşlandırma: borcun ne kadar süredir ödenmediği. Sağa doğru risk artar (renk sarı → kırmızı).

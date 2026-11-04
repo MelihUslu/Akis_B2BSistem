@@ -14,7 +14,7 @@ const Field = ({ icon: Icon, label, value }) => (
   <div className="flex items-start space-x-3">
     <div className="p-2 bg-gray-50 rounded-xl text-gray-400"><Icon className="h-4 w-4" /></div>
     <div>
-      <p className="text-[10px] font-black text-gray-400 uppercase tracking-widest">{label}</p>
+      <p className="text-[11px] font-black text-gray-400 uppercase tracking-widest">{label}</p>
       <p className="text-sm font-bold text-gray-800 mt-0.5">{value || '-'}</p>
     </div>
   </div>
@@ -70,9 +70,9 @@ const BayiProfile = () => {
           </div>
           <Field icon={MapPin} label={t('Adres')} value={company.address} />
           <div className="grid grid-cols-3 gap-4 pt-4 border-t border-gray-50 text-center">
-            <div><p className="text-[10px] font-black text-gray-400 uppercase">{t('İskonto')}</p><p className="font-black text-gray-900">%{company.netDiscount || 0}</p></div>
-            <div><p className="text-[10px] font-black text-gray-400 uppercase">{t('Min. Sipariş')}</p><p className="font-black text-gray-900">{formatTRY(company.minOrderAmount)}</p></div>
-            <div><p className="text-[10px] font-black text-gray-400 uppercase">{t('Vade')}</p><p className="font-black text-gray-900">{company.paymentTermDays} gün</p></div>
+            <div><p className="text-[11px] font-black text-gray-400 uppercase">{t('İskonto')}</p><p className="font-black text-gray-900">%{company.netDiscount || 0}</p></div>
+            <div><p className="text-[11px] font-black text-gray-400 uppercase">{t('Min. Sipariş')}</p><p className="font-black text-gray-900">{formatTRY(company.minOrderAmount)}</p></div>
+            <div><p className="text-[11px] font-black text-gray-400 uppercase">{t('Vade')}</p><p className="font-black text-gray-900">{company.paymentTermDays} gün</p></div>
           </div>
           {company.plasiyer && (
             <p className="text-xs font-bold text-gray-500 bg-brand-50/60 p-4 rounded-2xl">

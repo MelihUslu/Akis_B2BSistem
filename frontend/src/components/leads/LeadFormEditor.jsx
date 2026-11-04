@@ -127,7 +127,7 @@ const LeadFormEditor = ({ onClose, onSaved, companyName }) => {
                       <input className="premium-input flex-1 !h-10 font-bold" value={f.label} maxLength={80} onChange={(e) => setField(i, { label: e.target.value })} placeholder={f.custom ? 'Soru (örn: Kaç koli istiyorsunuz?)' : BUILTIN_NAME[f.key]} />
                       {f.custom
                         ? <button type="button" onClick={() => removeField(i)} className="p-2 text-gray-300 hover:text-red-500" aria-label="Soruyu sil"><Trash2 className="h-4 w-4" /></button>
-                        : <span className="px-2 py-1 rounded-lg bg-gray-100 text-[10px] font-black text-gray-500 uppercase whitespace-nowrap flex items-center gap-1">{LOCKED.has(f.key) && <Lock className="h-3 w-3" />}{BUILTIN_NAME[f.key]}</span>}
+                        : <span className="px-2 py-1 rounded-lg bg-gray-100 text-[11px] font-black text-gray-500 uppercase whitespace-nowrap flex items-center gap-1">{LOCKED.has(f.key) && <Lock className="h-3 w-3" />}{BUILTIN_NAME[f.key]}</span>}
                     </div>
                     <div className="flex flex-wrap items-center gap-x-5 gap-y-3 pl-7">
                       {f.custom && (

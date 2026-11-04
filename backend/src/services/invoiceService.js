@@ -1,3 +1,4 @@
+import { SHIPPING_VAT_RATE } from './pricingService.js';
 import prisma, { runWithTenant } from '../utils/prisma.js';
 import { encrypt, decrypt } from '../utils/secretBox.js';
 import { emitEvent } from './webhookService.js';
@@ -35,7 +36,7 @@ const orderInvoiceData = (order) => {
       code: i.product.sku,
       name: `${i.product.parent?.name || i.product.name}${i.variantLabel ? ` (${i.variantLabel})` : ''}`,
       quantity: i.quantity, unitPrice: i.price, vatRate: i.vatRate, unit: i.product.unit
-    })),
+    })).concat(order.shippingFee > 0 ? [{ code: 'KARGO', name: 'Kargo ücreti', quantity: 1, unitPrice: order.shippingFee, vatRate: SHIPPING_VAT_RATE, unit: 'Adet' }] : []),
     discount: order.discountAmount || 0,
     description: `B2B sipariş AK-${order.id}`,
     dueDays: order.company.paymentTermDays || 0

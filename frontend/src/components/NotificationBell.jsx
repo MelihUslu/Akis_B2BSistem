@@ -94,7 +94,7 @@ const NotificationBell = ({ dark = false }) => {
       >
         <Bell className="h-5 w-5" />
         {unread > 0 && (
-          <span className="absolute -top-1 -right-1 bg-red-500 text-white text-[9px] font-black min-w-[18px] h-[18px] px-1 flex items-center justify-center rounded-full border-2 border-white">
+          <span className="absolute -top-1 -right-1 bg-red-500 text-white text-[10px] font-black min-w-[18px] h-[18px] px-1 flex items-center justify-center rounded-full border-2 border-white">
             {unread > 9 ? '9+' : unread}
           </span>
         )}
@@ -105,7 +105,7 @@ const NotificationBell = ({ dark = false }) => {
           <div className="flex items-center justify-between px-5 py-4 border-b border-gray-50">
             <p className="text-sm font-black text-gray-900">{t('Bildirimler')}</p>
             {unread > 0 && (
-              <button onClick={markAll} className="text-[10px] font-black text-brand-600 uppercase tracking-widest flex items-center hover:underline">
+              <button onClick={markAll} className="text-xs font-black text-brand-600 flex items-center hover:underline">
                 <CheckCheck className="h-3.5 w-3.5 mr-1" /> {t('Tümünü okundu yap')}
               </button>
             )}
@@ -130,7 +130,7 @@ const NotificationBell = ({ dark = false }) => {
                   <div className="min-w-0">
                     <p className={`text-xs leading-snug ${n.isRead ? 'font-semibold text-gray-600' : 'font-black text-gray-900'}`}>{n.title}</p>
                     <p className="text-[11px] text-gray-500 mt-0.5 leading-snug">{n.message}</p>
-                    <p className="text-[10px] text-gray-300 font-bold mt-1">{formatDate(n.createdAt, true)}</p>
+                    <p className="text-[11px] text-gray-300 font-bold mt-1">{formatDate(n.createdAt, true)}</p>
                   </div>
                 </button>
               );

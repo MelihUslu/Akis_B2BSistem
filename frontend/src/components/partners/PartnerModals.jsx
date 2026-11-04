@@ -109,7 +109,7 @@ export const TransactionModal = ({ partner, onClose, onSaved }) => {
           <button type="button" key={t.id} onClick={() => setForm({ ...form, type: t.id })}
             className={`text-left rounded-xl p-3 ring-1 ${form.type === t.id ? 'ring-2 ring-brand-400 bg-brand-50/60' : 'ring-gray-100'}`}>
             <span className="block text-xs font-black text-gray-900">{t.label}</span>
-            <span className="block text-[10px] text-gray-400">{t.desc}</span>
+            <span className="block text-[11px] text-gray-400">{t.desc}</span>
           </button>
         ))}
       </div>

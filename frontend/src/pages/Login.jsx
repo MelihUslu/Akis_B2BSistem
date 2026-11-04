@@ -2,6 +2,7 @@ import { useState } from 'react';
 import { useAuth } from '../context/AuthContext';
 import { useTenant } from '../context/TenantContext';
 import { useNavigate, useLocation, Link } from 'react-router-dom';
+import { homeOf } from '../utils/roles';
 import { Mail, Lock, ArrowRight, LogIn, Loader2 } from 'lucide-react';
 import TwoFactorStep from '../components/TwoFactorStep';
 import AuthShell, { AuthNotice, AuthBelow } from '../components/auth/AuthShell';
@@ -30,7 +31,7 @@ const Login = () => {
 
   const goHome = () => {
     const user = JSON.parse(localStorage.getItem('akis_user') || '{}');
-    navigate(user.role === 'ADMIN' ? '/admin' : '/bayi');
+    navigate(homeOf(user.role));
   };
 
   const handleSubmit = async (e) => {

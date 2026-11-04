@@ -53,7 +53,7 @@ const VariantEditor = ({ options, variants, onChange, masterSku, masterPrice, cu
             <h4 className="text-sm font-black text-gray-900 flex items-center"><Layers className="h-4 w-4 mr-2 text-brand-600" /> 1. Varyant Özellikleri</h4>
             <p className="text-[11px] font-semibold text-gray-400 mt-1">Ürüne özel özellik tanımlayın: Gramaj, Ambalaj Türü, Uzunluk, Renk... Seçenekleri virgülle ayırarak ekleyebilirsiniz.</p>
           </div>
-          <button type="button" onClick={addOption} className="flex items-center px-4 py-2.5 rounded-xl bg-brand-50 text-brand-700 text-[10px] font-black uppercase tracking-widest hover:bg-brand-100">
+          <button type="button" onClick={addOption} className="flex items-center px-4 py-2.5 rounded-xl bg-brand-50 text-brand-700 text-xs font-black hover:bg-brand-100">
             <Plus className="h-4 w-4 mr-1.5" /> Özellik Ekle
           </button>
         </div>
@@ -105,11 +105,11 @@ const VariantEditor = ({ options, variants, onChange, masterSku, masterPrice, cu
           <div className="flex gap-2 flex-shrink-0">
             {hasOptions && (
               <button type="button" onClick={() => setVariants(generateCombinations(options, variants, masterSku))}
-                className="flex items-center px-4 py-2.5 rounded-xl bg-gray-900 text-white text-[10px] font-black uppercase tracking-widest hover:bg-gray-800">
+                className="flex items-center px-4 py-2.5 rounded-xl bg-gray-900 text-white text-xs font-black hover:bg-gray-800">
                 <Wand2 className="h-4 w-4 mr-1.5" /> Kombinasyonları Oluştur ({comboCount})
               </button>
             )}
-            <button type="button" onClick={addVariantRow} className="flex items-center px-4 py-2.5 rounded-xl bg-brand-50 text-brand-700 text-[10px] font-black uppercase tracking-widest hover:bg-brand-100">
+            <button type="button" onClick={addVariantRow} className="flex items-center px-4 py-2.5 rounded-xl bg-brand-50 text-brand-700 text-xs font-black hover:bg-brand-100">
               <Plus className="h-4 w-4 mr-1.5" /> Satır
             </button>
           </div>
@@ -118,7 +118,7 @@ const VariantEditor = ({ options, variants, onChange, masterSku, masterPrice, cu
         {variants.length > 0 && (
           <div className="overflow-x-auto rounded-2xl border border-gray-100">
             <table className="w-full text-xs">
-              <thead className="bg-gray-50 text-[10px] font-black text-gray-400 uppercase tracking-widest">
+              <thead className="bg-gray-50 text-[11px] font-black text-gray-400 uppercase tracking-widest">
                 <tr>
                   {hasOptions ? options.map(o => <th key={o.key} className="px-3 py-3 text-left">{o.name || 'Özellik'}</th>) : <th className="px-3 py-3 text-left">Varyant</th>}
                   <th className="px-3 py-3 text-left">SKU</th>
@@ -165,7 +165,7 @@ const VariantEditor = ({ options, variants, onChange, masterSku, masterPrice, cu
           </div>
         )}
         {variants.some(v => v.id) && (
-          <p className="text-[10px] font-semibold text-gray-400 flex items-center"><AlertCircle className="h-3 w-3 mr-1" /> Kayıtlı bir varyantı silerseniz, sipariş geçmişi varsa silinmez; pasife alınır.</p>
+          <p className="text-[11px] font-semibold text-gray-400 flex items-center"><AlertCircle className="h-3 w-3 mr-1" /> Kayıtlı bir varyantı silerseniz, sipariş geçmişi varsa silinmez; pasife alınır.</p>
         )}
       </div>
     </div>

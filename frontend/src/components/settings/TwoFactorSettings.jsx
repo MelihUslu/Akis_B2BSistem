@@ -124,7 +124,7 @@ const TwoFactorSettings = ({ client, base, showAlert }) => {
         <form onSubmit={disable} className="flex flex-wrap gap-3 items-end">
           <div><label className="premium-label">Şifre</label><input type="password" required className="premium-input" value={disableForm.password} onChange={(e) => setDisableForm({ ...disableForm, password: e.target.value })} /></div>
           <div><label className="premium-label">Kod / Kurtarma Kodu</label><input required className="premium-input" value={disableForm.code} onChange={(e) => setDisableForm({ ...disableForm, code: e.target.value })} /></div>
-          <button className="px-5 py-3 rounded-2xl bg-red-500 text-white text-[10px] font-black uppercase tracking-widest">Kapat</button>
+          <button className="px-5 py-3 rounded-2xl bg-red-500 text-white text-xs font-black">Kapat</button>
           <button type="button" onClick={() => setDisableForm(null)} className="text-xs font-black text-gray-400">Vazgeç</button>
         </form>
       )}

@@ -112,20 +112,20 @@ const CouponManagement = () => {
       <div className="card-premium overflow-x-auto">
         <table className="w-full text-sm">
           <thead className="list-head">
-            <tr className="text-left text-[10px] font-black text-gray-500 uppercase tracking-[0.15em] whitespace-nowrap">
+            <tr className="text-left text-[11px] font-black text-gray-500 uppercase tracking-[0.15em] whitespace-nowrap">
               <th className="px-6 py-4">Kod</th><th className="px-6 py-4">İndirim</th><th className="px-6 py-4">Kapsam</th>
               <th className="px-6 py-4">Geçerlilik</th><th className="px-6 py-4">Kullanım</th><th className="px-6 py-4">Durum</th><th />
             </tr>
           </thead>
           <tbody className="divide-y divide-gray-100/70">
             {coupons.map((c) => (
-              <tr key={c.id} className="transition-colors hover:bg-slate-50/80 hover:shadow-[inset_3px_0_0_0_#3b82f6] cursor-pointer" onClick={() => setEditing(toForm(c))}>
+              <tr key={c.id} className="transition-colors hover:bg-slate-50/80 hover:shadow-[inset_3px_0_0_0_var(--color-brand-500)] cursor-pointer" onClick={() => setEditing(toForm(c))}>
                 <td className="px-6 py-4"><span className="font-mono font-black text-gray-900">{c.code}</span>{c.description && <p className="text-[11px] text-gray-400">{c.description}</p>}</td>
                 <td className="px-6 py-4 font-bold">{c.type === 'PERCENT' ? `%${c.value}` : formatTRY(c.value)}{c.minSubtotal > 0 && <span className="block text-[11px] text-gray-400 font-semibold">min. {formatTRY(c.minSubtotal)}</span>}</td>
                 <td className="px-6 py-4 text-gray-600">{scopeText(c)}</td>
                 <td className="px-6 py-4 text-gray-600">{c.startsAt || c.endsAt ? `${c.startsAt ? formatDate(c.startsAt) : '…'} – ${c.endsAt ? formatDate(c.endsAt) : '…'}` : 'Süresiz'}</td>
                 <td className="px-6 py-4 font-bold">{c.usedCount}{c.maxUses !== null && ` / ${c.maxUses}`}</td>
-                <td className="px-6 py-4"><span className={`px-3 py-1 rounded-full text-[10px] font-black uppercase ${c.isActive ? 'bg-emerald-100 text-emerald-700' : 'bg-gray-200 text-gray-500'}`}>{c.isActive ? 'Aktif' : 'Pasif'}</span></td>
+                <td className="px-6 py-4"><span className={`px-3 py-1 rounded-full text-[11px] font-black uppercase ${c.isActive ? 'bg-emerald-100 text-emerald-700' : 'bg-gray-200 text-gray-500'}`}>{c.isActive ? 'Aktif' : 'Pasif'}</span></td>
                 <td className="px-6 py-4 text-right"><button onClick={(e) => { e.stopPropagation(); remove(c); }} className="p-2 text-gray-300 hover:text-red-500"><Trash2 className="h-4 w-4" /></button></td>
               </tr>
             ))}

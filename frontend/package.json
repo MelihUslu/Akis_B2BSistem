@@ -14,6 +14,7 @@
     "@dnd-kit/sortable": "^10.0.0",
     "@dnd-kit/utilities": "^3.2.2",
     "@tailwindcss/vite": "^4.3.0",
+    "@zxing/browser": "0.2.1",
     "jsbarcode": "^3.11.6",
     "qrcode": "^1.5.4",
     "react": "^19.2.5",

@@ -95,7 +95,7 @@ const BayiOrders = () => {
                     <div className="flex items-center bg-gray-50 px-4 py-2 rounded-xl border border-gray-100">
                       <Truck className="h-4 w-4 text-gray-400 mr-2" />
                       <div>
-                        <p className="text-[10px] font-bold text-gray-400 uppercase">{t('Takip No')}</p>
+                        <p className="text-[11px] font-bold text-gray-400 uppercase">{t('Takip No')}</p>
                         <p className="text-xs font-bold text-brand-600">{carrierName(order.cargoCompany)} {order.trackingNumber}</p>
                       </div>
                     </div>

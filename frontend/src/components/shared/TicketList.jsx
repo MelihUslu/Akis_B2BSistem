@@ -42,13 +42,13 @@ const TicketList = ({ tickets, selectedId, onSelect, side, showTenant = false, n
                 {last ? <><span className="font-semibold text-gray-600">{lastByMe ? 'Siz' : side === 'TENANT' ? 'Destek' : last.authorName}:</span> {last.attachments?.length ? <Paperclip className="inline h-3 w-3 -mt-0.5 mr-0.5" /> : null}{last.body || 'Dosya gönderildi'}</> : '—'}
               </span>
               <span className="flex items-center gap-1.5 mt-1.5">
-                <span className="font-mono text-[10px] text-gray-400">#{t.id}</span>
-                <span className={`px-1.5 py-0.5 rounded-md text-[10px] font-bold ${st.className}`}>{st.label}</span>
-                {sla && <span className={`inline-flex items-center gap-1 px-1.5 py-0.5 rounded-md text-[10px] font-bold ${sla.className}`}><Timer className="h-3 w-3" /> {sla.label}</span>}
-                {t.rating && <span className="inline-flex items-center gap-0.5 px-1.5 py-0.5 rounded-md text-[10px] font-bold bg-amber-50 text-amber-700" title="Memnuniyet puanı"><Star className="h-3 w-3 fill-amber-400 text-amber-400" />{t.rating}</span>}
-                {side === 'TENANT' && t.status === 'CLOSED' && !t.rating && <span className="px-1.5 py-0.5 rounded-md text-[10px] font-bold bg-amber-100 text-amber-700">Puan verin</span>}
-                {needsMe && !sla && <span className="px-1.5 py-0.5 rounded-md text-[10px] font-bold bg-brand-600 text-white">{side === 'TENANT' ? 'Yeni yanıt' : 'Sırada'}</span>}
-                <span className="text-[10px] text-gray-400 ml-auto">{t._count?.messages || 0} mesaj</span>
+                <span className="font-mono text-[11px] text-gray-400">#{t.id}</span>
+                <span className={`px-1.5 py-0.5 rounded-md text-[11px] font-bold ${st.className}`}>{st.label}</span>
+                {sla && <span className={`inline-flex items-center gap-1 px-1.5 py-0.5 rounded-md text-[11px] font-bold ${sla.className}`}><Timer className="h-3 w-3" /> {sla.label}</span>}
+                {t.rating && <span className="inline-flex items-center gap-0.5 px-1.5 py-0.5 rounded-md text-[11px] font-bold bg-amber-50 text-amber-700" title="Memnuniyet puanı"><Star className="h-3 w-3 fill-amber-400 text-amber-400" />{t.rating}</span>}
+                {side === 'TENANT' && t.status === 'CLOSED' && !t.rating && <span className="px-1.5 py-0.5 rounded-md text-[11px] font-bold bg-amber-100 text-amber-700">Puan verin</span>}
+                {needsMe && !sla && <span className="px-1.5 py-0.5 rounded-md text-[11px] font-bold bg-brand-600 text-white">{side === 'TENANT' ? 'Yeni yanıt' : 'Sırada'}</span>}
+                <span className="text-[11px] text-gray-400 ml-auto">{t._count?.messages || 0} mesaj</span>
               </span>
             </span>
           </button>

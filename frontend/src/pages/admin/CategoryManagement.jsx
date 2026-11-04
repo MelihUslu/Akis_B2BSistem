@@ -1,4 +1,5 @@
 import { useState, useEffect } from 'react';
+import GroupVisibility from '../../components/admin/GroupVisibility';
 import api, { errorMessage } from '../../services/api';
 import useAlert from '../../hooks/useAlert';
 import { Section, Field, IconInput, Segmented } from '../../components/form/FormKit';
@@ -45,7 +46,7 @@ const SortableCategoryItem = ({ category, level, zebra, dragDisabled, onEdit, on
 
   return (
     <div ref={setNodeRef} style={style}>
-      <div className={`relative flex items-center gap-3 pl-4 pr-5 py-3 border-b border-gray-100/70 group transition-colors ${isDragging ? 'bg-brand-50 shadow-lg' : zebra ? 'bg-slate-50/80' : 'bg-white'} hover:bg-brand-50/40 hover:shadow-[inset_3px_0_0_0_#6366f1] ${category.isActive ? '' : 'opacity-60'}`}>
+      <div className={`relative flex items-center gap-3 pl-4 pr-5 py-3 border-b border-gray-100/70 group transition-colors ${isDragging ? 'bg-brand-50 shadow-lg' : zebra ? 'bg-slate-50/80' : 'bg-white'} hover:bg-brand-50/40 hover:shadow-[inset_3px_0_0_0_var(--color-brand-500)] ${category.isActive ? '' : 'opacity-60'}`}>
         <div {...attributes} {...listeners} title={dragDisabled ? 'Arama yaparken sıralama kapalı' : 'Sürükleyerek sırala'}
           className={`p-1 rounded-md text-gray-300 transition-colors ${dragDisabled ? 'opacity-30 cursor-not-allowed' : 'group-hover:text-gray-500 hover:bg-gray-100 cursor-grab active:cursor-grabbing'}`}>
           <GripVertical className="h-4 w-4" />
@@ -73,7 +74,7 @@ const SortableCategoryItem = ({ category, level, zebra, dragDisabled, onEdit, on
         <div className="min-w-0 flex-1">
           <div className="flex items-center gap-2 flex-wrap">
             <p className="text-[15px] font-bold text-gray-900 tracking-tight truncate group-hover:text-brand-700 transition-colors">{category.name}</p>
-            {!category.isActive && <span className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded-md bg-gray-100 text-gray-500 text-[10px] font-bold"><EyeOff className="h-3 w-3" /> Pasif</span>}
+            {!category.isActive && <span className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded-md bg-gray-100 text-gray-500 text-[11px] font-bold"><EyeOff className="h-3 w-3" /> Pasif</span>}
           </div>
           {hasChildren && (
             <p className="inline-flex items-center gap-1 mt-0.5 text-[11px] text-gray-400 font-semibold"><FolderTree className="h-3 w-3" /> {childCount} alt kategori</p>
@@ -122,6 +123,7 @@ const CategoryManagement = () => {
     parentId: null,
     sortOrder: 0,
     isActive: true,
+    visibleGroups: [],
     imageUrl: ''
   });
 
@@ -206,7 +208,7 @@ const CategoryManagement = () => {
       setIsDrawerOpen(false);
       setSelectedCategory(null);
       fetchCategories();
-      setFormData({ name: '', parentId: null, sortOrder: 0, isActive: true, imageUrl: '' });
+      setFormData({ name: '', parentId: null, sortOrder: 0, isActive: true, imageUrl: '', visibleGroups: [] });
     } catch (error) {
       showAlert({ type: 'error', title: 'Kaydedilemedi', message: errorMessage(error, 'İşlem başarısız.') });
     }
@@ -232,7 +234,7 @@ const CategoryManagement = () => {
 
   const openNew = (parent = null) => {
     setSelectedCategory(null);
-    setFormData({ name: '', parentId: parent ? parent.id : null, sortOrder: parent ? (parent.children?.length || 0) : categories.length, isActive: true, imageUrl: '' });
+    setFormData({ name: '', parentId: parent ? parent.id : null, sortOrder: parent ? (parent.children?.length || 0) : categories.length, isActive: true, imageUrl: '', visibleGroups: [] });
     setTriedSave(false);
     setIsDrawerOpen(true);
   };
@@ -275,7 +277,7 @@ const CategoryManagement = () => {
               dragDisabled={Boolean(term)}
               onEdit={(cat) => {
                 setSelectedCategory(cat);
-                setFormData({ name: cat.name, parentId: cat.parentId, sortOrder: cat.sortOrder, isActive: cat.isActive, imageUrl: cat.imageUrl || '' });
+                setFormData({ name: cat.name, parentId: cat.parentId, sortOrder: cat.sortOrder, isActive: cat.isActive, imageUrl: cat.imageUrl || '', visibleGroups: cat.visibleGroups || [] });
                 setTriedSave(false);
                 setIsDrawerOpen(true);
               }}
@@ -344,9 +346,9 @@ const CategoryManagement = () => {
 
       <div className="card-premium">
         <div className="list-head pl-4 pr-5 py-3 flex items-center gap-3">
-          <p className="flex-1 pl-9 text-[10px] font-black uppercase tracking-[0.15em]">Kategori</p>
-          <p className="hidden sm:block w-24 text-[10px] font-black uppercase tracking-[0.15em]">Ürün</p>
-          <p className="w-[4.75rem] text-right text-[10px] font-black uppercase tracking-[0.15em]">İşlem</p>
+          <p className="flex-1 pl-9 text-[11px] font-black uppercase tracking-[0.15em]">Kategori</p>
+          <p className="hidden sm:block w-24 text-[11px] font-black uppercase tracking-[0.15em]">Ürün</p>
+          <p className="w-[4.75rem] text-right text-[11px] font-black uppercase tracking-[0.15em]">İşlem</p>
         </div>
         <div>
           {isLoading ? (
@@ -414,6 +416,10 @@ const CategoryManagement = () => {
                 </div>
               </Section>
 
+              <Section icon={Eye} title="Kimler görsün?" description="Kategoriyi (ve alt kategorilerini) yalnızca belirli bayi gruplarına açabilirsiniz." color="violet">
+                <GroupVisibility value={formData.visibleGroups || []} onChange={(visibleGroups) => setFormData({ ...formData, visibleGroups })} />
+              </Section>
+
               <Section icon={ImageIcon} title="Kategori Görseli" description="Katalogdaki kategori kartında gösterilir. Kare görsel önerilir." color="rose">
                 <div className="flex items-center gap-4">
                   <div className="relative group h-24 w-24 rounded-xl overflow-hidden ring-1 ring-gray-100 bg-gray-50 flex items-center justify-center shrink-0">
@@ -436,9 +442,9 @@ const CategoryManagement = () => {
             </form>
 
             <div className="modal-footer items-center">
-              <button type="button" onClick={() => setIsDrawerOpen(false)} className="btn-secondary px-6">VAZGEÇ</button>
+              <button type="button" onClick={() => setIsDrawerOpen(false)} className="btn-secondary px-6">Vazgeç</button>
               <button onClick={handleSubmit} className="btn-gradient h-12 py-0 flex-1">
-                <Save className="h-4 w-4 mr-2" /> {selectedCategory ? 'KAYDET' : 'KATEGORİYİ EKLE'}
+                <Save className="h-4 w-4 mr-2" /> {selectedCategory ? 'Kaydet' : 'Kategoriyi ekle'}
               </button>
             </div>
           </div>

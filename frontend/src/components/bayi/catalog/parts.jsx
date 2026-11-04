@@ -27,9 +27,9 @@ export const Price = ({ item, summary, large }) => {
       <p className={`${size} font-black text-gray-900`}>{formatTRY(item.netPrice)}</p>
       <div className="flex items-center gap-1.5 flex-wrap">
         {item.listPriceTRY > item.netPrice && <span className="text-[11px] text-gray-400 line-through">{formatTRY(item.listPriceTRY)}</span>}
-        {item.hasSpecialPrice && <span className="text-[10px] font-black text-violet-600 dark:text-violet-400">{t('Özel fiyat')}</span>}
+        {item.hasSpecialPrice && <span className="text-[11px] font-black text-violet-600 dark:text-violet-400">{t('Özel fiyat')}</span>}
         {item.priceTiers?.length > 0 && (
-          <span title={item.priceTiers.map((p) => `${p.minQty}+ ${item.unit}: ${formatTRY(p.price)}`).join('\n')} className="text-[10px] font-black text-brand-600 dark:text-brand-300 cursor-help underline decoration-dotted">{t('Kademeli')}</span>
+          <span title={item.priceTiers.map((p) => `${p.minQty}+ ${item.unit}: ${formatTRY(p.price)}`).join('\n')} className="text-[11px] font-black text-brand-600 dark:text-brand-300 cursor-help underline decoration-dotted">{t('Kademeli')}</span>
         )}
       </div>
     </div>
@@ -91,7 +91,7 @@ export const Check = ({ item, row }) => (
     : <span />
 );
 
-export const InCart = ({ qty, unit }) => (qty > 0 ? <span className="shrink-0 px-1.5 py-0.5 rounded bg-brand-600 text-white text-[10px] font-black">{t('Sepette {n} {unit}', { n: qty, unit })}</span> : null);
+export const InCart = ({ qty, unit }) => (qty > 0 ? <span className="shrink-0 px-1.5 py-0.5 rounded bg-brand-600 text-white text-[11px] font-black">{t('Sepette {n} {unit}', { n: qty, unit })}</span> : null);
 
 export const Fav = ({ item, row }) => (
   <button type="button" onClick={() => row.favorite(item)} title={item.isFavorite ? t('Favorilerden çıkar') : t('Favorilere ekle')}

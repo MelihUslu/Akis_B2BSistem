@@ -1,13 +1,19 @@
 import prisma from '../utils/prisma.js';
+import { accessFor } from '../services/catalogAccess.js';
+import { groupList } from './productController.js';
 
 export const getCategories = async (req, res) => {
   try {
     const { isFlat = false } = req.query;
     // Pasif kategoriler sadece ADMIN'e gösterilir
     const isAdmin = req.user.role === 'ADMIN' && req.query.isAdmin === 'true';
+    // Bayi, grubuna kapalı kategorileri (ve alt kategorilerini) görmez; ürün sayısı da görebildikleriyle sayılır
+    const access = !isAdmin && req.user.companyId ? await accessFor(prisma, await prisma.company.findUnique({ where: { id: req.user.companyId } })) : null;
+    const visible = isAdmin ? {} : { isActive: true, ...(access?.hiddenCategories.size && { id: { notIn: [...access.hiddenCategories] } }) };
+    const productWhere = { parentId: null, ...(isAdmin ? {} : { isActive: true }), ...(access && { OR: [{ visibleGroups: { isEmpty: true } }, { visibleGroups: { has: access.group } }] }) };
 
     const categories = await prisma.category.findMany({
-      where: isAdmin ? {} : { isActive: true },
+      where: visible,
       orderBy: { sortOrder: 'asc' }
     });
 
@@ -33,11 +39,11 @@ export const getCategories = async (req, res) => {
 
     // Tree yapısı için children include ederek tekrar çek (veya manuel oluştur)
     const categoriesWithChildren = await prisma.category.findMany({
-      where: isAdmin ? {} : { isActive: true },
+      where: visible,
       // Ürün sayısı yalnızca ana ürünleri sayar (varyantlar ayrı ürün kaydıdır)
       include: {
-        _count: { select: { products: { where: { parentId: null, ...(isAdmin ? {} : { isActive: true }) } } } },
-        children: { where: isAdmin ? {} : { isActive: true }, orderBy: { sortOrder: 'asc' }, include: { _count: { select: { products: { where: { parentId: null, ...(isAdmin ? {} : { isActive: true }) } } } } } }
+        _count: { select: { products: { where: productWhere } } },
+        children: { where: visible, orderBy: { sortOrder: 'asc' }, include: { _count: { select: { products: { where: productWhere } } } } }
       },
       orderBy: { sortOrder: 'asc' }
     });
@@ -52,14 +58,15 @@ export const getCategories = async (req, res) => {
 
 export const createCategory = async (req, res) => {
   try {
-    const { name, parentId, sortOrder, isActive, imageUrl } = req.body;
+    const { name, parentId, sortOrder, isActive, imageUrl, visibleGroups } = req.body;
     const category = await prisma.category.create({
       data: {
         name,
         parentId: parentId ? parseInt(parentId) : null,
         sortOrder: parseInt(sortOrder) || 0,
         isActive: isActive !== undefined ? isActive : true,
-        imageUrl
+        imageUrl,
+        visibleGroups: groupList(visibleGroups)
       }
     });
     res.status(201).json(category);
@@ -71,8 +78,8 @@ export const createCategory = async (req, res) => {
 export const updateCategory = async (req, res) => {
   try {
     const { id } = req.params;
-    const { name, parentId, sortOrder, isActive, imageUrl } = req.body;
-    
+    const { name, parentId, sortOrder, isActive, imageUrl, visibleGroups } = req.body;
+
     const category = await prisma.category.update({
       where: { id: parseInt(id) },
       data: {
@@ -80,7 +87,8 @@ export const updateCategory = async (req, res) => {
         parentId: parentId ? parseInt(parentId) : null,
         sortOrder: parseInt(sortOrder) || 0,
         isActive,
-        imageUrl
+        imageUrl,
+        ...(visibleGroups !== undefined && { visibleGroups: groupList(visibleGroups) })
       }
     });
     res.json(category);

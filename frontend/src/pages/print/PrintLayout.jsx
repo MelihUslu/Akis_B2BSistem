@@ -40,7 +40,7 @@ const PrintLayout = ({ title, subtitle, children, ready, seller, toolbar, printL
           </div>
         </div>
         {children}
-        <p className="mt-10 text-[9px] text-gray-400 text-center">{t('Bu belge {name} B2B portalından {date} tarihinde oluşturulmuştur.', { name: tenant?.name, date: new Date().toLocaleString(locale()) })}</p>
+        <p className="mt-10 text-[10px] text-gray-400 text-center">{t('Bu belge {name} B2B portalından {date} tarihinde oluşturulmuştur.', { name: tenant?.name, date: new Date().toLocaleString(locale()) })}</p>
       </div>
     </div>
   );
