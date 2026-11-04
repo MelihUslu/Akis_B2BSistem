@@ -151,7 +151,7 @@ Bayi, profilinden birden fazla teslimat adresi (il / ilçe ayrı) tanımlar ve s
 
 ### Personel yönetimi
 
-Firma bazında açılır: Ayarlar → Genel → Modüller → "Personel yönetimi" (`hr_enabled`). Kapalıyken menü görünmez ve `/api/hr` uçları 403 döner. Bordro, SGK ve özlük dosyası kapsamda değildir.
+Firma bazında açılır: sol menü → Personel → Personel Yönetimi → "Modülü aç" ya da Ayarlar → Genel → Modüller (`hr_enabled`). Kapalıyken menüde yalnızca Ayarlar yetkilisine "Kapalı" etiketiyle görünür, diğer ekip üyelerine görünmez; `/api/hr` uçları 403 döner. Bordro, SGK ve özlük dosyası kapsamda değildir.
 
 - **Kim ne yapar:** "Personel" yetkisi (`HR`) kartları, izin / masraf / avans onaylarını, hedefleri ve duyuruları yönetir. Ödemeyi "Finans" yetkisi kaydeder; onay ile ödeme farklı kişilerde olabilir. Kişi kendi talebine karar veremez (firma sahibi hariç). Bayi hesapları modüle giremez (rol kontrolü sunucuda).
 - **Personel kartı:** ad, iletişim, departman, görev, işe giriş, aktif / pasif. Firmanın yönetici ya da plasiyer hesabı karta bağlanırsa personel "Personel Alanım"dan (`/admin/personel-alanim`, plasiyerde `/plasiyer/personel`) kendi taleplerini açar ve hedef / primlerini görür. Yalnızca personel alanını kullanacak biri için Ekip'ten yetkisiz kullanıcı açılır; bu kullanıcı panel özetini ve aramayı görmez.

@@ -1,7 +1,9 @@
 import { useCallback, useEffect, useState } from 'react';
 import { useSearchParams } from 'react-router-dom';
-import { IdCard, CalendarDays, Receipt, Target, Megaphone } from 'lucide-react';
-import api from '../../services/api';
+import { IdCard, CalendarDays, Receipt, Target, Megaphone, Power } from 'lucide-react';
+import api, { errorMessage } from '../../services/api';
+import { useTenant } from '../../context/TenantContext';
+import { can } from '../../utils/permissions';
 import useAlert from '../../hooks/useAlert';
 import { useAuth } from '../../context/AuthContext';
 import PageHeader from '../../components/shared/PageHeader';
@@ -23,13 +25,30 @@ const HrManagement = () => {
   const [params, setParams] = useSearchParams();
   const [status, setStatus] = useState(null);
   const [counts, setCounts] = useState({});
+  const [enabling, setEnabling] = useState(false);
+  const { refresh } = useTenant();
 
   const loadCounts = useCallback(() => Promise.all([
     status?.canManage ? api.get('/hr/leaves', { params: { status: 'PENDING' } }).then((r) => r.data.counts.PENDING || 0) : 0,
     api.get('/hr/claims', { params: { status: 'PENDING' } }).then((r) => (status?.canManage ? r.data.counts.PENDING || 0 : 0) + (status?.canPay ? r.data.counts.TO_PAY || 0 : 0))
   ]).then(([leaves, claims]) => setCounts({ leaves, claims })).catch(() => {}), [status]);
 
-  useEffect(() => { api.get('/hr/status').then((r) => setStatus({ ...r.data, isOwner: user?.isOwner })).catch(() => setStatus({ enabled: false })); }, [user?.isOwner]);
+  const loadStatus = useCallback(() => api.get('/hr/status').then((r) => setStatus({ ...r.data, isOwner: user?.isOwner })).catch(() => setStatus({ enabled: false })), [user?.isOwner]);
+  useEffect(() => { loadStatus(); }, [loadStatus]);
+
+  // Modül kapalıysa Ayarlar yetkilisi buradan açar (Ayarlar → Modüller ile aynı ayar)
+  const enable = async () => {
+    setEnabling(true);
+    try {
+      await api.post('/settings', { key: 'hr_enabled', value: 'true' });
+      await Promise.all([refresh(), loadStatus()]);
+      showAlert({ type: 'success', title: 'Personel yönetimi açıldı', message: 'Önce personel kartlarını oluşturun; ekip üyesinin ya da plasiyerin hesabını karta bağlarsanız kendi izin ve masraf taleplerini Personel Alanım\'dan açar.' });
+    } catch (err) {
+      showAlert({ type: 'error', title: 'Açılamadı', message: errorMessage(err, 'Modül açılamadı.') });
+    } finally {
+      setEnabling(false);
+    }
+  };
   useEffect(() => { if (status?.enabled) loadCounts(); }, [status, loadCounts]);
 
   const tabs = status?.canManage ? [
@@ -50,7 +69,11 @@ const HrManagement = () => {
       {alertElement}
       <PageHeader icon={IdCard} title="Personel Yönetimi" subtitle="Personel kartları, izin, masraf ve avans onayları, satış hedefi ve prim, şirket duyuruları." />
       {status && !status.enabled ? (
-        <EmptyState icon={IdCard}>Personel modülü kapalı. Ayarlar → Genel → Modüller bölümünden açabilirsiniz.</EmptyState>
+        <EmptyState icon={IdCard} action={can(user, 'SETTINGS') && (
+          <button type="button" onClick={enable} disabled={enabling} className="btn-gradient disabled:opacity-50"><Power className="h-4 w-4 mr-1.5" /> {enabling ? 'Açılıyor...' : 'Modülü aç'}</button>
+        )}>
+          Personel modülü bu firmada kapalı. Açınca personel kartları, izin, masraf ve avans onayları, satış hedefi ve prim, şirket duyuruları kullanılabilir; ekip üyeleri ve plasiyerler "Personel Alanım"dan kendi taleplerini açar. Sonradan Ayarlar → Modüller'den kapatabilirsiniz.
+        </EmptyState>
       ) : status && (
         <>
           <FilterTabs value={tab} onChange={(id) => setParams({ tab: id }, { replace: true })} tabs={tabs} />

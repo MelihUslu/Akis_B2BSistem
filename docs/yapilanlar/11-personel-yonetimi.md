@@ -23,8 +23,8 @@ Yeni tablolar: personel kartı (`Employee`), izin (`LeaveRequest`), masraf / ava
 
 - **Personel Yönetimi** (`/admin/personel`): sekmeler Personel, İzinler, Masraf ve avans, Hedef ve prim, Duyurular. Yalnızca Finans yetkisi olan kişi masraf / avans ve hedef / prim sekmelerini görür (ödeme için).
 - **Personel Alanım** (`/admin/personel-alanim`, plasiyerde `/plasiyer/personel`): kişinin kartı, yıl içindeki izin günleri, bekleyen talepleri, ödeme bekleyen tutarı; izin ve masraf / avans talebi açma; hedef ve primleri; duyurular.
-- **Ayarlar → Modüller:** açma / kapama.
-- **Menü:** "Personel" grubu, bekleyen onay ve ödeme sayısı rozeti. Plasiyer panelinde "Personel Alanım" kartı ve bildirim zili.
+- **Açma / kapama:** Personel Yönetimi sayfasındaki "Modülü aç" düğmesi ya da Ayarlar → Modüller.
+- **Menü:** "Personel" grubu, bekleyen onay ve ödeme sayısı rozeti. Modül kapalıyken grup yalnızca Ayarlar yetkilisine "Kapalı" etiketiyle görünür (modül bulunabilsin diye). Plasiyer panelinde "Personel Alanım" kartı ve bildirim zili.
 - **Gelir-Gider:** personel ödemesinden gelen kayıt "Personel ödemesi" etiketiyle görünür, düzenle / sil düğmesi yoktur.
 - Bütün ekranlar telefonda alt alta kart düzenindedir.
 
@@ -32,7 +32,7 @@ Yeni tablolar: personel kartı (`Employee`), izin (`LeaveRequest`), masraf / ava
 
 | Konu | Kural |
 |---|---|
-| Erişim | Modül kapalıyken menü gizlenir ve `/api/hr` uçları 403 döner. Bayi hesapları rol kontrolüyle girmez. Personel `/me` uçlarında yalnızca kendi kaydını görür. |
+| Erişim | Modül kapalıyken menü ekip üyelerinden gizlenir (Ayarlar yetkilisine "Kapalı" etiketiyle görünür) ve `/api/hr` uçları 403 döner. Bayi hesapları rol kontrolüyle girmez. Personel `/me` uçlarında yalnızca kendi kaydını görür. |
 | Firma ayrımı | Bütün tablolar kiracı yalıtımında; başka firmanın kaydına erişim 404. |
 | Hesap bağlama | Yalnızca firmanın yönetici / plasiyer hesabı; bir hesap tek karta. Bayi hesabı bağlanamaz. |
 | İzin | İş günü sayılır (hafta sonu hariç). Çakışan talep açılamaz. Ret gerekçesi zorunlu. Personel bekleyen talebini iptal edebilir. |

@@ -32,9 +32,10 @@ const MENU = [
     { name: 'Finans & Prim', path: '/admin/finance', icon: CreditCard, perm: 'FINANCE' },
     { name: 'Gelir-Gider', path: '/admin/cash', icon: Scale, perm: 'FINANCE' },
   ] },
-  // Personel: firma modülü açtıysa (module). Personel Alanım tüm ekip üyelerine açık (kartı yoksa sayfa söyler)
+  // Personel: firma modülü açtıysa (module). Kapalıyken yalnızca Ayarlar yetkilisi "Kapalı" etiketiyle görür ve
+  // sayfadan tek tıkla açar (offItem). Personel Alanım tüm ekip üyelerine açık (kartı yoksa sayfa söyler)
   { key: 'hr', name: 'Personel', icon: Contact, module: 'hr', items: [
-    { name: 'Personel Yönetimi', path: '/admin/personel', badge: 'hr', icon: IdCard, perm: ['HR', 'FINANCE'] },
+    { name: 'Personel Yönetimi', path: '/admin/personel', badge: 'hr', icon: IdCard, perm: ['HR', 'FINANCE'], offItem: true },
     { name: 'Personel Alanım', path: '/admin/personel-alanim', icon: UserRound },
   ] },
   { name: 'Raporlar', path: '/admin/reports', icon: BarChart3, perm: ['ORDERS', 'FINANCE'] },
@@ -87,9 +88,10 @@ const Sidebar = ({ mobile = false, onNavigate }) => {
   }, [location.pathname]);
   const countOf = (item) => (item.badge ? counts[item.badge] || 0 : 0);
   const allowed = (item) => !item.perm || [].concat(item.perm).some((p) => can(user, p));
+  const moduleOff = (m) => m.module && !tenant?.modules?.[m.module];
   const menu = MENU
-    .filter((m) => !m.module || tenant?.modules?.[m.module])
-    .map((m) => (m.items ? { ...m, items: m.items.filter(allowed) } : m))
+    .filter((m) => !moduleOff(m) || can(user, 'SETTINGS'))
+    .map((m) => (m.items ? { ...m, items: m.items.filter((i) => allowed(i) && (!moduleOff(m) || i.offItem)).map((i) => (moduleOff(m) ? { ...i, off: true } : i)) } : m))
     .filter((m) => (m.items ? m.items.length > 0 : allowed(m)));
   const isActivePath = (path) => (path === '/admin' ? location.pathname === '/admin' : location.pathname === path || location.pathname.startsWith(`${path}/`));
   const toggleGroup = (key) => {
@@ -115,6 +117,7 @@ const Sidebar = ({ mobile = false, onNavigate }) => {
     >
       <item.icon className={`transition-all duration-700 ${isCollapsed ? 'h-7 w-7' : child ? 'h-4 w-4 mr-3.5' : 'h-5 w-5 mr-4'} ${isActivePath(item.path) ? 'text-white' : 'text-navy-300 group-hover:text-white'}`} />
       {!isCollapsed && <span className={`${child ? 'text-[13px]' : 'text-sm'} font-bold whitespace-nowrap`}>{item.name}</span>}
+      {item.off && !isCollapsed && <span className="ml-auto h-5 px-1.5 rounded-md bg-white/10 text-white/60 text-[10px] font-black flex items-center">Kapalı</span>}
       <Badge n={countOf(item)} dot={isCollapsed} />
     </NavLink>
   );

@@ -15,11 +15,19 @@ const ok = async (page, text) => {
 
 test('yönetici modülü açar, personel kartlarını oluşturur ve departmana duyuru yayınlar', async ({ as }) => {
   const page = await as('admin');
+  // Kapalıyken de menüde "Kapalı" etiketiyle görünür; sayfadan tek tıkla açılır
+  await page.goto('/admin');
+  await page.getByRole('button', { name: 'Personel', exact: true }).click(); // menü grubu
+  await page.getByRole('link', { name: 'Personel Yönetimi Kapalı' }).click();
+  await expect(page).toHaveURL(/\/admin\/personel$/);
+  await page.getByRole('button', { name: 'Modülü aç' }).click();
+  await ok(page, 'Personel yönetimi açıldı');
+  await expect(page.getByRole('link', { name: 'Personel Yönetimi', exact: true })).toBeVisible(); // etiket kalktı
+  await expect(page.getByRole('link', { name: 'Personel Alanım' })).toBeVisible();
+
+  // Ayarlar → Modüller'de de açık görünür
   await page.goto('/admin/settings');
-  await page.getByRole('switch', { name: 'Personel yönetimi' }).click();
-  await page.getByRole('button', { name: 'Kaydet', exact: true }).click();
-  await ok(page, 'ayar güncellendi');
-  await expect(page.getByRole('button', { name: 'Personel', exact: true })).toBeVisible(); // menü grubu
+  await expect(page.getByRole('switch', { name: 'Personel yönetimi' })).toHaveAttribute('aria-checked', 'true');
 
   await page.goto('/admin/personel');
   for (const [user, department, title, role] of [[STAFF, 'Depo', 'Depo sorumlusu', 'Yönetici paneli'], [PLASIYER, 'Satış', 'Plasiyer', 'Plasiyer']]) {
