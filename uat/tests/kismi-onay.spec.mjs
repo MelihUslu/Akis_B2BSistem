@@ -33,7 +33,7 @@ test('yönetici bir kalemi iptal edip kararı kaydeder; yalnızca onaylanan kale
   await line(DROP.name).getByTitle('İptal et').click();
   await expect(line(DROP.name).getByText(DROP.name)).toHaveClass(/line-through/);
 
-  await detail.getByRole('button', { name: /KARARI KAYDET/ }).click();
+  await detail.getByRole('button', { name: /Kararı kaydet/ }).click();
   await expect(alertBox(page)).toContainText('1 kalem onaylanacak, 1 kalem iptal edilecek');
   await confirm(page, 'Kaydet');
   await expect(alertBox(page)).toContainText('Sipariş Güncellendi');

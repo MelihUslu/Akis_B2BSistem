@@ -13,7 +13,7 @@ test('limit yetersizken cari hesapla sipariş engellenir, Havale/EFT ile verilir
   await addFromCatalog(page, P.sku, 1);
   await goToCheckout(page);
 
-  const submit = page.getByRole('button', { name: /SİPARİŞİ ONAYLA/ });
+  const submit = page.getByRole('button', { name: /Siparişi onayla/ });
   await expect(page.getByText(`Kullanılabilir limit: ${money(D.riskLimit)}`).first()).toBeVisible();
   await expect(page.getByText(/Risk limitiniz yetersiz/)).toBeVisible();
   await expect(submit).toBeDisabled();

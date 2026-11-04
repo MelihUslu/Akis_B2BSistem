@@ -47,13 +47,13 @@ export const addFromCatalog = async (page, sku, qty) => {
 // Sepeti açar ve ödeme sayfasına geçer
 export const goToCheckout = async (page) => {
   await page.getByRole('button', { name: /Sepete git/ }).click();
-  await page.getByRole('button', { name: /SİPARİŞİ TAMAMLA/ }).click();
+  await page.getByRole('button', { name: /Siparişi tamamla/ }).click();
   await expect(page).toHaveURL(/\/bayi\/checkout$/);
 };
 
 // Ödeme sayfasında siparişi verir, sipariş numarasını döner
 export const placeOrder = async (page) => {
-  const submit = page.getByRole('button', { name: /SİPARİŞİ ONAYLA/ });
+  const submit = page.getByRole('button', { name: /Siparişi onayla/ });
   await expect(submit).toBeEnabled();
   await submit.click();
   const box = alertBox(page);
@@ -62,5 +62,5 @@ export const placeOrder = async (page) => {
   return id;
 };
 
-// Yönetici: sipariş listesinde satır
-export const orderRow = (page, id) => page.getByRole('row').filter({ hasText: `#AK-${id}` });
+// Yönetici: sipariş listesinde satır (numara tam eşleşir: #AK-1 ile #AK-11 karışmaz)
+export const orderRow = (page, id) => page.getByRole('row').filter({ has: page.getByText(`#AK-${id}`, { exact: true }) });

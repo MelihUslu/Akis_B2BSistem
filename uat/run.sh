@@ -60,6 +60,8 @@ for _ in $(seq 1 60); do
 done
 echo
 curl -sf "http://localhost:$API_PORT/health/ready" >/dev/null || { echo "Backend 60 sn'de hazır olmadı." >&2; "$DOCKER" logs --tail 30 "$NAME"; exit 1; }
+# Oturumlar giriş ucu çağrılmadan imzalanır (giriş ucunun deneme sınırına takılmamak için); kimlikler tohumlamadan gelir
+"$DOCKER" logs "$NAME" 2>&1 | sed -n 's/^UAT_USERS //p' > .data/users.json
 "$DOCKER" logs "$NAME" 2>&1 | grep 'UAT verisi' || true
 
 echo "▸ Senaryolar"

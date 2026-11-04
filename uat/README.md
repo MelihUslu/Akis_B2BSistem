@@ -3,7 +3,7 @@
 Bayinin ve yöneticinin gerçek iş akışları, gerçek tarayıcıda (Playwright + Chrome) ekrana tıklanarak uçtan uca denenir. Birim ve entegrasyon testleri tek tek parçaları doğrular. UAT ise "bayi sipariş verir, yönetici onaylar, borç cariye yazılır" gibi bir işin baştan sona ekranda doğru sonuçlandığını gösterir.
 
 ```bash
-./uat/run.sh                                  # hepsi (~1 dk)
+./uat/run.sh                                  # hepsi (~2 dk)
 ./uat/run.sh tests/siparis.spec.mjs           # tek senaryo dosyası
 ./uat/run.sh --headed                         # tarayıcıyı görerek
 ./uat/run.sh --ui                             # Playwright arayüzünde adım adım
@@ -27,7 +27,7 @@ Gerekenler: geliştirme ortamı çalışıyor olmalı (`docker compose up`: db, 
 
 Test verisi [`data.mjs`](data.mjs) dosyasındadır; [`seed.mjs`](seed.mjs) kayıtları buradan oluşturur, senaryolar da aynı değerleri kullanır. Her senaryonun kendi bayisi ve ürünü vardır. Bu sayede senaryo dosyaları paralel koşar ve birinin düşürdüğü stok ya da yazdığı borç ötekini etkilemez.
 
-Girişler test başında bir kez API'den yapılıp saklanır ([`global-setup.mjs`](global-setup.mjs)). Giriş ekranının kendisi UAT-01'de ayrıca denenir. Her testte yeniden giriş yapılsaydı giriş ucunun 15 dakikada 20 deneme sınırına takılırdı.
+Oturumlar test başında giriş ucu çağrılmadan, UAT backend'inin gizli anahtarıyla imzalanarak hazırlanır ([`global-setup.mjs`](global-setup.mjs); kullanıcı kimlikleri `seed.mjs`'ten gelir). Giriş ekranının kendisi UAT-01'de gerçek girişle denenir. Her senaryo giriş yapsaydı giriş ucunun 15 dakikada 20 deneme sınırına takılırdı.
 
 ## Senaryolar
 
@@ -44,6 +44,12 @@ Girişler test başında bir kez API'den yapılıp saklanır ([`global-setup.mjs
 | UAT-09 | `urun` | Ürün ekleme | Yönetici ürün ekler → bayi katalogda kendi iskontolu fiyatı ve stokla görür |
 | UAT-10 | `bayi-ekle` | Bayi açma | Yönetici bayi açar → bayi verilen şifreyle girer, kendi iskontosunu görür |
 | UAT-11 | `gelir-gider` | Gelir-Gider | Gider ve gelir kaydı eklenir, listede ve özette görünür, silinir |
+| UAT-12 | `plasiyer` | Plasiyer (saha satış) | Plasiyer yalnızca kendi bayisini görür, onun adına bayinin fiyatıyla sipariş verir; bayi bildirim alır, yönetici kimin girdiğini görür |
+| UAT-13 | `bayi-adina` | Yönetici bayi adına sipariş | Telefonla gelen sipariş bayi seçilerek girilir; moddan çıkınca yönetim paneline dönülür |
+| UAT-14 | `iptal-not` | Sipariş notu ve bayi iptali | Not / referans no siparişte görünür; bayi onay beklerken iptal eder, stok ayrılmaz |
+| UAT-15 | `kismi-sevk` | Kısmi sevkiyat ve irsaliye | Siparişin bir kısmı kendi takip numarasıyla gönderilir, kalan sonra; tamamı gidince "Kargoda"; irsaliye no bayiye görünür |
+| UAT-16 | `hedef` | Bayi hedefi ve ciro primi | Hedef tanımlanır, bayi ilerlemeyi görür, dönem kapatılınca prim cariye yazılır |
+| UAT-17 | `sepet` | Sepet cihazlar arası | Telefonda eklenen ürün bilgisayarda sepette; çıkışta tarayıcıdan silinir |
 
 ## Elle kontrol edilecekler
 
@@ -56,6 +62,8 @@ Aşağıdakiler dış servise ya da fiziksel çıktıya bağlı olduğu için ot
 - **Yazdırma:** sipariş, teklif PDF'i, makbuz, ekstre ve kargo etiketi çıktısı.
 - **İngilizce portal:** bayi dili EN seçince ekranlar ve e-postalar.
 - **Özel alan adı:** firmanın kendi alan adıyla açılış (DNS gerektirir).
+- **Barkod okutma:** Hızlı Sipariş'te gerçek telefon kamerasıyla (https adresinde; tarayıcı kamera izni ister).
+- **İrsaliye:** irsaliye numarası elle ya da ERP'den girilir ve fiyatsız irsaliye yazdırılır. GİB'e elektronik irsaliye (e-İrsaliye) gönderimi entegre değildir; e-İrsaliye mükellefi firmalar irsaliyeyi ERP / muhasebe programından düzenler.
 
 ## Yeni senaryo eklerken
 

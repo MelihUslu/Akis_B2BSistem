@@ -1,19 +1,28 @@
-// Her kullanıcı için bir kez API'den giriş yapılır ve oturum tarayıcı durumu olarak saklanır.
-// Senaryolar bu oturumlarla açılır; giriş ekranının kendisi giris.spec.mjs'te ayrıca denenir.
-// (Giriş ucunda 15 dakikada 20 deneme sınırı var; her testte yeniden giriş yapılsaydı sınıra takılırdı.)
+// Senaryoların oturumları: her kullanıcı için oturum anahtarı (JWT, HS256) UAT backend'inin gizli anahtarıyla imzalanır
+// ve tarayıcı durumu olarak saklanır. Giriş ucu çağrılmaz (15 dakikada 20 deneme sınırı vardır); giriş ekranının
+// kendisi giris.spec.mjs'te gerçek girişle denenir. Kullanıcı kimlikleri seed.mjs'ten gelir (run.sh → .data/users.json).
 import fs from 'fs';
-import { API, WEB, TENANT, PASSWORD, ADMIN, DEALERS } from './data.mjs';
+import crypto from 'crypto';
+import { WEB } from './data.mjs';
 
-export const AUTH_DIR = new URL('./.data/auth/', import.meta.url);
+const data = new URL('./.data/', import.meta.url);
+export const AUTH_DIR = new URL('./auth/', data);
+
+const b64 = (v) => Buffer.from(typeof v === 'string' ? v : JSON.stringify(v)).toString('base64url');
+const sign = (payload, secret) => {
+  const body = `${b64({ alg: 'HS256', typ: 'JWT' })}.${b64(payload)}`;
+  return `${body}.${crypto.createHmac('sha256', secret).update(body).digest('base64url')}`;
+};
 
 export default async () => {
+  const secret = fs.readFileSync(new URL('secret', data), 'utf8').trim();
+  const { tenantId, users } = JSON.parse(fs.readFileSync(new URL('users.json', data), 'utf8'));
   fs.mkdirSync(AUTH_DIR, { recursive: true });
-  const users = { admin: ADMIN.email, ...Object.fromEntries(Object.entries(DEALERS).map(([k, d]) => [k, d.email])) };
-  for (const [key, email] of Object.entries(users)) {
-    const res = await fetch(`${API}/auth/login`, { method: 'POST', headers: { 'Content-Type': 'application/json', 'X-Tenant': TENANT }, body: JSON.stringify({ email, password: PASSWORD }) });
-    const body = await res.json();
-    if (!res.ok) throw new Error(`${email} giriş yapamadı: ${res.status} ${body.message}`);
-    const state = { cookies: [], origins: [{ origin: WEB, localStorage: [{ name: 'akis_token', value: body.token }, { name: 'akis_user', value: JSON.stringify(body.user) }] }] };
-    fs.writeFileSync(new URL(`${key}.json`, AUTH_DIR), JSON.stringify(state));
+  const now = Math.floor(Date.now() / 1000);
+  for (const u of users) {
+    const token = sign({ id: u.id, role: u.role, companyId: u.companyId, tenantId, iat: now, exp: now + 86400 }, secret);
+    const user = { id: u.id, name: u.name, email: u.email, role: u.role, companyId: u.companyId, isOwner: u.isOwner, permissions: [] };
+    const state = { cookies: [], origins: [{ origin: WEB, localStorage: [{ name: 'akis_token', value: token }, { name: 'akis_user', value: JSON.stringify(user) }] }] };
+    fs.writeFileSync(new URL(`${u.key}.json`, AUTH_DIR), JSON.stringify(state));
   }
 };

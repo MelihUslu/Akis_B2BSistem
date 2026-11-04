@@ -22,7 +22,7 @@ test('bayi Gel-Al seçer, teslim alma zamanını belirleyip sipariş verir', asy
   await addFromCatalog(page, P.sku, QTY);
   await goToCheckout(page);
 
-  const submit = page.getByRole('button', { name: /SİPARİŞİ ONAYLA/ });
+  const submit = page.getByRole('button', { name: /Siparişi onayla/ });
   await page.getByRole('button', { name: /Gel-Al/ }).click();
   await expect(page.getByText(PICKUP.address)).toBeVisible();
   await expect(page.getByText(PICKUP.hours)).toBeVisible();

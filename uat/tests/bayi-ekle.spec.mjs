@@ -6,7 +6,7 @@ const NEW = { company: 'Yeni Bayi Hırdavat Ltd.', tax: '5550001112', email: 'ye
 test('yönetici bayi açar, bayi giriş yapar', async ({ as, page }) => {
   const admin = await as('admin');
   await admin.goto('/admin/dealers');
-  await admin.getByRole('button', { name: /YENİ BAYİ/ }).click();
+  await admin.getByRole('button', { name: /Yeni bayi/ }).click();
   await expect(admin.getByRole('heading', { name: 'Yeni Bayi' })).toBeVisible();
 
   await field(admin, 'Şirket Unvanı').fill(NEW.company);
@@ -15,7 +15,7 @@ test('yönetici bayi açar, bayi giriş yapar', async ({ as, page }) => {
   await field(admin, 'Geçici Şifre').fill(NEW.password);
   await field(admin, 'Net İskonto').fill(String(NEW.discount));
   await field(admin, 'Risk Limiti').fill('50000');
-  await admin.getByRole('button', { name: /BAYİYİ OLUŞTUR/ }).click();
+  await admin.getByRole('button', { name: /Bayiyi oluştur/ }).click();
   await expect(alertBox(admin)).toContainText('Bayi Oluşturuldu');
   await confirm(admin, 'Tamam');
   await expect(admin.getByText(NEW.company)).toBeVisible();

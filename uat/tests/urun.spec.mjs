@@ -7,7 +7,7 @@ const NEW = { name: 'Elmas Kesici Disk 115 mm', sku: 'UAT-YENI-DISK', price: 800
 test('yönetici ürün ekler, bayi katalogda görür', async ({ as }) => {
   const page = await as('admin');
   await page.goto('/admin/products');
-  await page.getByRole('button', { name: /YENİ ÜRÜN/ }).click();
+  await page.getByRole('button', { name: /Yeni ürün/ }).click();
   await expect(page.getByRole('heading', { name: 'Yeni Ürün' })).toBeVisible();
 
   await field(page, 'Ürün Adı').fill(NEW.name);
@@ -16,7 +16,7 @@ test('yönetici ürün ekler, bayi katalogda görür', async ({ as }) => {
   await page.getByRole('button', { name: /Fiyat & Stok/ }).click();
   await field(page, 'Liste Fiyatı (KDV hariç)').fill(String(NEW.price));
   await field(page, 'Mevcut Stok').fill(String(NEW.stock));
-  await page.getByRole('button', { name: /ÜRÜNÜ OLUŞTUR/ }).click();
+  await page.getByRole('button', { name: /Ürünü oluştur/ }).click();
   await expect(page.getByRole('heading', { name: 'Yeni Ürün' })).toBeHidden();
 
   await page.getByPlaceholder('Ürün adı veya SKU ara...').fill(NEW.sku);
