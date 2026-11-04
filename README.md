@@ -239,4 +239,4 @@ docker compose -f docker-compose.prod.yml up -d --build
 
 ## Geliştirme notları
 
-Geçmiş çalışma oturumlarının notları `docs/gelistirme-notlari/` klasöründedir.
+Geçmiş çalışma oturumlarının notları `docs/gelistirme-notlari/` klasöründedir. Başlangıçtan bugüne yapılanların konu konu özeti: [docs/yapilanlar/](docs/yapilanlar/README.md).
