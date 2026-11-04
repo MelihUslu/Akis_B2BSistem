@@ -149,6 +149,19 @@ Bayi, profilinden birden fazla teslimat adresi (il / ilçe ayrı) tanımlar ve s
 - **Sepet:** kullanıcıya özeldir, çıkışta tarayıcıdan silinir; bayinin sepeti sunucuda da saklanır, telefonda başlanan sepet bilgisayarda devam eder.
 - **Barkod okutma:** Hızlı Sipariş'te telefon kamerasıyla barkod okutulur (https gerekir).
 
+### Personel yönetimi
+
+Firma bazında açılır: Ayarlar → Genel → Modüller → "Personel yönetimi" (`hr_enabled`). Kapalıyken menü görünmez ve `/api/hr` uçları 403 döner. Bordro, SGK ve özlük dosyası kapsamda değildir.
+
+- **Kim ne yapar:** "Personel" yetkisi (`HR`) kartları, izin / masraf / avans onaylarını, hedefleri ve duyuruları yönetir. Ödemeyi "Finans" yetkisi kaydeder; onay ile ödeme farklı kişilerde olabilir. Kişi kendi talebine karar veremez (firma sahibi hariç). Bayi hesapları modüle giremez (rol kontrolü sunucuda).
+- **Personel kartı:** ad, iletişim, departman, görev, işe giriş, aktif / pasif. Firmanın yönetici ya da plasiyer hesabı karta bağlanırsa personel "Personel Alanım"dan (`/admin/personel-alanim`, plasiyerde `/plasiyer/personel`) kendi taleplerini açar ve hedef / primlerini görür. Yalnızca personel alanını kullanacak biri için Ekip'ten yetkisiz kullanıcı açılır; bu kullanıcı panel özetini ve aramayı görmez.
+- **İzin:** tür, tarih aralığı (iş günü; hafta sonu sayılmaz), açıklama. Çakışan talep açılamaz. Onay ya da gerekçeli ret; karar verenin adı ve zamanı kayda yazılır, personele bildirim gider.
+- **Masraf ve avans:** tutar, tarih, açıklama, fiş / fatura (PDF ya da görsel; yalnızca sahibi ve yetkililer indirir). Onaylanan talep ödenmiş sayılmaz. Ödeme kaydedilince Gelir-Gider'e "Personel masrafı / avansı" gideri açılır (fiş de kopyalanır). Gelir-gider kaydının `sourceRef` alanı tekildir: aynı talep iki kez ödenemez, eşzamanlı denemede biri kaydedilir. Bu kayıtlar Gelir-Gider'den değiştirilemez; yanlış ödeme Personel Yönetimi'nden geri alınır.
+- **Satış hedefi ve prim:** personel başına aylık hedef, prim oranı ve esas (satış / tahsilat). Satış: personelin sorumlu olduğu bayilerin ve bayi adına girdiği siparişlerin ayda onaylanan KDV hariç tutarı (kupon düşülmüş, kargo hariç, iptaller sayılmaz) eksi ayda onaylanan iadeler. Tahsilat: sorumlu olduğu bayilerden alınan ödemeler (TL karşılığı). Hedef tutarsa gerçekleşenin yüzdesi prim olur. Ay bitince dönem kapatılır, prim sabitlenir; ödeme ayrıca kaydedilir (hesaplanan ve ödenen prim ayrı görünür). Sipariş başına plasiyer primi (`plasiyer_rate`) bundan ayrıdır.
+- **Şirket duyuruları:** tüm personele ya da seçilen departmanlara; hesabı olan personele bildirim gider.
+- **Kayıt:** onay, ret, ödeme ve geri almalar işlem kaydına (Ayarlar → İşlem Kaydı) ayrıca yazılır. Firma verisi dışa aktarmaya ve kalıcı silmeye dahildir.
+- Kodu: `services/hrService.js`, `controllers/hrController.js`, `routes/hrRoutes.js`; testleri: `test/integration/hr.test.js`, `uat/tests/personel.spec.mjs`.
+
 ### Çoklu depo
 
 Ayarlar → Depolar'dan depo eklenince stok depo bazında tutulur (ilk depo eklenince mevcut stoklar ona aktarılır); `Product.stock` tüm depoların toplamıdır ve bayi toplamı görür. Sipariş onaylanırken karşılanacak depo seçilir, stok o depodan düşer; kalem iptali ve iade aynı depoya geri yazılır. Depolar arası transfer yapılabilir. Excel'de "Depo" sütunu, ERP'de `warehouse` alanı (depo kodu) ile depo bazında stok güncellenir; depo verilmezse toplam stok güncellenir ve fark varsayılan depoya yazılır. Tüm stok değişiklikleri `services/stockService.js` üzerinden geçer.

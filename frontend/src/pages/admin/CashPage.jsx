@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import {
-  Wallet, Plus, Minus, ChevronLeft, ChevronRight, FileSpreadsheet, Pencil, Trash2, Info, ArrowDownLeft, ArrowUpRight,
+  Wallet, Plus, Minus, ChevronLeft, ChevronRight, FileSpreadsheet, Pencil, Trash2, Info, ArrowDownLeft, ArrowUpRight, IdCard,
   Repeat, Target, Paperclip, Search, AlertTriangle, TrendingUp, TrendingDown, CalendarClock, Receipt, Landmark, Banknote, CreditCard, Telescope
 } from 'lucide-react';
 import { Link } from 'react-router-dom';
@@ -490,6 +490,7 @@ const CashPage = () => {
                             {e.method && <span>{METHOD_TR[e.method]}</span>}
                             {e.vatRate > 0 && <span>KDV %{e.vatRate} ({formatTRY(vatOf(e.amount, e.vatRate))})</span>}
                             {e.recurringId && <span className="inline-flex items-center gap-0.5 text-brand-600 font-bold"><Repeat className="h-3 w-3" /> Düzenli</span>}
+                            {e.sourceRef && <span className="inline-flex items-center gap-0.5 text-brand-600 font-bold" title="Personel Yönetimi'nden ödendi; değişiklik oradan (ödemeyi geri al) yapılır"><IdCard className="h-3 w-3" /> Personel ödemesi</span>}
                             {e.createdByName && <span>{e.createdByName}</span>}
                           </p>
                         </div>
@@ -497,10 +498,12 @@ const CashPage = () => {
                           <button onClick={() => downloadFile(`/cash/${e.id}/file`, null, e.fileName)} className="p-2 text-gray-400 hover:text-brand-600 shrink-0" title={e.fileName || 'Belge'} aria-label="Belgeyi indir"><Paperclip className="h-4 w-4" /></button>
                         )}
                         <p className={`text-sm font-black tabular-nums whitespace-nowrap ${e.type === 'IN' ? 'text-blue-700' : 'text-gray-900'}`}>{e.type === 'IN' ? '+' : '−'}{formatTRY(e.amount)}</p>
-                        <div className="flex shrink-0 sm:opacity-0 sm:group-hover:opacity-100 sm:focus-within:opacity-100">
-                          <button onClick={() => editEntry(e)} className="p-2 text-gray-400 hover:text-brand-600" aria-label="Düzenle"><Pencil className="h-4 w-4" /></button>
-                          <button onClick={() => removeEntry(e)} className="p-2 text-gray-400 hover:text-red-600" aria-label="Sil"><Trash2 className="h-4 w-4" /></button>
-                        </div>
+                        {e.sourceRef ? <span className="w-[4.5rem] shrink-0" aria-hidden="true" /> : (
+                          <div className="flex shrink-0 sm:opacity-0 sm:group-hover:opacity-100 sm:focus-within:opacity-100">
+                            <button onClick={() => editEntry(e)} className="p-2 text-gray-400 hover:text-brand-600" aria-label="Düzenle"><Pencil className="h-4 w-4" /></button>
+                            <button onClick={() => removeEntry(e)} className="p-2 text-gray-400 hover:text-red-600" aria-label="Sil"><Trash2 className="h-4 w-4" /></button>
+                          </div>
+                        )}
                       </li>
                     ))}
                   </ul>

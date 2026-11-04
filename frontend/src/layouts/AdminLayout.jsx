@@ -12,7 +12,7 @@ import ImpersonationBanner from '../components/ImpersonationBanner';
 import ErrorBoundary from '../components/ErrorBoundary';
 import AnnouncementBar from '../components/AnnouncementBar';
 import { useAuth } from '../context/AuthContext';
-import { can } from '../utils/permissions';
+import { can, hasAnyPermission } from '../utils/permissions';
 
 // Her sayfa ayrı bir parça (chunk) olarak, ilk açıldığında yüklenir
 const AdminDashboardHome = lazy(() => import('../pages/admin/AdminDashboardHome'));
@@ -34,6 +34,8 @@ const ReportsPage = lazy(() => import('../pages/admin/ReportsPage'));
 const CashPage = lazy(() => import('../pages/admin/CashPage'));
 const LeadManagement = lazy(() => import('../pages/admin/LeadManagement'));
 const WhatsAppPage = lazy(() => import('../pages/admin/WhatsAppPage'));
+const HrManagement = lazy(() => import('../pages/admin/HrManagement'));
+const StaffArea = lazy(() => import('../pages/hr/StaffArea'));
 
 // Yetkisi olmayan sayfaya doğrudan girilirse (perm: tek yetki ya da yetkilerden biri)
 const Guard = ({ perm, children }) => {
@@ -89,7 +91,7 @@ const AdminLayout = () => {
           style={{ paddingTop: 'max(0.75rem, env(safe-area-inset-top))' }}>
           <button onClick={() => setMenuOpen(true)} className="lg:hidden p-2 -ml-2 rounded-xl text-gray-600 hover:bg-gray-100 shrink-0" aria-label="Menü"><Menu className="h-6 w-6" /></button>
           <div className="flex-1 min-w-0">
-            <GlobalSearch />
+            {hasAnyPermission(user) && <GlobalSearch />}
           </div>
 
           <div className="flex items-center gap-2 md:gap-6 shrink-0">
@@ -131,6 +133,8 @@ const AdminLayout = () => {
               <Route path="coupons" element={<Guard perm="CATALOG"><CouponManagement /></Guard>} />
               <Route path="reports" element={<Guard perm={['ORDERS', 'FINANCE']}><ReportsPage /></Guard>} />
               <Route path="cash" element={<Guard perm="FINANCE"><CashPage /></Guard>} />
+              <Route path="personel" element={<Guard perm={['HR', 'FINANCE']}><HrManagement /></Guard>} />
+              <Route path="personel-alanim" element={<StaffArea />} />
               <Route path="support" element={<SupportPage />} />
               <Route path="account" element={<AccountPage />} />
             </Routes>

@@ -59,6 +59,7 @@ model User {
   favorites         Favorite[]
   orderTemplates    OrderTemplate[]
   supportTickets    SupportTicket[]
+  employee          Employee?          @relation("EmployeeUser")
 
   @@index([tenantId])
 }
@@ -768,6 +769,11 @@ model Tenant {
   transferNotices        TransferNotice[]
   orderShipments         OrderShipment[]
   dealerTargets          DealerTarget[]
+  employees              Employee[]
+  leaveRequests          LeaveRequest[]
+  staffClaims            StaffClaim[]
+  staffTargets           StaffTarget[]
+  staffAnnouncements     StaffAnnouncement[]
 }
 
 // Kiracının platforma yaptığı abonelik ödemeleri (iyzico veya manuel)
@@ -1512,6 +1518,9 @@ model CashEntry {
   storedName    String?
   mimeType      String?
   recurringId   Int? // Düzenli gider/gelirden otomatik oluştuysa
+  // Personel ödemesinden oluştuysa kaynağı ("STAFF_CLAIM:12", "STAFF_BONUS:5"). Tekil: aynı talep / prim iki kez
+  // ödenemez. Bu kayıtlar gelir-giderden değiştirilmez, Personel Yönetimi'nden geri alınır.
+  sourceRef     String?        @unique
   recurring     CashRecurring? @relation(fields: [recurringId], references: [id], onDelete: SetNull)
   createdByName String?
   createdAt     DateTime       @default(now())
@@ -1561,4 +1570,132 @@ model TransferNotice {
   createdAt     DateTime  @default(now())
 
   @@index([tenantId, status])
+}
+
+// ─── Personel yönetimi (firma bazında açılır: hr_enabled) ───────────────────
+// Bordro, SGK ve özlük dosyası kapsam dışıdır. Onay "Personel" (HR), ödeme "Finans" yetkisiyle yapılır.
+
+// Personel kartı. Sistem hesabı (yönetici / plasiyer) bağlanırsa personel kendi taleplerini açar ve görür.
+model Employee {
+  id         Int                 @id @default(autoincrement())
+  tenantId   Int
+  tenant     Tenant              @relation(fields: [tenantId], references: [id])
+  userId     Int?                @unique // Bayi hesabı bağlanamaz
+  user       User?               @relation("EmployeeUser", fields: [userId], references: [id], onDelete: SetNull)
+  name       String
+  email      String?
+  phone      String?
+  department String?
+  title      String? // Görev
+  hireDate   DateTime?
+  isActive   Boolean             @default(true)
+  createdAt  DateTime            @default(now())
+  updatedAt  DateTime            @updatedAt
+  leaves     LeaveRequest[]
+  claims     StaffClaim[]
+  targets    StaffTarget[]
+
+  @@index([tenantId])
+}
+
+model LeaveRequest {
+  id            Int       @id @default(autoincrement())
+  tenantId      Int
+  tenant        Tenant    @relation(fields: [tenantId], references: [id])
+  employeeId    Int
+  employee      Employee  @relation(fields: [employeeId], references: [id], onDelete: Cascade)
+  type          String // ANNUAL (yıllık), EXCUSE (mazeret), SICK (hastalık / rapor), UNPAID (ücretsiz), OTHER
+  startDate     DateTime
+  endDate       DateTime
+  days          Float // İş günü (hafta sonu sayılmaz)
+  note          String?
+  status        String    @default("PENDING") // PENDING, APPROVED, REJECTED, CANCELLED
+  decidedById   Int?
+  decidedByName String?
+  decidedAt     DateTime?
+  rejectReason  String?
+  createdByName String?
+  createdAt     DateTime  @default(now())
+  updatedAt     DateTime  @updatedAt
+
+  @@index([tenantId, status])
+  @@index([employeeId])
+}
+
+// Masraf (fiş / fatura ekiyle) ve avans talebi. Onay ile ödeme ayrıdır: onaylanan talep ödenmiş sayılmaz.
+model StaffClaim {
+  id            Int       @id @default(autoincrement())
+  tenantId      Int
+  tenant        Tenant    @relation(fields: [tenantId], references: [id])
+  employeeId    Int
+  employee      Employee  @relation(fields: [employeeId], references: [id], onDelete: Cascade)
+  type          String // EXPENSE (masraf), ADVANCE (avans)
+  amount        Float
+  date          DateTime // Masrafın yapıldığı / avansın istendiği gün
+  description   String
+  fileName      String?
+  storedName    String? // uploads/private/hr (yalnızca sahibi ve yetkililer indirir)
+  mimeType      String?
+  status        String    @default("PENDING") // PENDING, APPROVED, REJECTED, CANCELLED
+  decidedById   Int?
+  decidedByName String?
+  decidedAt     DateTime?
+  rejectReason  String?
+  paidAt        DateTime?
+  paidById      Int?
+  paidByName    String?
+  paymentMethod String? // CASH, BANK, CARD
+  cashEntryId   Int?      @unique // Gelir-giderdeki ödeme kaydı
+  createdByName String?
+  createdAt     DateTime  @default(now())
+  updatedAt     DateTime  @updatedAt
+
+  @@index([tenantId, status])
+  @@index([employeeId])
+}
+
+// Aylık satış hedefi ve prim. Gerçekleşen siparişlerden (ya da tahsilattan) hesaplanır; kapanışta prim sabitlenir,
+// ödemesi ayrıca yapılır (hesaplanan ve ödenen prim ayrı tutulur).
+model StaffTarget {
+  id             Int       @id @default(autoincrement())
+  tenantId       Int
+  tenant         Tenant    @relation(fields: [tenantId], references: [id])
+  employeeId     Int
+  employee       Employee  @relation(fields: [employeeId], references: [id], onDelete: Cascade)
+  period         String // 'YYYY-MM'
+  targetAmount   Float // TL (satışta KDV hariç)
+  bonusRate      Float // Hedef tutarsa gerçekleşenin yüzde kaçı prim
+  basis          String    @default("SALES") // SALES: onaylanan satış − iadeler, COLLECTION: tahsilat
+  status         String    @default("OPEN") // OPEN, CLOSED
+  achievedAmount Float? // Kapanıştaki gerçekleşen
+  bonusAmount    Float? // Kapanışta hesaplanan prim
+  closedAt       DateTime?
+  closedByName   String?
+  paidAmount     Float?
+  paidAt         DateTime?
+  paidById       Int?
+  paidByName     String?
+  paymentMethod  String?
+  cashEntryId    Int?      @unique
+  createdByName  String?
+  createdAt      DateTime  @default(now())
+  updatedAt      DateTime  @updatedAt
+
+  @@unique([employeeId, period])
+  @@index([tenantId, period])
+}
+
+// Firma içi duyuru (platformun firmalara duyurusundan ayrı): tüm personele ya da seçilen departmanlara
+model StaffAnnouncement {
+  id            Int      @id @default(autoincrement())
+  tenantId      Int
+  tenant        Tenant   @relation(fields: [tenantId], references: [id])
+  title         String
+  body          String
+  departments   String[] // Boş = tüm personel
+  createdById   Int?
+  createdByName String?
+  createdAt     DateTime @default(now())
+
+  @@index([tenantId, createdAt])
 }

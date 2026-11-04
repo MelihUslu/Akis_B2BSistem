@@ -21,7 +21,7 @@ const ACT_READ_ONLY = ['/api/finance/my-statement', '/api/targets/mine', '/api/a
 const actingAllowed = (req) => ACT_PATHS.some((p) => req.originalUrl.startsWith(p))
   || (req.method === 'GET' && ACT_READ_ONLY.some((p) => req.originalUrl.startsWith(p)));
 // Plasiyerin kendi kimliğiyle açabildiği uçlar (bayi seçmeden)
-const PLASIYER_PATHS = ['/api/plasiyer', '/api/auth/me', '/api/auth/change-password', '/api/notifications', '/api/tenant/public', '/api/settings/portal', '/api/push'];
+const PLASIYER_PATHS = ['/api/plasiyer', '/api/hr', '/api/auth/me', '/api/auth/change-password', '/api/notifications', '/api/tenant/public', '/api/settings/portal', '/api/push'];
 
 // Kiracı kullanıcıları (ADMIN, BAYI). resolveTenant'tan sonra çalışmalıdır.
 export const verifyToken = async (req, res, next) => {

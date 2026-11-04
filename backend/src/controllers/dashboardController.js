@@ -1,4 +1,5 @@
 import prisma, { currentTenantId } from '../utils/prisma.js';
+import { hrEnabled } from '../services/hrService.js';
 import { cached } from '../utils/cache.js';
 import { round2 } from '../services/pricingService.js';
 import { hasPermission } from '../services/permissions.js';
@@ -8,6 +9,10 @@ const DAY = 24 * 60 * 60 * 1000;
 
 // Panel bir firmanın bütün yöneticilerine aynı veriyi gösterir: 20 sn önbellek, aynı anda açanlar tek hesabı bekler
 export const getDashboard = async (req, res) => {
+  // Hiç yetkisi olmayan ekip üyesi (ör. yalnızca Personel Alanım'ı kullanan depo personeli) firma özetini görmez
+  if (!req.user.isOwner && !(req.user.permissions || []).length) {
+    return res.status(403).json({ message: 'Panel özetini görmek için yetkiniz yok.', code: 'NO_DASHBOARD' });
+  }
   try {
     res.json(await cached(`dashboard:${currentTenantId()}`, 20_000, buildDashboard));
   } catch (error) {
@@ -120,7 +125,18 @@ export const getMenuCounts = async (req, res) => {
       quotes: quoteStatuses.length > 0 && count(`quotes:${quoteStatuses.join(',')}`, () => prisma.quoteRequest.count({ where: { status: { in: quoteStatuses } } })),
       dealers: hasPermission(u, 'DEALERS') && count('dealers', () => prisma.company.count({ where: { status: 'PENDING', kind: 'DEALER' } })),
       leads: hasPermission(u, 'LEADS') && count('leads', () => prisma.customerLead.count({ where: { status: 'NEW' } })),
-      whatsapp: hasPermission(u, 'MESSAGES') && count('whatsapp', () => prisma.waConversation.count({ where: { needsHuman: true, status: { not: 'CLOSED' } } }))
+      whatsapp: hasPermission(u, 'MESSAGES') && count('whatsapp', () => prisma.waConversation.count({ where: { needsHuman: true, status: { not: 'CLOSED' } } })),
+      // Personel: onay bekleyen izin / masraf / avans (Personel yetkisi), ödeme bekleyen talep ve prim (Finans yetkisi)
+      hr: (hasPermission(u, 'HR') || hasPermission(u, 'FINANCE')) && count(`hr:${hasPermission(u, 'HR') ? 'h' : ''}${hasPermission(u, 'FINANCE') ? 'f' : ''}`, async () => {
+        if (!(await hrEnabled())) return 0;
+        const [leaves, claims, toPay, bonuses] = await Promise.all([
+          hasPermission(u, 'HR') ? prisma.leaveRequest.count({ where: { status: 'PENDING' } }) : 0,
+          hasPermission(u, 'HR') ? prisma.staffClaim.count({ where: { status: 'PENDING' } }) : 0,
+          hasPermission(u, 'FINANCE') ? prisma.staffClaim.count({ where: { status: 'APPROVED', paidAt: null } }) : 0,
+          hasPermission(u, 'FINANCE') ? prisma.staffTarget.count({ where: { status: 'CLOSED', paidAt: null, bonusAmount: { gt: 0 } } }) : 0
+        ]);
+        return leaves + claims + toPay + bonuses;
+      })
     };
     const entries = await Promise.all(Object.entries(jobs).filter(([, fn]) => fn).map(async ([k, fn]) => [k, await fn()]));
     res.json(Object.fromEntries(entries));

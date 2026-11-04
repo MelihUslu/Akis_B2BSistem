@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Bell, CheckCheck, Package, Wallet, RotateCcw, ShoppingCart, Info, Inbox, MessageCircle, Target } from 'lucide-react';
+import { Bell, CheckCheck, Package, Wallet, RotateCcw, ShoppingCart, Info, Inbox, MessageCircle, Target, IdCard } from 'lucide-react';
 import api from '../services/api';
 import { formatDate } from '../utils/format';
 import { t } from '../i18n';
@@ -17,6 +17,7 @@ const TYPE_ICON = {
   LEAD: Inbox,
   MESSAGE: MessageCircle,
   BUDGET: Target,
+  HR: IdCard,
 };
 
 const browserNotificationsSupported = () => typeof window !== 'undefined' && 'Notification' in window;
@@ -101,7 +102,7 @@ const NotificationBell = ({ dark = false }) => {
       </button>
 
       {open && (
-        <div role="dialog" aria-label={t('Bildirimler')} className="absolute right-0 mt-3 w-96 max-w-[calc(100vw-2rem)] bg-white rounded-3xl shadow-2xl border border-gray-100 overflow-hidden z-50 animate-in fade-in zoom-in-95 duration-150">
+        <div role="dialog" aria-label={t('Bildirimler')} className="fixed inset-x-4 top-16 sm:absolute sm:inset-x-auto sm:top-auto sm:right-0 sm:mt-3 sm:w-96 bg-white rounded-3xl shadow-2xl border border-gray-100 overflow-hidden z-50 animate-in fade-in zoom-in-95 duration-150">
           <div className="flex items-center justify-between px-5 py-4 border-b border-gray-50">
             <p className="text-sm font-black text-gray-900">{t('Bildirimler')}</p>
             {unread > 0 && (

@@ -6,7 +6,7 @@ import { useTenant } from '../context/TenantContext';
 import TenantBrand from './TenantBrand';
 import { can } from '../utils/permissions';
 import { 
-  LayoutDashboard, Package, ShoppingCart, CreditCard, BarChart3, Settings, LogOut, UserCheck, ChevronLeft, ChevronRight, RotateCcw, Crown, FileSignature, TicketPercent, X, BookUser, Inbox, MessageCircle, ChevronDown, Tags, Briefcase, Users, Wallet, FolderTree, Scale
+  LayoutDashboard, Package, ShoppingCart, CreditCard, BarChart3, Settings, LogOut, UserCheck, ChevronLeft, ChevronRight, RotateCcw, Crown, FileSignature, TicketPercent, X, BookUser, Inbox, MessageCircle, ChevronDown, Tags, Briefcase, Users, Wallet, FolderTree, Scale, IdCard, UserRound, Contact
 } from 'lucide-react';
 
 // Menü: tek bağlantılar ve açılır gruplar. perm: tek yetki ya da yetkilerden biri yeterli
@@ -31,6 +31,11 @@ const MENU = [
     { name: 'Cari Hesaplar', path: '/admin/partners', icon: BookUser, perm: ['FINANCE', 'DEALERS'] },
     { name: 'Finans & Prim', path: '/admin/finance', icon: CreditCard, perm: 'FINANCE' },
     { name: 'Gelir-Gider', path: '/admin/cash', icon: Scale, perm: 'FINANCE' },
+  ] },
+  // Personel: firma modülü açtıysa (module). Personel Alanım tüm ekip üyelerine açık (kartı yoksa sayfa söyler)
+  { key: 'hr', name: 'Personel', icon: Contact, module: 'hr', items: [
+    { name: 'Personel Yönetimi', path: '/admin/personel', badge: 'hr', icon: IdCard, perm: ['HR', 'FINANCE'] },
+    { name: 'Personel Alanım', path: '/admin/personel-alanim', icon: UserRound },
   ] },
   { name: 'Raporlar', path: '/admin/reports', icon: BarChart3, perm: ['ORDERS', 'FINANCE'] },
   { name: 'Abonelik', path: '/admin/subscription', icon: Crown, perm: 'SETTINGS' },
@@ -83,9 +88,10 @@ const Sidebar = ({ mobile = false, onNavigate }) => {
   const countOf = (item) => (item.badge ? counts[item.badge] || 0 : 0);
   const allowed = (item) => !item.perm || [].concat(item.perm).some((p) => can(user, p));
   const menu = MENU
+    .filter((m) => !m.module || tenant?.modules?.[m.module])
     .map((m) => (m.items ? { ...m, items: m.items.filter(allowed) } : m))
     .filter((m) => (m.items ? m.items.length > 0 : allowed(m)));
-  const isActivePath = (path) => (path === '/admin' ? location.pathname === '/admin' : location.pathname.startsWith(path));
+  const isActivePath = (path) => (path === '/admin' ? location.pathname === '/admin' : location.pathname === path || location.pathname.startsWith(`${path}/`));
   const toggleGroup = (key) => {
     const next = openGroups.includes(key) ? openGroups.filter((k) => k !== key) : [...openGroups, key];
     setOpenGroups(next);

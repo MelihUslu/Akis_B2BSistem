@@ -9,6 +9,7 @@ export const PERMISSIONS = {
   FINANCE: 'Cari hesaplar, tahsilatlar, prim',
   MESSAGES: 'WhatsApp gelen kutusu: müşteri mesajlarını görme ve yanıtlama',
   LEADS: 'Müşteri adayları (Instagram, WhatsApp, talep formu) ve Excel',
+  HR: 'Personel: kartlar, izin / masraf / avans onayı, satış hedefi ve prim, duyurular (ödemeler Finans yetkisiyle)',
   SETTINGS: 'Ayarlar, ekip, entegrasyon, sanal POS, abonelik'
 };
 

@@ -9,7 +9,7 @@ import prisma, { runAsPlatform } from '../utils/prisma.js';
  */
 export const exportTenantWorkbook = (tenantId) => runAsPlatform(async () => {
   const w = { tenantId };
-  const [tenant, users, companies, categories, products, orders, items, transactions, payments, quotes, returns, coupons, specials, cash, shipments, targets] = await Promise.all([
+  const [tenant, users, companies, categories, products, orders, items, transactions, payments, quotes, returns, coupons, specials, cash, shipments, targets, employees, leaves, claims, staffTargets, staffAnnouncements] = await Promise.all([
     prisma.tenant.findUnique({ where: { id: tenantId }, include: { plan: true } }),
     prisma.user.findMany({ where: w, select: { id: true, name: true, email: true, role: true, companyId: true, isOwner: true, isActive: true, createdAt: true, lastLoginAt: true } }),
     prisma.company.findMany({ where: w }),
@@ -25,7 +25,12 @@ export const exportTenantWorkbook = (tenantId) => runAsPlatform(async () => {
     prisma.specialPrice.findMany({ where: w }),
     prisma.cashEntry.findMany({ where: w }),
     prisma.orderShipment.findMany({ where: w }),
-    prisma.dealerTarget.findMany({ where: w })
+    prisma.dealerTarget.findMany({ where: w }),
+    prisma.employee.findMany({ where: w }),
+    prisma.leaveRequest.findMany({ where: w }),
+    prisma.staffClaim.findMany({ where: w }).then((rows) => rows.map(({ storedName, ...r }) => r)), // eslint-disable-line no-unused-vars
+    prisma.staffTarget.findMany({ where: w }),
+    prisma.staffAnnouncement.findMany({ where: w })
   ]);
 
   const flat = (rows) => rows.map(r => Object.fromEntries(Object.entries(r).map(([k, v]) => [k, v instanceof Date ? v.toISOString() : (v && typeof v === 'object' ? JSON.stringify(v) : v)])));
@@ -48,6 +53,11 @@ export const exportTenantWorkbook = (tenantId) => runAsPlatform(async () => {
   sheet('Gelir-Gider', cash);
   sheet('Sevkiyatlar', shipments);
   sheet('Bayi Hedefleri', targets);
+  sheet('Personel', employees);
+  sheet('Personel İzinleri', leaves);
+  sheet('Masraf ve Avans', claims);
+  sheet('Personel Hedefleri', staffTargets);
+  sheet('Şirket Duyuruları', staffAnnouncements);
   return { buffer: xlsx.write(wb, { type: 'buffer', bookType: 'xlsx' }), tenant };
 });
 
@@ -56,7 +66,7 @@ export const exportTenantWorkbook = (tenantId) => runAsPlatform(async () => {
  */
 // ─── Yüklenen dosyalar ───────────────────────────────────────────────────────
 // private/partners: cari belgeleri (dosya adı t{kiracı}- ile başlar)
-const UPLOAD_DIRS = ['images', 'support', 'private/partners', 'private/cash'];
+const UPLOAD_DIRS = ['images', 'support', 'private/partners', 'private/cash', 'private/hr'];
 const SAFE_NAME = /^[A-Za-z0-9._-]+$/;
 
 // "…/uploads/images/abc.png" → { dir: 'images', name: 'abc.png' }
@@ -148,6 +158,11 @@ const purgeTenantRecords = (tenantId) => runAsPlatform(() => prisma.$transaction
   await tx.waConversation.deleteMany(w);
   await tx.whatsappChannel.deleteMany(w);
   await tx.periodicReport.deleteMany(w);
+  await tx.leaveRequest.deleteMany(w);
+  await tx.staffClaim.deleteMany(w);
+  await tx.staffTarget.deleteMany(w);
+  await tx.staffAnnouncement.deleteMany(w);
+  await tx.employee.deleteMany(w);
   await tx.cashEntry.deleteMany(w);
   await tx.cashRecurring.deleteMany(w);
   await tx.transferNotice.deleteMany(w);

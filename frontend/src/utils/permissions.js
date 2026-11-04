@@ -8,9 +8,13 @@ export const PERMISSION_LABELS = {
   DEALERS: 'Bayiler',
   FINANCE: 'Finans',
   LEADS: 'Müşteri adayları',
+  HR: 'Personel',
   MESSAGES: 'WhatsApp',
   SETTINGS: 'Ayarlar',
 };
+
+// Herhangi bir yönetim yetkisi var mı (yoksa panel özeti ve arama gösterilmez; ör. yalnızca personel alanını kullanan ekip üyesi)
+export const hasAnyPermission = (user) => user?.role === 'ADMIN' && (user.isOwner || (user.permissions || []).length > 0);
 
 export const can = (user, permission) =>
   user?.role === 'ADMIN' && (user.isOwner || (user.permissions || []).includes(permission));

@@ -32,6 +32,9 @@ fs.mkdirSync(PARTNER_DOC_DIR, { recursive: true });
 // Gelir-gider fiş / faturaları: aynı şekilde yalnızca yetkiyle indirilir
 export const CASH_DOC_DIR = 'uploads/private/cash';
 fs.mkdirSync(CASH_DOC_DIR, { recursive: true });
+// Personel masraf fiş / faturaları: talebin sahibi ve Personel / Finans yetkilileri indirir
+export const HR_DOC_DIR = 'uploads/private/hr';
+fs.mkdirSync(HR_DOC_DIR, { recursive: true });
 
 // SVG kabul edilmez: içine script gömülebilir ve /uploads üzerinden açıldığında XSS'e yol açar
 const IMAGE_TYPES = ['image/jpeg', 'image/png', 'image/webp', 'image/gif'];
@@ -127,6 +130,19 @@ export const CASH_DOC_TYPES = { '.jpg': 'image/jpeg', '.jpeg': 'image/jpeg', '.p
 export const cashDocUpload = keepContext(multer({
   storage: multer.diskStorage({
     destination: (req, file, cb) => cb(null, `${CASH_DOC_DIR}/`),
+    filename: (req, file, cb) => cb(null, `t${req.tenant?.id ?? currentTenantId() ?? 'p'}-${crypto.randomBytes(16).toString('hex')}${path.extname(file.originalname).toLowerCase()}`)
+  }),
+  limits: { fileSize: 10 * 1024 * 1024, files: 1 }, // 10 MB
+  fileFilter: (req, file, cb) => {
+    if (CASH_DOC_TYPES[path.extname(file.originalname).toLowerCase()]) return cb(null, true);
+    cb(Object.assign(new Error('Fiş / fatura için PDF ya da görsel (JPG, PNG, WEBP) yükleyin.'), { status: 400 }));
+  }
+}));
+
+// ─── Personel masraf fiş / faturası (gelir-gider ile aynı türler) ───────────
+export const hrDocUpload = keepContext(multer({
+  storage: multer.diskStorage({
+    destination: (req, file, cb) => cb(null, `${HR_DOC_DIR}/`),
     filename: (req, file, cb) => cb(null, `t${req.tenant?.id ?? currentTenantId() ?? 'p'}-${crypto.randomBytes(16).toString('hex')}${path.extname(file.originalname).toLowerCase()}`)
   }),
   limits: { fileSize: 10 * 1024 * 1024, files: 1 }, // 10 MB

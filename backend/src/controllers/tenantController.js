@@ -6,10 +6,13 @@ import { API_PUBLIC_URL, tenantUrl, tenantPortalUrl } from '../config.js';
 import { tenantPosCreds } from '../services/tenantPosService.js';
 import { tenantAccess, invalidateTenantCache } from '../middlewares/tenantMiddleware.js';
 import { googleEnabled } from '../services/googleAuth.js';
+import { hrEnabled } from '../services/hrService.js';
 
 // Giriş ekranı için marka bilgisi (oturum gerektirmez)
-export const getPublicTenant = (req, res) => {
+export const getPublicTenant = async (req, res) => {
   const t = req.tenant;
+  // Firmada açık modüller (menüler buna göre görünür; uçlar ayrıca sunucuda kontrol edilir)
+  const hr = await hrEnabled().catch(() => false);
   const access = tenantAccess(t);
   res.json({
     name: t.name,
@@ -21,7 +24,8 @@ export const getPublicTenant = (req, res) => {
     taxNumber: t.taxNumber,
     taxOffice: t.taxOffice,
     access: { active: access.active, reason: access.reason },
-    googleLogin: googleEnabled()
+    googleLogin: googleEnabled(),
+    modules: { hr }
   });
 };
 

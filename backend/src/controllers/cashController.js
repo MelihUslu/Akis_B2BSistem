@@ -235,7 +235,8 @@ export const createCash = async (req, res) => {
 export const updateCash = async (req, res) => {
   try {
     const id = parseInt(req.params.id) || 0;
-    const updated = await prisma.cashEntry.updateMany({ where: { id }, data: parseEntry(req.body) });
+    await assertEditable(id);
+    const updated = await prisma.cashEntry.updateMany({ where: { id, sourceRef: null }, data: parseEntry(req.body) });
     if (updated.count === 0) throw new CashError('Kayıt bulunamadı.', 404);
     safeNotify(checkBudgets());
     res.locals.auditEntityId = id;
@@ -247,9 +248,18 @@ export const updateCash = async (req, res) => {
 
 const removeFile = (storedName) => (storedName ? fs.unlink(path.join(CASH_DOC_DIR, storedName)).catch(() => {}) : null);
 
+// Personel ödemesinden (masraf, avans, prim) oluşan kayıt ödemeyle birlikte Personel Yönetimi'nden geri alınır;
+// burada değiştirilirse ya da silinirse talep "ödendi" görünmeye devam eder ve ödeme tekrar kaydedilebilirdi
+const LINKED = 'Bu kayıt personel ödemesinden oluştu; değiştirmek için Personel Yönetimi\'nden ödemeyi geri alın.';
+const assertEditable = async (id) => {
+  const entry = await prisma.cashEntry.findFirst({ where: { id }, select: { sourceRef: true } });
+  if (entry?.sourceRef) throw new CashError(LINKED, 409);
+};
+
 export const deleteCash = async (req, res) => {
   const entry = await prisma.cashEntry.findFirst({ where: { id: parseInt(req.params.id) || 0 } });
   if (!entry) return res.status(404).json({ message: 'Kayıt bulunamadı.' });
+  if (entry.sourceRef) return res.status(409).json({ message: LINKED });
   await prisma.cashEntry.delete({ where: { id: entry.id } });
   await removeFile(entry.storedName);
   res.locals.auditEntityId = entry.id;
@@ -262,9 +272,9 @@ export const uploadCashFile = async (req, res) => {
   try {
     if (!req.file) throw new CashError('Dosya seçin.');
     const entry = await prisma.cashEntry.findFirst({ where: { id: parseInt(req.params.id) || 0 } });
-    if (!entry) {
+    if (!entry || entry.sourceRef) {
       await fs.unlink(req.file.path).catch(() => {});
-      throw new CashError('Kayıt bulunamadı.', 404);
+      throw entry ? new CashError(LINKED, 409) : new CashError('Kayıt bulunamadı.', 404);
     }
     await prisma.cashEntry.update({
       where: { id: entry.id },
@@ -293,6 +303,7 @@ export const downloadCashFile = async (req, res) => {
 export const deleteCashFile = async (req, res) => {
   const entry = await prisma.cashEntry.findFirst({ where: { id: parseInt(req.params.id) || 0 } });
   if (!entry?.storedName) return res.status(404).json({ message: 'Belge bulunamadı.' });
+  if (entry.sourceRef) return res.status(409).json({ message: LINKED });
   await prisma.cashEntry.update({ where: { id: entry.id }, data: { fileName: null, storedName: null, mimeType: null } });
   await removeFile(entry.storedName);
   res.json({ message: 'Belge kaldırıldı.' });

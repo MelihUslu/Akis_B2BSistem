@@ -29,6 +29,7 @@ const StatementShare = lazy(() => import('./pages/StatementShare'));
 const AdminLayout = lazy(() => import('./layouts/AdminLayout'));
 const BayiLayout = lazy(() => import('./layouts/BayiLayout'));
 const PlasiyerHome = lazy(() => import('./pages/plasiyer/PlasiyerHome'));
+const PlasiyerStaff = lazy(() => import('./pages/plasiyer/PlasiyerStaff'));
 const PlatformApp = lazy(() => import('./pages/platform/PlatformApp'));
 const RootApp = lazy(() => import('./pages/root/RootApp'));
 const TenantNotFound = lazy(() => import('./pages/root/TenantNotFound'));
@@ -99,6 +100,7 @@ const AppRoutes = () => {
       />
 
       <Route path="/plasiyer" element={<ProtectedRoute allowedRoles={['PLASIYER']}><PlasiyerHome /></ProtectedRoute>} />
+      <Route path="/plasiyer/personel" element={<ProtectedRoute allowedRoles={['PLASIYER']}><PlasiyerStaff /></ProtectedRoute>} />
 
       <Route path="*" element={<Navigate to="/login" replace />} />
     </Routes>

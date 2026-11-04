@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react';
-import { Settings, Percent, Coins, Users, Bell, Save, UserPlus, RefreshCw, Building2, ImagePlus, FileSignature, Store } from 'lucide-react';
+import { Settings, Percent, Coins, Users, Bell, Save, UserPlus, RefreshCw, Building2, ImagePlus, FileSignature, Store, Puzzle, IdCard } from 'lucide-react';
 import api, { errorMessage } from '../../services/api';
 import useAlert from '../../hooks/useAlert';
 import { useTenant } from '../../context/TenantContext';
@@ -119,6 +119,23 @@ const Switch = ({ on, onChange, label }) => (
   </button>
 );
 
+// Firma bazında açılıp kapanan modüller (kapalı modülün menüsü görünmez, uçları sunucuda da reddedilir)
+const ModulesCard = ({ draft, setDraft }) => (
+  <div className="card-premium p-6 space-y-5">
+    <h3 className="font-black text-gray-900 flex items-center"><Puzzle className="h-5 w-5 mr-2 text-brand-500" /> Modüller</h3>
+    <div className="rounded-2xl ring-1 ring-gray-100 p-5 flex items-start justify-between gap-4">
+      <div className="flex items-start gap-3 min-w-0">
+        <span className="h-10 w-10 shrink-0 rounded-xl bg-brand-50 flex items-center justify-center"><IdCard className="h-5 w-5 text-brand-600" /></span>
+        <div className="min-w-0">
+          <p className="font-black text-sm text-gray-900">Personel yönetimi</p>
+          <p className="text-xs text-gray-500 mt-1">Personel kartları, izin talepleri, masraf ve avans (onay ve ödeme ayrı), aylık satış hedefi ve prim, şirket duyuruları. Personel kendi taleplerini "Personel Alanım"dan açar. Onaylar "Personel", ödemeler "Finans" yetkisiyle yapılır (Ekip ve Yetkiler). Bordro ve SGK kapsamda değildir.</p>
+        </div>
+      </div>
+      <Switch on={draft.hr_enabled === 'true'} onChange={(v) => setDraft({ ...draft, hr_enabled: v ? 'true' : 'false' })} label="Personel yönetimi" />
+    </div>
+  </div>
+);
+
 // Sipariş ve teslimat: stokta olmayan ürüne teklif talebi, Gel-Al
 const OrderOptionsCard = ({ draft, setDraft }) => {
   const on = (k) => draft[k] === 'true';
@@ -213,6 +230,7 @@ const SettingsPage = () => {
   const [plasiyers, setPlasiyers] = useState([]);
   const [newPlasiyer, setNewPlasiyer] = useState({ name: '', email: '', password: '' });
   const { alertElement, showAlert, confirm } = useAlert();
+  const { refresh } = useTenant();
   const [tab, setTab] = useState(() => new URLSearchParams(window.location.search).get('tab') || 'general');
 
   const load = () =>
@@ -233,6 +251,7 @@ const SettingsPage = () => {
       setSettings(draft);
       showAlert({ type: 'success', title: 'Kaydedildi', message: changed.length ? `${changed.length} ayar güncellendi.` : 'Değişiklik yok.' });
       if (changed.some((k) => k.endsWith('_try'))) loadRates();
+      if (changed.includes('hr_enabled')) refresh(); // menü modüle göre değişir
     } catch (error) {
       showAlert({ type: 'error', title: 'Hata', message: errorMessage(error, 'Ayarlar kaydedilemedi.') });
     }
@@ -307,6 +326,7 @@ const SettingsPage = () => {
       </div>
 
       <OrderOptionsCard draft={draft} setDraft={setDraft} />
+      <ModulesCard draft={draft} setDraft={setDraft} />
 
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
         {FIELDS.map(({ section, icon: Icon, items }) => (

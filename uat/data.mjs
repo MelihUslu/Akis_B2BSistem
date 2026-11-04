@@ -14,6 +14,8 @@ export const API = `http://localhost:${API_PORT}/api`;
 export const ADMIN = { key: 'admin', email: 'yonetici@uat.test', name: 'Ayşe Yönetici' };
 // Plasiyer (saha satış): yalnızca "saha" bayisinin sorumlusu
 export const PLASIYER = { key: 'plasiyer', email: 'saha@uat.test', name: 'Murat Saha' };
+// Yetkisi olmayan ekip üyesi (depo personeli): Personel Alanım'dan izin ve masraf talebi açar
+export const STAFF = { key: 'personel', email: 'depo@uat.test', name: 'Deniz Depo' };
 
 // Bayiler: key → oturum dosyası adı. netDiscount: tüm liste fiyatlarına uygulanan iskonto (%)
 export const DEALERS = {

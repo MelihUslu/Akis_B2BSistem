@@ -1,11 +1,11 @@
 import { useEffect, useMemo, useState } from 'react';
-import { useNavigate } from 'react-router-dom';
-import { Search, ShoppingCart, History, FileText, LogOut, Store, TrendingUp, Award, AlertTriangle, Phone } from 'lucide-react';
+import { Link, useNavigate } from 'react-router-dom';
+import { Search, ShoppingCart, History, FileText, Store, TrendingUp, Award, AlertTriangle, Phone, UserRound, ChevronRight } from 'lucide-react';
 import api from '../../services/api';
-import { useAuth } from '../../context/AuthContext';
 import { startActing } from '../../utils/acting';
 import { formatMoney, formatTRY, formatDate } from '../../utils/format';
-import TenantBrand from '../../components/TenantBrand';
+import PlasiyerHeader from '../../components/plasiyer/PlasiyerHeader';
+import { useTenant } from '../../context/TenantContext';
 
 /**
  * Plasiyer (saha satış) ana sayfası: sorumlu olduğu bayiler, bakiyeleri ve prim özeti.
@@ -20,7 +20,7 @@ const Stat = ({ icon: Icon, label, value, sub }) => (
 );
 
 const PlasiyerHome = () => {
-  const { user, logout } = useAuth();
+  const { tenant } = useTenant();
   const navigate = useNavigate();
   const [dealers, setDealers] = useState(null);
   const [summary, setSummary] = useState(null);
@@ -45,24 +45,24 @@ const PlasiyerHome = () => {
 
   return (
     <div className="min-h-screen bg-navy-50 text-gray-900 pb-16">
-      <header className="sticky top-0 z-30 bg-navy-900 text-white">
-        <div className="max-w-5xl mx-auto px-4 h-16 flex items-center justify-between gap-3">
-          <div className="min-w-0 truncate"><TenantBrand textClass="text-white !text-base" onDark /></div>
-          <div className="flex items-center gap-3 min-w-0">
-            <div className="text-right min-w-0">
-              <p className="text-sm font-bold truncate">{user?.name}</p>
-              <p className="text-[11px] font-bold text-brand-300 uppercase tracking-wider">Plasiyer</p>
-            </div>
-            <button onClick={() => { logout(); navigate('/login'); }} className="p-2 rounded-xl text-white/70 hover:text-white hover:bg-white/10" aria-label="Çıkış yap" title="Çıkış yap"><LogOut className="h-5 w-5" /></button>
-          </div>
-        </div>
-      </header>
+      <PlasiyerHeader />
 
       <main className="max-w-5xl mx-auto px-4 pt-6 space-y-6">
         <div>
           <h1 className="text-2xl md:text-3xl font-black tracking-tight">Bayilerim</h1>
           <p className="text-sm text-gray-500 mt-1">Bir bayi seçip onun adına sipariş verin; sipariş bayinin fiyatları ve limitiyle oluşur, bayiye bildirim gider.</p>
         </div>
+
+        {tenant?.modules?.hr && (
+          <Link to="/plasiyer/personel" className="flex items-center gap-3 bg-white rounded-2xl border border-gray-100 p-4 hover:border-brand-200 hover:bg-brand-50/40 transition-colors">
+            <span className="h-10 w-10 shrink-0 rounded-xl bg-brand-50 flex items-center justify-center"><UserRound className="h-5 w-5 text-brand-600" /></span>
+            <span className="flex-1 min-w-0">
+              <span className="block text-sm font-black text-gray-900">Personel Alanım</span>
+              <span className="block text-xs text-gray-500 truncate">İzin, masraf ve avans talepleri, hedef ve prim, şirket duyuruları</span>
+            </span>
+            <ChevronRight className="h-4 w-4 text-gray-400" />
+          </Link>
+        )}
 
         {summary && (
           <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">

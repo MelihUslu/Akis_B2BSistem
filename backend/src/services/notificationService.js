@@ -89,7 +89,8 @@ export const notifyAdmins = async (payload) => {
   const admins = await prisma.user.findMany({ where: { role: 'ADMIN', isActive: true }, select: { ...USER_FIELDS, isOwner: true, permissions: true } });
   // anyPermission: yetkilerden biri yeterli (örn. rapor: sipariş ya da finans)
   const needed = payload.anyPermission || [TYPE_PERMISSION[payload.type]].filter(Boolean);
-  const allowed = admins.filter((u) => !needed.length || u.isOwner || (Array.isArray(u.permissions) && needed.some((p) => u.permissions.includes(p))));
+  const allowed = admins.filter((u) => u.id !== payload.excludeUserId // excludeUserId: işlemi yapan kişi (kendi talebi için bildirim almaz)
+    && (!needed.length || u.isOwner || (Array.isArray(u.permissions) && needed.some((p) => u.permissions.includes(p)))));
   await deliver(withKeys(allowed, payload.dedupeKey), payload);
 };
 

@@ -9,6 +9,8 @@ import {
 } from 'recharts';
 import api from '../../services/api';
 import { useAuth } from '../../context/AuthContext';
+import { hasAnyPermission } from '../../utils/permissions';
+import StaffWelcome from '../../components/admin/StaffWelcome';
 import { formatTRY, formatDate, ORDER_STATUS, formatMoney } from '../../utils/format';
 import ModalHeader from '../../components/shared/ModalHeader';
 
@@ -44,12 +46,16 @@ const AdminDashboardHome = () => {
   const [error, setError] = useState(null);
   const [selectedOrder, setSelectedOrder] = useState(null);
 
+  const limited = !hasAnyPermission(user);
+
   useEffect(() => {
+    if (limited) return;
     api.get('/dashboard')
       .then((res) => setData(res.data))
       .catch(() => setError('Panel verileri yüklenemedi.'));
-  }, []);
+  }, [limited]);
 
+  if (limited) return <StaffWelcome user={user} />;
   if (error) return <div className="p-10 text-center text-red-500 font-bold">{error}</div>;
   if (!data) return <div className="p-10 text-center text-gray-400">Yükleniyor...</div>;
 

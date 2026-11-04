@@ -4,7 +4,7 @@
  *   docker exec -w /app akis_uat_backend node /uat/seed.mjs
  */
 import { createRequire } from 'module';
-import { TENANT, OTHER_TENANT, PASSWORD, ADMIN, PLASIYER, DEALERS, OTHER_DEALER, PRODUCTS, PICKUP } from './data.mjs';
+import { TENANT, OTHER_TENANT, PASSWORD, ADMIN, PLASIYER, STAFF, DEALERS, OTHER_DEALER, PRODUCTS, PICKUP } from './data.mjs';
 
 // Paketler backend'in node_modules klasöründen yüklenir (betik uat/ altında durur)
 const require = createRequire('/app/package.json');
@@ -27,11 +27,13 @@ const main = async () => {
   const t = await tenant(TENANT, 'UAT Hırdavat A.Ş.');
   await prisma.user.create({ data: { tenantId: t.id, email: ADMIN.email, password, name: ADMIN.name, role: 'ADMIN', isOwner: true, emailVerifiedAt: new Date() } });
   const plasiyer = await prisma.user.create({ data: { tenantId: t.id, email: PLASIYER.email, password, name: PLASIYER.name, role: 'PLASIYER', emailVerifiedAt: new Date() } });
+  const staff = await prisma.user.create({ data: { tenantId: t.id, email: STAFF.email, password, name: STAFF.name, role: 'ADMIN', permissions: [], emailVerifiedAt: new Date() } });
   const admin = await prisma.user.findFirst({ where: { tenantId: t.id, email: ADMIN.email } });
   // Senaryoların oturumları için kullanıcı kimlikleri (run.sh günlükten okur; global-setup oturum anahtarını imzalar)
   const sessions = [
     { key: 'admin', id: admin.id, name: admin.name, email: admin.email, role: 'ADMIN', companyId: null, isOwner: true },
-    { key: 'plasiyer', id: plasiyer.id, name: plasiyer.name, email: plasiyer.email, role: 'PLASIYER', companyId: null, isOwner: false }
+    { key: 'plasiyer', id: plasiyer.id, name: plasiyer.name, email: plasiyer.email, role: 'PLASIYER', companyId: null, isOwner: false },
+    { key: STAFF.key, id: staff.id, name: staff.name, email: staff.email, role: 'ADMIN', companyId: null, isOwner: false }
   ];
 
   let tax = 1000000000;

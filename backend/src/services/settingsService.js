@@ -23,6 +23,7 @@ export const SETTING_DEFAULTS = {
   shipping_free_over: '0',      // Bu KDV hariç sepet tutarı ve üstünde kargo ücretsiz (0 = eşik yok)
   auto_approve: 'false',        // Limiti yeten, stoktaki cari hesaplı siparişler otomatik onaylansın
   auto_approve_max: '0',        // Otomatik onayın üst sınırı (KDV dahil TL; 0 = sınırsız)
+  hr_enabled: 'false',          // Personel yönetimi modülü (izin, masraf / avans, hedef ve prim, duyurular)
   usd_try: '',                  // TCMB'ye ulaşılamazsa kullanılacak manuel kurlar
   eur_try: ''
 };
