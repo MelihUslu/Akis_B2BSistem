@@ -1,6 +1,6 @@
 import express from 'express';
 import {
-  register, login, handoffLogin, getMe, changePassword, listUsers,
+  register, login, handoffLogin, googleLogin, getMe, changePassword, listUsers,
   verifyTwoFactorLogin, forgotPassword, resetPassword, getNotificationPrefs, saveNotificationPrefs, twoFactorStatus, twoFactorSetup, twoFactorEnable, twoFactorDisable
 } from '../controllers/authController.js';
 import { verifyToken, checkRole, requirePermission, blockImpersonation } from '../middlewares/authMiddleware.js';
@@ -9,6 +9,7 @@ import { rateLimit } from '../middlewares/rateLimit.js';
 const router = express.Router();
 
 router.post('/handoff', rateLimit({ windowMs: 15 * 60 * 1000, max: 20 }), handoffLogin);
+router.post('/google', rateLimit({ windowMs: 15 * 60 * 1000, max: 20 }), googleLogin);
 router.post('/login', rateLimit({ windowMs: 15 * 60 * 1000, max: 20, message: 'Çok fazla giriş denemesi. 15 dakika sonra tekrar deneyin.' }), login);
 router.post('/forgot-password', rateLimit({ windowMs: 15 * 60 * 1000, max: 5, message: 'Çok fazla deneme. 15 dakika sonra tekrar deneyin.' }), forgotPassword);
 router.post('/reset-password', rateLimit({ windowMs: 15 * 60 * 1000, max: 10 }), resetPassword);

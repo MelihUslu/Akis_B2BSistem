@@ -4,6 +4,7 @@ import { getLang } from '../i18n';
 import { actingHeader } from '../utils/acting';
 
 const baseURL = import.meta.env.VITE_API_URL || 'http://localhost:5001/api';
+export const API_BASE = baseURL;
 
 // ─── Kiracı API'si (admin + bayi) ────────────────────────────────────────────
 const api = axios.create({ baseURL });

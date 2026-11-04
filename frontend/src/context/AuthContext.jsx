@@ -66,6 +66,19 @@ export const AuthProvider = ({ children }) => {
     }
   };
 
+  // Google'dan dönen bilet bu portaldaki hesaba çevrilir; yanıt şifreli girişle aynıdır
+  const loginWithGoogle = async (ticket) => {
+    try {
+      const response = await api.post('/auth/google', { ticket });
+      if (response.data.twoFactorRequired) return { success: false, twoFactorRequired: true, challenge: response.data.challenge };
+      startSession(response.data);
+      return { success: true };
+    } catch (error) {
+      const data = error.response?.data || {};
+      return { success: false, message: data.message || 'Giriş başarısız oldu.', email: data.email };
+    }
+  };
+
   const verifyTwoFactor = async (challenge, code) => {
     try {
       const response = await api.post('/auth/2fa/verify', { challenge, code });
@@ -86,7 +99,7 @@ export const AuthProvider = ({ children }) => {
   };
 
   return (
-    <AuthContext.Provider value={{ user, login, loginWithHandoff, verifyTwoFactor, startSession, logout }}>
+    <AuthContext.Provider value={{ user, login, loginWithHandoff, loginWithGoogle, verifyTwoFactor, startSession, logout }}>
       {children}
     </AuthContext.Provider>
   );

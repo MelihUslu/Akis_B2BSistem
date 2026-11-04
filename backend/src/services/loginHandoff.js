@@ -14,8 +14,9 @@ const TTL_SECONDS = 120;
 
 export class HandoffError extends Error {}
 
-export const issueHandoff = (user) =>
-  jwt.sign({ typ: 'login-handoff', uid: user.id, tenantId: user.tenantId, jti: crypto.randomBytes(12).toString('hex') }, JWT_SECRET, { expiresIn: TTL_SECONDS });
+// via: girişin nasıl yapıldığı (işlem kaydında görünür), ör. 'Google'
+export const issueHandoff = (user, via) =>
+  jwt.sign({ typ: 'login-handoff', uid: user.id, tenantId: user.tenantId, ...(via && { via }), jti: crypto.randomBytes(12).toString('hex') }, JWT_SECRET, { expiresIn: TTL_SECONDS });
 
 export const consumeHandoff = async (code, tenantId) => {
   let payload;
@@ -27,5 +28,5 @@ export const consumeHandoff = async (code, tenantId) => {
   if (payload.typ !== 'login-handoff' || payload.tenantId !== tenantId) throw new HandoffError('Giriş bağlantısı bu portala ait değil.');
   const ttl = Math.max(1000, payload.exp * 1000 - Date.now());
   if (!(await markOnce(`handoff:${payload.jti}`, ttl))) throw new HandoffError('Bu giriş bağlantısı daha önce kullanıldı. Lütfen tekrar giriş yapın.');
-  return payload.uid;
+  return { uid: payload.uid, via: payload.via || null };
 };

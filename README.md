@@ -114,6 +114,16 @@ frontend/src
 - **Güvenlik başlıkları:** API `helmet` ile sıkı içerik politikası, iframe engeli ve `nosniff` döndürür; arayüz başlıkları ters vekilde (aşağıdaki Caddy örneği) verilir. Görsel olmayan yüklemeler indirme olarak sunulur.
 - **Şifre sıfırlama ve oturumlar:** "Şifremi unuttum" bağlantısı tek kullanımlık ve 1 saat geçerlidir (yalnızca özeti saklanır). Şifre değişince o kullanıcının diğer cihazlardaki oturumları kapanır.
 
+### Google ile giriş
+
+Firma girişi (`firma.akisb2b.com/login`, özel alan adı) ve ortak giriş (`/giris`) ekranlarında "Google ile giriş yap" düğmesi çıkar (`GOOGLE_CLIENT_ID` ve `GOOGLE_CLIENT_SECRET` tanımlıysa). Platform paneli girişinde yoktur.
+
+- **Hesap eşleşmesi:** Google'ın doğruladığı e-posta, portaldaki kullanıcının e-postasıyla eşleşir. Google ile yeni hesap açılmaz; yönetici bayiyi / ekip üyesini o e-postayla tanımlamış olmalıdır. Doğrulama bekleyen e-posta Google girişiyle doğrulanmış sayılır.
+- **Kontroller şifreli girişle aynıdır:** pasif hesap, abonelik, bayi durumu; iki aşamalı doğrulama açıksa kod yine istenir.
+- **Akış:** firmalar farklı adreslerde çalıştığı için yönlendirmeli akış kullanılır; tek dönüş adresi API'dedir. Giriş sayfası → `/api/public/google/start` → Google → `/api/public/google/callback` → giriş sayfası (`#google=<bilet>`). Bilet 2 dakika geçerli, tek kullanımlıktır ve yalnızca başlatıldığı portalda geçer; dönüş, girişi başlatan tarayıcıya çerezle bağlıdır. Ortak girişte e-posta birden fazla portalda kayıtlıysa portal seçtirilir.
+- **Kurulum (Google Cloud Console):** API'ler ve Hizmetler → OAuth izin ekranı (Harici; kapsamlar: `openid`, `email`, `profile`) → Kimlik bilgileri → OAuth istemci kimliği, tür "Web uygulaması". **Yetkilendirilmiş yönlendirme URI'si:** `https://api.akisb2b.com/api/public/google/callback` (geliştirmede `http://localhost:5001/api/public/google/callback`; adres `API_PUBLIC_URL` + `/api/public/google/callback`). JavaScript kaynağı gerekmez. İstemci kimliği ve gizli anahtar `backend/.env`'e yazılır.
+- Kodu: `services/googleAuth.js`, testleri: `test/integration/google.test.js` (Google'ın token ucu taklit edilir).
+
 ### KVKK: veri dışa aktarma ve hesap kapatma
 
 - Firma, Ayarlar → Veri & Hesap'tan tüm verisini Excel olarak indirebilir.
@@ -205,6 +215,7 @@ Firma, Ayarlar → Entegrasyon'dan API anahtarı üretir. `/api/v1` uçları ile
 | `PARASUT_*`, `SUBSCRIPTION_VAT_RATE` | | Platformun abonelik faturaları (Paraşüt) |
 | `TZ` | | Tarih filtreleri ve raporların saat dilimi (varsayılan `Europe/Istanbul`) |
 | `VAPID_PUBLIC_KEY`, `VAPID_PRIVATE_KEY`, `VAPID_SUBJECT` | | Telefon / masaüstü bildirimi (`npx web-push generate-vapid-keys`) |
+| `GOOGLE_CLIENT_ID`, `GOOGLE_CLIENT_SECRET` | | Google ile giriş (OAuth istemcisi, "Web uygulaması"). İkisi de boşsa düğme görünmez. Kurulum: yukarıda "Google ile giriş" |
 | `AI_PROVIDER`, `AI_API_KEY`, `AI_MODEL`, `AI_EFFORT`, `AI_TIMEOUT_MS`, `AI_DAILY_LIMIT` | | Yapay zekâ ile teklif. Anahtar yoksa manuel teklif çalışır; `mock` yalnızca geliştirme içindir |
 | `BACKUP_DIR` | | Sistem Durumu'nun son yedeği okuduğu klasör (Compose'da `/backups`) |
 | `FX_FIXED` | yalnızca test | Sabit döviz kuru (`USD:40,EUR:45`); canlıda tanımlanırsa sunucu açılmaz |

@@ -69,6 +69,7 @@ Platform sahibinin paneli zamanla şu sayfalara ulaştı:
 ## Kayıt ve giriş
 
 - **Ayrı kayıt ve giriş sayfaları** (`cfe7ff9`): `/kayit` paket seçimli ücretsiz deneme kaydı. `/giris` ortak giriştir: e-posta ve şifreyle kullanıcının portalı bulunur, tek kullanımlık ve 2 dakika geçerli, firmaya bağlı bir kodla portalda (`/giris-aktar`) oturum açılır. Birden çok portalı olan hesap portal seçer; portal adresi e-postayla gönderilebilir.
+- **Google ile giriş** (4 Kasım): firma girişinde ve ortak girişte "Google ile giriş yap" düğmesi. Google'ın doğruladığı e-posta portaldaki hesapla eşleşir; Google ile yeni hesap açılmaz. İki aşamalı doğrulama ve diğer kontroller aynen uygulanır. Firmalar farklı adreslerde çalıştığı için yönlendirmeli akış kullanılır; tek dönüş adresi API'dedir. Dönüş bileti tek kullanımlık, 2 dakika geçerlidir ve girişi başlatan tarayıcıya bağlıdır. `GOOGLE_CLIENT_ID` / `GOOGLE_CLIENT_SECRET` tanımlı değilse düğme görünmez. Platform paneli girişinde yoktur.
 - **Ortak görünüm** (`0d0028f`): giriş, şifremi unuttum, yeni şifre, e-posta doğrulama, iki aşamalı doğrulama ve platform girişi aynı çerçeveyi (`AuthShell`) kullanır. Firma girişi `/giris` ile aynı görünümdedir; eski mor tanıtım görseli ve işlevsiz "Beni hatırla" kutusu kaldırıldı.
 
 ## Özel alan adı

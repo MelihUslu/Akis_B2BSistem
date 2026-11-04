@@ -5,7 +5,7 @@ import { checkConfig } from '../../src/services/configCheck.js';
 const withEnv = (vars, fn) => {
   const saved = { ...process.env };
   try {
-    for (const k of ['JWT_SECRET', 'ENCRYPTION_KEY', 'ROOT_DOMAIN', 'FRONTEND_PROTOCOL', 'FRONTEND_PORT', 'API_PUBLIC_URL', 'AI_PROVIDER', 'AI_API_KEY', 'ANTHROPIC_API_KEY', 'FX_FIXED', 'SMTP_HOST', 'SEED_DEMO']) delete process.env[k];
+    for (const k of ['JWT_SECRET', 'ENCRYPTION_KEY', 'ROOT_DOMAIN', 'FRONTEND_PROTOCOL', 'FRONTEND_PORT', 'API_PUBLIC_URL', 'AI_PROVIDER', 'AI_API_KEY', 'ANTHROPIC_API_KEY', 'FX_FIXED', 'SMTP_HOST', 'SEED_DEMO', 'GOOGLE_CLIENT_ID', 'GOOGLE_CLIENT_SECRET', 'GOOGLE_TOKEN_URL']) delete process.env[k];
     Object.assign(process.env, vars);
     return fn();
   } finally {
@@ -36,3 +36,16 @@ test('geliştirmede eksik ayarlar yalnızca uyarıdır', () => withEnv({ NODE_EN
   assert.equal(r.errors.length, 0);
   assert.ok(r.warnings.length > 0);
 }));
+
+test('Google ile giriş: iki anahtar birlikte gerekir, test token adresi canlıda hatadır', () => {
+  withEnv({ ...good, GOOGLE_CLIENT_ID: 'id.apps.googleusercontent.com' }, () => {
+    const r = checkConfig();
+    assert.equal(r.items.find((i) => i.key === 'GOOGLE').ok, false);
+    assert.ok(r.warnings.some((w) => w.includes('GOOGLE_CLIENT_SECRET')));
+  });
+  withEnv({ ...good, GOOGLE_CLIENT_ID: 'id', GOOGLE_CLIENT_SECRET: 's', GOOGLE_TOKEN_URL: 'http://127.0.0.1/token' }, () => {
+    const r = checkConfig();
+    assert.equal(r.items.find((i) => i.key === 'GOOGLE').ok, true);
+    assert.ok(r.errors.some((e) => e.includes('GOOGLE_TOKEN_URL')));
+  });
+});

@@ -32,6 +32,7 @@ Dış servise ya da fiziksel çıktıya bağlı oldukları için otomatik testle
 - [ ] **Yazdırma:** sipariş, irsaliye, teklif PDF'i, makbuz, ekstre, kargo etiketi.
 - [ ] **İngilizce portal:** bayi dili EN iken ekranlar ve e-postalar.
 - [ ] **Özel alan adı:** firmanın kendi alan adıyla açılış (DNS gerekir).
+- [ ] **Google ile giriş:** Google Cloud'da OAuth istemcisi ve yönlendirme adresi tanımlandıktan sonra gerçek Google hesabıyla, firma girişinde ve `/giris`'te.
 - [ ] **Barkod okutma:** gerçek telefon kamerasıyla, https adresinde.
 
 ## Bilinen sınırlar
@@ -55,11 +56,12 @@ Kullanıcıların fark edeceği değişiklikler, duyurulmalı:
 - Veritabanı migration'ları: `npx prisma migrate deploy` (son migration `20261126120000_b2b_eksikleri`; tekliften gelen mevcut siparişlere kanal, kargoya verilmiş siparişlerin kalemlerine gönderilen miktar yazılır).
 - Frontend bağımlılıkları: `npm ci` (yeni paket `@zxing/browser`).
 - `ENCRYPTION_KEY` bir kez belirlenir, sonra değiştirilmez; değişirse firmaların kayıtlı anahtarları çözülemez.
+- Google ile giriş için `GOOGLE_CLIENT_ID` / `GOOGLE_CLIENT_SECRET` (yönlendirme adresi: `https://api.akisb2b.com/api/public/google/callback`).
 - Push için `VAPID_*` anahtarları; uyarılar için `PLATFORM_ALERT_EMAIL` ve SMTP.
 - Adım adım: [`docs/canliya-cikis.md`](../canliya-cikis.md).
 
 ## Depo durumu
 
-- SaaS dönemine ait 63 commit `feature/saas-platform` dalındadır; `main` dalında yalnızca Mayıs sürümü var.
+- SaaS dönemine ait 65 commit `feature/saas-platform` dalındadır; `main` dalında yalnızca Mayıs sürümü var.
 - Dal henüz uzak depoya gönderilmedi. `main`'e birleştirme ve gönderim ayrıca kararlaştırılacak.
 - `.env`, `uploads/support`, `uploads/private` ve `backups` depoya girmez.

@@ -125,4 +125,9 @@ export default {
   'Bu ekstre için yanıt zaten verilmiş.': 'A response has already been given for this statement.',
   'İtirazınızın nedenini yazın.': 'Please describe the reason for your objection.',
   'İtirazınız iletildi; firma sizinle iletişime geçecek.': 'Your objection has been submitted; the supplier will contact you.',
+  // Google ile giriş
+  'Bu Google hesabının e-posta adresiyle bu portalda kayıtlı bir hesap yok.': 'There is no account in this portal with the email address of this Google account.',
+  'Google ile girişin süresi doldu. Lütfen tekrar deneyin.': 'Google sign-in has expired. Please try again.',
+  'Google ile giriş bu portala ait değil. Lütfen tekrar deneyin.': 'This Google sign-in does not belong to this portal. Please try again.',
+  'Bu Google girişi daha önce kullanıldı. Lütfen tekrar deneyin.': 'This Google sign-in has already been used. Please try again.',
 };

@@ -11,6 +11,7 @@ import { assertWithinLimit, LimitError } from '../services/limitService.js';
 import * as twoFactor from '../services/twoFactorService.js';
 import { audit, clientIp } from '../services/auditService.js';
 import { consumeHandoff, HandoffError } from '../services/loginHandoff.js';
+import { consumeTicket, GoogleLoginError } from '../services/googleAuth.js';
 
 // Oturum token'ı + istemciye dönen kullanıcı bilgisi
 const sessionFor = (user, tenantId) => ({
@@ -66,8 +67,9 @@ export const register = async (req, res) => {
   }
 };
 
-// Şifre (ya da ortak girişten gelen aktarım kodu) doğrulandıktan sonraki ortak kontroller ve oturum
-const finishLogin = async (req, res, user) => {
+// Şifre (ya da ortak girişten gelen aktarım kodu, Google bileti) doğrulandıktan sonraki ortak kontroller ve oturum.
+// via: işlem kaydında girişin nasıl yapıldığı (ör. 'Google')
+const finishLogin = async (req, res, user, via = null) => {
   if (!user.isActive) {
     return res.status(403).json({ message: 'Kullanıcı hesabınız devre dışı bırakılmış. Firma yöneticinizle iletişime geçin.' });
   }
@@ -99,7 +101,7 @@ const finishLogin = async (req, res, user) => {
   }
 
   await prisma.user.update({ where: { id: user.id }, data: { lastLoginAt: new Date() } });
-  if (user.role === 'ADMIN') audit({ tenantId: req.tenant.id, actorId: user.id, actorName: user.name, action: 'Giriş yapıldı', ip: clientIp(req) });
+  if (user.role === 'ADMIN') audit({ tenantId: req.tenant.id, actorId: user.id, actorName: user.name, action: via ? `Giriş yapıldı (${via})` : 'Giriş yapıldı', ip: clientIp(req) });
 
   res.status(200).json({ message: 'Giriş başarılı.', ...sessionFor(user, req.tenant.id) });
 };
@@ -194,13 +196,37 @@ export const listUsers = async (req, res) => {
 // Ortak giriş sayfasından (/giris) gelen tek kullanımlık kodla oturum açma
 export const handoffLogin = async (req, res) => {
   try {
-    const uid = await consumeHandoff(req.body?.code, req.tenant.id);
+    const { uid, via } = await consumeHandoff(req.body?.code, req.tenant.id);
     const user = await prisma.user.findFirst({ where: { id: uid }, include: { company: true } });
     if (!user) return res.status(401).json({ message: 'Kullanıcı bulunamadı.' });
-    return await finishLogin(req, res, user);
+    return await finishLogin(req, res, user, via);
   } catch (error) {
     if (error instanceof HandoffError) return res.status(401).json({ message: error.message });
     console.error('Handoff login error:', error);
+    res.status(500).json({ message: 'Giriş sırasında bir sunucu hatası oluştu.' });
+  }
+};
+
+/**
+ * Portalın giriş sayfasından başlatılan Google girişi: bilet (Google'ın doğruladığı e-posta) bu portaldaki hesaba
+ * çevrilir. Hesap yoksa açılmaz; yönetici bayiyi / ekip üyesini bu e-postayla tanımlamış olmalıdır.
+ * Google e-postayı doğruladığı için doğrulama bekleyen hesap doğrulanmış sayılır.
+ */
+export const googleLogin = async (req, res) => {
+  try {
+    const { email } = await consumeTicket(req.body?.ticket, req.tenant.slug);
+    let user = await prisma.user.findFirst({ where: { email }, include: { company: true } });
+    if (!user) {
+      audit({ tenantId: req.tenant.id, actorType: 'USER', actorName: email.slice(0, 100), action: 'Başarısız giriş denemesi (Google, hesap yok)', ip: clientIp(req) });
+      return res.status(401).json({ message: 'Bu Google hesabının e-posta adresiyle bu portalda kayıtlı bir hesap yok.', code: 'GOOGLE_NO_ACCOUNT', email });
+    }
+    if (user.emailVerifyToken) {
+      user = await prisma.user.update({ where: { id: user.id }, data: { emailVerifyToken: null, emailVerifiedAt: new Date() }, include: { company: true } });
+    }
+    return await finishLogin(req, res, user, 'Google');
+  } catch (error) {
+    if (error instanceof GoogleLoginError) return res.status(401).json({ message: error.message });
+    console.error('Google login error:', error);
     res.status(500).json({ message: 'Giriş sırasında bir sunucu hatası oluştu.' });
   }
 };

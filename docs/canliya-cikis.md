@@ -131,6 +131,7 @@ Bunlar kodda hazır, ancak gerçek hesap olmadan doğrulanamadı. Canlıya çık
 |---|---|---|
 | E-posta | `SMTP_*` | Şifremi unuttum → e-posta gelmeli; bir teklifi e-postayla gönderin |
 | Yapay zekâ ile teklif | `AI_API_KEY` | Teklifler → Yeni Teklif → gerçek ürünlerinizle bir talep yazın; önerileri kontrol edin |
+| Google ile giriş | `GOOGLE_CLIENT_*` | Firma girişinde ve `/giris`'te "Google ile giriş yap" → portalda kayıtlı e-postanın Google hesabıyla girin; kayıtlı olmayan bir Google hesabıyla girişin reddedildiğini görün |
 | Telefona bildirim | `VAPID_*`, HTTPS | Telefonda portalı açın → Uygulamayı Yükle → bildirim izni → bilgisayardan siparişi onaylayın |
 | Sanal POS | firmanın iyzico/PayTR hesabı | Bayi olarak küçük bir tutarla kartla ödeyin; cariye işlendiğini görün |
 | Abonelik tahsilatı | `IYZICO_*` (canlı) | Deneme firmasıyla paket satın alın; Paketler → iyzico eşlemesini yapın |

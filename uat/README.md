@@ -62,6 +62,7 @@ Aşağıdakiler dış servise ya da fiziksel çıktıya bağlı olduğu için ot
 - **Yazdırma:** sipariş, teklif PDF'i, makbuz, ekstre ve kargo etiketi çıktısı.
 - **İngilizce portal:** bayi dili EN seçince ekranlar ve e-postalar.
 - **Özel alan adı:** firmanın kendi alan adıyla açılış (DNS gerektirir).
+- **Google ile giriş:** firma girişinde ve ortak girişte (`/giris`), gerçek bir Google hesabıyla (Google Cloud'da OAuth istemcisi ve yönlendirme adresi tanımlı olmalı).
 - **Barkod okutma:** Hızlı Sipariş'te gerçek telefon kamerasıyla (https adresinde; tarayıcı kamera izni ister).
 - **İrsaliye:** irsaliye numarası elle ya da ERP'den girilir ve fiyatsız irsaliye yazdırılır. GİB'e elektronik irsaliye (e-İrsaliye) gönderimi entegre değildir; e-İrsaliye mükellefi firmalar irsaliyeyi ERP / muhasebe programından düzenler.
 

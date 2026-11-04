@@ -56,6 +56,11 @@ export const checkConfig = () => {
   if (workers > 1 && parseInt(env('DB_POOL_SIZE')) * workers > 90) warnings.push(`Toplam veritabanı bağlantısı ${workers} × ${env('DB_POOL_SIZE')} = ${workers * parseInt(env('DB_POOL_SIZE'))}; PostgreSQL max_connections (varsayılan 100) aşılabilir.`);
   if (!vapid) warnings.push('VAPID anahtarları yok: telefona / masaüstüne anlık bildirim gönderilemez (npx web-push generate-vapid-keys).');
 
+  const google = Boolean(env('GOOGLE_CLIENT_ID') && env('GOOGLE_CLIENT_SECRET'));
+  add('GOOGLE', 'Google ile giriş', google, google ? null : 'giriş ekranlarında Google düğmesi görünmez');
+  if (Boolean(env('GOOGLE_CLIENT_ID')) !== Boolean(env('GOOGLE_CLIENT_SECRET'))) warnings.push('Google ile giriş için GOOGLE_CLIENT_ID ve GOOGLE_CLIENT_SECRET birlikte verilmeli; biri eksikken Google düğmesi görünmez.');
+  if (production && env('GOOGLE_TOKEN_URL')) errors.push('GOOGLE_TOKEN_URL yalnızca testler içindir; canlıda tanımlanmamalı.');
+
   const aiProvider = (env('AI_PROVIDER') || 'anthropic').toLowerCase();
   const ai = aiProvider === 'mock' ? !production : Boolean(env('AI_API_KEY') || env('ANTHROPIC_API_KEY'));
   add('AI', 'Yapay zekâ ile teklif', ai, aiProvider === 'mock' ? 'örnek (mock) mod' : ai ? null : 'AI_API_KEY yok — teklifler manuel hazırlanır');

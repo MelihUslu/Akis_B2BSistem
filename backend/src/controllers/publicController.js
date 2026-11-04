@@ -1,9 +1,10 @@
 import bcrypt from 'bcrypt';
 import crypto from 'crypto';
 import prisma from '../utils/prisma.js';
-import { RESERVED_SLUGS, ROOT_DOMAIN, isRootHost, tenantUrl, tenantPortalUrl } from '../config.js';
+import { RESERVED_SLUGS, ROOT_DOMAIN, API_PUBLIC_URL, isRootHost, rootUrl, tenantUrl, tenantPortalUrl } from '../config.js';
 import { loadTenantByHost } from '../middlewares/tenantMiddleware.js';
 import { issueHandoff } from '../services/loginHandoff.js';
+import { googleEnabled, googleAuthUrl, peekStatePortal, readState, exchangeCode, issueTicket, consumeTicket, GoogleLoginError } from '../services/googleAuth.js';
 import { audit, clientIp } from '../services/auditService.js';
 import { sendVerificationMail, sendPlatformAlert, sendPortalListMail } from '../services/mailService.js';
 import * as iyzico from '../services/iyzicoService.js';
@@ -56,25 +57,78 @@ export const portalLookup = async (req, res) => {
  */
 const ROLE_LABELS = { ADMIN: 'Yönetici', BAYI: 'Bayi', PLASIYER: 'Plasiyer' };
 const DUMMY_HASH = '$2b$10$CwTycUXWue0Thq9StjUM0uJ8.Lr0nB8v4G0Jk5wJ0F0eQkqzYz1y6';
+const portalAccounts = (email) => prisma.user.findMany({
+  where: { email, tenantId: { not: null }, role: { in: Object.keys(ROLE_LABELS) } },
+  include: { tenant: true }, take: 10
+});
+const portalEntry = (user, via) => ({ name: user.tenant.name, slug: user.tenant.slug, url: tenantPortalUrl(user.tenant), role: ROLE_LABELS[user.role], code: issueHandoff(user, via) });
 export const centralLogin = async (req, res) => {
   const email = String(req.body?.email || '').toLowerCase().trim().slice(0, 160);
   const password = String(req.body?.password || '');
   if (!email || !password) return res.status(400).json({ message: 'E-posta ve şifrenizi yazın.' });
-  const users = await prisma.user.findMany({
-    where: { email, tenantId: { not: null }, role: { in: Object.keys(ROLE_LABELS) } },
-    include: { tenant: true }, take: 10
-  });
+  const users = await portalAccounts(email);
   if (!users.length) await bcrypt.compare(password, DUMMY_HASH); // hesap yoksa da yanıt süresi benzer olsun
   const portals = [];
   for (const user of users) {
     if (await bcrypt.compare(password, user.password)) {
-      portals.push({ name: user.tenant.name, slug: user.tenant.slug, url: tenantPortalUrl(user.tenant), role: ROLE_LABELS[user.role], code: issueHandoff(user) });
+      portals.push(portalEntry(user));
     } else {
       audit({ tenantId: user.tenantId, actorType: 'USER', actorId: user.id, actorName: email.slice(0, 100), action: 'Başarısız giriş denemesi (ortak giriş)', ip: clientIp(req) });
     }
   }
   if (!portals.length) return res.status(401).json({ message: 'Geçersiz e-posta veya şifre.' });
   res.json({ portals });
+};
+
+// ─── Google ile giriş (akış: services/googleAuth.js) ─────────────────────────
+const GOOGLE_COOKIE = 'akis_g';
+const googleCookie = (value, maxAge) =>
+  `${GOOGLE_COOKIE}=${value}; Path=/api/public/google; Max-Age=${maxAge}; HttpOnly; SameSite=Lax${API_PUBLIC_URL.startsWith('https:') ? '; Secure' : ''}`;
+const readCookie = (req, name) =>
+  (req.headers.cookie || '').split(';').map((s) => s.trim()).find((s) => s.startsWith(`${name}=`))?.slice(name.length + 1) || '';
+
+// Google girişinin başlatıldığı sayfa: portal verildiyse o portalın girişi, yoksa ortak giriş. Adres istekten
+// değil firma kaydından üretilir (dışarıdan verilen adrese yönlendirme yapılmaz).
+const googleBack = async (portal) => {
+  const slug = normalizeSlug(portal);
+  const tenant = slug && SLUG_RE.test(slug) ? await prisma.tenant.findUnique({ where: { slug } }) : null;
+  return tenant ? { portal: tenant.slug, url: `${tenantPortalUrl(tenant)}/login` } : { portal: null, url: `${rootUrl()}/giris` };
+};
+
+export const googleStart = async (req, res) => {
+  const back = await googleBack(req.query.portal);
+  if (!googleEnabled()) return res.redirect(`${back.url}#google_error=disabled`);
+  const { url, nonce, maxAge } = googleAuthUrl({ portal: back.portal });
+  res.setHeader('Set-Cookie', googleCookie(nonce, maxAge));
+  res.redirect(url);
+};
+
+export const googleCallback = async (req, res) => {
+  const back = await googleBack(peekStatePortal(req.query.state));
+  res.setHeader('Set-Cookie', googleCookie('', 0));
+  const fail = (code) => res.redirect(`${back.url}#google_error=${code}`);
+  try {
+    if (req.query.error) return fail(req.query.error === 'access_denied' ? 'cancelled' : 'failed');
+    const state = readState(req.query.state, readCookie(req, GOOGLE_COOKIE));
+    const identity = await exchangeCode(req.query.code, state.nonce);
+    res.redirect(`${back.url}#google=${encodeURIComponent(issueTicket(identity, back.portal))}`);
+  } catch (error) {
+    if (!(error instanceof GoogleLoginError)) console.error('Google login error:', error.message);
+    fail(error instanceof GoogleLoginError ? error.code : 'failed');
+  }
+};
+
+// Ortak girişte Google bileti: e-postanın kayıtlı olduğu portallar, şifreli girişteki gibi aktarım koduyla döner
+export const googlePortals = async (req, res) => {
+  try {
+    const { email } = await consumeTicket(req.body?.ticket, null);
+    const users = await portalAccounts(email);
+    if (!users.length) return res.status(404).json({ message: `${email} adresiyle kayıtlı bir portal hesabı yok. Firma yöneticinizden hesabınızı bu adresle açmasını isteyin ya da e-posta ve şifrenizle girin.`, email });
+    res.json({ email, portals: users.map((u) => portalEntry(u, 'Google')) });
+  } catch (error) {
+    if (error instanceof GoogleLoginError) return res.status(401).json({ message: error.message });
+    throw error;
+  }
 };
 
 // "Portal adresimi unuttum": adres e-postaya gönderilir; hesabın var olup olmadığı yanıtta belli edilmez

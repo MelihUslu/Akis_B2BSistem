@@ -5,6 +5,8 @@ import { publicApi, errorMessage } from '../../services/api';
 import { tenantUrl, ROOT_DOMAIN_LABEL } from '../../utils/tenant';
 import { PrimaryButton, Frame, IconField as Field, iconInput } from './landing/ui';
 import { SiteHeader, PageFooter } from './landing/layout';
+import GoogleButton from '../../components/auth/GoogleButton';
+import useGoogleReturn, { isGoogleReturn } from '../../hooks/useGoogleReturn';
 
 const PLATFORM_NAME = import.meta.env.VITE_PLATFORM_NAME || 'Akis B2B';
 const LAST_KEY = 'akis_last_portal';
@@ -33,7 +35,7 @@ const Login = ({ site }) => {
   const [portals, setPortals] = useState([]);
   const [slug, setSlug] = useState(params.get('portal') || '');
   const [last] = useState(() => read(LAST_KEY, true));
-  const [busy, setBusy] = useState(false);
+  const [busy, setBusy] = useState(isGoogleReturn);
   const [error, setError] = useState(null);
   const [sent, setSent] = useState(null);
 
@@ -46,15 +48,28 @@ const Login = ({ site }) => {
     try { await fn(); } catch (err) { setError(errorMessage(err, 'İşlem yapılamadı.')); } finally { setBusy(false); }
   };
 
+  // Tek portal varsa doğrudan geçilir, birden fazlaysa seçtirilir
+  const open = (data) => {
+    if (data.portals.length === 1) enter(data.portals[0]);
+    else { setPortals(data.portals); setMode('choose'); }
+  };
+
   const login = (e) => {
     e.preventDefault();
     run(async () => {
       const r = await publicApi.post('/login', { email, password });
       save(EMAIL_KEY, email.trim().toLowerCase());
-      if (r.data.portals.length === 1) enter(r.data.portals[0]);
-      else { setPortals(r.data.portals); setMode('choose'); }
+      open(r.data);
     });
   };
+
+  // Google'dan dönüş: bilet, e-postanın kayıtlı olduğu portallara çevrilir
+  useGoogleReturn((ticket) => run(async () => {
+    const r = await publicApi.post('/google/portals', { ticket });
+    save(EMAIL_KEY, r.data.email);
+    setEmail(r.data.email);
+    open(r.data);
+  }), setError);
 
   // Portal adresiyle: adres kontrol edilir, portalın giriş (ya da şifre sıfırlama) ekranına gidilir
   const goPortal = (value, page = mode === 'reset' ? 'forgot-password' : 'login') => run(async () => {
@@ -99,6 +114,7 @@ const Login = ({ site }) => {
                 <PrimaryButton type="submit" className="w-full" disabled={busy}>
                   {busy ? <Loader2 className="h-4 w-4 animate-spin" /> : <>Giriş yap <ArrowRight className="h-4 w-4" /></>}
                 </PrimaryButton>
+                {site?.googleLogin && <GoogleButton disabled={busy} />}
               </form>
               <div className="mt-6 pt-5 border-t border-slate-100 grid grid-cols-2 gap-2 text-[13px]">
                 <button type="button" onClick={() => to('portal')} className="h-10 rounded-xl bg-slate-50 font-semibold text-slate-600 hover:bg-slate-100 hover:text-slate-950">Portal adresiyle giriş</button>

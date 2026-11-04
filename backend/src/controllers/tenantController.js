@@ -5,6 +5,7 @@ import * as paytr from '../services/paytrService.js';
 import { API_PUBLIC_URL, tenantUrl, tenantPortalUrl } from '../config.js';
 import { tenantPosCreds } from '../services/tenantPosService.js';
 import { tenantAccess, invalidateTenantCache } from '../middlewares/tenantMiddleware.js';
+import { googleEnabled } from '../services/googleAuth.js';
 
 // Giriş ekranı için marka bilgisi (oturum gerektirmez)
 export const getPublicTenant = (req, res) => {
@@ -19,7 +20,8 @@ export const getPublicTenant = (req, res) => {
     address: t.address,
     taxNumber: t.taxNumber,
     taxOffice: t.taxOffice,
-    access: { active: access.active, reason: access.reason }
+    access: { active: access.active, reason: access.reason },
+    googleLogin: googleEnabled()
   });
 };
 

@@ -5,6 +5,8 @@ import { useNavigate, useLocation, Link } from 'react-router-dom';
 import { homeOf } from '../utils/roles';
 import { Mail, Lock, ArrowRight, LogIn, Loader2 } from 'lucide-react';
 import TwoFactorStep from '../components/TwoFactorStep';
+import GoogleButton from '../components/auth/GoogleButton';
+import useGoogleReturn, { isGoogleReturn } from '../hooks/useGoogleReturn';
 import AuthShell, { AuthNotice, AuthBelow } from '../components/auth/AuthShell';
 import { t } from '../i18n';
 import { PrimaryButton, IconField, iconInput } from './root/landing/ui';
@@ -23,8 +25,8 @@ const Login = () => {
     return notice || '';
   });
   const { tenant } = useTenant();
-  const [isLoading, setIsLoading] = useState(false);
-  const { login, verifyTwoFactor } = useAuth();
+  const [isLoading, setIsLoading] = useState(isGoogleReturn);
+  const { login, loginWithGoogle, verifyTwoFactor } = useAuth();
   // Ortak girişten (/giris-aktar) iki aşamalı doğrulama adımıyla gelinebilir
   const [challenge, setChallenge] = useState(useLocation().state?.challenge || null);
   const navigate = useNavigate();
@@ -33,6 +35,15 @@ const Login = () => {
     const user = JSON.parse(localStorage.getItem('akis_user') || '{}');
     navigate(homeOf(user.role));
   };
+
+  // Google'dan dönüş: bilet bu portaldaki hesaba çevrilir (iki aşamalı doğrulama açıksa kod adımı açılır)
+  useGoogleReturn(async (ticket) => {
+    const result = await loginWithGoogle(ticket);
+    setIsLoading(false);
+    if (result.success) goHome();
+    else if (result.twoFactorRequired) setChallenge(result.challenge);
+    else setError(result.email ? `${result.message} (${result.email})` : result.message);
+  }, setError);
 
   const handleSubmit = async (e) => {
     e.preventDefault();
@@ -79,6 +90,7 @@ const Login = () => {
           <PrimaryButton type="submit" className="w-full" disabled={isLoading}>
             {isLoading ? <Loader2 className="h-4 w-4 animate-spin" aria-label={t('Giriş Yapılıyor...')} /> : <>{t('Giriş Yap')} <ArrowRight className="h-4 w-4" /></>}
           </PrimaryButton>
+          {tenant?.googleLogin && <GoogleButton portal={tenant.slug} disabled={isLoading} />}
         </form>
       )}
     </AuthShell>

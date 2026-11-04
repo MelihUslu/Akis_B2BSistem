@@ -1,5 +1,5 @@
 import { homeOf } from '../utils/roles';
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 
@@ -7,13 +7,17 @@ import { useAuth } from '../context/AuthContext';
  * Ortak giriş sayfasından (kök alan adı /giris) yönlendirilen kullanıcı buraya gelir: tek kullanımlık kod adresin
  * # kısmındadır (sunucuya ve loglara gitmez), okunur okunmaz adresten silinir ve oturuma çevrilir.
  * İki aşamalı doğrulama gerekiyorsa giriş ekranında kod adımı açılır; hata olursa giriş ekranında gösterilir.
+ * Kod tek kullanımlıktır: StrictMode'un çift effect çağrısında ikinci istek reddedilip oturumu kapatmasın diye bir kez gönderilir.
  */
 const LoginHandoff = () => {
   const { loginWithHandoff, logout } = useAuth();
   const navigate = useNavigate();
   const [code] = useState(() => new URLSearchParams(window.location.hash.slice(1)).get('code'));
+  const done = useRef(false);
 
   useEffect(() => {
+    if (done.current) return;
+    done.current = true;
     window.history.replaceState(null, '', window.location.pathname);
     const fail = (message) => {
       sessionStorage.setItem('akis_login_notice', message);

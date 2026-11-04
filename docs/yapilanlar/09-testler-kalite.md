@@ -8,15 +8,16 @@
 
 | Dosya | Test | Ne doğrular |
 |---|---|---|
-| `test/unit/*` | 33 | Fiyat ve KDV hesabı, teklif, ayar kontrolü, tarih (gece yarısı), güvenlik, çeviri, push, yardım |
+| `test/unit/*` | 34 | Fiyat ve KDV hesabı, teklif, ayar kontrolü, tarih (gece yarısı), güvenlik, çeviri, push, yardım |
 | `integration/isolation` | 30 | Firmalar arası veri yalıtımı, eşzamanlı onay ve iade, toplu bildirim, oturum önbelleği |
 | `integration/quotes` | 18 | Teklif akışı, sürümler, onay sınırları, siparişe dönüşüm |
 | `integration/b2b` | 12 | Stok ayırma, bayi iptali, kargo ücreti, otomatik onay, süreli fiyat, görünürlük, kısmi sevkiyat, hedef, bayi adına sipariş, sepet |
+| `integration/google` | 8 | Google ile giriş: firma ve ortak giriş, tek kullanımlık bilet, tarayıcı bağı, iptal, doğrulanmamış e-posta, iki aşamalı doğrulama |
 | `integration/site` | 7 | Tanıtım sitesi, sohbet, talepler |
 | `integration/monitoring` | 7 | İzleme kayıtları ve uyarılar |
 | `integration/catalog` | 4 | Katalog sıralama ve filtreler |
 
-Paraşüt, Yurtiçi ve WhatsApp taklit sunucularla denenir. Entegrasyon testleri boş bir test veritabanında (`akis_test`) çalışır, verisini sonunda siler.
+Paraşüt, Yurtiçi, WhatsApp ve Google'ın token ucu taklit sunucularla denenir. Entegrasyon testleri boş bir test veritabanında (`akis_test`) çalışır, verisini sonunda siler.
 
 **İlk testlerin bulduğu hatalar:** KDV / toplamda kuruş yuvarlama hatası; başka firmanın ürününü güncelleme isteğinin 404 yerine farklı yanıt vermesi (`2a15af6`).
 

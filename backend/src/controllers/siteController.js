@@ -1,6 +1,7 @@
 import { basePrisma as db } from '../utils/prisma.js';
 import { publicSiteSettings, getSiteSettings, saveSiteSettings } from '../services/siteSettings.js';
 import { createSession, visitorMessage, submitContact, agentMessage, createFormLead, MAX_USER_MESSAGES } from '../services/chatbot.js';
+import { googleEnabled } from '../services/googleAuth.js';
 
 const EMAIL = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 const cleanUtm = (u) => (u && typeof u === 'object'
@@ -8,7 +9,7 @@ const cleanUtm = (u) => (u && typeof u === 'object'
   : undefined);
 
 // ─── Herkese açık (tanıtım sitesi) ───────────────────────────────────────────
-export const getPublicSite = async (req, res) => res.json(await publicSiteSettings());
+export const getPublicSite = async (req, res) => res.json({ ...(await publicSiteSettings()), googleLogin: googleEnabled() });
 
 const loadSession = async (req, res) => {
   const session = await db.chatSession.findUnique({ where: { id: String(req.params.id || '') } });

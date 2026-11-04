@@ -28,16 +28,16 @@ Bu klasör, projenin ilk commit'inden bugüne kadar yapılan işleri konu konu a
 | 27 Ekim | Modüller ve altyapı | 24 | Testler ve CI, raporlar, e-fatura, kargo, çoklu depo, ERP API dokümanı, izleme, yedekleme, TR/EN, PWA, cari hesaplar, akıllı teklif |
 | 28–29 Ekim | Katalog ve tanıtım | 8 | Yeni bayi kataloğu, tanıtım sitesi, sohbet botu, ayrı kayıt ve ortak giriş |
 | 2–3 Kasım | Satış, finans, ölçek | 21 | Müşteri adayları, WhatsApp, müşteri takip raporu, Gel-Al, gelir-gider, abonelik sayfası, yük testleri, UAT |
-| 4 Kasım | Kurumsal kimlik ve B2B eksikleri | 5 | Lacivert / bronz renkler, ortak giriş görünümü, plasiyer paneli, bayi adına sipariş, stok ayırma, kısmi sevkiyat |
+| 4 Kasım | Kurumsal kimlik ve B2B eksikleri | 7 | Lacivert / bronz renkler, ortak giriş görünümü, plasiyer paneli, bayi adına sipariş, stok ayırma, kısmi sevkiyat, bu belgeler, Google ile giriş |
 
 Mayıs ile Ekim arasında commit yoktur. SaaS dönüşümü 26 Ekim'de tek büyük commit olarak geldi (`b0613c5`, 226 dosya).
 
 ## Bugünkü durum (4 Kasım 2026)
 
-- **Kod:** 73 commit, 36 veritabanı migration'ı, backend ve frontend'de yaklaşık 330 kaynak dosyası.
+- **Kod:** 75 commit, 36 veritabanı migration'ı, backend ve frontend'de yaklaşık 330 kaynak dosyası.
 - **Roller:** platform sahibi, firma yöneticisi (ekip yetkileriyle), plasiyer, bayi.
-- **Testler:** 33 birim, 78 entegrasyon testi, 41 kullanıcı kabul testi (17 senaryo); hepsi geçiyor. Lint temiz, derleme sorunsuz.
-- **Dal:** SaaS dönemine ait 63 commit `feature/saas-platform` dalındadır. `main` dalında yalnızca Mayıs sürümü vardır. Dal henüz uzak depoya gönderilmedi.
+- **Testler:** 34 birim, 86 entegrasyon testi, 41 kullanıcı kabul testi (17 senaryo); hepsi geçiyor. Lint temiz, derleme sorunsuz.
+- **Dal:** SaaS dönemine ait 65 commit `feature/saas-platform` dalındadır. `main` dalında yalnızca Mayıs sürümü vardır. Dal henüz uzak depoya gönderilmedi.
 
 ## Diğer kaynaklar
 
