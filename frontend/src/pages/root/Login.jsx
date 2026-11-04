@@ -3,7 +3,7 @@ import { Link, useSearchParams } from 'react-router-dom';
 import { ArrowRight, Building2, ChevronRight, Clock, Loader2, Lock, LogIn, Mail, MailCheck, Store } from 'lucide-react';
 import { publicApi, errorMessage } from '../../services/api';
 import { tenantUrl, ROOT_DOMAIN_LABEL } from '../../utils/tenant';
-import { PrimaryButton, Frame } from './landing/ui';
+import { PrimaryButton, Frame, IconField as Field, iconInput } from './landing/ui';
 import { SiteHeader, PageFooter } from './landing/layout';
 
 const PLATFORM_NAME = import.meta.env.VITE_PLATFORM_NAME || 'Akis B2B';
@@ -17,16 +17,6 @@ const enter = (portal) => {
   save(LAST_KEY, { slug: portal.slug, name: portal.name });
   window.location.href = `${portal.url}/giris-aktar#code=${encodeURIComponent(portal.code)}`;
 };
-
-const Field = ({ icon: Icon, label, children }) => (
-  <div>
-    <label className="premium-label">{label}</label>
-    <div className="flex items-center bg-gray-50 rounded-2xl pr-4 focus-within:ring-2 focus-within:ring-indigo-100">
-      <Icon className="ml-4 h-4 w-4 shrink-0 text-slate-400" />
-      {children}
-    </div>
-  </div>
-);
 
 /**
  * Ortak giriş (/giris): e-posta + şifre doğrulanır, kullanıcı firmasının portalına oturumu açık olarak geçer.
@@ -89,7 +79,7 @@ const Login = ({ site }) => {
       <SiteHeader brand={brand} />
       <main className="max-w-md mx-auto px-4 pt-6 md:pt-14">
         <Frame inner="p-7 md:p-10">
-          <span className="h-12 w-12 rounded-2xl bg-[#0b1120] flex items-center justify-center shadow-md"><LogIn className="h-5 w-5 text-white" /></span>
+          <span className="h-12 w-12 rounded-2xl bg-navy-900 flex items-center justify-center shadow-md"><LogIn className="h-5 w-5 text-white" /></span>
 
           {mode === 'login' && (
             <>
@@ -97,13 +87,13 @@ const Login = ({ site }) => {
               <p className="mt-2 text-sm text-slate-500">Firma yöneticisi ya da bayi, portal hesabınızın e-posta ve şifresiyle girin.</p>
               <form onSubmit={login} className="mt-6 space-y-4">
                 <Field icon={Mail} label="E-posta">
-                  <input required type="email" autoComplete="email" autoFocus={!email} className="premium-input !bg-transparent !pl-3 !ring-0 !shadow-none !border-0 focus:!ring-0 focus:!shadow-none" value={email} onChange={(e) => setEmail(e.target.value)} placeholder="ornek@firma.com" />
+                  <input required type="email" autoComplete="email" autoFocus={!email} className={iconInput} value={email} onChange={(e) => setEmail(e.target.value)} placeholder="ornek@firma.com" />
                 </Field>
                 <Field icon={Lock} label="Şifre">
-                  <input required type="password" autoComplete="current-password" autoFocus={Boolean(email)} className="premium-input !bg-transparent !pl-3 !ring-0 !shadow-none !border-0 focus:!ring-0 focus:!shadow-none" value={password} onChange={(e) => setPassword(e.target.value)} />
+                  <input required type="password" autoComplete="current-password" autoFocus={Boolean(email)} className={iconInput} value={password} onChange={(e) => setPassword(e.target.value)} />
                 </Field>
                 <div className="flex justify-end -mt-1">
-                  <button type="button" onClick={() => to('reset')} className="text-xs font-semibold text-indigo-600 hover:underline">Şifremi unuttum</button>
+                  <button type="button" onClick={() => to('reset')} className="text-xs font-semibold text-brand-600 hover:underline">Şifremi unuttum</button>
                 </div>
                 {errorBox}
                 <PrimaryButton type="submit" className="w-full" disabled={busy}>
@@ -124,8 +114,8 @@ const Login = ({ site }) => {
               <div className="mt-6 space-y-2">
                 {portals.map((p) => (
                   <button key={p.slug} type="button" onClick={() => enter(p)}
-                    className="w-full flex items-center gap-3 rounded-2xl border border-slate-200 bg-white px-4 py-3 text-left hover:border-indigo-300 hover:bg-indigo-50/50 transition-colors">
-                    <span className="h-10 w-10 shrink-0 rounded-xl bg-indigo-50 text-indigo-600 text-xs font-black flex items-center justify-center">{p.name.split(' ').map((w) => w[0]).join('').slice(0, 2).toUpperCase()}</span>
+                    className="w-full flex items-center gap-3 rounded-2xl border border-slate-200 bg-white px-4 py-3 text-left hover:border-brand-300 hover:bg-brand-50/50 transition-colors">
+                    <span className="h-10 w-10 shrink-0 rounded-xl bg-brand-50 text-brand-600 text-xs font-black flex items-center justify-center">{p.name.split(' ').map((w) => w[0]).join('').slice(0, 2).toUpperCase()}</span>
                     <span className="flex-1 min-w-0">
                       <span className="block text-sm font-semibold text-slate-900 truncate">{p.name}</span>
                       <span className="block text-xs text-slate-500 truncate">{p.role} · {p.url.replace(/^https?:\/\//, '')}</span>
@@ -147,7 +137,7 @@ const Login = ({ site }) => {
                 <>
                   <p className="mt-6 text-[11px] font-bold uppercase tracking-wider text-slate-400">Son kullandığınız</p>
                   <button type="button" onClick={() => goPortal(last.slug)} disabled={busy}
-                    className="mt-2 w-full flex items-center gap-3 rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3 text-left hover:border-indigo-300 hover:bg-indigo-50/50 transition-colors">
+                    className="mt-2 w-full flex items-center gap-3 rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3 text-left hover:border-brand-300 hover:bg-brand-50/50 transition-colors">
                     <span className="h-9 w-9 shrink-0 rounded-xl bg-white ring-1 ring-slate-200 flex items-center justify-center"><Clock className="h-4 w-4 text-slate-500" /></span>
                     <span className="flex-1 min-w-0">
                       <span className="block text-sm font-semibold text-slate-900 truncate">{last.name || last.slug}</span>
@@ -159,7 +149,7 @@ const Login = ({ site }) => {
               )}
               <form onSubmit={(e) => { e.preventDefault(); goPortal(slug); }} className="mt-6 space-y-4">
                 <Field icon={Building2} label="Portal adresi">
-                  <input required autoFocus={!last?.slug} autoCapitalize="none" autoCorrect="off" spellCheck={false} className="premium-input !bg-transparent !pl-3 !ring-0 !shadow-none !border-0 focus:!ring-0 focus:!shadow-none" value={slug}
+                  <input required autoFocus={!last?.slug} autoCapitalize="none" autoCorrect="off" spellCheck={false} className={iconInput} value={slug}
                     onChange={(e) => { setSlug(e.target.value); setError(null); }} placeholder="firmaniz" />
                   <span className="text-sm font-bold text-slate-400 whitespace-nowrap">.{ROOT_DOMAIN_LABEL}</span>
                 </Field>
@@ -181,7 +171,7 @@ const Login = ({ site }) => {
               ) : (
                 <form onSubmit={sendList} className="mt-6 space-y-4">
                   <Field icon={Mail} label="E-posta">
-                    <input required autoFocus type="email" autoComplete="email" className="premium-input !bg-transparent !pl-3 !ring-0 !shadow-none !border-0 focus:!ring-0 focus:!shadow-none" value={email} onChange={(e) => setEmail(e.target.value)} />
+                    <input required autoFocus type="email" autoComplete="email" className={iconInput} value={email} onChange={(e) => setEmail(e.target.value)} />
                   </Field>
                   {errorBox}
                   <PrimaryButton type="submit" className="w-full" disabled={busy}>
@@ -194,9 +184,9 @@ const Login = ({ site }) => {
           )}
         </Frame>
         <div className="mt-5 rounded-2xl border border-dashed border-slate-300 px-5 py-4 flex items-center gap-3">
-          <span className="h-9 w-9 shrink-0 rounded-xl bg-indigo-50 flex items-center justify-center"><Store className="h-4 w-4 text-indigo-600" /></span>
+          <span className="h-9 w-9 shrink-0 rounded-xl bg-brand-50 flex items-center justify-center"><Store className="h-4 w-4 text-brand-600" /></span>
           <p className="flex-1 text-sm text-slate-600">Henüz portalınız yok mu?</p>
-          <Link to="/kayit" className="text-sm font-semibold text-indigo-600 hover:underline whitespace-nowrap">Ücretsiz başlayın</Link>
+          <Link to="/kayit" className="text-sm font-semibold text-brand-600 hover:underline whitespace-nowrap">Ücretsiz başlayın</Link>
         </div>
       </main>
       <PageFooter company={site?.company} brand={brand} />

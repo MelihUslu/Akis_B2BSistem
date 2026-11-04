@@ -6,14 +6,14 @@ import { Sparkles } from 'lucide-react';
 // "✦ Etiket" rozeti (bölüm üst başlığı)
 export const Chip = ({ children, icon: Icon = Sparkles }) => (
   <span className="inline-flex items-center gap-1.5 px-3.5 py-1.5 rounded-full bg-white border border-slate-200/80 shadow-sm text-[13px] font-semibold text-slate-800">
-    <Icon className="h-3.5 w-3.5 text-indigo-500" /> {children}
+    <Icon className="h-3.5 w-3.5 text-brand-500" /> {children}
   </span>
 );
 
 // Vurgulu kelime: beyaz kutu içinde turkuaz → mor yazı
 export const Highlight = ({ children }) => (
-  <span className="inline-block align-baseline bg-white rounded-2xl md:rounded-3xl px-3 md:px-5 pb-1 md:pb-2 shadow-[0_8px_30px_-12px_rgba(79,70,229,0.35)] mx-1">
-    <span className="text-indigo-600">{children}</span>
+  <span className="inline-block align-baseline bg-white rounded-2xl md:rounded-3xl px-3 md:px-5 pb-1 md:pb-2 shadow-[0_8px_30px_-12px_rgba(152,107,71,0.35)] mx-1">
+    <span className="text-brand-600">{children}</span>
   </span>
 );
 
@@ -25,13 +25,25 @@ export const Heading = ({ children, className = '' }) => (
 // Siyah düğme, altında renk geçişli çizgi
 // to: uygulama içi sayfa (sayfa yenilenmeden), href: dış bağlantı
 export const PrimaryButton = ({ to, href, onClick, children, className = '', type, disabled }) => {
-  const inner = 'flex items-center justify-center gap-2 h-12 px-6 rounded-xl bg-[#0b0d12] text-white text-[15px] font-semibold hover:bg-black transition-colors';
+  const inner = 'flex items-center justify-center gap-2 h-12 px-6 rounded-xl bg-navy-900 text-white text-[15px] font-semibold hover:bg-navy-950 transition-colors';
   return (
-    <span className={`inline-block rounded-xl bg-indigo-500 pb-1 transition-transform ${disabled ? 'opacity-60' : 'hover:-translate-y-0.5'} ${className}`}>
+    <span className={`inline-block rounded-xl bg-brand-500 pb-1 transition-transform ${disabled ? 'opacity-60' : 'hover:-translate-y-0.5'} ${className}`}>
       {to ? <Link to={to} className={inner}>{children}</Link> : href ? <a href={href} className={inner}>{children}</a> : <button type={type || 'button'} onClick={onClick} disabled={disabled} className={`${inner} w-full disabled:cursor-not-allowed`}>{children}</button>}
     </span>
   );
 };
+
+// İkonlu form alanı (giriş ekranları): gri zemin, solda ikon; içine iconInput sınıflı input konur
+export const iconInput = 'premium-input !bg-transparent !pl-3 !ring-0 !shadow-none !border-0 focus:!ring-0 focus:!shadow-none';
+export const IconField = ({ icon: Icon, label, children }) => (
+  <div>
+    <label className="premium-label">{label}</label>
+    <div className="flex items-center bg-gray-50 rounded-2xl pr-4 focus-within:ring-2 focus-within:ring-brand-100">
+      <Icon className="ml-4 h-4 w-4 shrink-0 text-slate-400" />
+      {children}
+    </div>
+  </div>
+);
 
 // Çift çerçeveli kart: dışta ince çerçeve, içte beyaz yüzey
 export const Frame = ({ children, className = '', inner = '' }) => (

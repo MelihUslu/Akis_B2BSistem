@@ -1,5 +1,6 @@
 import { useState } from 'react';
-import { ShieldCheck, ChevronRight, AlertCircle } from 'lucide-react';
+import { ShieldCheck, ArrowRight, AlertCircle } from 'lucide-react';
+import { PrimaryButton } from '../pages/root/landing/ui';
 import { t } from '../i18n';
 
 /**
@@ -26,8 +27,8 @@ const TwoFactorStep = ({ onVerify, onCancel }) => {
 
   return (
     <form className="space-y-5" onSubmit={submit}>
-      <div className="flex items-start gap-3 bg-indigo-50 rounded-xl p-4">
-        <ShieldCheck className="h-5 w-5 text-indigo-600 shrink-0 mt-0.5" />
+      <div className="flex items-start gap-3 bg-brand-50 rounded-xl p-4">
+        <ShieldCheck className="h-5 w-5 text-brand-600 shrink-0 mt-0.5" />
         <p className="text-xs text-slate-600 leading-relaxed">
           {recovery
             ? t('Kurulumda kaydettiğiniz kurtarma kodlarından birini girin. Her kod yalnızca bir kez kullanılabilir.')
@@ -48,14 +49,13 @@ const TwoFactorStep = ({ onVerify, onCancel }) => {
         placeholder={recovery ? 'xxxx-xxxx' : '000000'}
         value={code}
         onChange={(e) => setCode(recovery ? e.target.value : e.target.value.replace(/\D/g, ''))}
-        className="w-full bg-slate-50 border border-slate-200 rounded-xl py-3.5 px-4 text-center text-2xl tracking-[0.5em] font-black text-slate-900 placeholder:text-slate-300 focus:border-indigo-600 focus:ring-4 focus:ring-indigo-600/5 outline-none"
+        className="w-full bg-gray-50 rounded-2xl py-3.5 px-4 text-center text-2xl tracking-[0.5em] font-black text-slate-900 placeholder:text-slate-300 focus:ring-2 focus:ring-brand-100 outline-none"
       />
-      <button type="submit" disabled={loading || code.length < 6}
-        className="w-full bg-slate-900 hover:bg-black text-white font-bold py-3.5 rounded-xl flex items-center justify-center gap-2 transition-all disabled:opacity-50 text-sm">
-        {loading ? t('Doğrulanıyor...') : t('Doğrula ve Giriş Yap')} <ChevronRight className="h-4 w-4" />
-      </button>
+      <PrimaryButton type="submit" className="w-full" disabled={loading || code.length < 6}>
+        {loading ? t('Doğrulanıyor...') : t('Doğrula ve Giriş Yap')} <ArrowRight className="h-4 w-4" />
+      </PrimaryButton>
       <div className="flex justify-between text-[12px]">
-        <button type="button" onClick={() => { setRecovery(!recovery); setCode(''); setError(''); }} className="font-bold text-indigo-600 hover:underline">
+        <button type="button" onClick={() => { setRecovery(!recovery); setCode(''); setError(''); }} className="font-bold text-brand-600 hover:underline">
           {recovery ? t('Uygulama kodu gir') : t('Kurtarma kodu kullan')}
         </button>
         <button type="button" onClick={() => onCancel()} className="text-slate-400 hover:text-slate-700">{t('Geri dön')}</button>

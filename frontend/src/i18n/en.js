@@ -122,15 +122,12 @@ export default {
   'Tercih kaydedilemedi.': 'Could not save preference.',
 
   // Giriş, şifre, 2FA
-  'Hoş Geldiniz': 'Welcome',
+  'Giriş yapın': 'Sign in',
   'B2B portalına giriş yapın.': 'Sign in to the B2B portal.',
   'Giriş Yap': 'Sign In',
-  'Beni Hatırla': 'Remember me',
   'Şifremi unuttum': 'Forgot password',
   'Bayimiz değil misiniz?': 'Not a dealer yet?',
   'Bayilik başvurusu yapın': 'Apply to become a dealer',
-  'Branding': 'Branding',
-  'İşletmeniz için modern ve hızlı ticaret altyapısı.': 'Modern, fast commerce infrastructure for your business.',
   'Doğrulama yapılamadı.': 'Verification failed.',
   'Hesabınızda iki aşamalı doğrulama açık. Doğrulama uygulamanızdaki (Google Authenticator, Microsoft Authenticator…) 6 haneli kodu girin.': 'Two-factor authentication is on for your account. Enter the 6-digit code from your authenticator app (Google Authenticator, Microsoft Authenticator…).',
   'Uygulama kodu gir': 'Enter app code',

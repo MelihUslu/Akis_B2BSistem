@@ -1,6 +1,8 @@
 import { useEffect, useRef, useState } from 'react';
-import { Link, useSearchParams } from 'react-router-dom';
-import { CheckCircle2, XCircle, Loader2 } from 'lucide-react';
+import { useSearchParams } from 'react-router-dom';
+import { CheckCircle2, XCircle, Loader2, ArrowRight } from 'lucide-react';
+import AuthShell from '../components/auth/AuthShell';
+import { PrimaryButton } from './root/landing/ui';
 import { publicApi, errorMessage } from '../services/api';
 import { t } from '../i18n';
 
@@ -19,19 +21,15 @@ const VerifyEmail = () => {
 
   const Icon = state.status === 'loading' ? Loader2 : state.status === 'success' ? CheckCircle2 : XCircle;
 
+  const title = state.status === 'loading' ? t('Doğrulanıyor...') : state.status === 'success' ? t('Hesabınız hazır!') : t('Doğrulama başarısız');
+  const iconClass = state.status === 'success' ? 'bg-emerald-500 text-white' : state.status === 'error' ? 'bg-red-500 text-white' : 'bg-navy-900 text-white [&>svg]:animate-spin';
+
   return (
-    <div className="min-h-screen bg-[#F8FAFC] flex items-center justify-center p-6">
-      <div className="bg-white rounded-[2rem] shadow-xl border border-slate-100 p-10 max-w-md w-full text-center space-y-6">
-        <Icon className={`h-14 w-14 mx-auto ${state.status === 'loading' ? 'animate-spin text-indigo-500' : state.status === 'success' ? 'text-emerald-500' : 'text-red-500'}`} />
-        <h1 className="text-2xl font-black text-slate-900">
-          {state.status === 'loading' ? t('Doğrulanıyor...') : state.status === 'success' ? t('Hesabınız hazır!') : t('Doğrulama başarısız')}
-        </h1>
-        <p className="text-sm text-slate-500 font-medium">{state.message}</p>
-        {state.status !== 'loading' && (
-          <Link to="/login" className="inline-block w-full bg-slate-900 hover:bg-black text-white font-bold py-3.5 rounded-xl text-sm">{t('Giriş Yap')}</Link>
-        )}
-      </div>
-    </div>
+    <AuthShell icon={Icon} iconClass={iconClass} title={title} text={state.message}>
+      {state.status !== 'loading' && (
+        <PrimaryButton to="/login" className="w-full">{t('Giriş Yap')} <ArrowRight className="h-4 w-4" /></PrimaryButton>
+      )}
+    </AuthShell>
   );
 };
 

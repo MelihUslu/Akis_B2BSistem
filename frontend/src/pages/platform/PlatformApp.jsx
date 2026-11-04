@@ -1,12 +1,14 @@
 import { Suspense, lazy, useState } from 'react';
 import { Routes, Route, Navigate, NavLink, useNavigate, useLocation, Link } from 'react-router-dom';
 import ErrorBoundary from '../../components/ErrorBoundary';
-import { LayoutDashboard, Building2, Layers, Receipt, LogOut, Lock, Mail, Megaphone, LifeBuoy, ScrollText, ShieldCheck, Menu, X, Bug, BookOpen, Activity, Gauge, MessagesSquare, Globe } from 'lucide-react';
+import { LayoutDashboard, Building2, Layers, Receipt, LogOut, Lock, Mail, Megaphone, LifeBuoy, ScrollText, ShieldCheck, Menu, X, Bug, BookOpen, Activity, Gauge, MessagesSquare, Globe, LogIn, Loader2, ArrowRight } from 'lucide-react';
 import { platformApi, errorMessage } from '../../services/api';
 import TwoFactorStep from '../../components/TwoFactorStep';
 import ThemeToggle from '../../components/ThemeToggle';
 import PageLoader from '../../components/PageLoader';
-import { ForgotPasswordForm, ResetPasswordForm } from '../../components/auth/PasswordReset';
+import { ForgotPasswordForm, ResetPasswordForm, PLATFORM_HEADER } from '../../components/auth/PasswordReset';
+import AuthShell, { AuthNotice } from '../../components/auth/AuthShell';
+import { PrimaryButton, IconField, iconInput } from '../root/landing/ui';
 
 const PlatformDashboard = lazy(() => import('./PlatformDashboard'));
 const PlatformTenants = lazy(() => import('./PlatformTenants'));
@@ -67,32 +69,28 @@ const PlatformLogin = ({ onLogin }) => {
   };
 
   return (
-    <div className="min-h-screen bg-[#0f172a] flex items-center justify-center p-6">
+    <AuthShell brand={PLATFORM_HEADER} languages={false} icon={challenge ? ShieldCheck : LogIn}
+      title={challenge ? 'Doğrulama kodu' : 'Yönetim girişi'} text={challenge ? null : 'Platform yöneticisi hesabınızla girin.'}>
       {challenge ? (
-        <div className="bg-white rounded-[2rem] p-10 w-full max-w-sm space-y-5 shadow-2xl">
-          <h1 className="text-2xl font-black text-slate-900">Doğrulama Kodu</h1>
-          <TwoFactorStep onVerify={verify} onCancel={(msg) => { setChallenge(null); setForm({ ...form, password: '' }); if (msg) setError(msg); }} />
-        </div>
+        <TwoFactorStep onVerify={verify} onCancel={(msg) => { setChallenge(null); setForm({ ...form, password: '' }); if (msg) setError(msg); }} />
       ) : (
-      <form onSubmit={submit} className="bg-white rounded-[2rem] p-10 w-full max-w-sm space-y-5 shadow-2xl">
-        <div>
-          <p className="text-[10px] font-black text-indigo-500 uppercase tracking-[0.3em]">Platform</p>
-          <h1 className="text-2xl font-black text-slate-900 mt-1">Yönetim Girişi</h1>
-        </div>
-        {error && <p className="text-xs font-bold text-red-600 bg-red-50 p-3 rounded-xl">{error}</p>}
-        <div className="relative">
-          <Mail className="absolute left-4 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-400" />
-          <input required type="email" placeholder="E-posta" className="premium-input pl-11" value={form.email} onChange={(e) => setForm({ ...form, email: e.target.value })} />
-        </div>
-        <div className="relative">
-          <Lock className="absolute left-4 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-400" />
-          <input required type="password" placeholder="Şifre" className="premium-input pl-11" value={form.password} onChange={(e) => setForm({ ...form, password: e.target.value })} />
-        </div>
-        <button disabled={loading} className="w-full bg-slate-900 hover:bg-black text-white font-bold py-3.5 rounded-xl text-sm disabled:opacity-60">{loading ? 'Giriş yapılıyor...' : 'Giriş Yap'}</button>
-        <Link to="/forgot-password" className="block text-center text-xs font-semibold text-indigo-600 hover:underline">Şifremi unuttum</Link>
-      </form>
+        <form onSubmit={submit} className="space-y-4">
+          <IconField icon={Mail} label="E-posta">
+            <input required type="email" autoFocus autoComplete="email" className={iconInput} value={form.email} onChange={(e) => setForm({ ...form, email: e.target.value })} />
+          </IconField>
+          <IconField icon={Lock} label="Şifre">
+            <input required type="password" autoComplete="current-password" className={iconInput} value={form.password} onChange={(e) => setForm({ ...form, password: e.target.value })} />
+          </IconField>
+          <div className="flex justify-end -mt-1">
+            <Link to="/forgot-password" className="text-xs font-semibold text-brand-600 hover:underline">Şifremi unuttum</Link>
+          </div>
+          {error && <AuthNotice>{error}</AuthNotice>}
+          <PrimaryButton type="submit" className="w-full" disabled={loading}>
+            {loading ? <Loader2 className="h-4 w-4 animate-spin" aria-label="Giriş yapılıyor" /> : <>Giriş yap <ArrowRight className="h-4 w-4" /></>}
+          </PrimaryButton>
+        </form>
       )}
-    </div>
+    </AuthShell>
   );
 };
 
@@ -115,11 +113,11 @@ const MENU = [
 ];
 
 const PlatformNav = ({ user, onLogout, mobile = false, onNavigate }) => (
-  <aside className={`w-64 flex-col py-8 bg-[#0f172a] ${mobile ? 'flex h-full overflow-y-auto' : 'hidden lg:flex h-screen sticky top-0'}`}>
+  <aside className={`w-64 flex-col py-8 bg-navy-900 ${mobile ? 'flex h-full overflow-y-auto' : 'hidden lg:flex h-screen sticky top-0'}`}>
     <div className="px-8 mb-10 flex justify-between items-start">
       <div>
         <span className="text-2xl font-black text-white tracking-tighter uppercase">{import.meta.env.VITE_PLATFORM_NAME || 'Akis B2B'}</span>
-        <span className="block text-[9px] font-black text-indigo-400 uppercase tracking-[0.2em] mt-0.5">PLATFORM YÖNETİMİ</span>
+        <span className="block text-[9px] font-black text-brand-400 uppercase tracking-[0.2em] mt-0.5">PLATFORM YÖNETİMİ</span>
       </div>
       {mobile && <button onClick={onNavigate} className="p-2 -mr-4 text-gray-400 hover:text-white" aria-label="Menüyü kapat"><X className="h-5 w-5" /></button>}
     </div>
@@ -128,7 +126,7 @@ const PlatformNav = ({ user, onLogout, mobile = false, onNavigate }) => (
         <p key={item.group} className="px-5 pt-5 pb-1 text-[10px] font-black text-gray-500 uppercase tracking-[0.2em]">{item.group}</p>
       ) : (
         <NavLink key={item.path} to={item.path} end={item.end} onClick={onNavigate}
-          className={({ isActive }) => `flex items-center px-5 py-4 rounded-xl text-sm font-bold transition-all ${isActive ? 'bg-indigo-600/10 text-indigo-400 border-l-2 border-indigo-400' : 'text-gray-400 hover:text-white hover:bg-white/5'}`}>
+          className={({ isActive }) => `flex items-center px-5 py-4 rounded-xl text-sm font-bold transition-all ${isActive ? 'bg-gradient-to-r from-brand-600 to-brand-700 text-white shadow-lg shadow-black/20' : 'text-white/70 hover:text-white hover:bg-white/5'}`}>
           <item.icon className="h-5 w-5 mr-4" /> {item.name}
         </NavLink>
       ))}
@@ -146,7 +144,7 @@ const PlatformLayout = ({ user, onLogout }) => {
   const [menuOpen, setMenuOpen] = useState(false);
   const { pathname } = useLocation();
   return (
-  <div className="flex min-h-screen bg-[#0f172a]">
+  <div className="flex min-h-screen bg-navy-900">
     <PlatformNav user={user} onLogout={onLogout} />
     {menuOpen && (
       <div className="fixed inset-0 z-50 lg:hidden">
@@ -154,7 +152,7 @@ const PlatformLayout = ({ user, onLogout }) => {
         <div className="relative h-full w-64 max-w-[85vw] animate-slide-in-left"><PlatformNav user={user} onLogout={onLogout} mobile onNavigate={() => setMenuOpen(false)} /></div>
       </div>
     )}
-    <main className="flex-1 min-w-0 min-h-screen bg-white lg:rounded-l-[2.5rem] overflow-y-auto custom-scrollbar px-3 md:px-8 lg:px-10 py-4 lg:py-10 relative">
+    <main className="flex-1 min-w-0 min-h-screen bg-navy-50 lg:rounded-l-[2.5rem] overflow-y-auto custom-scrollbar px-3 md:px-8 lg:px-10 py-4 lg:py-10 relative">
       <div className="flex items-center justify-between lg:block mb-4 lg:mb-0">
         <button onClick={() => setMenuOpen(true)} className="lg:hidden p-2 -ml-1 rounded-xl text-gray-600 hover:bg-gray-100" aria-label="Menü"><Menu className="h-6 w-6" /></button>
         <ThemeToggle className="lg:absolute lg:top-6 lg:right-8" />
@@ -200,8 +198,8 @@ const PlatformApp = () => {
   if (!user) {
     return (
       <Routes>
-        <Route path="/forgot-password" element={<ForgotPasswordForm client={platformApi} brand="Platform" />} />
-        <Route path="/reset-password" element={<ResetPasswordForm client={platformApi} />} />
+        <Route path="/forgot-password" element={<ForgotPasswordForm client={platformApi} brand="Platform" platform />} />
+        <Route path="/reset-password" element={<ResetPasswordForm client={platformApi} platform />} />
         <Route path="*" element={<PlatformLogin onLogin={(u) => { setUser(u); navigate('/'); }} />} />
       </Routes>
     );
