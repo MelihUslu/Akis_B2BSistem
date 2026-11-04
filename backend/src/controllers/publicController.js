@@ -55,7 +55,7 @@ export const portalLookup = async (req, res) => {
  * portala tek kullanımlık aktarım kodu döner; portal kodu kendi oturumuna çevirir ve kendi kontrollerini yapar
  * (pasif hesap, doğrulanmamış e-posta, abonelik, iki aşamalı doğrulama). Birden fazla eşleşmede kullanıcı seçer.
  */
-const ROLE_LABELS = { ADMIN: 'Yönetici', BAYI: 'Bayi', PLASIYER: 'Plasiyer' };
+const ROLE_LABELS = { ADMIN: 'Yönetici', BAYI: 'Bayi', PLASIYER: 'Plasiyer', PERSONEL: 'Personel' };
 const DUMMY_HASH = '$2b$10$CwTycUXWue0Thq9StjUM0uJ8.Lr0nB8v4G0Jk5wJ0F0eQkqzYz1y6';
 const portalAccounts = (email) => prisma.user.findMany({
   where: { email, tenantId: { not: null }, role: { in: Object.keys(ROLE_LABELS) } },

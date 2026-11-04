@@ -50,7 +50,7 @@ Oturumlar test başında giriş ucu çağrılmadan, UAT backend'inin gizli anaht
 | UAT-15 | `kismi-sevk` | Kısmi sevkiyat ve irsaliye | Siparişin bir kısmı kendi takip numarasıyla gönderilir, kalan sonra; tamamı gidince "Kargoda"; irsaliye no bayiye görünür |
 | UAT-16 | `hedef` | Bayi hedefi ve ciro primi | Hedef tanımlanır, bayi ilerlemeyi görür, dönem kapatılınca prim cariye yazılır |
 | UAT-17 | `sepet` | Sepet cihazlar arası | Telefonda eklenen ürün bilgisayarda sepette; çıkışta tarayıcıdan silinir |
-| UAT-18 | `personel` | Personel yönetimi | Modül açılır, kart oluşturulur; yetkisiz personel firma özetini görmez, izin ve fişli masraf talebi açar → onay ödeme sayılmaz → ödeme Gelir-Gider'e bir kez yazılır, oradan silinemez → personel sonucu görür; departman duyurusu yalnızca o departmana; plasiyer kendi alanını telefonda açar |
+| UAT-18 | `personel` | Personel yönetimi | Modül açılır, kart oluşturulur; yetkisiz personel firma özetini görmez, izin ve fişli masraf talebi açar → onay ödeme sayılmaz → ödeme Gelir-Gider'e bir kez yazılır, oradan silinemez → personel sonucu görür; departman duyurusu yalnızca o departmana; plasiyer kendi alanını telefonda açar; kartından personel girişi açılan kişi telefonda girer, yarım gün izin ister, yöneticisi Ekibim'den onaylar; masraf iki parçada ödenir |
 
 ## Elle kontrol edilecekler
 

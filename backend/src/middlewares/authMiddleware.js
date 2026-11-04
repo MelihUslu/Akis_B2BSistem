@@ -20,6 +20,8 @@ const ACT_PATHS = ['/api/products', '/api/categories', '/api/orders', '/api/sett
 const ACT_READ_ONLY = ['/api/finance/my-statement', '/api/targets/mine', '/api/auth/me'];
 const actingAllowed = (req) => ACT_PATHS.some((p) => req.originalUrl.startsWith(p))
   || (req.method === 'GET' && ACT_READ_ONLY.some((p) => req.originalUrl.startsWith(p)));
+// "Personel" hesabının (yalnızca Personel Alanım) açabildiği uçlar
+const PERSONEL_PATHS = ['/api/hr', '/api/auth/me', '/api/auth/change-password', '/api/auth/notification-prefs', '/api/notifications', '/api/tenant/public', '/api/push'];
 // Plasiyerin kendi kimliğiyle açabildiği uçlar (bayi seçmeden)
 const PLASIYER_PATHS = ['/api/plasiyer', '/api/hr', '/api/auth/me', '/api/auth/change-password', '/api/notifications', '/api/tenant/public', '/api/settings/portal', '/api/push'];
 
@@ -90,6 +92,8 @@ export const verifyToken = async (req, res, next) => {
       req.user = { ...req.user, role: 'BAYI', companyId: company.id, isOwner: false, permissions: [], actingAs: { role: user.role, id: user.id, name: user.name } };
     } else if (user.role === 'PLASIYER' && !PLASIYER_PATHS.some((p) => req.originalUrl.startsWith(p))) {
       return res.status(403).json({ message: 'Bu işlem için bir bayi seçin.' });
+    } else if (user.role === 'PERSONEL' && !PERSONEL_PATHS.some((p) => req.originalUrl.startsWith(p))) {
+      return res.status(403).json({ message: 'Personel hesabı yalnızca Personel Alanım\'ı kullanabilir.' });
     }
     next();
   } catch (error) {

@@ -1,12 +1,12 @@
 import { useEffect, useState } from 'react';
-import { Target, Plus, ChevronLeft, ChevronRight, Lock, Banknote, Trash2, Pencil, Undo2, Info } from 'lucide-react';
+import { Target, Plus, ChevronLeft, ChevronRight, Lock, Banknote, Trash2, Pencil, Info } from 'lucide-react';
 import api, { errorMessage } from '../../services/api';
 import Modal from '../shared/Modal';
 import EmptyState from '../shared/EmptyState';
 import { Field, Segmented } from '../form/FormKit';
 import { formatTRY, formatDate } from '../../utils/format';
-import { BASES, monthLabel, thisMonth, shiftMonth } from './hrMeta';
-import { StatusPill, PaymentNote, PayModal, ListCard, Row } from './HrUi';
+import { BASES, PAYMENT_KINDS, monthLabel, thisMonth, shiftMonth, targetState } from './hrMeta';
+import { StatusPill, Payments, PayModal, ListCard, Row } from './HrUi';
 
 // Hedef tanımı / düzenleme. Gerçekleşen, siparişlerden (ya da tahsilattan) otomatik hesaplanır.
 const TargetModal = ({ initial, period, onClose, onSaved, showAlert }) => {
@@ -95,9 +95,9 @@ const TargetsTab = ({ showAlert, confirm, onChanged, me }) => {
     }
   };
   const pay = (form) => api.post(`/hr/targets/${paying.id}/pay`, form).then((r) => { setPaying(null); done(r.data.message); }).catch(fail('Ödeme kaydedilemedi', 'Prim ödemesi kaydedilemedi.'));
-  const unpay = async (t) => {
-    if (await confirm({ title: 'Prim ödemesi geri alınsın mı?', message: `${t.employee.name}: ${formatTRY(t.paidBonus)}. Gelir-Gider'deki kayıt silinir.`, confirmText: 'Geri al' })) {
-      api.post(`/hr/targets/${t.id}/unpay`).then((r) => done(r.data.message)).catch(fail('Geri alınamadı', 'Ödeme geri alınamadı.'));
+  const undo = async (p) => {
+    if (await confirm({ title: `${PAYMENT_KINDS[p.kind]} geri alınsın mı?`, message: `${formatTRY(p.amount)} · ${formatDate(p.date)}. ${p.kind === 'PAYOUT' ? 'Gelir-Gider\'deki kayıt silinir.' : 'Tutar avansa geri döner.'}`, confirmText: 'Geri al' })) {
+      api.delete(`/hr/payments/${p.id}`).then((r) => done(r.data.message)).catch(fail('Geri alınamadı', 'Ödeme geri alınamadı.'));
     }
   };
 
@@ -105,7 +105,7 @@ const TargetsTab = ({ showAlert, confirm, onChanged, me }) => {
   return (
     <div className="space-y-4">
       {editing && <TargetModal initial={editing} period={period} showAlert={showAlert} onClose={() => setEditing(null)} onSaved={(m) => { setEditing(null); done(m); }} />}
-      {paying && <PayModal title={`Prim ödemesi · ${paying.employee.name}`} amount={paying.calculatedBonus} category="Personel primi" onClose={() => setPaying(null)} onSubmit={pay} />}
+      {paying && <PayModal title={`Prim ödemesi · ${paying.employee.name}`} amount={Math.round((paying.calculatedBonus - paying.paidBonus) * 100) / 100} category="Personel primi" openAdvance={paying.openAdvance} onClose={() => setPaying(null)} onSubmit={pay} />}
       <div className="flex flex-col sm:flex-row sm:items-center gap-3">
         <div className="inline-flex items-center gap-1 bg-white rounded-2xl ring-1 ring-gray-100 p-1 self-start">
           <button type="button" onClick={() => setPeriod(shiftMonth(period, -1))} className="h-10 w-10 rounded-xl hover:bg-gray-50 flex items-center justify-center" aria-label="Önceki ay"><ChevronLeft className="h-4 w-4" /></button>
@@ -115,7 +115,7 @@ const TargetsTab = ({ showAlert, confirm, onChanged, me }) => {
         {rows?.length > 0 && <p className="text-sm text-gray-600">Hesaplanan <b className="text-gray-900 tabular-nums">{formatTRY(total('calculatedBonus'))}</b> · Ödenen <b className="text-emerald-700 tabular-nums">{formatTRY(total('paidBonus'))}</b></p>}
         {me?.canManage && period >= thisMonth() && <button type="button" onClick={() => setEditing({})} className="btn-gradient sm:ml-auto"><Plus className="h-4 w-4 mr-1.5" /> Yeni hedef</button>}
       </div>
-      <p className="text-xs text-gray-500 flex items-start gap-1.5"><Info className="h-4 w-4 shrink-0 text-gray-400" /> Satış: ayda onaylanan siparişler (KDV hariç, kupon düşülmüş, kargo hariç), iptaller sayılmaz, iadeler düşülür. Tahsilat: sorumlu olunan bayilerden ayda alınan ödemeler. Ay bitince dönem kapatılır, prim sabitlenir; ödeme ayrıca kaydedilir. Sipariş başına plasiyer primi (Ayarlar) bundan ayrıdır.</p>
+      <p className="text-xs text-gray-500 flex items-start gap-1.5"><Info className="h-4 w-4 shrink-0 text-gray-400" /> Satış: ayda onaylanan siparişler (KDV hariç, kupon düşülmüş, kargo hariç), iptaller sayılmaz, iadeler düşülür. Tahsilat: sorumlu olunan bayilerden ayda alınan ödemeler. Ay bitince dönem kapatılır, prim sabitlenir; ödeme ayrıca kaydedilir (kısmi olabilir, açık avanstan da düşülebilir). Sipariş başına plasiyer primi (Ayarlar) bundan ayrıdır.</p>
       {rows && rows.length === 0 ? (
         <EmptyState icon={Target}>{monthLabel(period)} için hedef yok.</EmptyState>
       ) : (
@@ -135,10 +135,10 @@ const TargetsTab = ({ showAlert, confirm, onChanged, me }) => {
                   <p className="text-gray-600">Hesaplanan prim: <b className="text-gray-900 tabular-nums">{formatTRY(t.calculatedBonus)}</b>{t.status === 'OPEN' && <span className="text-gray-400"> (anlık)</span>}</p>
                   <p className="text-gray-600">Ödenen prim: <b className={`tabular-nums ${t.paidBonus ? 'text-emerald-700' : 'text-gray-400'}`}>{formatTRY(t.paidBonus)}</b></p>
                   {t.closedAt && <p className="text-gray-400">Kapatan: {t.closedByName} · {formatDate(t.closedAt)}</p>}
-                  <PaymentNote item={t} />
+                  <Payments payments={t.payments} onUndo={me?.canPay ? undo : null} />
                 </div>
                 <div className="flex flex-wrap items-center gap-2 lg:justify-end">
-                  <StatusPill status={t.paidAt ? 'PAID' : t.status} />
+                  <StatusPill status={targetState(t)} />
                   {t.status === 'OPEN' && me?.canManage && <>
                     <button type="button" onClick={() => setEditing(t)} className="h-9 w-9 rounded-xl ring-1 ring-gray-200 text-gray-600 hover:bg-gray-50 flex items-center justify-center" aria-label="Hedefi düzenle" title="Düzenle"><Pencil className="h-4 w-4" /></button>
                     <button type="button" onClick={() => remove(t)} className="h-9 w-9 rounded-xl ring-1 ring-gray-200 text-gray-500 hover:text-red-600 hover:bg-red-50 flex items-center justify-center" aria-label="Hedefi sil" title="Sil"><Trash2 className="h-4 w-4" /></button>
@@ -146,9 +146,6 @@ const TargetsTab = ({ showAlert, confirm, onChanged, me }) => {
                   </>}
                   {t.status === 'CLOSED' && !t.paidAt && t.calculatedBonus > 0 && me?.canPay && (
                     <button type="button" onClick={() => setPaying(t)} className="h-9 px-3 rounded-xl bg-navy-900 text-white text-xs font-bold inline-flex items-center gap-1 hover:bg-navy-950"><Banknote className="h-4 w-4" /> Primi öde</button>
-                  )}
-                  {t.paidAt && me?.canPay && (
-                    <button type="button" onClick={() => unpay(t)} className="h-9 px-3 rounded-xl ring-1 ring-gray-200 text-gray-600 text-xs font-bold inline-flex items-center gap-1 hover:bg-gray-50"><Undo2 className="h-4 w-4" /> Geri al</button>
                   )}
                 </div>
               </div>

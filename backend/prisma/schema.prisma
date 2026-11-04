@@ -18,7 +18,7 @@ model User {
   email                String
   password             String
   name                 String
-  role                 String    @default("BAYI") // SUPER_ADMIN (platform), ADMIN (kiracı yöneticisi), BAYI, PLASIYER
+  role                 String    @default("BAYI") // SUPER_ADMIN (platform), ADMIN (kiracı yöneticisi), BAYI, PLASIYER, PERSONEL (yalnızca Personel Alanım)
   // Firma sahibi (ADMIN) tüm yetkilere sahiptir ve silinemez; bayide ana kullanıcıdır (alt kullanıcı yönetir)
   isOwner              Boolean   @default(false)
   permissions          Json? // ADMIN personeli için: ["CATALOG","ORDERS","DEALERS","FINANCE","SETTINGS"]
@@ -774,6 +774,7 @@ model Tenant {
   staffClaims            StaffClaim[]
   staffTargets           StaffTarget[]
   staffAnnouncements     StaffAnnouncement[]
+  staffPayments          StaffPayment[]
 }
 
 // Kiracının platforma yaptığı abonelik ödemeleri (iyzico veya manuel)
@@ -1518,7 +1519,7 @@ model CashEntry {
   storedName    String?
   mimeType      String?
   recurringId   Int? // Düzenli gider/gelirden otomatik oluştuysa
-  // Personel ödemesinden oluştuysa kaynağı ("STAFF_CLAIM:12", "STAFF_BONUS:5"). Tekil: aynı talep / prim iki kez
+  // Personel ödemesinden oluştuysa kaynağı ("STAFF_PAY:12": StaffPayment). Tekil: aynı ödeme iki kez
   // ödenemez. Bu kayıtlar gelir-giderden değiştirilmez, Personel Yönetimi'nden geri alınır.
   sourceRef     String?        @unique
   recurring     CashRecurring? @relation(fields: [recurringId], references: [id], onDelete: SetNull)
@@ -1589,13 +1590,24 @@ model Employee {
   title      String? // Görev
   hireDate   DateTime?
   isActive   Boolean             @default(true)
+  // Yöneticisi (departman yöneticisi): Personel yetkisi olmadan da bu kişinin izin ve masraf / avans taleplerine karar verir
+  managerId  Int?
+  manager    Employee?           @relation("EmployeeManager", fields: [managerId], references: [id], onDelete: SetNull)
+  reports    Employee[]          @relation("EmployeeManager")
+  // Yıllık izin: firmanın verdiği gün (yıl başına); boşsa ya da yasal süreden azsa yasal süre (14 / 20 / 26)
+  annualLeaveDays Int?
+  // Devir: sisteme geçişte "leaveCarryDate itibarıyla kalan yıllık izin leaveCarryDays gün"
+  leaveCarryDays  Float?
+  leaveCarryDate  DateTime?
   createdAt  DateTime            @default(now())
   updatedAt  DateTime            @updatedAt
   leaves     LeaveRequest[]
   claims     StaffClaim[]
   targets    StaffTarget[]
+  payments   StaffPayment[]
 
   @@index([tenantId])
+  @@index([managerId])
 }
 
 model LeaveRequest {
@@ -1607,7 +1619,8 @@ model LeaveRequest {
   type          String // ANNUAL (yıllık), EXCUSE (mazeret), SICK (hastalık / rapor), UNPAID (ücretsiz), OTHER
   startDate     DateTime
   endDate       DateTime
-  days          Float // İş günü (hafta sonu sayılmaz)
+  days          Float // İş günü (hafta sonu ve resmî tatil sayılmaz; yarım gün 0,5)
+  half          String? // Yarım gün (yalnızca tek günlük izinde): AM sabah, PM öğleden sonra
   note          String?
   status        String    @default("PENDING") // PENDING, APPROVED, REJECTED, CANCELLED
   decidedById   Int?
@@ -1641,14 +1654,16 @@ model StaffClaim {
   decidedByName String?
   decidedAt     DateTime?
   rejectReason  String?
+  // Ödeme kısmi olabilir (StaffPayment): paidAmount ödenen + avanstan mahsup edilen; tamamı ödenince paidAt
+  paidAmount    Float     @default(0)
   paidAt        DateTime?
-  paidById      Int?
-  paidByName    String?
-  paymentMethod String? // CASH, BANK, CARD
-  cashEntryId   Int?      @unique // Gelir-giderdeki ödeme kaydı
+  // Avans: kapanan tutar (masraf / prim mahsubu, nakit iade, maaştan kesinti). Açık avans = paidAmount − settledAmount
+  settledAmount Float     @default(0)
   createdByName String?
   createdAt     DateTime  @default(now())
   updatedAt     DateTime  @updatedAt
+  payments      StaffPayment[] @relation("ClaimPayments")
+  settlements   StaffPayment[] @relation("AdvanceSettlements")
 
   @@index([tenantId, status])
   @@index([employeeId])
@@ -1671,15 +1686,12 @@ model StaffTarget {
   bonusAmount    Float? // Kapanışta hesaplanan prim
   closedAt       DateTime?
   closedByName   String?
-  paidAmount     Float?
-  paidAt         DateTime?
-  paidById       Int?
-  paidByName     String?
-  paymentMethod  String?
-  cashEntryId    Int?      @unique
+  paidAmount     Float     @default(0) // Ödenen + avanstan mahsup (kısmi olabilir)
+  paidAt         DateTime? // Tamamı ödendiğinde
   createdByName  String?
   createdAt      DateTime  @default(now())
   updatedAt      DateTime  @updatedAt
+  payments       StaffPayment[]
 
   @@unique([employeeId, period])
   @@index([tenantId, period])
@@ -1698,4 +1710,37 @@ model StaffAnnouncement {
   createdAt     DateTime @default(now())
 
   @@index([tenantId, createdAt])
+}
+
+// Personel ödemeleri ve avans kapanışları (kısmi ödeme: bir talebe / prime birden çok kayıt).
+//  PAYOUT : firmadan personele ödeme (masraf, avans, prim) → gelir-giderde gider
+//  OFFSET : masrafın ya da primin açık avanstan düşülmesi (nakit çıkmaz; avans kapanır)
+//  REFUND : personelin kullanmadığı avansı iadesi → gelir-giderde gelir
+//  PAYROLL: avansın maaştan kesilmesi (bordro sistem dışında; nakit kaydı açılmaz)
+model StaffPayment {
+  id            Int          @id @default(autoincrement())
+  tenantId      Int
+  tenant        Tenant       @relation(fields: [tenantId], references: [id])
+  employeeId    Int
+  employee      Employee     @relation(fields: [employeeId], references: [id], onDelete: Cascade)
+  kind          String
+  amount        Float
+  date          DateTime
+  method        String? // CASH, BANK, CARD (PAYOUT, REFUND)
+  claimId       Int? // Ödenen ya da avanstan mahsup edilen masraf / avans
+  claim         StaffClaim?  @relation("ClaimPayments", fields: [claimId], references: [id], onDelete: Cascade)
+  targetId      Int? // Ödenen ya da avanstan mahsup edilen prim
+  target        StaffTarget? @relation(fields: [targetId], references: [id], onDelete: Cascade)
+  advanceId     Int? // Kapanan avans (OFFSET, REFUND, PAYROLL)
+  advance       StaffClaim?  @relation("AdvanceSettlements", fields: [advanceId], references: [id], onDelete: Cascade)
+  cashEntryId   Int?         @unique // Gelir-gider kaydı (PAYOUT, REFUND); kaynak anahtarı STAFF_PAY:<id>
+  note          String?
+  createdById   Int?
+  createdByName String?
+  createdAt     DateTime     @default(now())
+
+  @@index([tenantId])
+  @@index([claimId])
+  @@index([targetId])
+  @@index([advanceId])
 }

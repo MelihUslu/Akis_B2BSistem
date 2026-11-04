@@ -33,7 +33,7 @@ Dış servise ya da fiziksel çıktıya bağlı oldukları için otomatik testle
 - [ ] **İngilizce portal:** bayi dili EN iken ekranlar ve e-postalar.
 - [ ] **Özel alan adı:** firmanın kendi alan adıyla açılış (DNS gerekir).
 - [ ] **Google ile giriş:** Google Cloud'da OAuth istemcisi ve yönlendirme adresi tanımlandıktan sonra gerçek Google hesabıyla, firma girişinde ve `/giris`'te.
-- [ ] **Personel yönetimi:** gerçek verilerle bir ay: izin ve masraf talepleri, ödeme ve Gelir-Gider, ay sonunda hedef kapanışı ve prim ödemesi.
+- [ ] **Personel yönetimi:** gerçek verilerle bir ay: izin ve masraf talepleri, ödeme ve Gelir-Gider, ay sonunda hedef kapanışı ve prim ödemesi. Kullanmadan önce İzin ayarlarına o yılın dini bayramlarını ekleyin ve personel kartlarına işe giriş tarihi / devir bakiyesi girin.
 - [ ] **Barkod okutma:** gerçek telefon kamerasıyla, https adresinde.
 
 ## Bilinen sınırlar
@@ -42,7 +42,7 @@ Dış servise ya da fiziksel çıktıya bağlı oldukları için otomatik testle
 - **Barkod okutma** https ister; tarayıcı kamera izni sorar.
 - **Yük testi sayıları** geliştirme bilgisayarında alındı; canlı kapasiteyi göstermez.
 - **iPhone'da anlık bildirim** yalnızca ana ekrana eklenen uygulamada çalışır (iOS 16.4+).
-- **Personel yönetimi:** izin hakkı (kalan gün), avans mahsubu, departman yöneticisi onayı, ayrı personel rolü ve kısmi ödeme yok; ayrıntı [11. bölüm](11-personel-yonetimi.md).
+- **Personel yönetimi:** dini bayram tarihleri firma tarafından eklenir; yaşa bağlı izin kuralı ve iki aşamalı onay yok; ayrıntı [11. bölüm](11-personel-yonetimi.md).
 
 ## 4 Kasım'daki davranış değişiklikleri
 

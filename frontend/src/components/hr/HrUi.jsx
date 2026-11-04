@@ -1,10 +1,10 @@
 import { useState } from 'react';
-import { Ban, Banknote, CheckCircle2, Clock, Paperclip } from 'lucide-react';
+import { Ban, Banknote, CheckCircle2, Clock, Paperclip, Undo2, Wallet } from 'lucide-react';
 import Modal from '../shared/Modal';
 import { Field, Segmented } from '../form/FormKit';
 import { formatDate, formatTRY } from '../../utils/format';
 import { downloadFile } from '../../utils/download';
-import { STATUS, METHODS, today } from './hrMeta';
+import { STATUS, METHODS, PAYMENT_KINDS, today } from './hrMeta';
 
 /**
  * Personel ekranlarının ortak parçaları: durum etiketi, karar / ödeme bilgisi, ret ve ödeme pencereleri.
@@ -27,12 +27,19 @@ export const DecisionNote = ({ item }) => {
   );
 };
 
-// Ödeme bilgisi (ödeyen, tarih, şekil)
-export const PaymentNote = ({ item, amount }) => (item.paidAt ? (
-  <p className="text-xs text-emerald-700">
-    <Banknote className="inline h-3.5 w-3.5 mr-1 -mt-0.5" />
-    {amount !== undefined ? <><b className="font-semibold">{formatTRY(amount)}</b> ödendi</> : 'Ödendi'} · {METHODS[item.paymentMethod] || item.paymentMethod} · {item.paidByName || '—'} · {formatDate(item.paidAt, true)}
-  </p>
+// Ödeme / mahsup kayıtları (kim, ne zaman, nasıl); Finans yetkilisi yanlış girilen kaydı geri alır
+export const Payments = ({ payments, onUndo, label }) => (payments?.length ? (
+  <ul className="space-y-0.5">
+    {label && <li className="text-[11px] font-bold text-gray-400">{label}</li>}
+    {payments.map((p) => (
+      <li key={p.id} className={`flex flex-wrap items-center gap-x-1.5 text-xs ${p.kind === 'PAYOUT' ? 'text-emerald-700' : 'text-sky-700'}`}>
+        {p.kind === 'PAYOUT' ? <Banknote className="h-3.5 w-3.5" /> : <Wallet className="h-3.5 w-3.5" />}
+        <b className="font-semibold tabular-nums">{formatTRY(p.amount)}</b>
+        <span>{p.kind === 'PAYOUT' ? METHODS[p.method] || p.method : PAYMENT_KINDS[p.kind]}{p.kind === 'REFUND' && p.method ? ` (${METHODS[p.method]})` : ''} · {p.createdByName || '—'} · {formatDate(p.date)}</span>
+        {onUndo && <button type="button" onClick={() => onUndo(p)} className="ml-1 inline-flex items-center gap-0.5 text-gray-400 hover:text-red-600" title="Yanlış girildiyse geri al"><Undo2 className="h-3 w-3" /> Geri al</button>}
+      </li>
+    ))}
+  </ul>
 ) : null);
 
 export const FileLink = ({ claim }) => (claim.hasFile ? (
@@ -62,9 +69,10 @@ export const RejectModal = ({ title, subtitle, onClose, onSubmit }) => {
   );
 };
 
-// Ödeme kaydı: tarih ve ödeme şekli; gelir-gidere gider olarak yazılır
-export const PayModal = ({ title, amount, category, onClose, onSubmit }) => {
-  const [form, setForm] = useState({ date: today(), method: 'BANK' });
+// Ödeme kaydı: tutar (kısmi olabilir), tarih ve şekil. Nakit / banka / kart gelir-gidere gider olarak yazılır;
+// "avanstan mahsup" personelin açık avansından düşer (nakit çıkmaz)
+export const PayModal = ({ title, amount, category, openAdvance = 0, onClose, onSubmit }) => {
+  const [form, setForm] = useState({ date: today(), method: 'BANK', amount: String(amount).replace('.', ',') });
   const [busy, setBusy] = useState(false);
   const submit = async (e) => {
     e.preventDefault();
@@ -72,10 +80,17 @@ export const PayModal = ({ title, amount, category, onClose, onSubmit }) => {
     try { await onSubmit(form); } finally { setBusy(false); }
   };
   return (
-    <Modal as="form" onSubmit={submit} icon={Banknote} title={title} subtitle={`${formatTRY(amount)} · Gelir-Gider'e "${category}" gideri olarak eklenir.`} onClose={onClose}
+    <Modal as="form" onSubmit={submit} icon={Banknote} title={title} subtitle={`Kalan ${formatTRY(amount)}. Nakit / banka / kart ödemesi Gelir-Gider'e "${category}" gideri olarak eklenir.`} onClose={onClose}
       footer={<><button type="button" onClick={onClose} className="btn-secondary">Vazgeç</button><button disabled={busy} className="btn-gradient disabled:opacity-50">Ödemeyi kaydet</button></>}>
       <Field label="Ödeme şekli" required>
-        <Segmented value={form.method} onChange={(method) => setForm({ ...form, method })} options={Object.entries(METHODS).map(([value, label]) => ({ value, label }))} />
+        <Segmented value={form.method} onChange={(method) => setForm({ ...form, method })} options={[
+          ...Object.entries(METHODS).map(([value, label]) => ({ value, label })),
+          ...(openAdvance > 0 ? [{ value: 'ADVANCE', label: 'Avanstan mahsup' }] : [])
+        ]} />
+      </Field>
+      {form.method === 'ADVANCE' && <p className="text-xs font-semibold text-sky-700 bg-sky-50 rounded-xl p-3">Personelin açık avansı {formatTRY(openAdvance)}. Tutar avanstan düşülür; nakit çıkmaz, gelir-gidere yeni gider yazılmaz.</p>}
+      <Field label="Tutar (₺)" required hint="Kısmi ödeme için kalandan az yazın">
+        <input required inputMode="decimal" className="premium-input" value={form.amount} onChange={(e) => setForm({ ...form, amount: e.target.value })} aria-label="Ödeme tutarı" />
       </Field>
       <Field label="Ödeme tarihi" required>
         <input type="date" required max={today()} className="premium-input" value={form.date} onChange={(e) => setForm({ ...form, date: e.target.value })} aria-label="Ödeme tarihi" />
@@ -87,3 +102,31 @@ export const PayModal = ({ title, amount, category, onClose, onSubmit }) => {
 // Kart görünümlü liste satırı (telefonda alt alta, geniş ekranda yan yana)
 export const Row = ({ children, className = '' }) => <li className={`p-4 md:p-5 ${className}`}>{children}</li>;
 export const ListCard = ({ children }) => <ul className="bg-white rounded-2xl border border-gray-100 shadow-sm divide-y divide-gray-50 overflow-hidden">{children}</ul>;
+
+// Açık avansın kapanması: nakit iade (gelir kaydı) ya da maaştan kesinti (nakit kaydı açılmaz)
+export const SettleModal = ({ advance, onClose, onSubmit }) => {
+  const [form, setForm] = useState({ kind: 'REFUND', method: 'CASH', date: today(), amount: String(advance.open).replace('.', ',') });
+  const [busy, setBusy] = useState(false);
+  const submit = async (e) => {
+    e.preventDefault();
+    setBusy(true);
+    try { await onSubmit(form); } finally { setBusy(false); }
+  };
+  return (
+    <Modal as="form" onSubmit={submit} icon={Wallet} title={`Avansı kapat · ${advance.employee?.name || ''}`} subtitle={`Açık avans ${formatTRY(advance.open)}. Masraflar ve primler ödeme penceresinde "avanstan mahsup" ile düşülür.`} onClose={onClose}
+      footer={<><button type="button" onClick={onClose} className="btn-secondary">Vazgeç</button><button disabled={busy} className="btn-gradient disabled:opacity-50">Kaydet</button></>}>
+      <Field label="Kapanış" required hint={form.kind === 'REFUND' ? 'Personelin geri verdiği tutar Gelir-Gider\'e "Personel avans iadesi" geliri olarak eklenir' : 'Bordro sistem dışında; yalnızca avans kapanır, nakit kaydı açılmaz'}>
+        <Segmented value={form.kind} onChange={(kind) => setForm({ ...form, kind })} options={[{ value: 'REFUND', label: 'Nakit iade' }, { value: 'PAYROLL', label: 'Maaştan kesinti' }]} />
+      </Field>
+      {form.kind === 'REFUND' && (
+        <Field label="İade nasıl alındı" required>
+          <Segmented size="sm" value={form.method} onChange={(method) => setForm({ ...form, method })} options={Object.entries(METHODS).map(([value, label]) => ({ value, label }))} />
+        </Field>
+      )}
+      <div className="grid grid-cols-2 gap-3">
+        <Field label="Tutar (₺)" required><input required inputMode="decimal" className="premium-input" value={form.amount} onChange={(e) => setForm({ ...form, amount: e.target.value })} aria-label="Kapanış tutarı" /></Field>
+        <Field label="Tarih" required><input type="date" required max={today()} className="premium-input" value={form.date} onChange={(e) => setForm({ ...form, date: e.target.value })} aria-label="Kapanış tarihi" /></Field>
+      </div>
+    </Modal>
+  );
+};

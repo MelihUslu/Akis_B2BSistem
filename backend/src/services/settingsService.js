@@ -24,6 +24,9 @@ export const SETTING_DEFAULTS = {
   auto_approve: 'false',        // Limiti yeten, stoktaki cari hesaplı siparişler otomatik onaylansın
   auto_approve_max: '0',        // Otomatik onayın üst sınırı (KDV dahil TL; 0 = sınırsız)
   hr_enabled: 'false',          // Personel yönetimi modülü (izin, masraf / avans, hedef ve prim, duyurular)
+  hr_saturday_workday: 'false', // İzinde Cumartesi iş günü sayılsın
+  hr_negative_leave: 'false',   // Kalan günü aşan yıllık izin (avans izin) talep edilebilsin
+  hr_holidays: '[]',            // Firmanın tatil listesi (dini bayramlar vb.): [{ date, name, half }]
   usd_try: '',                  // TCMB'ye ulaşılamazsa kullanılacak manuel kurlar
   eur_try: ''
 };

@@ -1,4 +1,4 @@
-# Akis B2B: yapılanlar (10 Mayıs – 4 Kasım 2026)
+# Akis B2B: yapılanlar (10 Mayıs – 5 Kasım 2026)
 
 Bu klasör, projenin ilk commit'inden bugüne kadar yapılan işleri konu konu anlatır. Her belge kendi başına okunabilir. Ayrıntısına inmek istediğiniz değişikliğin commit kısaltması belgelerde yazılıdır: `git show <kısaltma>` ile kodun kendisine ulaşılır.
 
@@ -29,16 +29,17 @@ Bu klasör, projenin ilk commit'inden bugüne kadar yapılan işleri konu konu a
 | 27 Ekim | Modüller ve altyapı | 24 | Testler ve CI, raporlar, e-fatura, kargo, çoklu depo, ERP API dokümanı, izleme, yedekleme, TR/EN, PWA, cari hesaplar, akıllı teklif |
 | 28–29 Ekim | Katalog ve tanıtım | 8 | Yeni bayi kataloğu, tanıtım sitesi, sohbet botu, ayrı kayıt ve ortak giriş |
 | 2–3 Kasım | Satış, finans, ölçek | 21 | Müşteri adayları, WhatsApp, müşteri takip raporu, Gel-Al, gelir-gider, abonelik sayfası, yük testleri, UAT |
-| 4 Kasım | Kurumsal kimlik ve B2B eksikleri | 8 | Lacivert / bronz renkler, ortak giriş görünümü, plasiyer paneli, bayi adına sipariş, stok ayırma, kısmi sevkiyat, bu belgeler, Google ile giriş, personel yönetimi |
+| 4 Kasım | Kurumsal kimlik ve B2B eksikleri | 9 | Lacivert / bronz renkler, ortak giriş görünümü, plasiyer paneli, bayi adına sipariş, stok ayırma, kısmi sevkiyat, bu belgeler, Google ile giriş, personel yönetimi |
+| 5 Kasım | Personel yönetimi eksikleri | 1 | İzin hakkı ve tatiller, yarım gün, kısmi ödeme, avans mahsubu, departman yöneticisi, personel rolü |
 
 Mayıs ile Ekim arasında commit yoktur. SaaS dönüşümü 26 Ekim'de tek büyük commit olarak geldi (`b0613c5`, 226 dosya).
 
-## Bugünkü durum (4 Kasım 2026)
+## Bugünkü durum (5 Kasım 2026)
 
-- **Kod:** 76 commit, 36 veritabanı migration'ı, backend ve frontend'de yaklaşık 330 kaynak dosyası.
-- **Roller:** platform sahibi, firma yöneticisi (ekip yetkileriyle), plasiyer, bayi. Personel modülü açıksa ekip üyeleri ve plasiyerler "Personel Alanım"ı kullanır.
-- **Testler:** 34 birim, 96 entegrasyon testi, 45 kullanıcı kabul testi (18 senaryo); hepsi geçiyor. Lint temiz, derleme sorunsuz.
-- **Dal:** SaaS dönemine ait 66 commit `feature/saas-platform` dalındadır. `main` dalında yalnızca Mayıs sürümü vardır. Dal henüz uzak depoya gönderilmedi.
+- **Kod:** 78 commit, 37 veritabanı migration'ı, backend ve frontend'de yaklaşık 330 kaynak dosyası.
+- **Roller:** platform sahibi, firma yöneticisi (ekip yetkileriyle), plasiyer, bayi, personel (yalnızca Personel Alanım). Personel modülü açıksa ekip üyeleri ve plasiyerler de "Personel Alanım"ı kullanır.
+- **Testler:** 34 birim, 101 entegrasyon testi, 46 kullanıcı kabul testi (18 senaryo); hepsi geçiyor. Lint temiz, derleme sorunsuz.
+- **Dal:** SaaS dönemine ait 68 commit `feature/saas-platform` dalındadır. `main` dalında yalnızca Mayıs sürümü vardır. Dal henüz uzak depoya gönderilmedi.
 
 ## Diğer kaynaklar
 

@@ -1,3 +1,4 @@
+import bcrypt from 'bcrypt';
 import crypto from 'crypto';
 import fs from 'fs/promises';
 import path from 'path';
@@ -6,23 +7,29 @@ import { round2 } from '../services/pricingService.js';
 import { localDay } from '../utils/dates.js';
 import { HR_DOC_DIR, CASH_DOC_DIR, CASH_DOC_TYPES } from '../middlewares/upload.js';
 import { notifyAdmins, notifyUser, safeNotify } from '../services/notificationService.js';
+import { sendCredentialsMail } from '../services/mailService.js';
 import { checkBudgets } from './cashController.js';
 import {
-  HrError, hrEnabled, canManage, canPay, assertNotSelf, parseDay, workdays, parsePeriod, monthEnded, currentPeriod,
-  achievedForStaff, bonusFor, presentTarget, LEAVE_TYPES, CLAIM_TYPES, PAY_METHODS, BASES, CASH_CATEGORY
+  HrError, hrEnabled, canManage, canPay, canDecide, assertNotSelf, parseDay, parsePeriod, monthEnded, currentPeriod,
+  achievedForStaff, bonusFor, presentTarget, LEAVE_TYPES, CLAIM_TYPES, PAY_METHODS, BASES, CASH_CATEGORY, ADVANCE_METHOD,
+  countLeaveDays, leaveRules, leaveBalances, employeeBalance, fixedHolidays, HR_RULE_KEYS,
+  payTowards, settleAdvance, undoPayment, openAdvanceTotal
 } from '../services/hrService.js';
 
 /**
  * Personel yönetimi: personel kartları, izin, masraf / avans, satış hedefi ve prim, şirket duyuruları.
  * Erişim (routes/hrRoutes.js): modül firmada açık olmalı; bayi hesapları giremez. Personel /me uçlarında yalnızca
- * kendi kaydını görür; yönetim uçları "Personel" (HR), ödeme uçları "Finans" yetkisi ister.
+ * kendi kaydını görür; yönetim uçları "Personel" (HR), ödeme uçları "Finans" yetkisi ister. Personelin yöneticisi
+ * (departman yöneticisi) Personel yetkisi olmadan kendi ekibinin taleplerine karar verir.
  * Onay, ret ve ödeme kimin yaptığı ve ne zaman yaptığıyla kayda yazılır (ayrıca işlem kaydına düşer).
  */
 
 const MANAGE_LINK = '/admin/personel';
-const selfLink = (role) => (role === 'PLASIYER' ? '/plasiyer/personel' : '/admin/personel-alanim');
+const selfLink = (role) => (role === 'PLASIYER' ? '/plasiyer/personel' : role === 'PERSONEL' ? '/personel' : '/admin/personel-alanim');
+const teamLink = (role) => `${selfLink(role)}?tab=team`;
 const tl = (n) => `₺${Number(n || 0).toLocaleString('tr-TR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
 const dayTr = (d) => new Date(d).toLocaleDateString('tr-TR', { timeZone: process.env.TZ || 'Europe/Istanbul' });
+const daysTr = (n) => `${String(n).replace('.', ',')} gün`;
 const id = (v) => parseInt(v) || 0;
 const text = (v, max) => String(v ?? '').trim().slice(0, max);
 // "1.500,50" / "1500,50" / "1500.50" → 1500.5
@@ -30,6 +37,7 @@ const amountOf = (v) => {
   const t = String(v ?? '').trim().replace(/\s/g, '');
   return round2(Number(t.includes(',') ? t.replace(/\./g, '').replace(',', '.') : t));
 };
+const optionalAmount = (v) => (v === undefined || v === null || v === '' ? undefined : amountOf(v));
 
 const fail = (res, error, fallback) => {
   if (error instanceof HrError) return res.status(error.status).json({ message: error.message, ...(error.code && { code: error.code }) });
@@ -75,12 +83,44 @@ const requireActiveMe = async (req) => {
 export const status = handle('Durum alınamadı.', async (req, res) => {
   const enabled = await hrEnabled();
   const me = enabled ? await myEmployee(req) : null;
-  res.json({ enabled, canManage: canManage(req.user), canPay: canPay(req.user), employee: me });
+  const reports = me ? await prisma.employee.count({ where: { managerId: me.id, isActive: true } }) : 0;
+  res.json({ enabled, canManage: canManage(req.user), canPay: canPay(req.user), employee: me, isManager: reports > 0, reports });
+});
+
+// ─── İzin kuralları (Personel yetkisi) ───────────────────────────────────────
+
+export const getHrSettings = handle('Ayarlar alınamadı.', async (req, res) => {
+  const rules = await leaveRules();
+  const y = new Date().getFullYear();
+  res.json({
+    saturdayWorkday: rules.saturday,
+    allowNegativeLeave: rules.allowNegative,
+    holidays: [...rules.holidays].sort((a, b) => a.date.localeCompare(b.date)),
+    fixedHolidays: [...fixedHolidays(y), ...fixedHolidays(y + 1)]
+  });
+});
+
+export const saveHrSettings = handle('Ayarlar kaydedilemedi.', async (req, res) => {
+  const holidays = (Array.isArray(req.body.holidays) ? req.body.holidays : []).slice(0, 200).map((h) => {
+    parseDay(h?.date, 'Tatil tarihi');
+    return { date: String(h.date).slice(0, 10), name: text(h.name, 80) || 'Tatil', half: Boolean(h.half) };
+  });
+  const unique = [...new Map(holidays.map((h) => [h.date, h])).values()];
+  const values = {
+    [HR_RULE_KEYS.saturday]: String(req.body.saturdayWorkday === true),
+    [HR_RULE_KEYS.negative]: String(req.body.allowNegativeLeave === true),
+    [HR_RULE_KEYS.holidays]: JSON.stringify(unique)
+  };
+  await prisma.$transaction(Object.entries(values).map(([key, value]) => prisma.setting.upsert({
+    where: { tenantId_key: { tenantId: currentTenantId(), key } }, update: { value }, create: { key, value }
+  })));
+  res.json({ message: 'İzin ayarları kaydedildi.' });
 });
 
 // ─── Personel kartları ───────────────────────────────────────────────────────
 
 const USER_PICK = { select: { id: true, name: true, email: true, role: true, isActive: true } };
+const EMPLOYEE_INCLUDE = { user: USER_PICK, manager: { select: { id: true, name: true, userId: true } } };
 
 const parseEmployee = async (body, currentId = null) => {
   const name = text(body.name, 120);
@@ -89,20 +129,43 @@ const parseEmployee = async (body, currentId = null) => {
   if (email && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) throw new HrError('E-posta adresi geçerli değil.');
   let userId = body.userId === '' || body.userId === null || body.userId === undefined ? null : id(body.userId);
   if (userId) {
-    // Yalnızca bu firmanın yönetici / plasiyer hesabı bağlanır; bayi ve müşteri hesapları bağlanamaz
+    // Yalnızca bu firmanın yönetici / plasiyer / personel hesabı bağlanır; bayi ve müşteri hesapları bağlanamaz
     const user = await prisma.user.findFirst({ where: { id: userId }, include: { employee: true } });
     if (!user) throw new HrError('Kullanıcı hesabı bulunamadı.');
-    if (!['ADMIN', 'PLASIYER'].includes(user.role)) throw new HrError('Bayi ya da müşteri hesabı personele bağlanamaz.');
+    if (!['ADMIN', 'PLASIYER', 'PERSONEL'].includes(user.role)) throw new HrError('Bayi ya da müşteri hesabı personele bağlanamaz.');
     if (user.employee && user.employee.id !== currentId) throw new HrError(`Bu hesap zaten "${user.employee.name}" personel kartına bağlı.`);
   } else userId = null;
+  let managerId = body.managerId === '' || body.managerId === null || body.managerId === undefined ? null : id(body.managerId);
+  if (managerId) {
+    if (managerId === currentId) throw new HrError('Personel kendi yöneticisi olamaz.');
+    const manager = await prisma.employee.findFirst({ where: { id: managerId } });
+    if (!manager) throw new HrError('Yönetici bulunamadı.');
+    if (!manager.userId) throw new HrError('Yöneticinin onay verebilmesi için personel kartına bir kullanıcı hesabı bağlı olmalı.');
+  } else managerId = null;
+  const annualLeaveDays = body.annualLeaveDays === '' || body.annualLeaveDays == null ? null : parseInt(body.annualLeaveDays);
+  if (annualLeaveDays !== null && !(annualLeaveDays >= 0 && annualLeaveDays <= 60)) throw new HrError('Yıllık izin 0 ile 60 gün arasında olmalı.');
+  const carryDate = body.leaveCarryDate ? parseDay(body.leaveCarryDate, 'Devir tarihi') : null;
+  const carryDays = body.leaveCarryDays === '' || body.leaveCarryDays == null ? null : Math.round(Number(String(body.leaveCarryDays).replace(',', '.')) * 10) / 10;
+  if (carryDays !== null && !(Math.abs(carryDays) <= 400)) throw new HrError('Devreden izin günü geçerli değil.');
+  if ((carryDate === null) !== (carryDays === null)) throw new HrError('Devir için hem tarihi hem kalan gün sayısını girin.');
   return {
-    name, email, userId,
+    name, email, userId, managerId, annualLeaveDays, leaveCarryDays: carryDays, leaveCarryDate: carryDate,
     phone: text(body.phone, 30) || null,
     department: text(body.department, 60) || null,
     title: text(body.title, 80) || null,
     hireDate: body.hireDate ? parseDay(body.hireDate, 'İşe giriş tarihi') : null,
     isActive: body.isActive === undefined ? true : body.isActive === true || body.isActive === 'true'
   };
+};
+
+// Kart kaydından sonra: departmanın tamamına aynı yönetici; pasif personelin "personel" hesabı da kapanır
+const afterEmployeeSave = async (employee, body) => {
+  if (body.applyManagerToDepartment && employee.department && employee.managerId) {
+    await prisma.employee.updateMany({ where: { department: employee.department, id: { notIn: [employee.id, employee.managerId] } }, data: { managerId: employee.managerId } });
+  }
+  if (employee.userId && employee.user?.role === 'PERSONEL' && employee.user.isActive !== employee.isActive) {
+    await prisma.user.update({ where: { id: employee.userId }, data: { isActive: employee.isActive } });
+  }
 };
 
 export const listEmployees = handle('Personel listesi alınamadı.', async (req, res) => {
@@ -113,22 +176,23 @@ export const listEmployees = handle('Personel listesi alınamadı.', async (req,
     ...(req.query.department && { department: String(req.query.department) }),
     ...(q && { OR: ['name', 'email', 'phone', 'department', 'title'].map((f) => ({ [f]: { contains: q, mode: 'insensitive' } })) })
   };
-  const rows = await prisma.employee.findMany({
-    where, orderBy: [{ isActive: 'desc' }, { name: 'asc' }], include: { user: USER_PICK },
-    take: 500
-  });
+  const rows = await prisma.employee.findMany({ where, orderBy: [{ isActive: 'desc' }, { name: 'asc' }], include: EMPLOYEE_INCLUDE, take: 500 });
   const ids = rows.map((r) => r.id);
-  const [leaves, claims] = await Promise.all([
+  const [leaves, claims, advances, balances] = await Promise.all([
     prisma.leaveRequest.groupBy({ by: ['employeeId'], where: { employeeId: { in: ids }, status: 'PENDING' }, _count: { _all: true } }),
-    prisma.staffClaim.groupBy({ by: ['employeeId'], where: { employeeId: { in: ids }, status: 'PENDING' }, _count: { _all: true } })
+    prisma.staffClaim.groupBy({ by: ['employeeId'], where: { employeeId: { in: ids }, status: 'PENDING' }, _count: { _all: true } }),
+    prisma.staffClaim.groupBy({ by: ['employeeId'], where: { employeeId: { in: ids }, type: 'ADVANCE' }, _sum: { paidAmount: true, settledAmount: true } }),
+    leaveBalances(rows)
   ]);
   const pending = new Map();
   for (const g of [...leaves, ...claims]) pending.set(g.employeeId, (pending.get(g.employeeId) || 0) + g._count._all);
-  res.json(rows.map((r) => ({ ...r, pending: pending.get(r.id) || 0 })));
+  const open = new Map(advances.map((a) => [a.employeeId, round2((a._sum.paidAmount || 0) - (a._sum.settledAmount || 0))]));
+  res.json(rows.map((r) => ({ ...r, pending: pending.get(r.id) || 0, openAdvance: open.get(r.id) || 0, leaveBalance: balances.get(r.id) })));
 });
 
 export const createEmployee = handle('Personel kaydedilemedi.', async (req, res) => {
-  const employee = await prisma.employee.create({ data: await parseEmployee(req.body), include: { user: USER_PICK } });
+  const employee = await prisma.employee.create({ data: await parseEmployee(req.body), include: EMPLOYEE_INCLUDE });
+  await afterEmployeeSave(employee, req.body);
   res.locals.auditEntityId = employee.id;
   res.status(201).json({ message: 'Personel kartı oluşturuldu.', employee });
 });
@@ -136,15 +200,40 @@ export const createEmployee = handle('Personel kaydedilemedi.', async (req, res)
 export const updateEmployee = handle('Personel güncellenemedi.', async (req, res) => {
   const current = await prisma.employee.findFirst({ where: { id: id(req.params.id) } });
   if (!current) throw new HrError('Personel bulunamadı.', 404);
-  const employee = await prisma.employee.update({ where: { id: current.id }, data: await parseEmployee(req.body, current.id), include: { user: USER_PICK } });
+  const employee = await prisma.employee.update({ where: { id: current.id }, data: await parseEmployee(req.body, current.id), include: EMPLOYEE_INCLUDE });
+  await afterEmployeeSave(employee, req.body);
   res.json({ message: 'Personel kartı güncellendi.', employee });
 });
 
-// Karta bağlanabilecek hesaplar: firmanın yönetici ve plasiyerleri (bağlı olmayanlar + düzenlenen kartın hesabı)
+/**
+ * Personel girişi: kartı olan ama sistem hesabı olmayan personele yalnızca Personel Alanım'a giren hesap ("Personel"
+ * rolü) açılır; paketteki yönetici sayısına dahil değildir. Geçici şifre e-postayla gider; e-posta gönderilemezse
+ * yanıtta bir kez gösterilir (yetkili personele iletir).
+ */
+export const createEmployeeAccount = handle('Giriş hesabı açılamadı.', async (req, res) => {
+  const employee = await prisma.employee.findFirst({ where: { id: id(req.params.id) } });
+  if (!employee) throw new HrError('Personel bulunamadı.', 404);
+  if (employee.userId) throw new HrError('Bu personelin zaten bir hesabı var.');
+  if (!employee.isActive) throw new HrError('Pasif personele hesap açılamaz.');
+  const email = text(req.body.email || employee.email, 160).toLowerCase();
+  if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) throw new HrError('Giriş için geçerli bir e-posta adresi yazın.');
+  if (await prisma.user.findFirst({ where: { email } })) throw new HrError('Bu e-posta ile kayıtlı bir kullanıcı var; o hesabı karta bağlayın.');
+  const password = crypto.randomBytes(9).toString('base64url').slice(0, 12);
+  const user = await prisma.user.create({ data: { email, name: employee.name, role: 'PERSONEL', password: await bcrypt.hash(password, 10), emailVerifiedAt: new Date(), permissions: [] } });
+  await prisma.employee.update({ where: { id: employee.id }, data: { userId: user.id, email: employee.email || email } });
+  const mail = await sendCredentialsMail({ to: email, name: employee.name, password, tenant: req.tenant }).catch(() => ({ delivered: false }));
+  res.locals.auditEntityId = employee.id;
+  res.status(201).json({
+    message: mail.delivered ? `Giriş hesabı açıldı; bilgiler ${email} adresine gönderildi.` : 'Giriş hesabı açıldı. E-posta gönderilemedi; geçici şifreyi personele siz iletin.',
+    ...(!mail.delivered && { password })
+  });
+});
+
+// Karta bağlanabilecek hesaplar: firmanın yönetici, plasiyer ve personel hesapları (bağlı olmayanlar + düzenlenen kartın hesabı)
 export const linkableUsers = handle('Hesaplar alınamadı.', async (req, res) => {
   const keep = id(req.query.include);
   const users = await prisma.user.findMany({
-    where: { role: { in: ['ADMIN', 'PLASIYER'] }, OR: [{ employee: null }, ...(keep ? [{ id: keep }] : [])] },
+    where: { role: { in: ['ADMIN', 'PLASIYER', 'PERSONEL'] }, OR: [{ employee: null }, ...(keep ? [{ id: keep }] : [])] },
     select: { id: true, name: true, email: true, role: true, isActive: true }, orderBy: { name: 'asc' }
   });
   res.json(users);
@@ -160,17 +249,24 @@ export const departments = handle('Departmanlar alınamadı.', async (req, res) 
 export const me = handle('Bilgileriniz alınamadı.', async (req, res) => {
   const employee = await requireMe(req);
   const year = new Date().getFullYear();
-  const [used, pendingLeaves, pendingClaims, unpaid] = await Promise.all([
+  const [used, pendingLeaves, pendingClaims, unpaid, balance, openAdvance, manager, reports] = await Promise.all([
     prisma.leaveRequest.groupBy({ by: ['type'], where: { employeeId: employee.id, status: 'APPROVED', startDate: { gte: new Date(year, 0, 1), lt: new Date(year + 1, 0, 1) } }, _sum: { days: true } }),
     prisma.leaveRequest.count({ where: { employeeId: employee.id, status: 'PENDING' } }),
     prisma.staffClaim.count({ where: { employeeId: employee.id, status: 'PENDING' } }),
-    prisma.staffClaim.aggregate({ where: { employeeId: employee.id, status: 'APPROVED', paidAt: null }, _sum: { amount: true } })
+    prisma.staffClaim.aggregate({ where: { employeeId: employee.id, status: 'APPROVED', paidAt: null }, _sum: { amount: true, paidAmount: true } }),
+    employeeBalance(employee),
+    openAdvanceTotal(prisma, employee.id),
+    employee.managerId ? prisma.employee.findFirst({ where: { id: employee.managerId }, select: { id: true, name: true } }) : null,
+    prisma.employee.count({ where: { managerId: employee.id, isActive: true } })
   ]);
   res.json({
-    employee,
+    employee: { ...employee, manager },
     leaveDays: { year, byType: Object.fromEntries(used.map((u) => [u.type, u._sum.days || 0])) },
+    leaveBalance: balance,
     pending: { leaves: pendingLeaves, claims: pendingClaims },
-    awaitingPayment: round2(unpaid._sum.amount || 0)
+    awaitingPayment: round2((unpaid._sum.amount || 0) - (unpaid._sum.paidAmount || 0)),
+    openAdvance,
+    reports
   });
 });
 
@@ -178,32 +274,67 @@ export const me = handle('Bilgileriniz alınamadı.', async (req, res) => {
 
 const LEAVE_INCLUDE = { employee: { select: { id: true, name: true, department: true, title: true, userId: true } } };
 
+// İzin talebinin gün sayısı (kurallara göre) ve yıllık izinde bakiye
+const leavePlan = async (employee, body) => {
+  const type = LEAVE_TYPES[body.type] ? body.type : null;
+  if (!type) throw new HrError('İzin türünü seçin.');
+  const startDate = parseDay(body.startDate, 'Başlangıç tarihi');
+  const endDate = parseDay(body.endDate, 'Bitiş tarihi');
+  if (endDate < startDate) throw new HrError('Bitiş tarihi başlangıçtan önce olamaz.');
+  if ((endDate - startDate) / 864e5 > 365) throw new HrError('İzin en fazla bir yıl olabilir.');
+  const half = ['AM', 'PM'].includes(body.half) ? body.half : null;
+  if (half && endDate.getTime() !== startDate.getTime()) throw new HrError('Yarım gün izin yalnızca tek gün için seçilebilir.');
+  const rules = await leaveRules();
+  const { days, holidays } = countLeaveDays(startDate, endDate, rules, half);
+  const balance = type === 'ANNUAL' ? await employeeBalance(employee) : null;
+  return { type, startDate, endDate, half, days, holidays, balance, rules };
+};
+
+// Talep penceresinde önizleme: kaç gün sayılacağı, aradaki tatiller, kalan yıllık izin
+export const leavePreview = handle('Hesaplanamadı.', async (req, res) => {
+  const employee = await requireMe(req);
+  const plan = await leavePlan(employee, req.query);
+  res.json({
+    days: plan.days,
+    holidays: plan.holidays.map((h) => ({ date: h.date, name: h.name, half: h.half })),
+    balance: plan.balance,
+    exceeds: Boolean(plan.balance && plan.days > plan.balance.available),
+    allowNegative: plan.rules.allowNegative
+  });
+});
+
 export const myLeaves = handle('İzinler alınamadı.', async (req, res) => {
   const employee = await requireMe(req);
   res.json(await prisma.leaveRequest.findMany({ where: { employeeId: employee.id }, orderBy: { startDate: 'desc' }, take: 200 }));
 });
 
+// Yeni talep: yöneticisi varsa yöneticiye, yoksa Personel yetkililerine bildirim
+const notifyDeciders = async (employee, payload, actorId) => {
+  const manager = employee.managerId ? await prisma.employee.findFirst({ where: { id: employee.managerId }, include: { user: { select: { id: true, role: true, isActive: true } } } }) : null;
+  if (manager?.user?.isActive && manager.userId !== actorId) {
+    return notifyUser(manager.userId, { ...payload, link: teamLink(manager.user.role) });
+  }
+  return notifyAdmins({ ...payload, type: 'HR', excludeUserId: actorId });
+};
+
 export const createLeave = handle('İzin talebi oluşturulamadı.', async (req, res) => {
   const employee = await requireActiveMe(req);
-  const type = LEAVE_TYPES[req.body.type] ? req.body.type : null;
-  if (!type) throw new HrError('İzin türünü seçin.');
-  const startDate = parseDay(req.body.startDate, 'Başlangıç tarihi');
-  const endDate = parseDay(req.body.endDate, 'Bitiş tarihi');
-  if (endDate < startDate) throw new HrError('Bitiş tarihi başlangıçtan önce olamaz.');
-  if ((endDate - startDate) / 864e5 > 365) throw new HrError('İzin en fazla bir yıl olabilir.');
-  const days = workdays(startDate, endDate);
-  if (days === 0) throw new HrError('Seçilen aralıkta iş günü yok (hafta sonu).');
+  const { type, startDate, endDate, half, days, balance, rules } = await leavePlan(employee, req.body);
+  if (days === 0) throw new HrError('Seçilen aralıkta iş günü yok (hafta sonu ya da resmî tatil).');
+  if (balance && !rules.allowNegative && days > balance.available) {
+    throw new HrError(`Kalan yıllık izniniz ${daysTr(balance.available)}${balance.pending ? ` (onay bekleyen ${daysTr(balance.pending)} düşüldü)` : ''}; bu talep ${daysTr(days)}.`);
+  }
   const overlap = await prisma.leaveRequest.findFirst({ where: { employeeId: employee.id, status: { in: ['PENDING', 'APPROVED'] }, startDate: { lte: endDate }, endDate: { gte: startDate } } });
   if (overlap) throw new HrError(`Bu tarihlerle çakışan bir izin talebiniz var (${dayTr(overlap.startDate)} – ${dayTr(overlap.endDate)}).`);
-  const leave = await prisma.leaveRequest.create({ data: { employeeId: employee.id, type, startDate, endDate, days, note: text(req.body.note, 500) || null, createdByName: req.user.name } });
+  const leave = await prisma.leaveRequest.create({ data: { employeeId: employee.id, type, startDate, endDate, half, days, note: text(req.body.note, 500) || null, createdByName: req.user.name } });
   res.locals.auditEntityId = leave.id;
-  safeNotify(notifyAdmins({
-    type: 'HR', excludeUserId: req.user.id,
+  safeNotify(notifyDeciders(employee, {
+    type: 'HR',
     title: 'Yeni izin talebi',
-    message: `${employee.name}: ${LEAVE_TYPES[type]}, ${dayTr(startDate)} – ${dayTr(endDate)} (${days} iş günü).`,
+    message: `${employee.name}: ${LEAVE_TYPES[type]}, ${dayTr(startDate)}${half ? ` (yarım gün)` : ` – ${dayTr(endDate)}`} (${daysTr(days)}).`,
     link: `${MANAGE_LINK}?tab=leaves`
-  }));
-  res.status(201).json({ message: `İzin talebiniz iletildi (${days} iş günü).`, leave });
+  }, req.user.id));
+  res.status(201).json({ message: `İzin talebiniz iletildi (${daysTr(days)}).`, leave });
 });
 
 export const cancelLeave = handle('Talep iptal edilemedi.', async (req, res) => {
@@ -212,6 +343,13 @@ export const cancelLeave = handle('Talep iptal edilemedi.', async (req, res) => 
   if (done.count === 0) throw new HrError('Yalnızca onay bekleyen kendi talebinizi iptal edebilirsiniz.');
   res.json({ message: 'İzin talebi iptal edildi.' });
 });
+
+// İzin listesi (yönetim ve ekip): yıllık izinde personelin kalan günü de döner
+const withBalances = async (rows) => {
+  const employees = await prisma.employee.findMany({ where: { id: { in: [...new Set(rows.map((r) => r.employeeId))] } } });
+  const balances = await leaveBalances(employees);
+  return rows.map((r) => ({ ...r, balance: r.type === 'ANNUAL' ? balances.get(r.employeeId) || null : null }));
+};
 
 export const listLeaves = handle('İzinler alınamadı.', async (req, res) => {
   const where = {
@@ -222,16 +360,27 @@ export const listLeaves = handle('İzinler alınamadı.', async (req, res) => {
     prisma.leaveRequest.findMany({ where, include: LEAVE_INCLUDE, orderBy: [{ startDate: 'desc' }], take: 300 }),
     prisma.leaveRequest.groupBy({ by: ['status'], _count: { _all: true } })
   ]);
-  res.json({ rows, counts: Object.fromEntries(counts.map((c) => [c.status, c._count._all])) });
+  res.json({ rows: await withBalances(rows), counts: Object.fromEntries(counts.map((c) => [c.status, c._count._all])) });
 });
 
-// Karar: yalnızca bekleyen talep, bir kez (koşullu güncelleme; iki yönetici aynı anda karar veremez)
+// Karar: Personel yetkilisi ya da personelin yöneticisi; yalnızca bekleyen talep, bir kez (koşullu güncelleme)
 const decide = async ({ model, req, approve, label }) => {
-  const record = await prisma[model].findFirst({ where: { id: id(req.params.id) }, include: { employee: { include: { user: { select: { role: true } } } } } });
+  const record = await prisma[model].findFirst({
+    where: { id: id(req.params.id) },
+    include: { employee: { include: { user: { select: { role: true } }, manager: { select: { userId: true } } } } }
+  });
   if (!record) throw new HrError('Talep bulunamadı.', 404);
+  if (!canDecide(req.user, record.employee)) throw new HrError('Bu talebe karar verme yetkiniz yok (Personel yetkisi ya da personelin yöneticisi olmalısınız).', 403);
   assertNotSelf(req.user, record.employee);
   const reason = text(req.body?.reason, 500);
   if (!approve && reason.length < 3) throw new HrError('Ret gerekçesini yazın.');
+  if (approve && model === 'leaveRequest' && record.type === 'ANNUAL') {
+    const [balance, rules] = await Promise.all([employeeBalance(record.employee), leaveRules()]);
+    // Onaylı izinlerden sonra kalan gün bu talebi karşılamalı (avans izne izin verilmediyse)
+    if (balance && !rules.allowNegative && record.days > balance.remaining + 0.001) {
+      throw new HrError(`Personelin kalan yıllık izni ${daysTr(balance.remaining)}; bu talep ${daysTr(record.days)}. Bakiyeyi aşan izin için İzin ayarlarından "avans izin"e izin verin.`);
+    }
+  }
   const done = await prisma[model].updateMany({
     where: { id: record.id, status: 'PENDING' },
     data: { status: approve ? 'APPROVED' : 'REJECTED', decidedById: req.user.id, decidedByName: req.user.name, decidedAt: new Date(), rejectReason: approve ? null : reason }
@@ -247,21 +396,50 @@ export const decideLeave = (approve) => handle('Karar kaydedilemedi.', async (re
     safeNotify(notifyUser(e.userId, {
       type: 'HR',
       title: approve ? 'İzin talebiniz onaylandı' : 'İzin talebiniz reddedildi',
-      message: `${LEAVE_TYPES[record.type]}, ${dayTr(record.startDate)} – ${dayTr(record.endDate)}${approve ? '' : `. Gerekçe: ${reason}`}`,
+      message: `${LEAVE_TYPES[record.type]}, ${dayTr(record.startDate)} – ${dayTr(record.endDate)} (${daysTr(record.days)})${approve ? '' : `. Gerekçe: ${reason}`}`,
       link: selfLink(e.user?.role)
     }));
   }
   res.json({ message: approve ? 'İzin onaylandı.' : 'İzin reddedildi.' });
 });
 
+// ─── Ekibim (departman yöneticisi) ───────────────────────────────────────────
+
+export const myTeam = handle('Ekip bilgisi alınamadı.', async (req, res) => {
+  const manager = await requireMe(req);
+  const members = await prisma.employee.findMany({ where: { managerId: manager.id }, orderBy: [{ isActive: 'desc' }, { name: 'asc' }] });
+  const ids = members.map((m) => m.id);
+  const since = new Date(Date.now() - 90 * 864e5);
+  const [leaves, claims, balances] = await Promise.all([
+    prisma.leaveRequest.findMany({ where: { employeeId: { in: ids }, OR: [{ status: 'PENDING' }, { startDate: { gte: since } }] }, include: LEAVE_INCLUDE, orderBy: [{ status: 'desc' }, { startDate: 'desc' }], take: 200 }),
+    prisma.staffClaim.findMany({ where: { employeeId: { in: ids }, OR: [{ status: 'PENDING' }, { date: { gte: since } }] }, include: CLAIM_INCLUDE, orderBy: [{ date: 'desc' }], take: 200 }),
+    leaveBalances(members)
+  ]);
+  res.json({
+    members: members.map((m) => ({ id: m.id, name: m.name, title: m.title, department: m.department, isActive: m.isActive, leaveBalance: balances.get(m.id) })),
+    leaves: await withBalances(leaves),
+    claims: claims.map(publicClaim)
+  });
+});
+
 // ─── Masraf ve avans ─────────────────────────────────────────────────────────
 
-const CLAIM_INCLUDE = { employee: { select: { id: true, name: true, department: true, title: true, userId: true } } };
-const publicClaim = ({ storedName, ...c }) => ({ ...c, hasFile: Boolean(storedName) });
+const PAYMENT_PICK = { select: { id: true, kind: true, amount: true, date: true, method: true, advanceId: true, claimId: true, targetId: true, createdByName: true, createdAt: true, note: true } };
+const CLAIM_INCLUDE = {
+  employee: { select: { id: true, name: true, department: true, title: true, userId: true } },
+  payments: { ...PAYMENT_PICK, orderBy: { id: 'asc' } },
+  settlements: { ...PAYMENT_PICK, orderBy: { id: 'asc' } }
+};
+const publicClaim = ({ storedName, ...c }) => ({
+  ...c,
+  hasFile: Boolean(storedName),
+  remaining: round2(c.amount - (c.paidAmount || 0)),
+  ...(c.type === 'ADVANCE' && { open: round2((c.paidAmount || 0) - (c.settledAmount || 0)) })
+});
 
 export const myClaims = handle('Talepler alınamadı.', async (req, res) => {
   const employee = await requireMe(req);
-  const rows = await prisma.staffClaim.findMany({ where: { employeeId: employee.id }, orderBy: [{ date: 'desc' }, { id: 'desc' }], take: 200 });
+  const rows = await prisma.staffClaim.findMany({ where: { employeeId: employee.id }, include: { payments: CLAIM_INCLUDE.payments, settlements: CLAIM_INCLUDE.settlements }, orderBy: [{ date: 'desc' }, { id: 'desc' }], take: 200 });
   res.json(rows.map(publicClaim));
 });
 
@@ -279,12 +457,12 @@ export const createClaim = async (req, res) => {
     const file = req.file ? { fileName: req.file.originalname.slice(0, 120), storedName: req.file.filename, mimeType: CASH_DOC_TYPES[path.extname(req.file.filename).toLowerCase()] } : {};
     const claim = await prisma.staffClaim.create({ data: { employeeId: employee.id, type, amount, date, description, ...file, createdByName: req.user.name } });
     res.locals.auditEntityId = claim.id;
-    safeNotify(notifyAdmins({
-      type: 'HR', excludeUserId: req.user.id,
+    safeNotify(notifyDeciders(employee, {
+      type: 'HR',
       title: type === 'ADVANCE' ? 'Yeni avans talebi' : 'Yeni masraf talebi',
       message: `${employee.name}: ${tl(amount)} · ${description}`,
       link: `${MANAGE_LINK}?tab=claims`
-    }));
+    }, req.user.id));
     res.status(201).json({ message: `${CLAIM_TYPES[type]} talebiniz iletildi.`, claim: publicClaim(claim) });
   } catch (error) {
     if (req.file) await removeFile(HR_DOC_DIR, req.file.filename);
@@ -299,25 +477,36 @@ export const cancelClaim = handle('Talep iptal edilemedi.', async (req, res) => 
   res.json({ message: 'Talep iptal edildi.' });
 });
 
-// Durum filtreleri: onay bekleyen, ödeme bekleyen (onaylı + ödenmemiş), ödenen, reddedilen
+// Durum filtreleri: onay bekleyen, ödeme bekleyen (onaylı, tamamı ödenmemiş), ödenen, açık avans, reddedilen
 const CLAIM_FILTERS = {
   PENDING: { status: 'PENDING' },
   TO_PAY: { status: 'APPROVED', paidAt: null },
   PAID: { paidAt: { not: null } },
+  OPEN_ADVANCE: { type: 'ADVANCE', paidAmount: { gt: 0 } }, // kapanmamışlar aşağıda süzülür
   REJECTED: { status: { in: ['REJECTED', 'CANCELLED'] } }
 };
+const isOpenAdvance = (c) => c.type === 'ADVANCE' && c.paidAmount - c.settledAmount > 0.004;
 
 export const listClaims = handle('Talepler alınamadı.', async (req, res) => {
   const where = { ...(CLAIM_FILTERS[req.query.status] || {}), ...(req.query.employeeId && { employeeId: id(req.query.employeeId) }) };
-  const [rows, ...counts] = await Promise.all([
+  const [rows, pending, toPay, paid, rejected, advances, toPaySum] = await Promise.all([
     prisma.staffClaim.findMany({ where, include: CLAIM_INCLUDE, orderBy: [{ date: 'desc' }, { id: 'desc' }], take: 300 }),
-    ...Object.values(CLAIM_FILTERS).map((w) => prisma.staffClaim.count({ where: w }))
+    prisma.staffClaim.count({ where: CLAIM_FILTERS.PENDING }),
+    prisma.staffClaim.count({ where: CLAIM_FILTERS.TO_PAY }),
+    prisma.staffClaim.count({ where: CLAIM_FILTERS.PAID }),
+    prisma.staffClaim.count({ where: CLAIM_FILTERS.REJECTED }),
+    prisma.staffClaim.findMany({ where: CLAIM_FILTERS.OPEN_ADVANCE, select: { employeeId: true, type: true, paidAmount: true, settledAmount: true } }),
+    prisma.staffClaim.aggregate({ where: CLAIM_FILTERS.TO_PAY, _sum: { amount: true, paidAmount: true } })
   ]);
-  const totals = await prisma.staffClaim.aggregate({ where: CLAIM_FILTERS.TO_PAY, _sum: { amount: true } });
+  const open = advances.filter(isOpenAdvance);
+  // Personelin açık avansı: masraf "avanstan mahsup" ile ödenebilir
+  const openBy = new Map();
+  for (const a of open) openBy.set(a.employeeId, round2((openBy.get(a.employeeId) || 0) + a.paidAmount - a.settledAmount));
   res.json({
-    rows: rows.map(publicClaim),
-    counts: Object.fromEntries(Object.keys(CLAIM_FILTERS).map((k, i) => [k, counts[i]])),
-    toPayTotal: round2(totals._sum.amount || 0)
+    rows: (req.query.status === 'OPEN_ADVANCE' ? rows.filter(isOpenAdvance) : rows).map((c) => ({ ...publicClaim(c), employeeOpenAdvance: openBy.get(c.employeeId) || 0 })),
+    counts: { PENDING: pending, TO_PAY: toPay, PAID: paid, OPEN_ADVANCE: open.length, REJECTED: rejected },
+    toPayTotal: round2((toPaySum._sum.amount || 0) - (toPaySum._sum.paidAmount || 0)),
+    openAdvanceTotal: round2(open.reduce((s, a) => s + a.paidAmount - a.settledAmount, 0))
   });
 });
 
@@ -339,12 +528,12 @@ export const decideClaim = (approve) => handle('Karar kaydedilemedi.', async (re
   res.json({ message: approve ? 'Talep onaylandı. Ödeme ayrıca kaydedilir.' : 'Talep reddedildi.' });
 });
 
-const paymentOf = (body) => {
-  const method = PAY_METHODS.includes(body?.method) ? body.method : null;
-  if (!method) throw new HrError('Ödeme şeklini seçin (nakit, banka, kart).');
+const paymentOf = (body, methods) => {
+  const method = methods.includes(body?.method) ? body.method : null;
+  if (!method) throw new HrError('Ödeme şeklini seçin.');
   const day = body?.date ? String(body.date).slice(0, 10) : localDay();
   parseDay(day, 'Ödeme tarihi');
-  return { method, date: new Date(`${day}T12:00:00`) };
+  return { method, date: new Date(`${day}T12:00:00`), amount: optionalAmount(body?.amount), note: text(body?.note, 200) };
 };
 
 // Fiş / fatura gelir-gider kaydına da kopyalanır (iki kaydın dosyası birbirinden bağımsız silinebilsin)
@@ -359,72 +548,63 @@ const copyToCash = async (claim) => {
   }
 };
 
-/**
- * Ödeme: gelir-gidere gider kaydı açılır ve talep "ödendi" olur, ikisi tek işlemde. Gelir-gider kaydının kaynak
- * anahtarı (STAFF_CLAIM:<id>) veritabanında tekildir: aynı anda iki ödeme denense de yalnızca biri kaydedilir.
- */
-export const payClaim = handle('Ödeme kaydedilemedi.', async (req, res) => {
-  const { method, date } = paymentOf(req.body);
-  const claim = await prisma.staffClaim.findFirst({ where: { id: id(req.params.id) }, include: { employee: { include: { user: { select: { role: true } } } } } });
-  if (!claim) throw new HrError('Talep bulunamadı.', 404);
-  if (claim.paidAt) throw new HrError('Bu talep zaten ödendi.', 409);
-  if (claim.status !== 'APPROVED') throw new HrError('Yalnızca onaylanmış talep ödenebilir.');
-  const file = await copyToCash(claim);
-  try {
-    await prisma.$transaction(async (tx) => {
-      const entry = await tx.cashEntry.create({
-        data: {
-          type: 'OUT', category: CASH_CATEGORY[claim.type], amount: claim.amount, date, method, vatRate: 0,
-          description: `${claim.employee.name}: ${claim.description}`.slice(0, 500), sourceRef: `STAFF_CLAIM:${claim.id}`,
-          createdByName: req.user.name, ...(file || {})
-        }
-      });
-      const done = await tx.staffClaim.updateMany({
-        where: { id: claim.id, status: 'APPROVED', paidAt: null },
-        data: { paidAt: new Date(), paidById: req.user.id, paidByName: req.user.name, paymentMethod: method, cashEntryId: entry.id }
-      });
-      if (done.count === 0) throw new HrError('Bu talep zaten ödendi.', 409);
-    });
-  } catch (error) {
-    if (file) await removeFile(CASH_DOC_DIR, file.storedName);
-    if (error?.code === 'P2002') throw new HrError('Bu talep zaten ödendi.', 409);
-    throw error;
-  }
-  safeNotify(checkBudgets());
-  if (claim.employee.userId) {
-    safeNotify(notifyUser(claim.employee.userId, {
-      type: 'HR', title: `${CLAIM_TYPES[claim.type]} ödendi`,
-      message: `${CLAIM_TYPES[claim.type]} ${tl(claim.amount)} ${dayTr(date)} tarihinde ödendi.`, link: selfLink(claim.employee.user?.role)
-    }));
-  }
-  res.json({ message: `Ödeme kaydedildi; Gelir-Gider'e "${CASH_CATEGORY[claim.type]}" gideri olarak eklendi.` });
-});
-
-// Yanlış girilen ödemeyi geri alır: gelir-gider kaydı silinir, talep yeniden "ödeme bekliyor" olur
-const undoPayment = async (model, record, sourceRef) => {
-  const entry = await prisma.cashEntry.findFirst({ where: { sourceRef } });
-  await prisma.$transaction(async (tx) => {
-    const done = await tx[model].updateMany({
-      where: { id: record.id, paidAt: { not: null } },
-      data: { paidAt: null, paidById: null, paidByName: null, paymentMethod: null, cashEntryId: null, ...(model === 'staffTarget' && { paidAmount: null }) }
-    });
-    if (done.count === 0) throw new HrError('Bu kayıt ödenmemiş.', 409);
-    await tx.cashEntry.deleteMany({ where: { sourceRef } });
-  });
-  if (entry?.storedName) await removeFile(CASH_DOC_DIR, entry.storedName);
+const paidMessage = (result, label, method) => {
+  const left = round2(result.due - result.paid);
+  const where = method === ADVANCE_METHOD ? 'açık avanstan düşüldü (nakit çıkmadı)' : 'Gelir-Gider\'e gider olarak eklendi';
+  return result.complete ? `${label} tamamı ödendi; ${where}.` : `Kısmi ödeme kaydedildi; ${where}. Kalan ${tl(left)}.`;
 };
 
-export const unpayClaim = handle('Ödeme geri alınamadı.', async (req, res) => {
+/**
+ * Ödeme (kısmi olabilir): tutar boşsa kalanın tamamı. Nakit / banka / kart → gelir-gidere gider; "avanstan mahsup" →
+ * personelin açık avansından düşülür. Kalan tutardan fazlası ödenemez; eşzamanlı ödemeler sırayla işler.
+ */
+export const payClaim = handle('Ödeme kaydedilemedi.', async (req, res) => {
+  const pay = paymentOf(req.body, [...PAY_METHODS, ADVANCE_METHOD]);
   const claim = await prisma.staffClaim.findFirst({ where: { id: id(req.params.id) } });
   if (!claim) throw new HrError('Talep bulunamadı.', 404);
-  await undoPayment('staffClaim', claim, `STAFF_CLAIM:${claim.id}`);
-  res.json({ message: 'Ödeme geri alındı; gelir-gider kaydı silindi.' });
+  const cashFile = pay.method === ADVANCE_METHOD ? null : await copyToCash(claim);
+  let result;
+  try {
+    result = await payTowards({ claimId: claim.id }, {
+      ...pay, user: req.user, cashFile,
+      describe: (row, value, due) => `${row.employee.name}: ${row.description}${value < due ? ` (kısmi ${tl(value)} / ${tl(due)})` : ''}`
+    });
+  } catch (error) {
+    if (cashFile) await removeFile(CASH_DOC_DIR, cashFile.storedName);
+    throw error;
+  }
+  if (pay.method !== ADVANCE_METHOD) safeNotify(checkBudgets());
+  const e = await prisma.employee.findFirst({ where: { id: claim.employeeId }, include: { user: { select: { role: true } } } });
+  if (e.userId) {
+    safeNotify(notifyUser(e.userId, {
+      type: 'HR', title: result.complete ? `${CLAIM_TYPES[claim.type]} ödendi` : `${CLAIM_TYPES[claim.type]} için kısmi ödeme`,
+      message: `${CLAIM_TYPES[claim.type]} ${tl(claim.amount)}: ${tl(result.payments.reduce((s, p) => s + p.amount, 0))} ${pay.method === ADVANCE_METHOD ? 'avansınızdan mahsup edildi' : 'ödendi'}${result.complete ? '' : `, kalan ${tl(result.due - result.paid)}`}.`,
+      link: selfLink(e.user?.role)
+    }));
+  }
+  res.json({ message: paidMessage(result, CLAIM_TYPES[claim.type], pay.method) });
 });
 
-// Fiş / fatura: talebin sahibi ve Personel / Finans yetkilileri indirir
+// Avansın kapanması: nakit iade (gelir kaydı) ya da maaştan kesinti
+export const settleClaim = handle('Avans kapatılamadı.', async (req, res) => {
+  const kind = req.body?.kind;
+  const day = req.body?.date ? String(req.body.date).slice(0, 10) : localDay();
+  parseDay(day, 'Tarih');
+  const result = await settleAdvance(id(req.params.id), { kind, amount: optionalAmount(req.body?.amount), date: new Date(`${day}T12:00:00`), method: req.body?.method, note: text(req.body?.note, 200), user: req.user });
+  res.json({ message: `${kind === 'REFUND' ? 'Avans iadesi kaydedildi; Gelir-Gider\'e gelir olarak eklendi.' : 'Maaştan kesinti kaydedildi.'}${result.open > 0 ? ` Açık avans ${tl(result.open)}.` : ' Avans kapandı.'}` });
+});
+
+// Yanlış girilen ödemeyi / mahsubu / iadeyi geri alır
+export const deletePayment = handle('Ödeme geri alınamadı.', async (req, res) => {
+  const p = await undoPayment(id(req.params.id));
+  if (p.cashFile) await removeFile(CASH_DOC_DIR, p.cashFile);
+  res.json({ message: p.cashEntryId || p.kind === 'PAYOUT' || p.kind === 'REFUND' ? 'Ödeme geri alındı; gelir-gider kaydı silindi.' : 'Kayıt geri alındı.' });
+});
+
+// Fiş / fatura: talebin sahibi, Personel / Finans yetkilileri ve personelin yöneticisi indirir
 export const claimFile = handle('Belge alınamadı.', async (req, res) => {
-  const claim = await prisma.staffClaim.findFirst({ where: { id: id(req.params.id) }, include: { employee: { select: { userId: true } } } });
-  const allowed = claim && (claim.employee.userId === req.user.id || canManage(req.user) || canPay(req.user));
+  const claim = await prisma.staffClaim.findFirst({ where: { id: id(req.params.id) }, include: { employee: { select: { userId: true, manager: { select: { userId: true } } } } } });
+  const allowed = claim && (claim.employee.userId === req.user.id || canManage(req.user) || canPay(req.user) || claim.employee.manager?.userId === req.user.id);
   if (!allowed || !claim.storedName) throw new HrError('Belge bulunamadı.', 404);
   const file = path.resolve(HR_DOC_DIR, claim.storedName);
   if (!file.startsWith(path.resolve(HR_DOC_DIR)) || !claim.storedName.startsWith(`t${currentTenantId()}-`)) throw new HrError('Belge bulunamadı.', 404);
@@ -437,7 +617,10 @@ export const claimFile = handle('Belge alınamadı.', async (req, res) => {
 
 // ─── Satış hedefi ve prim ────────────────────────────────────────────────────
 
-const TARGET_INCLUDE = { employee: { select: { id: true, name: true, department: true, title: true, userId: true, user: { select: { role: true } } } } };
+const TARGET_INCLUDE = {
+  employee: { select: { id: true, name: true, department: true, title: true, userId: true, user: { select: { role: true } } } },
+  payments: { ...PAYMENT_PICK, orderBy: { id: 'asc' } }
+};
 
 const parseTarget = (body, current = {}) => {
   const targetAmount = body.targetAmount !== undefined ? amountOf(body.targetAmount) : current.targetAmount;
@@ -449,10 +632,17 @@ const parseTarget = (body, current = {}) => {
   return { targetAmount, bonusRate, basis };
 };
 
+// Hedef + personelin açık avansı (prim avanstan mahsup edilebilir)
+const presentTargets = async (rows) => {
+  const advances = new Map();
+  for (const empId of [...new Set(rows.filter((t) => t.status === 'CLOSED' && !t.paidAt).map((t) => t.employeeId))]) advances.set(empId, await openAdvanceTotal(prisma, empId));
+  return Promise.all(rows.map(async (t) => ({ ...(await presentTarget(t)), openAdvance: advances.get(t.employeeId) || 0 })));
+};
+
 export const listTargets = handle('Hedefler alınamadı.', async (req, res) => {
   const where = req.query.employeeId ? { employeeId: id(req.query.employeeId) } : { period: req.query.period ? parsePeriod(req.query.period) : currentPeriod() };
   const rows = await prisma.staffTarget.findMany({ where, include: TARGET_INCLUDE, orderBy: [{ period: 'desc' }, { employee: { name: 'asc' } }] });
-  res.json(await Promise.all(rows.map(presentTarget)));
+  res.json(await presentTargets(rows));
 });
 
 export const myTargets = handle('Hedefler alınamadı.', async (req, res) => {
@@ -466,7 +656,7 @@ export const createTarget = handle('Hedef kaydedilemedi.', async (req, res) => {
   if (!employee) throw new HrError('Personel bulunamadı.', 404);
   if (!employee.isActive) throw new HrError('Pasif personele hedef verilemez.');
   // Satışlar hesabın sorumlu olduğu bayilerden ve bayi adına girdiği siparişlerden hesaplanır
-  if (!employee.userId) throw new HrError('Satış hedefi için personel kartının bir kullanıcı hesabına (plasiyer / yönetici) bağlı olması gerekir.');
+  if (!employee.userId || !['ADMIN', 'PLASIYER'].includes(employee.user?.role)) throw new HrError('Satış hedefi için personel kartının bir plasiyer ya da yönetici hesabına bağlı olması gerekir (satışlar bu hesabın bayilerinden hesaplanır).');
   const period = parsePeriod(req.body.period);
   if (monthEnded(period)) throw new HrError('Geçmiş bir aya hedef verilemez.');
   const exists = await prisma.staffTarget.findFirst({ where: { employeeId: employee.id, period } });
@@ -524,42 +714,22 @@ export const closeTarget = handle('Dönem kapatılamadı.', async (req, res) => 
 });
 
 export const payTarget = handle('Prim ödemesi kaydedilemedi.', async (req, res) => {
-  const { method, date } = paymentOf(req.body);
-  const t = await prisma.staffTarget.findFirst({ where: { id: id(req.params.id) }, include: TARGET_INCLUDE });
-  if (!t) throw new HrError('Hedef bulunamadı.', 404);
-  if (t.paidAt) throw new HrError('Bu prim zaten ödendi.', 409);
-  if (t.status !== 'CLOSED') throw new HrError('Prim, dönem kapatıldıktan sonra ödenir.');
-  if (!(t.bonusAmount > 0)) throw new HrError('Bu dönem için ödenecek prim yok.');
-  try {
-    await prisma.$transaction(async (tx) => {
-      const entry = await tx.cashEntry.create({
-        data: {
-          type: 'OUT', category: CASH_CATEGORY.BONUS, amount: t.bonusAmount, date, method, vatRate: 0,
-          description: `${t.employee.name}: ${t.period} satış primi (%${t.bonusRate})`, sourceRef: `STAFF_BONUS:${t.id}`, createdByName: req.user.name
-        }
-      });
-      const done = await tx.staffTarget.updateMany({
-        where: { id: t.id, status: 'CLOSED', paidAt: null },
-        data: { paidAmount: t.bonusAmount, paidAt: new Date(), paidById: req.user.id, paidByName: req.user.name, paymentMethod: method, cashEntryId: entry.id }
-      });
-      if (done.count === 0) throw new HrError('Bu prim zaten ödendi.', 409);
-    });
-  } catch (error) {
-    if (error?.code === 'P2002') throw new HrError('Bu prim zaten ödendi.', 409);
-    throw error;
+  const pay = paymentOf(req.body, [...PAY_METHODS, ADVANCE_METHOD]);
+  const target = await prisma.staffTarget.findFirst({ where: { id: id(req.params.id) }, include: TARGET_INCLUDE });
+  if (!target) throw new HrError('Hedef bulunamadı.', 404);
+  const result = await payTowards({ targetId: target.id }, {
+    ...pay, user: req.user,
+    describe: (row, value, due) => `${row.employee.name}: ${row.period} satış primi (%${row.bonusRate})${value < due ? ` (kısmi ${tl(value)} / ${tl(due)})` : ''}`
+  });
+  if (pay.method !== ADVANCE_METHOD) safeNotify(checkBudgets());
+  if (target.employee.userId) {
+    safeNotify(notifyUser(target.employee.userId, {
+      type: 'HR', title: result.complete ? 'Priminiz ödendi' : 'Priminiz için kısmi ödeme',
+      message: `${target.period} satış primi: ${tl(result.paid)} / ${tl(result.due)} ödendi${pay.method === ADVANCE_METHOD ? ' (avanstan mahsup)' : ''}.`,
+      link: selfLink(target.employee.user?.role)
+    }));
   }
-  safeNotify(checkBudgets());
-  if (t.employee.userId) {
-    safeNotify(notifyUser(t.employee.userId, { type: 'HR', title: 'Priminiz ödendi', message: `${t.period} satış primi ${tl(t.bonusAmount)} ödendi.`, link: selfLink(t.employee.user?.role) }));
-  }
-  res.json({ message: `Prim ödemesi kaydedildi; Gelir-Gider'e "${CASH_CATEGORY.BONUS}" gideri olarak eklendi.` });
-});
-
-export const unpayTarget = handle('Prim ödemesi geri alınamadı.', async (req, res) => {
-  const t = await prisma.staffTarget.findFirst({ where: { id: id(req.params.id) } });
-  if (!t) throw new HrError('Hedef bulunamadı.', 404);
-  await undoPayment('staffTarget', t, `STAFF_BONUS:${t.id}`);
-  res.json({ message: 'Prim ödemesi geri alındı; gelir-gider kaydı silindi.' });
+  res.json({ message: paidMessage(result, 'Primin', pay.method) });
 });
 
 // ─── Şirket duyuruları ───────────────────────────────────────────────────────

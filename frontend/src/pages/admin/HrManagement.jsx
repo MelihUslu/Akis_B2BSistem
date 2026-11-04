@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useState } from 'react';
 import { useSearchParams } from 'react-router-dom';
-import { IdCard, CalendarDays, Receipt, Target, Megaphone, Power } from 'lucide-react';
+import { IdCard, CalendarDays, Receipt, Target, Megaphone, Power, CalendarCog } from 'lucide-react';
 import api, { errorMessage } from '../../services/api';
 import { useTenant } from '../../context/TenantContext';
 import { can } from '../../utils/permissions';
@@ -14,6 +14,7 @@ import LeavesTab from '../../components/hr/LeavesTab';
 import ClaimsTab from '../../components/hr/ClaimsTab';
 import TargetsTab from '../../components/hr/TargetsTab';
 import AnnouncementsTab from '../../components/hr/AnnouncementsTab';
+import HrSettingsTab from '../../components/hr/HrSettingsTab';
 
 /**
  * Personel Yönetimi. "Personel" yetkisi: kartlar, izin / masraf / avans onayı, hedefler, duyurular.
@@ -56,7 +57,8 @@ const HrManagement = () => {
     { id: 'leaves', label: 'İzinler', icon: CalendarDays, tone: 'orange', count: counts.leaves, alert: true },
     { id: 'claims', label: 'Masraf ve avans', icon: Receipt, tone: 'orange', count: counts.claims, alert: true },
     { id: 'targets', label: 'Hedef ve prim', icon: Target },
-    { id: 'announcements', label: 'Duyurular', icon: Megaphone }
+    { id: 'announcements', label: 'Duyurular', icon: Megaphone },
+    { id: 'settings', label: 'İzin ayarları', icon: CalendarCog }
   ] : [
     { id: 'claims', label: 'Masraf ve avans', icon: Receipt, tone: 'orange', count: counts.claims, alert: true },
     { id: 'targets', label: 'Hedef ve prim', icon: Target }
@@ -82,6 +84,7 @@ const HrManagement = () => {
           {tab === 'claims' && <ClaimsTab {...props} />}
           {tab === 'targets' && <TargetsTab {...props} />}
           {tab === 'announcements' && <AnnouncementsTab {...props} />}
+          {tab === 'settings' && <HrSettingsTab {...props} />}
         </>
       )}
     </div>

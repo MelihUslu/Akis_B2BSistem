@@ -1,5 +1,6 @@
-import { useEffect, useMemo, useState } from 'react';
-import { UserRound, CalendarDays, Receipt, Target, Megaphone, Plus, X, CalendarPlus, Camera, Clock, Wallet } from 'lucide-react';
+import { useEffect, useState } from 'react';
+import { useSearchParams } from 'react-router-dom';
+import { UserRound, CalendarDays, Receipt, Target, Megaphone, Plus, X, CalendarPlus, Camera, Clock, Wallet, Palmtree, Users } from 'lucide-react';
 import api, { errorMessage } from '../../services/api';
 import useAlert from '../../hooks/useAlert';
 import PageHeader from '../../components/shared/PageHeader';
@@ -8,26 +9,33 @@ import EmptyState from '../../components/shared/EmptyState';
 import Modal from '../../components/shared/Modal';
 import { Field, Segmented } from '../../components/form/FormKit';
 import { formatDate, formatTRY } from '../../utils/format';
-import { LEAVE_TYPES, CLAIM_TYPES, BASES, claimState, monthLabel, today } from '../../components/hr/hrMeta';
-import { StatusPill, DecisionNote, PaymentNote, FileLink, Pending, ListCard, Row } from '../../components/hr/HrUi';
+import { LEAVE_TYPES, CLAIM_TYPES, BASES, HALF, days as dayText, claimState, targetState, monthLabel, today } from '../../components/hr/hrMeta';
+import { StatusPill, DecisionNote, Payments, FileLink, Pending, ListCard, Row } from '../../components/hr/HrUi';
+import TeamPanel from '../../components/hr/TeamPanel';
 
-// İki gün arası iş günü (hafta sonu hariç); sunucu da aynı kuralla hesaplar
-const workdays = (a, b) => {
-  if (!a || !b || b < a) return 0;
-  let n = 0;
-  for (let d = new Date(`${a}T00:00:00`); d <= new Date(`${b}T00:00:00`); d.setDate(d.getDate() + 1)) if (d.getDay() % 6 !== 0) n++;
-  return n;
-};
-
+// İzin talebi: gün sayısı sunucuda firmanın kurallarıyla (Cumartesi, resmî ve firma tatilleri, yarım gün) hesaplanır
 const LeaveModal = ({ onClose, onSaved, showAlert }) => {
-  const [form, setForm] = useState({ type: 'ANNUAL', startDate: today(), endDate: today(), note: '' });
+  const [form, setForm] = useState({ type: 'ANNUAL', startDate: today(), endDate: today(), half: '', note: '' });
+  const [preview, setPreview] = useState(null); // { key, days, holidays, balance, exceeds, allowNegative }
   const [busy, setBusy] = useState(false);
-  const days = workdays(form.startDate, form.endDate);
+  const single = form.startDate === form.endDate;
+  const query = { type: form.type, startDate: form.startDate, endDate: form.endDate, ...(single && form.half && { half: form.half }) };
+  const key = JSON.stringify(query);
+  useEffect(() => {
+    if (!form.startDate || !form.endDate || form.endDate < form.startDate) return undefined;
+    const t = setTimeout(() => {
+      api.get('/hr/me/leave-preview', { params: query }).then((r) => setPreview({ key, ...r.data })).catch(() => setPreview({ key, error: true }));
+    }, 250);
+    return () => clearTimeout(t);
+  }, [key]); // eslint-disable-line react-hooks/exhaustive-deps
+  const p = preview?.key === key ? preview : null;
+  const blocked = !p || p.error || p.days === 0 || (p.exceeds && !p.allowNegative);
+
   const submit = async (e) => {
     e.preventDefault();
     setBusy(true);
     try {
-      onSaved((await api.post('/hr/me/leaves', form)).data.message);
+      onSaved((await api.post('/hr/me/leaves', { ...query, note: form.note })).data.message);
     } catch (err) {
       showAlert({ type: 'error', title: 'Talep iletilemedi', message: errorMessage(err, 'İzin talebi oluşturulamadı.') });
     } finally {
@@ -36,7 +44,7 @@ const LeaveModal = ({ onClose, onSaved, showAlert }) => {
   };
   return (
     <Modal as="form" onSubmit={submit} icon={CalendarPlus} title="İzin talebi" subtitle="Yetkili onaylayınca ya da reddedince bildirim alırsınız." onClose={onClose}
-      footer={<><button type="button" onClick={onClose} className="btn-secondary">Vazgeç</button><button disabled={busy || days === 0} className="btn-gradient disabled:opacity-50">Talep gönder</button></>}>
+      footer={<><button type="button" onClick={onClose} className="btn-secondary">Vazgeç</button><button disabled={busy || blocked} className="btn-gradient disabled:opacity-50">Talep gönder</button></>}>
       <Field label="İzin türü" required>
         <Segmented size="sm" value={form.type} onChange={(type) => setForm({ ...form, type })} options={Object.entries(LEAVE_TYPES).map(([value, label]) => ({ value, label }))} />
       </Field>
@@ -44,7 +52,19 @@ const LeaveModal = ({ onClose, onSaved, showAlert }) => {
         <Field label="Başlangıç" required><input type="date" required className="premium-input" value={form.startDate} onChange={(e) => setForm({ ...form, startDate: e.target.value, endDate: form.endDate < e.target.value ? e.target.value : form.endDate })} aria-label="Başlangıç" /></Field>
         <Field label="Bitiş" required><input type="date" required min={form.startDate} className="premium-input" value={form.endDate} onChange={(e) => setForm({ ...form, endDate: e.target.value })} aria-label="Bitiş" /></Field>
       </div>
-      <p className={`text-xs font-bold rounded-xl p-3 ${days ? 'bg-brand-50 text-brand-700' : 'bg-amber-50 text-amber-700'}`}>{days ? `${days} iş günü (hafta sonları sayılmaz; resmî tatiller ayrıca düşülmez)` : 'Seçilen aralıkta iş günü yok.'}</p>
+      {single && (
+        <Field label="Süre">
+          <Segmented size="sm" value={form.half} onChange={(half) => setForm({ ...form, half })} options={[{ value: '', label: 'Tam gün' }, { value: 'AM', label: 'Sabah' }, { value: 'PM', label: 'Öğleden sonra' }]} />
+        </Field>
+      )}
+      {p && !p.error && (
+        <div className={`text-xs font-semibold rounded-xl p-3 space-y-1 ${p.days === 0 || (p.exceeds && !p.allowNegative) ? 'bg-amber-50 text-amber-800' : 'bg-brand-50 text-brand-800'}`}>
+          <p className="font-black">{p.days === 0 ? 'Seçilen aralıkta iş günü yok.' : `${dayText(p.days)} izin sayılır`}</p>
+          {p.holidays.length > 0 && <p>Aradaki tatiller sayılmaz: {p.holidays.map((h) => `${formatDate(`${h.date}T12:00:00`)} ${h.name}${h.half ? ' (yarım gün)' : ''}`).join(', ')}</p>}
+          {p.balance && <p>Kalan yıllık izniniz {dayText(p.balance.available)}{p.balance.pending ? ` (onay bekleyen ${dayText(p.balance.pending)} düşüldü)` : ''}; talepten sonra {dayText(Math.round((p.balance.available - p.days) * 10) / 10)}.</p>}
+          {p.exceeds && <p className="font-black">{p.allowNegative ? 'Kalan gününüzü aşıyor; avans izin olarak işlenir.' : 'Kalan yıllık izninizi aşıyor; daha kısa bir aralık seçin.'}</p>}
+        </div>
+      )}
       <Field label="Açıklama"><textarea maxLength={500} rows={2} className="premium-input" value={form.note} onChange={(e) => setForm({ ...form, note: e.target.value })} placeholder="İsteğe bağlı" aria-label="Açıklama" /></Field>
     </Modal>
   );
@@ -108,9 +128,11 @@ const Stat = ({ icon: Icon, label, value, sub }) => (
  */
 const StaffArea = ({ header = true }) => {
   const { alertElement, showAlert, confirm } = useAlert();
+  const [params, setParams] = useSearchParams();
   const [me, setMe] = useState(null);
   const [noCard, setNoCard] = useState(false);
-  const [tab, setTab] = useState('leaves');
+  const tab = params.get('tab') || 'leaves';
+  const setTab = (id) => setParams({ tab: id }, { replace: true });
   const [leaves, setLeaves] = useState([]);
   const [claims, setClaims] = useState([]);
   const [targets, setTargets] = useState([]);
@@ -133,9 +155,10 @@ const StaffArea = ({ header = true }) => {
     api.post(`/hr/me/${kind}/${item.id}/cancel`).then(() => load()).catch((err) => showAlert({ type: 'error', title: 'İptal edilemedi', message: errorMessage(err, 'Talep iptal edilemedi.') }));
   };
 
-  const usedDays = useMemo(() => Object.values(me?.leaveDays?.byType || {}).reduce((s, n) => s + n, 0), [me]);
   const e = me?.employee;
+  const balance = me?.leaveBalance;
   const tabs = [
+    ...(me?.reports > 0 ? [{ id: 'team', label: 'Ekibim', icon: Users, tone: 'orange' }] : []),
     { id: 'leaves', label: 'İzinlerim', icon: CalendarDays, count: leaves.length },
     { id: 'claims', label: 'Masraf ve avans', icon: Receipt, count: claims.length },
     { id: 'targets', label: 'Hedef ve prim', icon: Target, count: targets.length },
@@ -173,7 +196,7 @@ const StaffArea = ({ header = true }) => {
               <span className="h-12 w-12 shrink-0 rounded-2xl bg-navy-900 text-white text-sm font-black flex items-center justify-center">{e.name.split(' ').map((w) => w[0]).join('').slice(0, 2).toLocaleUpperCase('tr')}</span>
               <div className="min-w-0">
                 <p className="font-black text-gray-900 truncate">{e.name}{!e.isActive && <span className="ml-2 text-xs font-bold text-gray-500">Pasif</span>}</p>
-                <p className="text-xs text-gray-500 truncate">{[e.title, e.department].filter(Boolean).join(' · ') || '—'}{e.hireDate ? ` · İşe giriş ${formatDate(e.hireDate)}` : ''}</p>
+                <p className="text-xs text-gray-500 truncate">{[e.title, e.department].filter(Boolean).join(' · ') || '—'}{e.hireDate ? ` · İşe giriş ${formatDate(e.hireDate)}` : ''}{e.manager ? ` · Yöneticisi ${e.manager.name}` : ''}</p>
               </div>
             </div>
             {e.isActive && (
@@ -185,13 +208,18 @@ const StaffArea = ({ header = true }) => {
           </div>
 
           <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
-            <Stat icon={CalendarDays} label={`${me.leaveDays.year} izin`} value={`${usedDays} gün`} sub={Object.entries(me.leaveDays.byType).map(([k, v]) => `${LEAVE_TYPES[k]} ${v}`).join(' · ') || 'Onaylı izin yok'} />
+            <Stat icon={Palmtree} label="Kalan yıllık izin" value={balance ? dayText(balance.remaining) : '—'}
+              sub={balance ? (balance.next ? `${formatDate(balance.next.date)}: +${balance.next.days} gün` : '') + (balance.pending ? ` · ${dayText(balance.pending)} onay bekliyor` : '') : 'İşe giriş tarihi girilmemiş'} />
             <Stat icon={Clock} label="Bekleyen talep" value={me.pending.leaves + me.pending.claims} sub={`${me.pending.leaves} izin · ${me.pending.claims} masraf / avans`} />
             <Stat icon={Wallet} label="Ödeme bekleyen" value={formatTRY(me.awaitingPayment)} sub="Onaylı, ödenmemiş" />
-            <Stat icon={Target} label="Bu ay hedef" value={targets[0] && targets[0].status === 'OPEN' ? `%${targets[0].percent}` : '—'} sub={targets[0] && targets[0].status === 'OPEN' ? monthLabel(targets[0].period) : 'Açık hedef yok'} />
+            {me.openAdvance > 0
+              ? <Stat icon={Wallet} label="Açık avans" value={formatTRY(me.openAdvance)} sub="Masraf / iade ile kapanır" />
+              : <Stat icon={Target} label="Bu ay hedef" value={targets[0] && targets[0].status === 'OPEN' ? `%${targets[0].percent}` : '—'} sub={targets[0] && targets[0].status === 'OPEN' ? monthLabel(targets[0].period) : 'Açık hedef yok'} />}
           </div>
 
           <FilterTabs value={tab} onChange={setTab} tabs={tabs} />
+
+          {tab === 'team' && me.reports > 0 && <TeamPanel showAlert={showAlert} confirm={confirm} onChanged={load} />}
 
           {tab === 'leaves' && (leaves.length === 0 ? <EmptyState icon={CalendarDays}>Henüz izin talebiniz yok.</EmptyState> : (
             <ListCard>
@@ -199,8 +227,8 @@ const StaffArea = ({ header = true }) => {
                 <Row key={l.id}>
                   <div className="flex flex-col sm:flex-row sm:items-start gap-3">
                     <div className="flex-1 min-w-0 space-y-1">
-                      <p className="font-bold text-gray-900">{LEAVE_TYPES[l.type]} · {l.days} iş günü</p>
-                      <p className="text-xs text-gray-600">{formatDate(l.startDate)} – {formatDate(l.endDate)}</p>
+                      <p className="font-bold text-gray-900">{LEAVE_TYPES[l.type]} · {dayText(l.days)}{l.half && <span className="font-semibold text-gray-500"> · {HALF[l.half]}</span>}</p>
+                      <p className="text-xs text-gray-600">{l.half ? formatDate(l.startDate) : `${formatDate(l.startDate)} – ${formatDate(l.endDate)}`}</p>
                       {l.note && <p className="text-xs text-gray-500 break-words">“{l.note}”</p>}
                       {l.status === 'PENDING' ? <Pending>Yetkilinin kararı bekleniyor</Pending> : <DecisionNote item={l} />}
                     </div>
@@ -227,7 +255,14 @@ const StaffArea = ({ header = true }) => {
                         <FileLink claim={c} />
                         {c.status === 'PENDING' ? <Pending>Onay bekleniyor</Pending> : <DecisionNote item={c} />}
                         {state === 'TO_PAY' && <Pending>Onaylandı, ödeme bekleniyor</Pending>}
-                        <PaymentNote item={c} />
+                        {state === 'PARTIAL' && <Pending>Ödenen {formatTRY(c.paidAmount)} · kalan {formatTRY(c.remaining)}</Pending>}
+                        <Payments payments={c.payments} />
+                        {c.type === 'ADVANCE' && c.paidAmount > 0 && (
+                          <div className="rounded-xl bg-violet-50/60 px-3 py-2 space-y-0.5">
+                            <p className="text-xs font-bold text-violet-700">{c.open > 0 ? `Açık avans ${formatTRY(c.open)}: masraflarınızdan düşülür ya da iade edilir` : 'Avans kapandı'}</p>
+                            <Payments payments={c.settlements} />
+                          </div>
+                        )}
                       </div>
                       <div className="flex items-center gap-2">
                         <StatusPill status={state} />
@@ -255,9 +290,10 @@ const StaffArea = ({ header = true }) => {
                       {t.status === 'OPEN' && t.achieved < t.targetAmount && <p className="text-[11px] text-gray-400">Hedefe {formatTRY(t.targetAmount - t.achieved)} kaldı</p>}
                     </div>
                     <div className="text-xs space-y-0.5">
-                      <div className="flex items-center gap-2"><StatusPill status={t.paidAt ? 'PAID' : t.status} /></div>
+                      <div className="flex items-center gap-2"><StatusPill status={targetState(t)} /></div>
                       <p className="text-gray-600">Hesaplanan: <b className="text-gray-900 tabular-nums">{formatTRY(t.calculatedBonus)}</b>{t.status === 'OPEN' && <span className="text-gray-400"> (ay sonunda kesinleşir)</span>}</p>
                       <p className="text-gray-600">Ödenen: <b className={`tabular-nums ${t.paidBonus ? 'text-emerald-700' : 'text-gray-400'}`}>{formatTRY(t.paidBonus)}</b></p>
+                      <Payments payments={t.payments} />
                     </div>
                   </div>
                 </Row>

@@ -67,9 +67,9 @@ test('personel izin ve fişli masraf talebi açar', async ({ as }) => {
   const leave = page.getByRole('dialog', { name: 'İzin talebi' });
   await leave.getByLabel('Başlangıç').fill('2027-03-01'); // Pazartesi
   await leave.getByLabel('Bitiş').fill('2027-03-07'); // Pazar: hafta sonu sayılmaz
-  await expect(leave.getByText('5 iş günü')).toBeVisible();
+  await expect(leave.getByText('5 gün izin sayılır')).toBeVisible();
   await leave.getByRole('button', { name: 'Talep gönder' }).click();
-  await ok(page, 'İzin talebiniz iletildi (5 iş günü)');
+  await ok(page, 'İzin talebiniz iletildi (5 gün)');
 
   await page.getByRole('button', { name: 'Masraf / avans' }).click();
   const claim = page.getByRole('dialog', { name: 'Masraf / avans talebi' });
@@ -123,8 +123,8 @@ test('yönetici onaylar; onay ödeme sayılmaz; ödeme Gelir-Gider\'e yazılır'
 test('personel kararı ve ödemeyi görür; plasiyer kendi alanını telefonda açar', async ({ as }) => {
   const page = await as(STAFF.key);
   await page.goto('/admin/personel-alanim');
-  await expect(item(page, '5 iş günü')).toContainText('Onaylandı');
-  await expect(item(page, '5 iş günü')).toContainText('Onaylayan: Ayşe Yönetici');
+  await expect(item(page, 'Yıllık izin · 5 gün')).toContainText('Onaylandı');
+  await expect(item(page, 'Yıllık izin · 5 gün')).toContainText('Onaylayan: Ayşe Yönetici');
   await page.getByRole('button', { name: /^Masraf ve avans/ }).click();
   await expect(item(page, EXPENSE)).toContainText('Ödendi');
 
@@ -137,4 +137,82 @@ test('personel kararı ve ödemeyi görür; plasiyer kendi alanını telefonda a
   await expect(item(phone, 'Satış toplantısı')).toBeVisible();
   const overflow = await phone.evaluate(() => document.documentElement.scrollWidth - window.innerWidth);
   expect(overflow).toBeLessThanOrEqual(0);
+});
+
+test('personel girişi açılır; yarım gün izni yöneticisi onaylar; masraf iki parçada ödenir', async ({ as, browser }) => {
+  const admin = await as('admin');
+  await admin.goto('/admin/personel');
+  await admin.getByRole('button', { name: 'Yeni personel' }).click();
+  let dialog = admin.getByRole('dialog', { name: 'Yeni personel' });
+  await dialog.getByLabel('Ad soyad').fill('Selin Raf');
+  await dialog.getByLabel('E-posta').fill('selin@uat.test');
+  await dialog.getByLabel('Departman').fill('Depo');
+  await dialog.getByLabel('Yöneticisi').selectOption({ label: `${STAFF.name} · Depo` });
+  await dialog.getByRole('button', { name: 'Kaydet' }).click();
+  await ok(admin, 'Personel kartı oluşturuldu');
+  await item(admin, 'Selin Raf').getByRole('button', { name: 'Düzenle' }).click();
+  dialog = admin.getByRole('dialog', { name: 'Personel kartı' });
+  await dialog.getByRole('button', { name: 'Personel girişi aç' }).click();
+  await expect(alertBox(admin)).toContainText('Geçici şifre:');
+  const password = (await alertBox(admin).textContent()).match(/Geçici şifre: ([A-Za-z0-9_-]{12})/)[1]; // 12 karakter (arkasından düğme yazısı gelir)
+  await confirm(admin, 'Tamam');
+  await expect(item(admin, 'Selin Raf')).toContainText('Personel girişi hesabı');
+
+  // Personel hesabıyla gerçek giriş: yalnızca Personel Alanım (telefonda)
+  const context = await browser.newContext({ viewport: { width: 390, height: 844 } });
+  const selin = await context.newPage();
+  await selin.goto('/login');
+  await selin.getByPlaceholder('ornek@sirket.com').fill('selin@uat.test');
+  await selin.getByPlaceholder('••••••••').fill(password);
+  await selin.getByRole('button', { name: /Giriş Yap/ }).click();
+  await expect(selin).toHaveURL(/\/personel$/);
+  await expect(selin.getByText(`Yöneticisi ${STAFF.name}`)).toBeVisible();
+  await selin.getByRole('button', { name: 'İzin talebi' }).click();
+  const leave = selin.getByRole('dialog', { name: 'İzin talebi' });
+  await leave.getByRole('button', { name: 'Mazeret izni' }).click();
+  await leave.getByLabel('Başlangıç').fill('2027-03-03');
+  await leave.getByLabel('Bitiş').fill('2027-03-03');
+  await leave.getByRole('button', { name: 'Sabah' }).click();
+  await expect(leave.getByText('0,5 gün izin sayılır')).toBeVisible();
+  await leave.getByRole('button', { name: 'Talep gönder' }).click();
+  await ok(selin, '0,5 gün');
+  await selin.getByRole('button', { name: 'Masraf / avans' }).click();
+  const claim = selin.getByRole('dialog', { name: 'Masraf / avans talebi' });
+  await claim.getByLabel('Tutar').fill('1000');
+  await claim.getByLabel('Açıklama').fill('Raf etiketi');
+  await claim.getByRole('button', { name: 'Talep gönder' }).click();
+  await ok(selin, 'Masraf talebiniz iletildi');
+  expect(await selin.evaluate(() => document.documentElement.scrollWidth - window.innerWidth)).toBeLessThanOrEqual(0);
+
+  // Yönetici (Personel yetkisi yok) ekibinin taleplerine Ekibim'den karar verir
+  const manager = await as(STAFF.key);
+  await manager.goto('/admin/personel-alanim?tab=team');
+  await item(manager, 'Mazeret izni').getByRole('button', { name: 'Onayla' }).click();
+  await confirm(manager, 'Onayla');
+  await ok(manager, 'İzin onaylandı');
+  await item(manager, 'Raf etiketi').getByRole('button', { name: 'Onayla' }).click();
+  await confirm(manager, 'Onayla');
+  await ok(manager, 'Talep onaylandı');
+
+  // Kısmi ödeme: 400 + kalan 600
+  await admin.goto('/admin/personel?tab=claims');
+  await admin.getByRole('button', { name: /^Ödeme bekleyen/ }).click();
+  for (const amount of ['400', null]) {
+    await item(admin, 'Raf etiketi').getByRole('button', { name: 'Öde' }).click();
+    const pay = admin.getByRole('dialog', { name: /Masraf ödemesi/ });
+    await pay.getByRole('button', { name: 'Nakit' }).click();
+    if (amount) await pay.getByLabel('Ödeme tutarı').fill(amount);
+    await pay.getByRole('button', { name: 'Ödemeyi kaydet' }).click();
+    await ok(admin, amount ? 'Kısmi ödeme kaydedildi' : 'tamamı ödendi');
+    if (amount) {
+      await admin.getByRole('button', { name: /^Ödeme bekleyen/ }).click();
+      await expect(item(admin, 'Raf etiketi')).toContainText('Kısmen ödendi');
+      await expect(item(admin, 'Raf etiketi')).toContainText('kalan ₺600,00');
+    }
+  }
+  await selin.reload();
+  await selin.getByRole('button', { name: /^Masraf ve avans/ }).click();
+  await expect(item(selin, 'Raf etiketi')).toContainText('Ödendi');
+  await expect(item(selin, 'Raf etiketi')).toContainText('₺400,00');
+  await context.close();
 });

@@ -33,6 +33,11 @@ const call = async (method, path, { as, body, form } = {}) => {
   return { status: res.status, body: type.includes('json') ? await res.json() : await res.text() };
 };
 const ok = (r, status = 200) => { assert.equal(r.status, status, JSON.stringify(r.body)); return r.body; };
+// Talebin / primin gelir-gider kayıtları (her ödeme kendi kaydını açar: STAFF_PAY:<ödeme>)
+const cashOf = (where) => runAsPlatform(async () => {
+  const payments = await prisma.staffPayment.findMany({ where });
+  return prisma.cashEntry.findMany({ where: { sourceRef: { in: payments.map((p) => `STAFF_PAY:${p.id}`) } }, orderBy: { id: 'asc' } });
+});
 
 before(async () => {
   if (skip) return;
@@ -242,7 +247,7 @@ test('masraf / avans: onay ödeme değildir; ödeme Finans yetkisiyle, gelir-gid
   ok(await call('POST', `/hr/claims/${claim.id}/pay`, { as: 'fin', body: { method: 'BANK', date: '2026-11-04' } }));
   assert.equal((await call('POST', `/hr/claims/${claim.id}/pay`, { as: 'fin', body: { method: 'BANK' } })).status, 409); // ikinci ödeme
 
-  const entries = await runAsPlatform(() => prisma.cashEntry.findMany({ where: { tenantId: T.a, sourceRef: `STAFF_CLAIM:${claim.id}` } }));
+  const entries = await cashOf({ claimId: claim.id });
   assert.equal(entries.length, 1);
   assert.equal(entries[0].type, 'OUT');
   assert.equal(entries[0].category, 'Personel masrafı');
@@ -250,8 +255,10 @@ test('masraf / avans: onay ödeme değildir; ödeme Finans yetkisiyle, gelir-gid
   assert.equal(entries[0].method, 'BANK');
   assert.ok(entries[0].storedName, 'fiş gelir-gider kaydına da eklenmeli');
   const paid = ok(await call('GET', '/hr/claims?status=PAID', { as: 'hrm' })).rows[0];
-  assert.equal(paid.paidByName, 'fin');
-  assert.equal(paid.cashEntryId, entries[0].id);
+  assert.equal(paid.payments.length, 1);
+  assert.equal(paid.payments[0].createdByName, 'fin');
+  assert.equal(paid.payments[0].method, 'BANK');
+  assert.equal(paid.remaining, 0);
 
   // Gelir-giderden değiştirilemez / silinemez (ödeme Personel Yönetimi'nden geri alınır)
   assert.equal((await call('DELETE', `/cash/${entries[0].id}`, { as: 'fin' })).status, 409);
@@ -259,9 +266,11 @@ test('masraf / avans: onay ödeme değildir; ödeme Finans yetkisiyle, gelir-gid
   assert.equal((await call('DELETE', `/cash/${entries[0].id}/file`, { as: 'fin' })).status, 409);
 
   // Geri al → kayıt silinir, talep yeniden ödeme bekler; tekrar ödenebilir
-  ok(await call('POST', `/hr/claims/${claim.id}/unpay`, { as: 'fin' }));
-  assert.equal(await runAsPlatform(() => prisma.cashEntry.count({ where: { tenantId: T.a, sourceRef: `STAFF_CLAIM:${claim.id}` } })), 0);
-  assert.equal((await call('POST', `/hr/claims/${claim.id}/unpay`, { as: 'fin' })).status, 409);
+  assert.equal((await call('DELETE', `/hr/payments/${paid.payments[0].id}`, { as: 'hrm' })).status, 403); // Finans
+  ok(await call('DELETE', `/hr/payments/${paid.payments[0].id}`, { as: 'fin' }));
+  assert.equal(await runAsPlatform(() => prisma.cashEntry.count({ where: { tenantId: T.a, sourceRef: `STAFF_PAY:${paid.payments[0].id}` } })), 0);
+  assert.equal((await call('DELETE', `/hr/payments/${paid.payments[0].id}`, { as: 'fin' })).status, 404);
+  assert.equal(ok(await call('GET', '/hr/claims?status=TO_PAY', { as: 'fin' })).toPayTotal, 1250.5); // yeniden ödeme bekler
   ok(await call('POST', `/hr/claims/${claim.id}/pay`, { as: 'owner', body: { method: 'CASH' } }));
 
   // Eşzamanlı iki ödeme: yalnızca biri kaydedilir
@@ -269,15 +278,16 @@ test('masraf / avans: onay ödeme değildir; ödeme Finans yetkisiyle, gelir-gid
   const results = await Promise.all([1, 2, 3].map(() => call('POST', `/hr/claims/${advance.id}/pay`, { as: 'fin', body: { method: 'CASH' } })));
   assert.equal(results.filter((r) => r.status === 200).length, 1, JSON.stringify(results.map((r) => r.status)));
   assert.ok(results.filter((r) => r.status !== 200).every((r) => r.status === 409));
-  assert.equal(await runAsPlatform(() => prisma.cashEntry.count({ where: { tenantId: T.a, sourceRef: `STAFF_CLAIM:${advance.id}` } })), 1);
-  const adv = await runAsPlatform(() => prisma.cashEntry.findFirst({ where: { sourceRef: `STAFF_CLAIM:${advance.id}` } }));
-  assert.equal(adv.category, 'Personel avansı');
+  const advEntries = await cashOf({ claimId: advance.id });
+  assert.equal(advEntries.length, 1);
+  assert.equal(advEntries[0].category, 'Personel avansı');
 
   // Reddedilen ödenemez; B firması A'nın taleplerine dokunamaz
   const rej = ok(await call('POST', '/hr/me/claims', { as: 'staff', body: { type: 'EXPENSE', amount: '50', description: 'Kırtasiye' } }), 201).claim;
   ok(await call('POST', `/hr/claims/${rej.id}/reject`, { as: 'hrm', body: { reason: 'Fiş yok' } }));
   assert.equal((await call('POST', `/hr/claims/${rej.id}/pay`, { as: 'fin', body: { method: 'CASH' } })).status, 400);
-  assert.equal((await call('POST', `/hr/claims/${claim.id}/unpay`, { as: 'ownerB' })).status, 404);
+  const ownPayment = await runAsPlatform(() => prisma.staffPayment.findFirst({ where: { claimId: claim.id } }));
+  assert.equal((await call('DELETE', `/hr/payments/${ownPayment.id}`, { as: 'ownerB' })).status, 404);
   assert.equal(ok(await call('GET', '/hr/claims', { as: 'ownerB' })).rows.length, 0);
 });
 
@@ -343,8 +353,8 @@ test('prim: kapanışta sabitlenir, hesaplanan ve ödenen ayrı; ödeme bir kez'
   assert.equal((await call('POST', `/hr/targets/${T.salesTarget.id}/pay`, { as: 'fin', body: { method: 'BANK' } })).status, 409);
   t = ok(await call('GET', '/hr/me/targets', { as: 'plas' })).find((x) => x.id === T.salesTarget.id);
   assert.equal(t.paidBonus, 590);
-  assert.equal(t.paidByName, 'fin');
-  const entry = await runAsPlatform(() => prisma.cashEntry.findFirst({ where: { sourceRef: `STAFF_BONUS:${T.salesTarget.id}` } }));
+  assert.equal(t.payments[0].createdByName, 'fin');
+  const [entry] = await cashOf({ targetId: T.salesTarget.id });
   assert.equal(entry.category, 'Personel primi');
   assert.equal(entry.amount, 590);
 
@@ -367,6 +377,183 @@ test('duyurular: tüm personele ya da departmana; bildirim yalnızca hedef kitle
   const notes = await runAsPlatform(() => prisma.notification.findMany({ where: { tenantId: T.a, title: 'Duyuru: Satış toplantısı' } }));
   assert.deepEqual(notes.map((n) => n.userId), [U.plas.id]);
   assert.equal(ok(await call('GET', '/hr/me/announcements', { as: 'ownerB' })).length, 0); // B firması görmez
+});
+
+// Gün hesabı için: işe girişi bugünden 6 yıl 1 ay önce (6 yıl dönümü geçti: 5 × 14 + 20 = 90 gün hak)
+const shift = (d, { y = 0, m = 0 } = {}) => { const x = new Date(d); x.setFullYear(x.getFullYear() + y, x.getMonth() + m); return x; };
+const ymd = (d) => d.toLocaleDateString('sv-SE', { timeZone: 'Europe/Istanbul' });
+
+test('personel rolü: hesap kartından açılır, yalnızca personel alanına girer, yönetici sayısına dahil değil', { skip }, async () => {
+  const hire = shift(now, { y: -6, m: -1 });
+  T.pers = ok(await call('POST', '/hr/employees', { as: 'hrm', body: { name: 'Ece Depo', email: 'ece@hr-a.test', department: 'Depo', hireDate: ymd(hire), managerId: T.plasEmp.id } }), 201).employee;
+  const admins = await runAsPlatform(() => prisma.user.count({ where: { tenantId: T.a, role: 'ADMIN' } }));
+  const created = ok(await call('POST', `/hr/employees/${T.pers.id}/account`, { as: 'hrm', body: {} }), 201);
+  assert.ok(created.password, 'e-posta gönderilemeyince geçici şifre bir kez döner');
+  assert.equal((await call('POST', `/hr/employees/${T.pers.id}/account`, { as: 'hrm', body: {} })).status, 400); // ikinci hesap yok
+  const user = await runAsPlatform(() => prisma.user.findFirst({ where: { tenantId: T.a, email: 'ece@hr-a.test' } }));
+  assert.equal(user.role, 'PERSONEL');
+  assert.equal(await runAsPlatform(() => prisma.user.count({ where: { tenantId: T.a, role: 'ADMIN' } })), admins);
+  U.pers = { id: user.id, role: 'PERSONEL', companyId: null, tenantId: T.a, slug: 'hr-a' };
+
+  // Şifreyle giriş; yalnızca personel alanı
+  const login = await fetch(`${base}/api/auth/login`, { method: 'POST', headers: { 'Content-Type': 'application/json', 'X-Tenant': 'hr-a' }, body: JSON.stringify({ email: 'ece@hr-a.test', password: created.password }) }).then((r) => r.json());
+  assert.equal(login.user.role, 'PERSONEL');
+  ok(await call('GET', '/hr/me', { as: 'pers' }));
+  ok(await call('GET', '/notifications', { as: 'pers' }));
+  for (const path of ['/dashboard', '/orders', '/products', '/companies', '/cash', '/search?q=a', '/plasiyer/dealers']) {
+    assert.equal((await call('GET', path, { as: 'pers' })).status, 403, path);
+  }
+  assert.equal((await call('GET', '/hr/employees', { as: 'pers' })).status, 403);
+});
+
+test('izin hakkı: yasal süre, firma hakkı, devir; tatiller, Cumartesi, yarım gün, avans izin', { skip }, async () => {
+  let me = ok(await call('GET', '/hr/me', { as: 'pers' }));
+  assert.equal(me.leaveBalance.serviceYears, 6);
+  assert.equal(me.leaveBalance.earned, 90); // 1–5. yıl 14, 6. yıl 20
+  assert.equal(me.leaveBalance.remaining, 90);
+  assert.equal(me.leaveBalance.next.days, 20);
+  assert.equal(me.employee.manager.name, 'Saha Plasiyeri');
+
+  // Firma daha fazla veriyorsa o geçerli (yasal sürenin altı sayılmaz); devir girilince öncesi sayılmaz
+  ok(await call('PUT', `/hr/employees/${T.pers.id}`, { as: 'hrm', body: { ...T.pers, userId: U.pers.id, hireDate: ymd(shift(now, { y: -6, m: -1 })), annualLeaveDays: 24, leaveCarryDate: ymd(shift(now, { m: -2 })), leaveCarryDays: 10 } }));
+  me = ok(await call('GET', '/hr/me', { as: 'pers' }));
+  assert.equal(me.leaveBalance.earned, 24); // yalnızca devirden sonraki yıl dönümü (6. yıl: max(20, 24))
+  assert.equal(me.leaveBalance.remaining, 34);
+  assert.equal(me.leaveBalance.carry.days, 10);
+  ok(await call('PUT', `/hr/employees/${T.pers.id}`, { as: 'hrm', body: { ...T.pers, userId: U.pers.id, hireDate: ymd(shift(now, { y: -6, m: -1 })), annualLeaveDays: 10, leaveCarryDate: '', leaveCarryDays: '' } }));
+  assert.equal(ok(await call('GET', '/hr/me', { as: 'pers' })).leaveBalance.earned, 90); // 10 < yasal süre: yasal süre
+
+  const preview = (q) => call('GET', `/hr/me/leave-preview?${new URLSearchParams(q)}`, { as: 'pers' }).then(ok);
+  // 27 Ekim 2027 Çarşamba (1) + 28 Ekim arife (0,5) + 29 Ekim Cumhuriyet Bayramı (0)
+  const oct = await preview({ type: 'ANNUAL', startDate: '2027-10-27', endDate: '2027-10-29' });
+  assert.equal(oct.days, 1.5);
+  assert.deepEqual(oct.holidays.map((h) => h.date), ['2027-10-28', '2027-10-29']);
+  // Firma tatil listesi (dini bayram) ve Cumartesi
+  assert.equal((await call('PUT', '/hr/settings', { as: 'staff', body: {} })).status, 403);
+  ok(await call('PUT', '/hr/settings', { as: 'hrm', body: { saturdayWorkday: false, allowNegativeLeave: false, holidays: [{ date: '2027-03-09', name: 'Ramazan Bayramı', half: false }, { date: '2027-03-08', name: 'Arife', half: true }] } }));
+  assert.equal((await preview({ type: 'ANNUAL', startDate: '2027-03-08', endDate: '2027-03-13' })).days, 3.5); // Pzt yarım, Salı tatil, Çar–Cum 3, Cmt yok
+  ok(await call('PUT', '/hr/settings', { as: 'hrm', body: { saturdayWorkday: true, allowNegativeLeave: false, holidays: [] } }));
+  assert.equal((await preview({ type: 'ANNUAL', startDate: '2027-03-08', endDate: '2027-03-13' })).days, 6);
+  ok(await call('PUT', '/hr/settings', { as: 'hrm', body: { saturdayWorkday: false, allowNegativeLeave: false, holidays: [] } }));
+  // Yarım gün: yalnızca tek gün
+  assert.equal((await preview({ type: 'EXCUSE', startDate: '2027-03-10', endDate: '2027-03-10', half: 'PM' })).days, 0.5);
+  assert.equal((await call('GET', `/hr/me/leave-preview?${new URLSearchParams({ type: 'EXCUSE', startDate: '2027-03-10', endDate: '2027-03-11', half: 'AM' })}`, { as: 'pers' })).status, 400);
+  const half = ok(await call('POST', '/hr/me/leaves', { as: 'pers', body: { type: 'EXCUSE', startDate: '2027-03-10', endDate: '2027-03-10', half: 'AM' } }), 201).leave;
+  assert.equal(half.days, 0.5);
+  assert.equal(half.half, 'AM');
+
+  // Bakiye: 90 gün; 91 iş günlük yıllık izin reddedilir, avans izne izin verilince açılır
+  const long = { type: 'ANNUAL', startDate: '2028-01-03', endDate: '2028-05-15' };
+  const big = await preview(long);
+  assert.ok(big.days > 90 && big.exceeds, JSON.stringify(big));
+  assert.equal((await call('POST', '/hr/me/leaves', { as: 'pers', body: long })).status, 400);
+  ok(await call('PUT', '/hr/settings', { as: 'hrm', body: { saturdayWorkday: false, allowNegativeLeave: true, holidays: [] } }));
+  const avans = ok(await call('POST', '/hr/me/leaves', { as: 'pers', body: long }), 201).leave;
+  ok(await call('POST', `/hr/me/leaves/${avans.id}/cancel`, { as: 'pers' }));
+  ok(await call('PUT', '/hr/settings', { as: 'hrm', body: { saturdayWorkday: false, allowNegativeLeave: false, holidays: [] } }));
+
+  // Onaylanan yıllık izin bakiyeden düşer
+  const annual = ok(await call('POST', '/hr/me/leaves', { as: 'pers', body: { type: 'ANNUAL', startDate: '2027-04-05', endDate: '2027-04-09' } }), 201).leave;
+  assert.equal(ok(await call('GET', '/hr/me', { as: 'pers' })).leaveBalance.available, 85);
+  T.persAnnual = annual;
+  const listed = ok(await call('GET', '/hr/leaves?status=PENDING', { as: 'hrm' })).rows.find((l) => l.id === annual.id);
+  assert.equal(listed.balance.remaining, 90);
+});
+
+test('departman yöneticisi: yalnızca kendi ekibinin taleplerine karar verir, bildirimi o alır', { skip }, async () => {
+  // Talep bildirimi yöneticiye (plasiyer) gider
+  const note = await runAsPlatform(() => prisma.notification.findFirst({ where: { userId: U.plas.id, title: 'Yeni izin talebi', message: { contains: 'Ece Depo' } } }));
+  assert.ok(note, 'yöneticiye bildirim gitmeli');
+  assert.equal(note.link, '/plasiyer/personel?tab=team');
+
+  const team = ok(await call('GET', '/hr/team', { as: 'plas' }));
+  assert.deepEqual(team.members.map((m) => m.name), ['Ece Depo']);
+  assert.ok(team.leaves.some((l) => l.id === T.persAnnual.id));
+  // Yönetici kendi ekibine karar verir; başkasının talebine veremez
+  ok(await call('POST', `/hr/leaves/${T.persAnnual.id}/approve`, { as: 'plas' }));
+  assert.equal(ok(await call('GET', '/hr/me', { as: 'pers' })).leaveBalance.remaining, 85);
+  const other = ok(await call('POST', '/hr/me/leaves', { as: 'hrm', body: { type: 'EXCUSE', startDate: '2027-02-01', endDate: '2027-02-01' } }), 201).leave;
+  assert.equal((await call('POST', `/hr/leaves/${other.id}/approve`, { as: 'plas' })).status, 403);
+  assert.equal((await call('GET', '/hr/leaves', { as: 'plas' })).status, 403); // firma geneli liste Personel yetkisinde
+  // Yönetici ekibinin masrafını onaylar, ödeyemez (Finans)
+  const exp = ok(await call('POST', '/hr/me/claims', { as: 'pers', body: { type: 'EXPENSE', amount: '120', description: 'Kargo bandı' } }), 201).claim;
+  ok(await call('POST', `/hr/claims/${exp.id}/approve`, { as: 'plas' }));
+  assert.equal((await call('POST', `/hr/claims/${exp.id}/pay`, { as: 'plas', body: { method: 'CASH' } })).status, 403);
+  // Yönetici hesabı olmayan personel yönetici yapılamaz; kişi kendi yöneticisi olamaz
+  assert.equal((await call('PUT', `/hr/employees/${T.pers.id}`, { as: 'hrm', body: { ...T.pers, userId: U.pers.id, managerId: T.noAccount.id } })).status, 400);
+  assert.equal((await call('PUT', `/hr/employees/${T.pers.id}`, { as: 'hrm', body: { ...T.pers, userId: U.pers.id, managerId: T.pers.id } })).status, 400);
+});
+
+test('kısmi ödeme ve avans mahsubu: kalan aşılmaz, avans masraftan düşülür, iade ve maaş kesintisiyle kapanır', { skip }, async () => {
+  const claim = (body) => call('POST', '/hr/me/claims', { as: 'pers', body }).then((r) => ok(r, 201).claim);
+  const pay = (id, body, as = 'fin') => call('POST', `/hr/claims/${id}/pay`, { as, body });
+  const adv = await claim({ type: 'ADVANCE', amount: '3000', description: 'Yol avansı' });
+  ok(await call('POST', `/hr/claims/${adv.id}/approve`, { as: 'hrm' }));
+  // Ödenmemiş avans kapatılamaz / mahsup edilemez
+  assert.equal((await call('POST', `/hr/claims/${adv.id}/settle`, { as: 'fin', body: { kind: 'PAYROLL' } })).status, 409);
+
+  ok(await pay(adv.id, { method: 'BANK', amount: '1000' }));
+  let row = ok(await call('GET', '/hr/claims?status=TO_PAY', { as: 'fin' })).rows.find((c) => c.id === adv.id);
+  assert.equal(row.paidAmount, 1000);
+  assert.equal(row.remaining, 2000);
+  assert.equal(row.paidAt, null);
+  assert.equal((await pay(adv.id, { method: 'BANK', amount: '2500' })).status, 409); // kalanı aşıyor
+  ok(await pay(adv.id, { method: 'CASH' })); // kalanın tamamı
+  row = ok(await call('GET', '/hr/claims?status=OPEN_ADVANCE', { as: 'fin' })).rows.find((c) => c.id === adv.id);
+  assert.ok(row.paidAt);
+  assert.equal(row.open, 3000);
+  assert.equal((await cashOf({ claimId: adv.id })).length, 2);
+
+  // Eşzamanlı kısmi ödemeler sırayla: 900'lük masrafa 3 × 400 → ikisi geçer, üçüncüsü kalanı aşar
+  const exp = await claim({ type: 'EXPENSE', amount: '900', description: 'Toplantı yemeği' });
+  ok(await call('POST', `/hr/claims/${exp.id}/approve`, { as: 'hrm' }));
+  const results = await Promise.all([1, 2, 3].map(() => pay(exp.id, { method: 'CASH', amount: '400' })));
+  assert.deepEqual(results.map((r) => r.status).sort(), [200, 200, 409]);
+  assert.equal((await cashOf({ claimId: exp.id })).length, 2);
+
+  // Avanstan mahsup: 1.200'lük masraf açık avanstan düşülür, nakit çıkmaz
+  const offset = await claim({ type: 'EXPENSE', amount: '1200', description: 'Otel' });
+  ok(await call('POST', `/hr/claims/${offset.id}/approve`, { as: 'hrm' }));
+  assert.equal((await pay(adv.id, { method: 'ADVANCE' })).status, 409); // avans zaten ödendi
+  ok(await pay(offset.id, { method: 'ADVANCE' }));
+  assert.equal((await cashOf({ claimId: offset.id })).length, 0);
+  row = ok(await call('GET', '/hr/claims?status=OPEN_ADVANCE', { as: 'fin' })).rows.find((c) => c.id === adv.id);
+  assert.equal(row.open, 1800);
+  assert.equal(row.settlements[0].kind, 'OFFSET');
+  const big = await claim({ type: 'EXPENSE', amount: '5000', description: 'Uçak' });
+  ok(await call('POST', `/hr/claims/${big.id}/approve`, { as: 'hrm' }));
+  assert.equal((await pay(big.id, { method: 'ADVANCE' })).status, 400); // açık avans yetmez
+
+  // Kalan avans: 500 nakit iade (gelir kaydı) + 1.300 maaştan kesinti → kapanır
+  ok(await call('POST', `/hr/claims/${adv.id}/settle`, { as: 'fin', body: { kind: 'REFUND', amount: '500', method: 'CASH' } }));
+  const refund = await runAsPlatform(() => prisma.cashEntry.findFirst({ where: { tenantId: T.a, category: 'Personel avans iadesi' } }));
+  assert.equal(refund.type, 'IN');
+  assert.equal(refund.amount, 500);
+  assert.equal((await call('POST', `/hr/claims/${adv.id}/settle`, { as: 'fin', body: { kind: 'PAYROLL', amount: '2000' } })).status, 409); // açıktan fazla
+  ok(await call('POST', `/hr/claims/${adv.id}/settle`, { as: 'fin', body: { kind: 'PAYROLL' } }));
+  const closed = ok(await call('GET', '/hr/claims?status=ALL', { as: 'fin' })).rows.find((c) => c.id === adv.id);
+  assert.equal(closed.open, 0);
+  assert.deepEqual(closed.settlements.map((p) => p.kind), ['OFFSET', 'REFUND', 'PAYROLL']);
+  assert.equal(ok(await call('GET', '/hr/me', { as: 'pers' })).openAdvance, 0);
+
+  // Geri alma: kesinti geri alınınca avans açılır; mahsubu olan avansın ödemesi önce onlar geri alınmadan geri alınamaz
+  const payroll = closed.settlements.find((p) => p.kind === 'PAYROLL');
+  ok(await call('DELETE', `/hr/payments/${payroll.id}`, { as: 'fin' }));
+  assert.equal(ok(await call('GET', '/hr/me', { as: 'pers' })).openAdvance, 1300);
+  // Ödenen 3.000, kapanan 1.700 (mahsup 1.200 + iade 500): 2.000'lik ödeme geri alınırsa kapananı karşılamaz
+  const advPayout = closed.payments.find((p) => p.kind === 'PAYOUT' && p.amount === 2000);
+  assert.equal((await call('DELETE', `/hr/payments/${advPayout.id}`, { as: 'fin' })).status, 409);
+  // Personel kendi ödemelerini görür
+  const mine = ok(await call('GET', '/hr/me/claims', { as: 'pers' })).find((c) => c.id === adv.id);
+  assert.equal(mine.payments.length, 2);
+  assert.equal(mine.open, 1300);
+});
+
+test('pasif personelin personel hesabı da kapanır', { skip }, async () => {
+  ok(await call('PUT', `/hr/employees/${T.pers.id}`, { as: 'hrm', body: { ...T.pers, userId: U.pers.id, isActive: false } }));
+  const user = await runAsPlatform(() => prisma.user.findFirst({ where: { id: U.pers.id } }));
+  assert.equal(user.isActive, false);
+  assert.equal((await call('GET', '/hr/me', { as: 'pers' })).status, 401);
 });
 
 test('pasif personel yeni talep açamaz; modül kapanınca personel de erişemez', { skip }, async () => {

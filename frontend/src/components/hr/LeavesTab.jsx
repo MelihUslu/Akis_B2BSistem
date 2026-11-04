@@ -4,7 +4,7 @@ import api, { errorMessage } from '../../services/api';
 import EmptyState from '../shared/EmptyState';
 import FilterTabs from '../shared/FilterTabs';
 import { formatDate } from '../../utils/format';
-import { LEAVE_TYPES } from './hrMeta';
+import { LEAVE_TYPES, HALF, days } from './hrMeta';
 import { StatusPill, DecisionNote, RejectModal, ListCard, Row } from './HrUi';
 
 /**
@@ -20,7 +20,8 @@ const LeavesTab = ({ showAlert, confirm, onChanged, me }) => {
 
   const done = (msg) => { load(); onChanged?.(); showAlert({ type: 'success', title: 'Kaydedildi', message: msg }); };
   const approve = async (l) => {
-    if (!(await confirm({ type: 'info', title: 'İzin onaylansın mı?', message: `${l.employee.name}: ${LEAVE_TYPES[l.type]}, ${formatDate(l.startDate)} – ${formatDate(l.endDate)} (${l.days} iş günü)`, confirmText: 'Onayla' }))) return;
+    const after = l.balance ? ` Onaydan sonra kalan yıllık izin: ${days(Math.round((l.balance.remaining - l.days) * 10) / 10)}.` : '';
+    if (!(await confirm({ type: 'info', title: 'İzin onaylansın mı?', message: `${l.employee.name}: ${LEAVE_TYPES[l.type]}, ${formatDate(l.startDate)} – ${formatDate(l.endDate)} (${days(l.days)}).${after}`, confirmText: 'Onayla' }))) return;
     try { done((await api.post(`/hr/leaves/${l.id}/approve`)).data.message); } catch (err) { showAlert({ type: 'error', title: 'Onaylanamadı', message: errorMessage(err, 'İzin onaylanamadı.') }); }
   };
   const reject = async (reason) => {
@@ -57,8 +58,13 @@ const LeavesTab = ({ showAlert, confirm, onChanged, me }) => {
                     <p className="text-xs text-gray-500 truncate">{[l.employee.title, l.employee.department].filter(Boolean).join(' · ') || '—'}</p>
                   </div>
                   <div className="min-w-0 space-y-1">
-                    <p className="text-sm font-bold text-gray-800">{LEAVE_TYPES[l.type]} · {l.days} iş günü</p>
-                    <p className="text-xs text-gray-600">{formatDate(l.startDate)} – {formatDate(l.endDate)} · talep {formatDate(l.createdAt)}</p>
+                    <p className="text-sm font-bold text-gray-800">{LEAVE_TYPES[l.type]} · {days(l.days)}{l.half && <span className="font-semibold text-gray-500"> · {HALF[l.half]}</span>}</p>
+                    <p className="text-xs text-gray-600">{l.half ? formatDate(l.startDate) : `${formatDate(l.startDate)} – ${formatDate(l.endDate)}`} · talep {formatDate(l.createdAt)}</p>
+                    {l.balance && (
+                      <p className={`text-xs font-semibold ${l.status === 'PENDING' && l.days > l.balance.remaining ? 'text-red-600' : 'text-gray-500'}`}>
+                        Kalan yıllık izin {days(l.balance.remaining)}{l.status === 'PENDING' && ` · onaydan sonra ${days(Math.round((l.balance.remaining - l.days) * 10) / 10)}`}
+                      </p>
+                    )}
                     {l.note && <p className="text-xs text-gray-500 break-words">“{l.note}”</p>}
                     <DecisionNote item={l} />
                   </div>

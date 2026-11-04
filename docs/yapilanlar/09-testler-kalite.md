@@ -12,7 +12,7 @@
 | `integration/isolation` | 30 | Firmalar arası veri yalıtımı, eşzamanlı onay ve iade, toplu bildirim, oturum önbelleği |
 | `integration/quotes` | 18 | Teklif akışı, sürümler, onay sınırları, siparişe dönüşüm |
 | `integration/b2b` | 12 | Stok ayırma, bayi iptali, kargo ücreti, otomatik onay, süreli fiyat, görünürlük, kısmi sevkiyat, hedef, bayi adına sipariş, sepet |
-| `integration/hr` | 10 | Personel yönetimi: modül, erişim, izolasyon, izin / masraf / avans onayı, ödeme ve mükerrer ödeme engeli, prim hesabı, duyurular |
+| `integration/hr` | 15 | Personel yönetimi: modül, erişim, izolasyon, personel rolü, izin hakkı / tatiller / yarım gün, departman yöneticisi, onay akışları, kısmi ödeme ve mükerrer ödeme engeli, avans mahsubu, prim hesabı, duyurular |
 | `integration/google` | 8 | Google ile giriş: firma ve ortak giriş, tek kullanımlık bilet, tarayıcı bağı, iptal, doğrulanmamış e-posta, iki aşamalı doğrulama |
 | `integration/site` | 7 | Tanıtım sitesi, sohbet, talepler |
 | `integration/monitoring` | 7 | İzleme kayıtları ve uyarılar |
@@ -65,7 +65,7 @@ Playwright ve Chrome ile gerçek tarayıcıda, ekrana tıklanarak (`819afaa`, `e
 - **Ortam:** `./uat/run.sh` her çalıştırmada sıfırdan kurar: ayrı veritabanı (`akis_uat`), backend kopyası (port 5002), canlı derleme arayüz (`uat.localhost:5174`), ayrı Redis veritabanı.
 - **Veri:** her senaryonun kendi bayisi ve ürünü vardır (`uat/data.mjs`); senaryolar paralel koşar, birbirinin stoğunu ve bakiyesini bozmaz.
 - **Oturumlar:** giriş ucu çağrılmadan UAT backend'inin gizli anahtarıyla imzalanır (giriş ucunun 15 dakikada 20 deneme sınırına takılmamak için). Giriş ekranının kendisi UAT-01'de gerçek girişle denenir.
-- **Kapsam:** 18 senaryo, 45 test, yaklaşık 2 dakika.
+- **Kapsam:** 18 senaryo, 46 test, yaklaşık 2 dakika.
 
 | No | İş akışı |
 |---|---|
@@ -85,7 +85,7 @@ Playwright ve Chrome ile gerçek tarayıcıda, ekrana tıklanarak (`819afaa`, `e
 | UAT-15 | Kısmi sevkiyat ve irsaliye |
 | UAT-16 | Bayi hedefi ve ciro primi |
 | UAT-17 | Sepet cihazlar arası |
-| UAT-18 | Personel yönetimi: talep → onay → ödeme → Gelir-Gider |
+| UAT-18 | Personel yönetimi: talep → onay → ödeme → Gelir-Gider; personel girişi, yarım gün, yönetici onayı, kısmi ödeme |
 
 **UAT'nin bulduğu hatalar:**
 

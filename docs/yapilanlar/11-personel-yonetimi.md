@@ -62,13 +62,27 @@ Yeni tablolar: personel kartı (`Employee`), izin (`LeaveRequest`), masraf / ava
   - kapanışta sabitlenme; duyuru hedefleme; yetkisiz kullanıcıya özet ve aramanın kapalı olması.
 - **UAT-18** (`uat/tests/personel.spec.mjs`): gerçek tarayıcıda modülü açma, kart, izin ve fişli masraf talebi, onay, ödeme ve Gelir-Gider'e yansıması, departman duyurusu, plasiyerin telefonda kendi alanı.
 
+## 5 Kasım: eksiklerin tamamlanması
+
+İlk sürümde kapsam dışı bırakılan beş konu eklendi (yeni tablo `StaffPayment`; migration `20261128120000_personel_eksikleri`).
+
+| Konu | Yapılan |
+|---|---|
+| **Yıllık izin hakkı** | Her işe giriş yıl dönümünde hak eklenir: 1–5 yıl 14, 5–15 yıl 20, 15+ yıl 26 gün (İş Kanunu md. 53). Firma daha fazlasını kartta tanımlar; yasal sürenin altı sayılmaz. Kullanılmayan izin devreder. Sisteme geçişte "şu tarih itibarıyla kalan X gün" devri girilir. Kalan gün, bekleyen talepler ve bir sonraki hak tarihi personelde, kartlarda ve onay ekranlarında görünür. Kalanı aşan talep reddedilir; "avans izin" ayarı açılırsa eksiye düşebilir. |
+| **Resmî tatil ve yarım gün** | Sabit resmî tatiller otomatik düşülür (28 Ekim yarım gün). Dini bayramlar ve firma tatilleri İzin ayarlarındaki listeye eklenir (arife yarım gün). "Cumartesi iş günü" ayarı. Tek günlük izinde sabah / öğleden sonra yarım gün. Talep penceresi gün sayısını, aradaki tatilleri ve kalan izni önceden gösterir. |
+| **Kısmi ödeme** | Masraf, avans ve prim birden çok parçada ödenir; her parça Gelir-Gider'de ayrı gider kaydı açar (kaynak `STAFF_PAY:<ödeme>`, tekil). Kalan tutardan fazlası ödenemez; satır kilidiyle eşzamanlı ödemeler sırayla işler (3 eşzamanlı denemede kalanı aşan reddedilir). Her ödeme ayrı geri alınır. "Kısmen ödendi" durumu. |
+| **Avans mahsubu** | Ödenen avans "açık avans" olur. Masraf ya da prim ödenirken "avanstan mahsup" seçilirse açık avanslardan (eskisi önce) düşülür, nakit çıkmaz. Kalan avans nakit iade (Gelir-Gider'e "Personel avans iadesi" geliri) ya da maaştan kesinti ile kapanır. Mahsubu olan avansın ödemesi önce mahsup geri alınmadan geri alınamaz. |
+| **Departman yöneticisi** | Kartta "Yöneticisi" (hesabı olan personel); departmanın tamamına tek seferde atanabilir. Yönetici Personel yetkisi olmadan yalnızca kendi ekibinin izin ve masraf / avans taleplerine "Personel Alanım → Ekibim"den karar verir; yeni talep bildirimi ona gider. Personel yetkilisi her zaman karar verebilir. Ödeme yine Finans yetkisinde. |
+| **Personel rolü** | Hesabı olmayan personele kartından "Personel girişi" açılır (`PERSONEL` rolü). Yalnızca `/personel` sayfasına ve `/api/hr` uçlarına girer; panel, katalog, sipariş ve finans uçları 403. Paketteki yönetici sayısına dahil değil. Geçici şifre e-postayla gider, gönderilemezse ekranda bir kez gösterilir. Kart pasife alınınca hesap da kapanır. Ortak giriş (`/giris`) ve Google girişi bu rolü tanır. |
+
+Testler: `hr.test.js` 15 senaryoya çıktı (personel rolü, izin hakkı / tatiller / yarım gün / avans izin, departman yöneticisi, kısmi ödeme ve avans mahsubu, pasif personelin hesabı). UAT-18'e personel girişiyle gerçek giriş, yarım gün izin, yönetici onayı ve iki parçalı ödeme adımı eklendi.
+
 ## Eksik kalanlar
 
-- **İzin hakkı:** kıdeme göre yıllık izin hakkı ve kalan gün hesaplanmıyor; yalnızca kullanılan gün gösteriliyor. Resmî tatiller iş gününden düşülmüyor; yarım gün izin yok.
-- **Avans mahsubu:** ödenen avans gider olarak yazılıyor; sonradan masraftan ya da maaştan düşülmesi yok.
-- **Departman yöneticisi:** onay yetkisi firma genelinde ("Personel" yetkisi); yalnızca kendi ekibini onaylayan müdür tanımı yok.
-- **Ayrı personel rolü yok:** yalnızca talep açacak personel için Ekip'ten yetkisiz yönetici kullanıcı açılıyor; bu kullanıcı paketteki yönetici sayısına dahil.
-- **Kısmi ödeme yok:** talep ve prim tek seferde ödenir.
+- **Dini bayram tarihleri otomatik değil:** her yıl değiştikleri için firma İzin ayarlarından ekler (Diyanet takvimi). Eklenmezse o günler iş günü sayılır.
+- **Yaşa bağlı izin kuralı:** 18 yaş altı ve 50 yaş üstü için en az 20 gün kuralı otomatik değil (doğum tarihi tutulmuyor); kartta "firmanın verdiği gün" ile tanımlanır.
+- **Tek aşamalı onay:** yönetici ya da Personel yetkilisi onaylar; "önce yönetici, sonra İK" gibi iki aşamalı onay yok.
+- **Bordro yok:** maaştan kesinti yalnızca avansı kapatan kayıttır, maaş hesabına yansımaz.
 - **Satış ataması:** bayinin plasiyeri ay içinde değişirse ay hesabı güncel atamaya göre yapılır.
 - **İki prim sistemi:** mevcut sipariş başına plasiyer primi (`plasiyer_rate`, varsayılan %5) duruyor. Yalnızca hedef primi istenirse Ayarlar'da oran 0 yapılmalı.
 - **Panel özeti:** bazı yetkileri olan kullanıcı (ör. yalnızca Personel ya da Müşteri adayları) panel özetini hâlâ görüyor (mevcut davranış). Yetkiye göre daraltmak ayrı iş.
