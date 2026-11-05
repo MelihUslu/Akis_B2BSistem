@@ -9,6 +9,7 @@ import { openApiSpec } from './docs/openapi.js';
 import { recordRequestError } from './services/errorTracker.js';
 import { systemHealth } from './services/systemStatus.js';
 import { requestMetrics } from './services/monitoring.js';
+import { overload, dbGate } from './middlewares/overload.js';
 import reportRoutes from './routes/reportRoutes.js';
 import invoicingRoutes from './routes/invoicingRoutes.js';
 import addressRoutes from './routes/addressRoutes.js';
@@ -73,6 +74,8 @@ app.use(cors({
   allowedHeaders: ['Content-Type', 'Authorization', 'X-Tenant', 'X-Tenant-Host', 'X-Lang', 'X-Act-As-Company'] // X-Act-As-Company: bayi adına işlem (authMiddleware)
 }));
 app.use(requestMetrics); // Platform → İzleme: uç bazında istek sayısı, süre, hata oranı
+app.use(overload); // aşırı yükte kuyruk biriktirmeden 503 (middlewares/overload.js)
+app.use(dbGate); // veritabanı kısa süre önce ulaşılamaz göründüyse 503 (utils/dbHealth.js)
 // WhatsApp webhook imzası ham gövde üzerinden doğrulanır
 app.use(express.json({ limit: '1mb', verify: (req, res, buf) => { if (req.originalUrl.startsWith('/api/whatsapp/webhook/')) req.rawBody = buf; } }));
 app.use(langMiddleware);

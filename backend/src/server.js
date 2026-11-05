@@ -37,6 +37,8 @@ if (WORKERS > 1 && cluster.isPrimary) {
   const server = app.listen(PORT, () => {
     console.log(`Server is running on port ${PORT}${cluster.isWorker ? ` (işçi ${process.pid}${runsJobs ? ', zamanlanmış işler' : ''})` : ''}`);
     if (runsJobs) startNotificationJobs();
+    // Döviz kuru açılışta çekilir: ilk katalog istekleri TCMB yanıtını beklemesin
+    import('./services/exchangeRateService.js').then((m) => m.getExchangeRates()).catch(() => {});
   });
   // Boştaki bağlantıyı Caddy'nin (2 dk) ardından kapat: Node'un 5 sn varsayılanında Caddy kapanmış bağlantıya istek
   // gönderip 502 alabilir, yoğunlukta da her düşünme arasında yeni bağlantı açılır.

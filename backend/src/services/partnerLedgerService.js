@@ -1,4 +1,5 @@
-import prisma, { currentTenantId } from '../utils/prisma.js';
+import pkg from '@prisma/client';
+import prisma, { currentTenantId, sequenceLock } from '../utils/prisma.js';
 import { round2 } from './pricingService.js';
 import { postEntry, rateOrCurrent, normalizeCurrency, CURRENCY_LABEL } from './accountPosting.js';
 import { getExchangeRates } from './exchangeRateService.js';
@@ -70,6 +71,7 @@ export const recordPayment = async ({ company, body, user }) => {
   for (let attempt = 0; attempt < 5; attempt++) {
     try {
       return await prisma.$transaction(async (tx) => {
+        await sequenceLock(tx, 'RECEIPT'); // makbuz numarası firma içinde sırayla
         const agg = await tx.payment.aggregate({ _max: { receiptNo: true } });
         const receiptNo = (agg._max.receiptNo || 0) + 1;
         const payment = await tx.payment.create({
@@ -88,7 +90,7 @@ export const recordPayment = async ({ company, body, user }) => {
           description, date, source: 'PAYMENT', paymentId: payment.id, createdByName: user.name
         });
         return payment;
-      });
+      }, { maxWait: 10000, timeout: 30000 }); // numara kilidi sırayla verir; yoğun yükte 5 sn yetmiyordu
     } catch (error) {
       if (error.code !== 'P2002' || attempt === 4) throw error;
     }
@@ -193,24 +195,38 @@ export const agingFor = (company, debts, now = new Date()) => {
   return { ...out, total, oldestOverdueDays: oldest, overdue };
 };
 
+const { Prisma } = pkg;
+
 /**
  * Carilerin açık kalem hesabı için hareketler (en yeniden eskiye), sipariş vadesiyle birlikte, ters kaydedilenler hariç.
  * Tek düz SQL sorgusu: cari ve sipariş kimlikleri dizi parametresiyle gider, PostgreSQL'in 32.767 parametre sınırına
  * takılmaz (iç içe yüklemede büyük firmada yaşlandırma raporu açılmıyordu).
+ * cover: her carinin açık tutarı (companyIds ile aynı sırada). Verilirse yalnızca bu tutarı karşılayan en yeni
+ * hareketler gelir; FIFO'da daha eskileri zaten kapanmıştır. Büyük firmada (600 bin sipariş) yaşlandırma bütün borç
+ * hareketlerini okuyordu: 1,6 sn (yük testi, 5 Kasım 2026). Süzme JavaScript'teki dağıtımdan geniş tutulur (+0,01).
  * Dönen yapı: [{ id, companyId, amount, date, order: { dueDate } | null }]
  */
-export const loadOpenMoves = async (companyIds, { type, excludeSources = ['REVERSAL'] }) => {
+export const loadOpenMoves = async (companyIds, { type, excludeSources = ['REVERSAL'], cover }) => {
   if (!companyIds.length) return [];
   const tenantId = currentTenantId();
   if (!tenantId) throw new Error('[Tenant] Cari hareketleri kiracı bağlamı olmadan okunamaz.');
+  const open = cover
+    ? Prisma.sql`, sum(ft.amount) OVER (PARTITION BY ft."companyId" ORDER BY ft.date DESC, ft.id DESC ROWS UNBOUNDED PRECEDING) - ft.amount AS before`
+    : Prisma.empty;
+  const covered = cover
+    ? Prisma.sql`JOIN unnest(${companyIds}::int[], ${cover.map(Number)}::float8[]) AS c(id, open) ON c.id = m."companyId" AND m.before < c.open + 0.01`
+    : Prisma.empty;
   const rows = await prisma.$queryRaw`
-    SELECT ft.id, ft."companyId", ft.amount, ft.date, o."dueDate"
-    FROM "FinancialTransaction" ft
-    LEFT JOIN "Order" o ON o.id = ft."orderId"
-    WHERE ft."tenantId" = ${tenantId} AND ft."companyId" = ANY(${companyIds}) AND ft.type = ${type}
-      AND NOT (ft.source = ANY(${excludeSources}))
-      AND NOT EXISTS (SELECT 1 FROM "FinancialTransaction" r WHERE r."tenantId" = ${tenantId} AND r."reversalOfId" = ft.id)
-    ORDER BY ft.date DESC, ft.id DESC`;
+    SELECT m.id, m."companyId", m.amount, m.date, o."dueDate" FROM (
+      SELECT ft.id, ft."companyId", ft.amount, ft.date, ft."orderId"${open}
+      FROM "FinancialTransaction" ft
+      WHERE ft."tenantId" = ${tenantId} AND ft."companyId" = ANY(${companyIds}) AND ft.type = ${type}
+        AND NOT (ft.source = ANY(${excludeSources}))
+        AND NOT EXISTS (SELECT 1 FROM "FinancialTransaction" r WHERE r."tenantId" = ${tenantId} AND r."reversalOfId" = ft.id)
+    ) m
+    ${covered}
+    LEFT JOIN "Order" o ON o.id = m."orderId"
+    ORDER BY m.date DESC, m.id DESC`;
   return rows.map((r) => ({ id: r.id, companyId: r.companyId, amount: r.amount, date: r.date, order: r.dueDate ? { dueDate: r.dueDate } : null }));
 };
 
@@ -222,7 +238,7 @@ export const agingReport = async ({ kinds = ['DEALER', 'CUSTOMER'], companyId } 
   });
   // Borç hareketleri tek sorguda (cari başına alt sorgu yerine); ters kaydedilenler ayrıca çıkarılır
   const ids = companies.map((c) => c.id);
-  const debts = await loadOpenMoves(ids, { type: 'DEBT' });
+  const debts = await loadOpenMoves(ids, { type: 'DEBT', cover: companies.map((c) => -c.currentBalance) });
   const byCompany = new Map();
   for (const d of debts) {
     if (!byCompany.has(d.companyId)) byCompany.set(d.companyId, []);

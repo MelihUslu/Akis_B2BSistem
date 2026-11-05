@@ -3,6 +3,7 @@ import { orderStats, getOrders, getOrderById, exportOrders, partialApproveOrder,
 import { verifyToken, checkRole, requirePermission } from '../middlewares/authMiddleware.js';
 import { createShipment, refreshShipment, cancelShipment } from '../controllers/cargoController.js';
 import { getOrderInvoice, issueInvoice, setInvoiceNumber, removeInvoice, invoicePdfRedirect } from '../controllers/invoicingController.js';
+import { heavyLimit } from '../middlewares/heavyLimit.js';
 
 const router = express.Router();
 
@@ -10,7 +11,7 @@ router.use(verifyToken);
 
 // Bayi kendi siparişlerini, admin tüm siparişleri görür
 router.get('/', getOrders);
-router.get('/export', exportOrders);
+router.get('/export', heavyLimit, exportOrders);
 router.get('/stats', requirePermission('ORDERS'), orderStats);
 // Fatura: bayi kendi siparişininkini görür; kesme / numara girme yönetici işidir
 router.get('/:id/invoice', getOrderInvoice);

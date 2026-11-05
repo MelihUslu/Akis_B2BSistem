@@ -6,6 +6,7 @@ import {
   getDomain, setDomain, verifyDomain, removeDomain, exportData, closeAccount
 } from '../controllers/accountController.js';
 import { verifyToken, checkRole, requirePermission, blockImpersonation } from '../middlewares/authMiddleware.js';
+import { heavyLimit } from '../middlewares/heavyLimit.js';
 
 const router = express.Router();
 
@@ -31,7 +32,7 @@ router.put('/domain', requirePermission('SETTINGS'), setDomain);
 router.post('/domain/verify', requirePermission('SETTINGS'), verifyDomain);
 router.delete('/domain', requirePermission('SETTINGS'), removeDomain);
 
-router.get('/export', requirePermission('SETTINGS'), exportData);
+router.get('/export', heavyLimit, requirePermission('SETTINGS'), exportData);
 router.post('/close', requirePermission('SETTINGS'), blockImpersonation, closeAccount);
 
 export default router;

@@ -1,4 +1,4 @@
-import xlsx from 'xlsx';
+import { workbookBuffer } from '../utils/xlsxStream.js';
 import prisma from '../utils/prisma.js';
 import { buildSalesReport } from './reportService.js';
 import { getExchangeRates, toTRY } from './exchangeRateService.js';
@@ -252,12 +252,8 @@ const change = (now, prev) => (prev ? `${now >= prev ? '+' : ''}${Math.round(((n
 export const reportTitle = (r) => `${PERIOD_LABEL[r.range.period] || ''} müşteri raporu · ${fmt(new Date(r.range.from))} – ${fmt(new Date(r.range.to))}`;
 
 export const customerReportWorkbook = (r) => {
-  const wb = xlsx.utils.book_new();
-  const add = (name, rows, widths) => {
-    const ws = xlsx.utils.json_to_sheet(rows.length ? rows : [{ Bilgi: 'Kayıt yok' }]);
-    if (widths) ws['!cols'] = widths.map((w) => ({ wch: w }));
-    xlsx.utils.book_append_sheet(wb, ws, name);
-  };
+  const sheets = [];
+  const add = (name, rows, widths) => sheets.push({ name, rows: rows.length ? rows : [{ Bilgi: 'Kayıt yok' }], widths });
   const s = r.summary;
   const c = r.cari;
   const date = (d) => (d ? fmt(new Date(d)) : '');
@@ -288,7 +284,7 @@ export const customerReportWorkbook = (r) => {
   })), [30, 8, 14, 50, 16, 16, 12, 10, 9, 10, 16, 14, 14, 16, 14]);
   add('En çok alanlar', r.topCustomers.map((x, i) => ({ Sıra: i + 1, Müşteri: x.name, Sipariş: x.orders, 'Ciro (TL)': x.revenue, 'Pay (%)': x.share })), [6, 30, 10, 14, 10]);
   add('Açık alacaklar', r.topDebtors.map((x) => ({ Müşteri: x.name, 'Açık alacak (TL)': x.receivableTRY, Bakiye: x.balance, 'Para birimi': x.currency, 'Limit aşımı': x.overLimit ? 'Evet' : '', 'Son siparişten beri (gün)': x.daysSince ?? '' })), [30, 16, 14, 10, 10, 20]);
-  return xlsx.write(wb, { type: 'buffer', bookType: 'xlsx' });
+  return workbookBuffer(sheets);
 };
 
 // ─── Zamanlanmış üretim ───────────────────────────────────────────────────

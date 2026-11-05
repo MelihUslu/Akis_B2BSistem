@@ -5,9 +5,20 @@ import { localDay } from '../utils/dates.js';
 import { cached } from '../utils/cache.js';
 import { currentTenantId } from '../utils/prisma.js';
 
+// Ekrana uzun listelerin (ürün, bayi, satılmayan) ilk 200 satırı gider, toplam sayılar counts'ta; tamamı Excel'de.
+// On kat veride (50 bin ürün) yanıt 10,5 MB'tı: 150 yönetici aynı anda açınca her istek ayrı JSON üretip sunucu
+// belleğini 4,5 GB'a çıkarıyordu (yük testi, 5 Kasım 2026); tarayıcı da 50 bin satırlık tabloyu çizemezdi.
+const SCREEN_ROWS = 200;
+const LONG_LISTS = ['products', 'dealers', 'unsold'];
+
 export const salesReport = async (req, res) => {
   try {
-    res.json(await buildSalesReport(parseRange(req.query)));
+    const report = await buildSalesReport(parseRange(req.query));
+    res.json({
+      ...report,
+      ...Object.fromEntries(LONG_LISTS.map((k) => [k, report[k].slice(0, SCREEN_ROWS)])),
+      counts: Object.fromEntries(LONG_LISTS.map((k) => [k, report[k].length]))
+    });
   } catch (error) {
     res.status(400).json({ message: error.message || 'Rapor oluşturulamadı.' });
   }
@@ -16,7 +27,7 @@ export const salesReport = async (req, res) => {
 export const exportSalesReport = async (req, res) => {
   try {
     const range = parseRange(req.query);
-    const buffer = reportWorkbook(await buildSalesReport(range));
+    const buffer = await reportWorkbook(await buildSalesReport(range));
     const name = `satis-raporu-${localDay(range.from)}_${localDay(range.to)}.xlsx`;
     res.setHeader('Content-Type', 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet');
     res.setHeader('Content-Disposition', `attachment; filename="${name}"`);
@@ -66,7 +77,7 @@ export const getPeriodicReport = async (req, res) => {
 export const exportPeriodicReport = async (req, res) => {
   const row = await loadReport(req.params.id);
   if (!row) return res.status(404).json({ message: 'Rapor bulunamadı.' });
-  sendXlsx(res, customerReportWorkbook(row.data), fileName(row.data));
+  sendXlsx(res, await customerReportWorkbook(row.data), fileName(row.data));
 };
 
 // Seçilen tarih aralığı için anlık rapor (kaydedilmez)
@@ -90,7 +101,7 @@ export const livePeriodicReport = async (req, res) => {
 export const exportLivePeriodicReport = async (req, res) => {
   try {
     const r = await liveReport(req.query);
-    sendXlsx(res, customerReportWorkbook(r), fileName(r));
+    sendXlsx(res, await customerReportWorkbook(r), fileName(r));
   } catch (error) {
     res.status(400).json({ message: error.message || 'Rapor oluşturulamadı.' });
   }

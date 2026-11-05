@@ -3,8 +3,18 @@
 #   cp deploy/backend.production.env.example backend/.env.production   # backend ayarları
 #   docker compose -f docker-compose.prod.yml up -d --build
 # Ayrıntı: docs/canliya-cikis.md
+
+# Kayıt dosyaları döndürülür (servis başına en fazla 5 × 20 MB): Docker varsayılanında sınırsız büyür; veritabanı
+# kesintisi gibi bir hata yağmurunda sunucunun diski dolabilirdi (dayanıklılık testi, 5 Kasım 2026).
+x-logging: &logging
+  driver: json-file
+  options:
+    max-size: "20m"
+    max-file: "5"
+
 services:
   db:
+    logging: *logging
     image: postgres:15-alpine
     environment:
       POSTGRES_USER: ${POSTGRES_USER:-akis}
@@ -21,11 +31,13 @@ services:
     restart: always
 
   redis:
+    logging: *logging
     image: redis:7-alpine
     command: ["redis-server", "--save", "", "--appendonly", "no"]
     restart: always
 
   backend:
+    logging: *logging
     build:
       context: ./backend
       dockerfile: Dockerfile
@@ -48,6 +60,7 @@ services:
     restart: always
 
   web:
+    logging: *logging
     build:
       context: .
       dockerfile: deploy/Dockerfile.web
@@ -72,6 +85,7 @@ services:
 
   # Günlük yedek: açılışta bir kez, sonra her gün 03:00 → ./backups (BACKUP_KEEP_DAYS gün saklanır)
   backup:
+    logging: *logging
     image: postgres:15-alpine
     environment:
       PGHOST: db

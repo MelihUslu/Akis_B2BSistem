@@ -139,7 +139,7 @@ export const exportLeads = async (req, res) => {
     const rows = await withCreators(await prisma.customerLead.findMany({ where: listWhere(req.query), orderBy: { createdAt: 'desc' }, take: 50000 }));
     // Formdaki ek sorular ayrı sütun olur (Talep'ten sonra, ilk görüldüğü sırayla)
     const extra = [...new Set(rows.flatMap((l) => (Array.isArray(l.answers) ? l.answers.map((a) => a.label) : [])))];
-    sendWorkbook(res, rows.map((l) => ({
+    await sendWorkbook(res, rows.map((l) => ({
       'Tarih': l.createdAt.toLocaleString('tr-TR', { timeZone: 'Europe/Istanbul' }),
       'Ad Soyad': l.name, 'Telefon': l.phone, 'E-posta': l.email, 'Şehir': l.city,
       'Kaynak': SOURCES[l.source] || l.source, 'Kampanya / Reklam': l.campaign, 'Talep': l.request,

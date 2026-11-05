@@ -1,4 +1,5 @@
 import bcrypt from 'bcrypt';
+import { BusyError } from '../utils/redis.js';
 import crypto from 'crypto';
 import { articleData } from '../services/helpService.js';
 import jwt from 'jsonwebtoken';
@@ -11,7 +12,7 @@ import { recordSuccessfulPayment, planPrice, addPeriod } from '../services/subsc
 import * as iyzico from '../services/iyzicoService.js';
 import * as twoFactor from '../services/twoFactorService.js';
 import { audit, clientIp } from '../services/auditService.js';
-import { exportTenantWorkbook, purgeTenant } from '../services/tenantDataService.js';
+import { exportTenantWorkbook, sendExportFile, ExportAborted, purgeTenant } from '../services/tenantDataService.js';
 import { notifyUser, notifyAdmins } from '../services/notificationService.js';
 import { cleanAttachments } from '../services/supportService.js';
 import { issueSubscriptionInvoice, subscriptionInvoicePdf } from '../services/platformInvoiceService.js';
@@ -401,11 +402,19 @@ const runWithTenantSafe = async (tenantId, fn) => {
 // ─── Hesap kapatma / silme ───────────────────────────────────────────────────
 
 export const exportTenantData = async (req, res) => {
-  const { buffer, tenant } = await exportTenantWorkbook(parseInt(req.params.id));
+  const ac = new AbortController();
+  res.on('close', () => ac.abort()); // istemci beklemeden ayrılırsa hazırlık durur
+  let result;
+  try {
+    result = await exportTenantWorkbook(parseInt(req.params.id), { signal: ac.signal });
+  } catch (error) {
+    if (error instanceof BusyError) return res.status(429).set('Retry-After', '60').json({ message: 'Şu an başka bir veri dışa aktarımı hazırlanıyor. Birkaç dakika sonra tekrar deneyin.' });
+    if (error instanceof ExportAborted) return undefined;
+    throw error;
+  }
+  const { file, tenant } = result;
   audit({ tenantId: tenant.id, actorType: 'PLATFORM', actorId: req.user.id, actorName: req.user.name, action: 'Platform: firma verisi dışa aktarıldı', ip: clientIp(req) });
-  res.setHeader('Content-Type', 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet');
-  res.setHeader('Content-Disposition', `attachment; filename="${tenant.slug}-tum-veriler.xlsx"`);
-  res.send(buffer);
+  await sendExportFile(res, file, `${tenant.slug}-tum-veriler.xlsx`);
 };
 
 export const reopenTenant = async (req, res) => {

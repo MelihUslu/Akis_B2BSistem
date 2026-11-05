@@ -1,7 +1,7 @@
-import { setStock, reconcileStock } from '../services/stockService.js';
+import { setStock, reconcileStock, defaultWarehouse } from '../services/stockService.js';
 import crypto from 'crypto';
 import { postEntry, currentRate, normalizeCurrency } from '../services/accountPosting.js';
-import prisma from '../utils/prisma.js';
+import prisma, { currentTenantId } from '../utils/prisma.js';
 import { hashApiKey } from '../middlewares/apiKeyAuth.js';
 import { notifyRestocked, safeNotify } from '../services/notificationService.js';
 import { assertWithinLimit, LimitError } from '../services/limitService.js';
@@ -122,44 +122,75 @@ export const apiListProducts = async (req, res) => {
   res.json({ data: rows.map(productOut), page: p, limit, total });
 };
 
+// Parti tek seferde okunur / yazılır: kayıt başına sırayla 1–2 sorgu atıldığında 1.000 kayıtlık parti yük altında
+// stokta 11 sn, fiyatta 5 sn sürüyordu; 50 bin ürünlük katalogda bir tam senkron ~7 dk (yük testi, 5 Kasım 2026).
+// Aynı SKU partide birden çok kez gelirse sonuncusu geçerlidir (sırayla işlemedeki gibi).
+
+// Depo kullanılmıyorsa (çoğu firma) stoklar tek sorguda yazılır; depolu firmada her ürün depo stoğu üzerinden (setStock).
+// Dönen: stoğu sıfırdan yukarı çıkan ürünler (stok bildirimi için)
+const writeStocks = async (writes) => {
+  const restocked = new Set();
+  if (!(await defaultWarehouse(prisma)) && writes.every((w) => !w.warehouseId)) {
+    const last = new Map(writes.map((w) => [w.product.id, w]));
+    const ids = [...last.keys()];
+    await prisma.$executeRaw`UPDATE "Product" p SET stock = v.stock, "updatedAt" = now()
+      FROM unnest(${ids}::int[], ${ids.map((id) => last.get(id).stock)}::int[]) AS v(id, stock)
+      WHERE p.id = v.id AND p."tenantId" = ${currentTenantId()}`;
+    for (const w of last.values()) if (w.product.stock <= 0 && w.stock > 0) restocked.add(w.product.id);
+  } else {
+    for (const w of writes) {
+      const updated = await setStock(prisma, w.product.id, w.stock, w.warehouseId);
+      if (w.product.stock <= 0 && updated.stock > 0) restocked.add(w.product.id);
+    }
+  }
+  return [...restocked];
+};
+
 // [{ sku, stock, warehouse? }] — ERP stok miktarları (varyant SKU'ları dahil). warehouse: depo kodu (yoksa toplam stok)
 export const apiUpdateStock = async (req, res) => {
   const items = batch(req, res); if (!items) return;
   const result = { updated: 0, notFound: [] };
-  const restocked = [];
-  for (const item of items) {
-    const stock = parseInt(item.stock);
-    if (!item.sku || !Number.isFinite(stock)) continue;
-    const product = await prisma.product.findFirst({ where: { sku: String(item.sku) } });
+  const valid = items.filter((item) => item.sku && Number.isFinite(parseInt(item.stock)));
+  const products = new Map((await prisma.product.findMany({
+    where: { sku: { in: [...new Set(valid.map((item) => String(item.sku)))] } }, select: { id: true, sku: true, stock: true }
+  })).map((p) => [p.sku, p]));
+  const warehouses = valid.some((item) => item.warehouse)
+    ? new Map((await prisma.warehouse.findMany({ select: { id: true, code: true } })).map((w) => [w.code, w.id]))
+    : new Map();
+  const writes = [];
+  for (const item of valid) {
+    const product = products.get(String(item.sku));
     if (!product) { result.notFound.push(item.sku); continue; }
     let warehouseId = null;
     if (item.warehouse) {
-      const w = await prisma.warehouse.findFirst({ where: { code: String(item.warehouse).trim().toUpperCase() } });
-      if (!w) { result.notFound.push(`${item.sku} (depo: ${item.warehouse})`); continue; }
-      warehouseId = w.id;
+      warehouseId = warehouses.get(String(item.warehouse).trim().toUpperCase());
+      if (!warehouseId) { result.notFound.push(`${item.sku} (depo: ${item.warehouse})`); continue; }
     }
-    if (!dryRun(req)) {
-      const updated = await setStock(prisma, product.id, stock, warehouseId);
-      if (product.stock <= 0 && updated.stock > 0) restocked.push(product.id);
-    }
+    writes.push({ product, stock: parseInt(item.stock), warehouseId });
     result.updated++;
   }
-  safeNotify(notifyRestocked(restocked));
+  if (!dryRun(req) && writes.length) safeNotify(notifyRestocked(await writeStocks(writes)));
   res.json(out(req, result));
 };
 
 // [{ sku, price, currency? }] — liste fiyatları (KDV hariç)
 export const apiUpdatePrices = async (req, res) => {
   const items = batch(req, res); if (!items) return;
+  const valid = items.filter((item) => item.sku && Number.isFinite(parseFloat(item.price)) && parseFloat(item.price) >= 0);
+  const last = new Map(valid.map((item) => [String(item.sku), item]));
+  const skus = [...last.keys()];
+  let found;
+  if (dryRun(req)) {
+    found = new Set((await prisma.product.findMany({ where: { sku: { in: skus } }, select: { sku: true } })).map((p) => p.sku));
+  } else if (skus.length) {
+    const rows = await prisma.$queryRaw`UPDATE "Product" p SET price = v.price, currency = COALESCE(v.currency, p.currency), "updatedAt" = now()
+      FROM unnest(${skus}::text[], ${skus.map((k) => parseFloat(last.get(k).price))}::float8[], ${skus.map((k) => (last.get(k).currency ? currency(last.get(k).currency) : null))}::text[]) AS v(sku, price, currency)
+      WHERE p."tenantId" = ${currentTenantId()} AND p.sku = v.sku
+      RETURNING p.sku`;
+    found = new Set(rows.map((r) => r.sku));
+  } else found = new Set();
   const result = { updated: 0, notFound: [] };
-  for (const item of items) {
-    const price = parseFloat(item.price);
-    if (!item.sku || !Number.isFinite(price) || price < 0) continue;
-    const updated = dryRun(req)
-      ? { count: await prisma.product.count({ where: { sku: String(item.sku) } }) }
-      : await prisma.product.updateMany({ where: { sku: String(item.sku) }, data: { price, ...(item.currency && { currency: currency(item.currency) }) } });
-    if (updated.count === 0) result.notFound.push(item.sku); else result.updated++;
-  }
+  for (const item of valid) if (found.has(String(item.sku))) result.updated++; else result.notFound.push(item.sku);
   res.json(out(req, result));
 };
 

@@ -47,6 +47,13 @@ const Table = ({ head, children, empty }) => (
 
 const zebra = (i) => (i % 2 ? 'bg-slate-50/70' : 'bg-white');
 
+// Uzun listelerde ekrana ilk 200 satır gelir; tamamı Excel'de
+const Truncated = ({ shown, total }) => (total > shown ? (
+  <p className="flex items-center gap-2 px-4 py-3 text-xs text-gray-500 border-t border-gray-100">
+    <Info className="h-3.5 w-3.5 shrink-0" /> İlk {shown.toLocaleString('tr-TR')} satır gösteriliyor (toplam {total.toLocaleString('tr-TR')}). Tamamı için Excel'e aktarın.
+  </p>
+) : null);
+
 // Satış raporları: ciro trendi, ürün / bayi / kategori kırılımı ve satılmayan ürünler
 // Satış raporu sekmesi: tarih aralığına göre ciro, kâr, ürün / bayi / kategori kırılımı
 const SalesReport = () => {
@@ -130,10 +137,10 @@ const SalesReport = () => {
 
       {/* Kırılımlar */}
       <FilterTabs value={tab} onChange={setTab} tabs={[
-        { id: 'products', label: 'Ürünler', icon: Package, tone: 'blue', count: report?.products.length },
-        { id: 'dealers', label: 'Bayiler', icon: Users, tone: 'violet', count: report?.dealers.length },
+        { id: 'products', label: 'Ürünler', icon: Package, tone: 'blue', count: report?.counts?.products ?? report?.products.length },
+        { id: 'dealers', label: 'Bayiler', icon: Users, tone: 'violet', count: report?.counts?.dealers ?? report?.dealers.length },
         { id: 'categories', label: 'Kategoriler', icon: Layers, tone: 'emerald', count: report?.categories.length },
-        { id: 'unsold', label: 'Satılmayanlar', icon: PackageX, tone: 'orange', count: report?.unsold.length },
+        { id: 'unsold', label: 'Satılmayanlar', icon: PackageX, tone: 'orange', count: report?.counts?.unsold ?? report?.unsold.length },
       ]} />
 
       <div className="card-premium">
@@ -157,6 +164,7 @@ const SalesReport = () => {
             ))}
           </Table>
         )}
+        {tab === 'products' && <Truncated shown={report?.products.length || 0} total={report?.counts?.products || 0} />}
         {tab === 'dealers' && (
           <Table head={['Bayi', 'Grup', 'Sipariş', 'Miktar', 'Ciro', 'Pay']} empty={!report?.dealers.length && 'Satış yok.'}>
             {report?.dealers.map((d, i) => (
@@ -171,6 +179,7 @@ const SalesReport = () => {
             ))}
           </Table>
         )}
+        {tab === 'dealers' && <Truncated shown={report?.dealers.length || 0} total={report?.counts?.dealers || 0} />}
         {tab === 'categories' && (
           <Table head={['Kategori', 'Miktar', 'Ciro', 'Pay']} empty={!report?.categories.length && 'Satış yok.'}>
             {report?.categories.map((c, i) => (
@@ -196,6 +205,7 @@ const SalesReport = () => {
                 </tr>
               ))}
             </Table>
+            <Truncated shown={report?.unsold.length || 0} total={report?.counts?.unsold || 0} />
           </>
         )}
       </div>

@@ -74,3 +74,45 @@ export const markOnce = async (key, ttlMs) => {
   return true;
 };
 
+/**
+ * Aynı anda en fazla `limit` iş (tüm sunucular / süreçler arasında; Redis yoksa süreç içinde). Yer yoksa BusyError.
+ * Ağır ve nadir işler için (ör. firmanın tüm verisinin dışa aktarımı): aynı anda birkaçı belleği tüketip sunucuyu
+ * düşürmesin. Her sahip kümede kendi bitiş zamanıyla durur (sorted set); süreç çökerse ya da bırakırken Redis'e
+ * ulaşılamazsa yalnızca o yer ttlMs sonunda düşer. Eskiden tek sayaç vardı ve her denemede süresi uzuyordu:
+ * kaybolan bir bırakma, denemeler sürdükçe yeri kalıcı olarak dolu tutuyordu (dayanıklılık testi, 5 Kasım 2026).
+ */
+export class BusyError extends Error {}
+const localSlots = new Map();
+
+// Süresi geçen sahipleri at; yer varsa ekle (tek adımda, sunucular arası yarışsız)
+const ACQUIRE = `
+redis.call('ZREMRANGEBYSCORE', KEYS[1], '-inf', ARGV[1])
+if redis.call('ZCARD', KEYS[1]) >= tonumber(ARGV[2]) then return 0 end
+redis.call('ZADD', KEYS[1], tonumber(ARGV[1]) + tonumber(ARGV[3]), ARGV[4])
+redis.call('PEXPIRE', KEYS[1], ARGV[3])
+return 1`;
+
+// Yer ayırır; yer yoksa null, varsa bırakma fonksiyonu döner (bir kez çalışır)
+export const acquireSlot = async (name, limit, ttlMs) => {
+  const r = redisReady();
+  const key = `slots:${name}`;
+  let release;
+  if (r) {
+    const token = `${process.pid}:${Date.now()}:${Math.random().toString(36).slice(2)}`;
+    if (!(await r.eval(ACQUIRE, 1, key, Date.now(), limit, ttlMs, token))) return null;
+    release = () => r.zrem(key, token).catch(() => {});
+  } else {
+    const n = (localSlots.get(name) || 0) + 1;
+    if (n > limit) return null;
+    localSlots.set(name, n);
+    release = () => { localSlots.set(name, Math.max(0, (localSlots.get(name) || 1) - 1)); };
+  }
+  let done = false;
+  return () => { if (!done) { done = true; release(); } };
+};
+
+export const withSlot = async (name, limit, ttlMs, fn) => {
+  const release = await acquireSlot(name, limit, ttlMs);
+  if (!release) throw new BusyError(name);
+  try { return await fn(); } finally { release(); }
+};

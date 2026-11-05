@@ -5,13 +5,14 @@ import {
 } from '../controllers/cashController.js';
 import { verifyToken, requirePermission } from '../middlewares/authMiddleware.js';
 import { cashDocUpload } from '../middlewares/upload.js';
+import { heavyLimit } from '../middlewares/heavyLimit.js';
 
 const router = express.Router();
 
 // Gelir-gider: Finans yetkisi
 router.use(verifyToken, requirePermission('FINANCE'));
 router.get('/', listCash);
-router.get('/export', exportCash);
+router.get('/export', heavyLimit, exportCash);
 router.get('/forecast', cashForecast);
 router.put('/budgets', saveBudgets);
 router.post('/recurring', createRecurring);

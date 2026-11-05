@@ -26,7 +26,9 @@ integrationAdminRoutes.post('/deliveries/:deliveryId/redeliver', redeliverWebhoo
 
 // Dış sistemler (ERP / entegratör): /api/v1, API anahtarı ile
 export const integrationApiRoutes = express.Router();
-integrationApiRoutes.use(apiRequestLogger, apiKeyAuth, rateLimit({ windowMs: 60 * 1000, max: 600, message: 'Dakikalık istek sınırı aşıldı (600).' }));
+// Sınır API anahtarı başına, bütün uçlar toplamında: IP + yol ile sayıldığında /orders/:id'de her sipariş ayrı sayılıyor,
+// aynı IP'deki farklı firmaların (entegratör sunucusu) ERP'leri ise birbirinin sınırını yiyordu (yük testi, 5 Kasım 2026)
+integrationApiRoutes.use(apiRequestLogger, apiKeyAuth, rateLimit({ windowMs: 60 * 1000, max: 600, message: 'Dakikalık istek sınırı aşıldı (600).', key: (req) => `apikey:${req.apiKey.id}` }));
 integrationApiRoutes.get('/products', apiListProducts);
 integrationApiRoutes.put('/products/stock', apiUpdateStock);
 integrationApiRoutes.put('/products/prices', apiUpdatePrices);

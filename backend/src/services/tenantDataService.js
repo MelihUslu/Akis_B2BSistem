@@ -1,67 +1,126 @@
 import fs from 'fs/promises';
+import { createReadStream } from 'fs';
+import { pipeline } from 'stream/promises';
+import os from 'os';
 import path from 'path';
-import xlsx from 'xlsx';
+import crypto from 'crypto';
 import prisma, { runAsPlatform } from '../utils/prisma.js';
+import { withSlot } from '../utils/redis.js';
+import { openXlsx } from '../utils/xlsxStream.js';
 
 /**
  * Firmanın tüm verisini tek Excel dosyasına aktarır (KVKK / veri taşınabilirliği).
  * Şifreler, 2FA anahtarları ve POS anahtarları dahil edilmez.
+ *
+ * Bellek: tablolar sırayla ve 5.000 satırlık parçalarla okunur, satırlar akışla geçici dosyaya yazılır (utils/xlsxStream).
+ * Eskiden bütün tablolar ve Excel dosyası bellekte kuruluyordu: 60 bin siparişli firmada tek dışa aktarım +2,8 GB
+ * kullanıyor, sunucu süreçlerini bellek yetersizliğinden düşürüyordu (yük testi, 5 Kasım 2026). Aynı anda en fazla bir
+ * dışa aktarım çalışır (tüm sunucularda); doluysa BusyError, çağıran "biraz sonra tekrar deneyin" yanıtı verir.
+ * Dönen { file } geçici dosyadır: sendExportFile gönderip siler. signal: istemci ayrılırsa (sekme kapandı, zaman aşımı)
+ * hazırlık her parçada kontrol edilip durdurulur; yük altında yarım kalan dışa aktarım tek hakkı dakikalarca tutuyordu.
  */
-export const exportTenantWorkbook = (tenantId) => runAsPlatform(async () => {
+const PAGE = 5000;
+const SHEET_ROWS = 1_000_000; // Excel sayfa sınırının (1.048.576) altında: aşan tablo "Ad 2", "Ad 3"… sayfalarına bölünür
+const EXPORT_SLOT_MS = 15 * 60 * 1000;
+const TMP_PREFIX = 'akis-disa-aktarim-';
+export class ExportAborted extends Error {}
+
+// Yarıda kalmış (süreç düşmüş) eski geçici dosyalar
+const cleanupStale = async () => {
+  const dir = os.tmpdir();
+  const names = await fs.readdir(dir).catch(() => []);
+  await Promise.all(names.filter((n) => n.startsWith(TMP_PREFIX)).map(async (n) => {
+    const f = path.join(dir, n);
+    const st = await fs.stat(f).catch(() => null);
+    if (st && Date.now() - st.mtimeMs > 6 * 60 * 60 * 1000) await fs.rm(f, { force: true });
+  }));
+};
+
+export const exportTenantWorkbook = (tenantId, { signal } = {}) => withSlot('tenant-export', 1, EXPORT_SLOT_MS, () => runAsPlatform(async () => {
+  await cleanupStale();
   const w = { tenantId };
-  const [tenant, users, companies, categories, products, orders, items, transactions, payments, quotes, returns, coupons, specials, cash, shipments, targets, employees, leaves, claims, staffTargets, staffAnnouncements, staffPayments] = await Promise.all([
-    prisma.tenant.findUnique({ where: { id: tenantId }, include: { plan: true } }),
-    prisma.user.findMany({ where: w, select: { id: true, name: true, email: true, role: true, companyId: true, isOwner: true, isActive: true, createdAt: true, lastLoginAt: true } }),
-    prisma.company.findMany({ where: w }),
-    prisma.category.findMany({ where: w }),
-    prisma.product.findMany({ where: w }),
-    prisma.order.findMany({ where: w }),
-    prisma.orderItem.findMany({ where: w }),
-    prisma.financialTransaction.findMany({ where: w }),
-    prisma.payment.findMany({ where: w, select: { id: true, companyId: true, amount: true, method: true, provider: true, status: true, reference: true, cardLast4: true, paymentDate: true } }),
-    prisma.quoteRequest.findMany({ where: w, include: { items: true } }),
-    prisma.returnRequest.findMany({ where: w }),
-    prisma.coupon.findMany({ where: w }),
-    prisma.specialPrice.findMany({ where: w }),
-    prisma.cashEntry.findMany({ where: w }),
-    prisma.orderShipment.findMany({ where: w }),
-    prisma.dealerTarget.findMany({ where: w }),
-    prisma.employee.findMany({ where: w }),
-    prisma.leaveRequest.findMany({ where: w }),
-    prisma.staffClaim.findMany({ where: w }).then((rows) => rows.map(({ storedName, ...r }) => r)), // eslint-disable-line no-unused-vars
-    prisma.staffTarget.findMany({ where: w }),
-    prisma.staffAnnouncement.findMany({ where: w }),
-    prisma.staffPayment.findMany({ where: w })
-  ]);
+  const tenant = await prisma.tenant.findUnique({ where: { id: tenantId }, include: { plan: true } });
+  const flat = (v) => (v instanceof Date ? v.toISOString() : (v && typeof v === 'object' ? JSON.stringify(v) : v));
+  const file = path.join(os.tmpdir(), `${TMP_PREFIX}${tenantId}-${crypto.randomBytes(6).toString('hex')}.xlsx`);
+  const book = openXlsx(file);
 
-  const flat = (rows) => rows.map(r => Object.fromEntries(Object.entries(r).map(([k, v]) => [k, v instanceof Date ? v.toISOString() : (v && typeof v === 'object' ? JSON.stringify(v) : v)])));
-  const wb = xlsx.utils.book_new();
-  const sheet = (name, rows) => xlsx.utils.book_append_sheet(wb, xlsx.utils.json_to_sheet(rows.length ? flat(rows) : [{ bilgi: 'Kayıt yok' }]), name);
+  const table = async (name, rows) => {
+    const s = await book.sheet(name);
+    const cols = Object.keys(rows[0]);
+    await s.row(cols);
+    for (const r of rows) await s.row(cols.map((k) => flat(r[k])));
+    await s.end();
+  };
+  // Tablo id sırasıyla parça parça okunur; okunan parça yazılıp bir sonrakinden önce bırakılır
+  const paged = async (name, model, args = {}, map = (r) => r) => {
+    let sheet = null;
+    let cols = null;
+    let part = 1;
+    let lastId = 0;
+    for (;;) {
+      if (signal?.aborted) throw new ExportAborted();
+      const rows = await prisma[model].findMany({ ...args, where: { ...w, id: { gt: lastId } }, orderBy: { id: 'asc' }, take: PAGE });
+      if (!rows.length) break;
+      lastId = rows[rows.length - 1].id;
+      for (const raw of rows) {
+        const r = map(raw);
+        cols ||= Object.keys(r);
+        if (sheet && sheet.rows > SHEET_ROWS) { await sheet.end(); sheet = null; part++; }
+        if (!sheet) {
+          sheet = await book.sheet(part === 1 ? name : `${name} ${part}`);
+          await sheet.row(cols);
+        }
+        await sheet.row(cols.map((k) => flat(r[k])));
+      }
+      if (rows.length < PAGE) break;
+    }
+    if (sheet) await sheet.end();
+    else await table(name, [{ bilgi: 'Kayıt yok' }]);
+  };
 
-  sheet('Firma', [{ ad: tenant.name, adres: tenant.slug, paket: tenant.plan.name, durum: tenant.status, kayit: tenant.createdAt, disaAktarim: new Date() }]);
-  sheet('Kullanıcılar', users);
-  sheet('Bayiler', companies);
-  sheet('Kategoriler', categories);
-  sheet('Ürünler', products);
-  sheet('Siparişler', orders);
-  sheet('Sipariş Kalemleri', items);
-  sheet('Cari Hareketler', transactions);
-  sheet('Tahsilatlar', payments);
-  sheet('Teklifler', quotes.map(({ items: qi, ...q }) => ({ ...q, kalemler: JSON.stringify(qi) })));
-  sheet('İadeler', returns);
-  sheet('Kuponlar', coupons);
-  sheet('Özel Fiyatlar', specials);
-  sheet('Gelir-Gider', cash);
-  sheet('Sevkiyatlar', shipments);
-  sheet('Bayi Hedefleri', targets);
-  sheet('Personel', employees);
-  sheet('Personel İzinleri', leaves);
-  sheet('Masraf ve Avans', claims);
-  sheet('Personel Hedefleri', staffTargets);
-  sheet('Şirket Duyuruları', staffAnnouncements);
-  sheet('Personel Ödemeleri', staffPayments);
-  return { buffer: xlsx.write(wb, { type: 'buffer', bookType: 'xlsx' }), tenant };
-});
+  try {
+    await table('Firma', [{ ad: tenant.name, adres: tenant.slug, paket: tenant.plan.name, durum: tenant.status, kayit: tenant.createdAt, disaAktarim: new Date() }]);
+    await paged('Kullanıcılar', 'user', { select: { id: true, name: true, email: true, role: true, companyId: true, isOwner: true, isActive: true, createdAt: true, lastLoginAt: true } });
+    await paged('Bayiler', 'company');
+    await paged('Kategoriler', 'category');
+    await paged('Ürünler', 'product');
+    await paged('Siparişler', 'order');
+    await paged('Sipariş Kalemleri', 'orderItem');
+    await paged('Cari Hareketler', 'financialTransaction');
+    await paged('Tahsilatlar', 'payment', { select: { id: true, companyId: true, amount: true, method: true, provider: true, status: true, reference: true, cardLast4: true, paymentDate: true } });
+    await paged('Teklifler', 'quoteRequest', { include: { items: true } }, ({ items: qi, ...q }) => ({ ...q, kalemler: JSON.stringify(qi) }));
+    await paged('İadeler', 'returnRequest');
+    await paged('Kuponlar', 'coupon');
+    await paged('Özel Fiyatlar', 'specialPrice');
+    await paged('Gelir-Gider', 'cashEntry');
+    await paged('Sevkiyatlar', 'orderShipment');
+    await paged('Bayi Hedefleri', 'dealerTarget');
+    await paged('Personel', 'employee');
+    await paged('Personel İzinleri', 'leaveRequest');
+    await paged('Masraf ve Avans', 'staffClaim', {}, ({ storedName, ...r }) => r); // eslint-disable-line no-unused-vars
+    await paged('Personel Hedefleri', 'staffTarget');
+    await paged('Şirket Duyuruları', 'staffAnnouncement');
+    await paged('Personel Ödemeleri', 'staffPayment');
+    await book.close();
+  } catch (error) {
+    await book.abort();
+    throw error;
+  }
+  return { file, tenant };
+}));
+
+/** Dışa aktarım dosyasını indirme olarak gönderir ve geçici dosyayı siler. */
+export const sendExportFile = async (res, file, filename) => {
+  try {
+    const { size } = await fs.stat(file);
+    res.setHeader('Content-Type', 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet');
+    res.setHeader('Content-Disposition', `attachment; filename="${filename}"`);
+    res.setHeader('Content-Length', size);
+    await pipeline(createReadStream(file), res).catch(() => {}); // indirme yarıda kesilirse sessizce biter
+  } finally {
+    await fs.rm(file, { force: true });
+  }
+};
 
 /**
  * Firmanın tüm verisini kalıcı olarak siler (geri alınamaz). İşlem kayıtları korunur.

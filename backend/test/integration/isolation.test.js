@@ -477,6 +477,50 @@ test('test (sandbox) API anahtarı: okur, yazmaları doğrular ama kaydetmez', {
   assert.equal((await v1('/webhooks/test', { method: 'POST', body: { event: 'yok.boyle' } })).status, 400);
 });
 
+test('ERP API: stok ve fiyat partisi toplu yazılır; tekrar eden SKU\'da sonuncusu geçerli, başka firmanın SKU\'su bulunamaz', { skip }, async () => {
+  const a = tenants['itest-a'];
+  const created = (await api('/integrations/keys', { tenant: 'itest-a', token: a.token, method: 'POST', body: { name: 'ERP' } })).data;
+  const v1 = (path, body) => fetch(`${base}/api/v1${path}`, { method: 'PUT', headers: { 'X-API-Key': created.key, 'Content-Type': 'application/json' }, body: JSON.stringify(body) })
+    .then(async (r) => ({ status: r.status, data: await r.json() }));
+  const product = () => runAsPlatform(() => prisma.product.findUnique({ where: { id: a.productId } }));
+  const before = await product();
+
+  // Geçersiz fiyat atlanır; aynı SKU iki kez: sonuncusu; TL → TRY; diğer firmanın SKU'su bu firmada yok
+  const prices = await v1('/products/prices', [{ sku: 'SKU-itest-a', price: 10 }, { sku: 'SKU-itest-b', price: 1 }, { sku: 'SKU-itest-a', price: 123.45, currency: 'TL' }, { sku: 'SKU-itest-a', price: -1 }]);
+  assert.equal(prices.status, 200);
+  assert.deepEqual(prices.data, { updated: 2, notFound: ['SKU-itest-b'] });
+  let after = await product();
+  assert.equal(after.price, 123.45);
+  assert.equal(after.currency, 'TRY');
+  assert.ok(after.updatedAt > before.updatedAt);
+  const other = await runAsPlatform(() => prisma.product.findFirst({ where: { sku: 'SKU-itest-b' } }));
+  assert.notEqual(other.price, 1);
+
+  const stock = await v1('/products/stock', [{ sku: 'SKU-itest-a', stock: 7 }, { sku: 'YOK', stock: 1 }, { sku: 'SKU-itest-a', stock: 42 }, { sku: 'SKU-itest-a', stock: 'abc' }]);
+  assert.deepEqual(stock.data, { updated: 2, notFound: ['YOK'] });
+  after = await product();
+  assert.equal(after.stock, 42);
+
+  // Geri al (sonraki testler ürünün eski fiyat ve stoğuna bakıyor)
+  await v1('/products/prices', [{ sku: 'SKU-itest-a', price: before.price, currency: before.currency }]);
+  await v1('/products/stock', [{ sku: 'SKU-itest-a', stock: before.stock }]);
+  after = await product();
+  assert.equal(after.price, before.price);
+  assert.equal(after.stock, before.stock);
+
+  // Depolu firma (itest-b, çoklu depo testinden kalan tek depo): stok depo üzerinden yazılır, bilinmeyen depo listelenir
+  const b = tenants['itest-b'];
+  const keyB = (await api('/integrations/keys', { tenant: 'itest-b', token: b.token, method: 'POST', body: { name: 'ERP' } })).data.key;
+  const putB = (body) => fetch(`${base}/api/v1/products/stock`, { method: 'PUT', headers: { 'X-API-Key': keyB, 'Content-Type': 'application/json' }, body: JSON.stringify(body) }).then((r) => r.json());
+  const wh = await runAsPlatform(() => prisma.warehouse.findFirst({ where: { tenantId: b.id } }));
+  const bBefore = await runAsPlatform(() => prisma.product.findUnique({ where: { id: b.productId } }));
+  assert.deepEqual(await putB([{ sku: 'SKU-itest-b', stock: 33, warehouse: wh.code.toLowerCase() }, { sku: 'SKU-itest-b', stock: 1, warehouse: 'YOK' }]), { updated: 1, notFound: ['SKU-itest-b (depo: YOK)'] });
+  assert.equal((await runAsPlatform(() => prisma.warehouseStock.findUnique({ where: { warehouseId_productId: { warehouseId: wh.id, productId: b.productId } } }))).quantity, 33);
+  assert.equal((await runAsPlatform(() => prisma.product.findUnique({ where: { id: b.productId } }))).stock, 33);
+  assert.deepEqual(await putB([{ sku: 'SKU-itest-b', stock: bBefore.stock }]), { updated: 1, notFound: [] });
+  assert.equal((await runAsPlatform(() => prisma.product.findUnique({ where: { id: b.productId } }))).stock, bBefore.stock);
+});
+
 test('hata izleme: aynı hata gruplanır, tarayıcı hatası kaydedilir, kullanıcı hatası (400) kaydedilmez', { skip }, async () => {
   const { recordError } = await import('../../src/services/errorTracker.js');
   const err = new Error(`itest bağlantı koptu id=${Date.now()}`);

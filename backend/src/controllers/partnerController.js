@@ -1,6 +1,7 @@
 import bcrypt from 'bcrypt';
 import crypto from 'crypto';
 import xlsx from 'xlsx';
+import { workbookBuffer } from '../utils/xlsxStream.js';
 import prisma, { currentTenantId } from '../utils/prisma.js';
 import { hasPermission } from '../services/permissions.js';
 import { emitEvent } from '../services/webhookService.js';
@@ -300,14 +301,11 @@ export const convertToDealer = async (req, res) => {
 
 // ─── Excel ───────────────────────────────────────────────────────────────────
 
-const sendWorkbook = (res, rows, sheetName, fileName, widths) => {
-  const wb = xlsx.utils.book_new();
-  const ws = xlsx.utils.json_to_sheet(rows);
-  if (widths) ws['!cols'] = widths.map((w) => ({ wch: w }));
-  xlsx.utils.book_append_sheet(wb, ws, sheetName);
+const sendWorkbook = async (res, rows, sheetName, fileName, widths) => {
+  const buffer = await workbookBuffer([{ name: sheetName, rows, widths }]);
   res.setHeader('Content-Type', 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet');
   res.setHeader('Content-Disposition', `attachment; filename="${fileName}"`);
-  res.send(xlsx.write(wb, { type: 'buffer', bookType: 'xlsx' }));
+  res.send(buffer);
 };
 
 export { sendWorkbook };
@@ -317,7 +315,7 @@ export const exportPartners = async (req, res) => {
   try {
     const { where } = listWhere(req.query, req.user.id);
     const rows = await prisma.company.findMany({ where, select: listSelect, orderBy: { name: 'asc' }, take: 20000 });
-    sendWorkbook(res, rows.map((c) => ({
+    await sendWorkbook(res, rows.map((c) => ({
       'Tür': KIND_LABEL[c.kind], 'Cari Kodu': c.externalCode || '', 'Unvan': c.name, 'Vergi Dairesi': c.taxOffice || '', 'Vergi No': c.taxNumber || '',
       'Telefon': c.phone || '', 'E-posta': c.email || '', 'Adres': c.address || '', 'Vade (gün)': c.paymentTermDays, 'Para Birimi': c.currency === 'TRY' ? 'TL' : c.currency, 'Risk Limiti': c.riskLimit,
       'Bakiye': round2(c.currentBalance), 'Bakiye Durumu': c.currentBalance < 0 ? 'Borçlu' : c.currentBalance > 0 ? 'Alacaklı' : '',
@@ -330,8 +328,8 @@ export const exportPartners = async (req, res) => {
 };
 
 // İçe aktarma şablonu (örnek iki satırla)
-export const importTemplate = (req, res) => {
-  sendWorkbook(res, [
+export const importTemplate = async (req, res) => {
+  await sendWorkbook(res, [
     { 'Tür': 'Müşteri', 'Cari Kodu': '120.01.001', 'Unvan': 'Örnek Kafe Ltd. Şti.', 'Vergi Dairesi': 'Kadıköy', 'Vergi No': '1234567890', 'Telefon': '0212 000 00 00', 'E-posta': 'muhasebe@ornek.com', 'Adres': 'Moda Cad. No:1 Kadıköy / İstanbul', 'Vade (gün)': 30, 'Para Birimi': 'TL', 'Risk Limiti': 50000, 'Açılış Borcu': 12500, 'Açılış Alacağı': '', 'Etiketler': 'İstanbul, Toptan', 'Yetkili Adı': 'Ayşe Yılmaz', 'Yetkili Görevi': 'Satın alma', 'Yetkili Telefon': '0532 000 00 00', 'Yetkili E-posta': 'ayse@ornek.com', 'Not': '' },
     { 'Tür': 'Tedarikçi', 'Cari Kodu': '320.01.001', 'Unvan': 'Örnek Ambalaj San. A.Ş.', 'Vergi Dairesi': 'Gebze', 'Vergi No': '9876543210', 'Telefon': '', 'E-posta': '', 'Adres': '', 'Vade (gün)': 60, 'Para Birimi': 'USD', 'Risk Limiti': '', 'Açılış Borcu': '', 'Açılış Alacağı': 8000, 'Etiketler': 'Hammadde', 'Yetkili Adı': '', 'Yetkili Görevi': '', 'Yetkili Telefon': '', 'Yetkili E-posta': '', 'Not': '' }
   ], 'Cariler', 'cari-aktarim-sablonu.xlsx', [10, 14, 34, 16, 14, 16, 26, 34, 10, 12, 12, 13, 18, 18, 16, 16, 24, 20]);

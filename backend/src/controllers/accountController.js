@@ -1,10 +1,11 @@
 import crypto from 'crypto';
+import { BusyError } from '../utils/redis.js';
 import dns from 'dns/promises';
 import bcrypt from 'bcrypt';
 import prisma, { runAsPlatform } from '../utils/prisma.js';
 import { ROOT_DOMAIN } from '../config.js';
 import { invalidateTenantCache } from '../middlewares/tenantMiddleware.js';
-import { exportTenantWorkbook } from '../services/tenantDataService.js';
+import { exportTenantWorkbook, sendExportFile, ExportAborted } from '../services/tenantDataService.js';
 import { sendPlatformAlert } from '../services/mailService.js';
 import * as iyzico from '../services/iyzicoService.js';
 import { searchArticles, getArticle, articleFeedback } from '../services/helpService.js';
@@ -234,11 +235,20 @@ export const removeDomain = async (req, res) => {
 
 // ─── Veri dışa aktarma ve hesap kapatma (KVKK) ───────────────────────────────
 
+// Aynı anda tek dışa aktarım çalışır (bellek): sırada başka biri varsa sunucuyu yormak yerine "biraz sonra" denir
+export const EXPORT_BUSY = 'Şu an başka bir veri dışa aktarımı hazırlanıyor. Birkaç dakika sonra tekrar deneyin.';
 export const exportData = async (req, res) => {
-  const { buffer, tenant } = await exportTenantWorkbook(req.tenant.id);
-  res.setHeader('Content-Type', 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet');
-  res.setHeader('Content-Disposition', `attachment; filename="${tenant.slug}-tum-veriler-${localDay()}.xlsx"`);
-  res.send(buffer);
+  const ac = new AbortController();
+  res.on('close', () => ac.abort()); // istemci beklemeden ayrılırsa hazırlık durur
+  let result;
+  try {
+    result = await exportTenantWorkbook(req.tenant.id, { signal: ac.signal });
+  } catch (error) {
+    if (error instanceof BusyError) return res.status(429).set('Retry-After', '60').json({ message: EXPORT_BUSY });
+    if (error instanceof ExportAborted) return undefined;
+    throw error;
+  }
+  await sendExportFile(res, result.file, `${result.tenant.slug}-tum-veriler-${localDay()}.xlsx`);
 };
 
 /**

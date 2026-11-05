@@ -8,6 +8,8 @@ const load = (key) => new SharedArray(key, () => {
 });
 export const ADMIN_TOKENS = load('admins');
 export const DEALER_TOKENS = load('dealers');
+// Bayi firmalarının kimlikleri (tahsilat gibi firma seçen senaryolar için; DEALER_TOKENS ile aynı sırada)
+export const COMPANY_IDS = load('companies');
 
 export const tokenFor = (list, vu) => {
   if (!list.length) fail('Oturum anahtarı yok: önce seed/seed.mjs ile yük testi verisini üretin (README → Büyük ölçekli testler).');

@@ -58,6 +58,54 @@ Bulunan sorunlar `2197736` ile düzeltildi (bkz. [3](03-siparis-katalog-lojistik
 
 Bu sayılar önceki ölçümle karşılaştırma içindir. "Canlıda kaç bayi kaldırır" sorusunun cevabı için canlıyla aynı boyutta bir sunucuda ve k6 ayrı makineden çalışırken ölçmek gerekir.
 
+### İleri testler (5 Kasım)
+
+Planlanan dokuz ileri testten yedisi yapıldı: kampanya günü, 100 firmada gürültülü komşu, 10 kat veri, ağır uçlar, ERP API yükü, aşırı ani yük ve dayanıklılık. Yeni betikler: `kampanya.js`, `komsu.js`, `agir.js`, `erp.js`, `ani.js`, `dayaniklilik.js` + `dayaniklilik.sh` (kesintileri uygular), `seed/neighbors.mjs` (99 komşu firma), `seed/apikey.mjs` (ERP anahtarları), `seed/check.mjs` (yazma testinden sonra doğruluk kontrolü), `seed/blocking.mjs` (ağır isteğin işçi süreci kilitleme süresi), `uclar.py` (uç bazında süre özeti), `dilimler.py` (10 sn'lik dilimlerle toparlanma), `caddy/Caddyfile` (canlıdaki gibi Caddy arkasından ölçmek için). Sayılar: [`loadtest/README.md` → 5 Kasım sonuçları](../../loadtest/README.md).
+
+**Kampanya günü: aynı anda yazma**
+
+- Tahsilat makbuz numarası ve teklif numarası "en büyük + 1" ile veriliyordu; aynı anda girilen kayıtlar aynı numarayı alıp düşüyordu (tahsilatların %6'sı). Numara artık firma başına işlem kilidiyle (`pg_advisory_xact_lock`) veriliyor (`utils/prisma.js` → `sequenceLock`).
+- Yoğunlukta sipariş, tahsilat ve teklif işlemleri Prisma'nın 5 sn işlem sınırına takılıyordu; bu işlemlere 30 sn süre verildi.
+- Entegrasyon testi: 12 eşzamanlı tahsilat ve 8 eşzamanlı teklif, numaralar çakışmadan kaydedilir.
+
+**Gürültülü komşu: bir firmanın ağır işi diğerlerini düşürmesin**
+
+- Satış raporu bütün kalemleri JavaScript'e çekip topluyordu (12 ayda +700 MB). Toplama artık veritabanında, tek sorguda; sonuç eskisiyle birebir aynı (eski ve yeni kod 1 ve 10 kat veride karşılaştırıldı). On kat veride 12 aylık rapor sorgusu 5,7 → 2,5 sn.
+- Tüm veri dışa aktarımı her şeyi bellekte kuruyordu (+2,8 GB). Artık tablolar 5.000 satırlık parçalarla okunup akışla geçici dosyaya yazılıyor (`utils/xlsxStream.js`); 1 milyon satırı aşan tablo yeni sayfaya bölünüyor. On kat veride (2,9 milyon satır) 49 sn, sunucu belleği neredeyse hiç artmıyor. Aynı anda tüm sunucularda tek dışa aktarım çalışır; indiren taraf ayrılırsa hazırlık durur.
+- Ağır uçlara (Excel'ler, dönemsel rapor, dışa aktarım) firma başına aynı anda 2 iş sınırı (`middlewares/heavyLimit.js`); bayi kendi sınırını kullanır. Dolu ise 429 ve "biri bitince tekrar deneyin" mesajı; ön yüz bu mesajı gösterir.
+
+**10 kat veri: büyük veride sorgular**
+
+- Katalog her saat başı (ve sunucu açılışında) her işçide TCMB kurunu beklerken 3–5 sn takılıyordu; TCMB yanıt vermezse her istek 5 sn bekliyordu. Artık eski kur hemen kullanılıyor, yenisi arka planda çekiliyor; TCMB'ye ulaşılamazsa 1 dk yeniden denenmiyor; kur sunucu açılırken çekiliyor.
+- Satış raporu ekranı ürün, bayi ve satılmayan listelerinin tamamını gönderiyordu (50 bin ürün: 10,5 MB; 150 yönetici açınca sunucu belleği 4,5 GB). Ekrana ilk 200 satır ve toplam sayı gider; tamamı Excel'de.
+- Yaşlandırma ve nakit tahmini bütün borç hareketlerini okuyordu; artık yalnızca açık bakiyeyi karşılayan en yeni hareketler okunuyor (498 bin → 81 bin satır, sonuç aynı).
+- Yeni indeksler (`20261129120000_buyuk_veri_indeksleri`): katalog varsayılan ve fiyat sıralaması, katalog araması için trigram (pg_trgm: ad, stok kodu, barkod, marka), bekleyen sipariş tutarı. Katalog ilk sayfası 13 → 0,05 ms, arama 38 → 0,6 ms, bekleyen tutar 191 → 4 ms.
+- Marka filtresi 50 bin ürünü çekip bellekte tekilleştiriyordu; artık veritabanında gruplanıyor.
+
+**Ağır uçlar: işçi süreç kilitlenmesin**
+
+- Excel'ler (satış raporu, siparişler, cariler, ekstre, yaşlandırma, gelir-gider, müşteri raporu) SheetJS ile bellekte kurulup tek seferde yazılıyordu; on kat veride işçi süreci 0,3–1 sn kilitliyordu. Hepsi akışlı yazıcıya taşındı: en uzun kilit 0,1–0,3 sn.
+
+**ERP API: toplu güncelleme ve istek sınırı**
+
+- Stok ve fiyat partisi kayıt başına sırayla sorgu atıyordu: 1.000 kayıt yük altında stokta 11 sn, fiyatta 5 sn; 50 bin ürünün tam senkronu ~7 dk. Artık parti tek sorguda okunup tek sorguda yazılıyor (depolu firmada stok depo üzerinden, ürünler tek sorguda okunarak): parti 0,2 sn, tam senkron ~40 sn. Aynı SKU partide birden çok kez gelirse sonuncusu geçerli.
+- İstek sınırı (dakikada 600) IP + yol ile sayılıyordu: `/orders/:id`'de her sipariş ayrı sayıldığı için sınır işlemiyor, aynı IP'den gelen farklı firmaların ERP'leri (entegratör sunucusu) birbirinin sınırını tüketiyordu. Artık API anahtarı başına, bütün uçlar toplamında.
+- Fiyata eklenen sıralama indeksi geri alındı: her fiyat güncellemesinde trigram dahil bütün indekslere yazdırıyordu. Ürün tablosunda sayfalarda %10 boş yer bırakılıyor (`fillfactor 90`); stok / fiyat güncellemelerinin yerinde yapılanı %13 → %60.
+
+**Aşırı ani yük: kuyrukta bekletmek yerine hızlı ret**
+
+- Kapasitenin ~3 katı yükte (saniyede 600 açılış) istekler kuyrukta 60 sn bekleyip zaman aşımına düşüyordu. Caddy arkasında da yoğunlukta açılan yeni bağlantılar Node cluster'ın bağlantı devir kuyruğunda bekledi.
+- Yük atma (`middlewares/overload.js`): işçi başına aynı anda en fazla 100 istek, fazlasına anında 503 + Retry-After. Ön yüz okuma isteklerinde 503'ü en fazla 2 kez kendiliğinden yeniden dener. Caddy backend'e en fazla 1024 kalıcı bağlantı açar ve boşalanları kapatmaz. Sonuç: zaman aşımı yok, tepede %95 süre ~2 sn, tepe bitince anında taban süreleri.
+
+**Dayanıklılık: kesintiler**
+
+- Yük sürerken bir işçi süreç öldürüldü ve Redis yeniden başlatıldı: hata yok. Veritabanı 15 sn kapatıldı: kesinti boyunca hata, açılınca anında toparlanma.
+- Veritabanı kapalıyken kullanıcılar 500 alıyor, kayıtlara 15 sn'de 11 bin satır yazılıyordu. Artık bağlantı hatası görülünce birkaç saniye istekler veritabanına gitmeden 503 alıyor (ön yüz yeniden dener); kayıt 172 satır (`utils/dbHealth.js`).
+- Ağır iş sınırı tek sayaçtı ve her denemede süresi uzuyordu: çöken süreç ya da Redis kesintisi yüzünden kaybolan bir bırakma, kullanıcılar denedikçe yeri kalıcı dolu tutabiliyordu (tüm veri dışa aktarımında sınır 1: herkes kilitlenirdi). Artık her sahip kendi süresiyle tutuluyor.
+- Canlıda kayıt dosyaları döndürülüyor (servis başına 5 × 20 MB); önce sınırsız büyüyordu.
+
+**Ölçümde dikkat:** proje iCloud'daysa testlerin yüzlerce MB'lık ham çıktısı senkronize edilirken işlemciyi testle paylaşır; aynı test %30–50 farklı sonuç verebilir. `OUT_DIR` ile ham çıktı iCloud dışına yazılır.
+
 ## Kullanıcı kabul testleri (UAT)
 
 Playwright ve Chrome ile gerçek tarayıcıda, ekrana tıklanarak (`819afaa`, `eddc54f`).
@@ -125,3 +173,4 @@ TEST_DATABASE_URL=postgresql://akis:akis_dev_password@localhost:5433/akis_test n
 | `92b6e1e` | 4 Kasım | Sonraya bırakılan yük testlerinin listesi |
 | `a8e2226` | 4 Kasım | `b2b.test.js` (12 senaryo) |
 | `eddc54f` | 4 Kasım | UAT: 6 yeni senaryo, toplam 41 test |
+| — | 5 Kasım | İleri yük testleri (kampanya, gürültülü komşu, 10 kat veri, ağır uçlar, ERP API, ani yük, dayanıklılık) ve bulunanların düzeltilmesi |

@@ -10,7 +10,7 @@
 set -euo pipefail
 cd "$(dirname "$0")"
 TEST="${1:-smoke}"
-[ -f "$TEST.js" ] || { echo "Bilinmeyen test: $TEST (smoke, load, stress, spike, order-write)"; exit 1; }
+[ -f "$TEST.js" ] || { echo "Bilinmeyen test: $TEST ($(ls *.js | sed 's/\.js$//' | tr '\n' ' '))"; exit 1; }
 shift || true
 mkdir -p results
 # docker PATH'te yoksa Docker Desktop'ın kendi klasörü (kimlik yardımcısı da orada) kullanılır
@@ -25,11 +25,16 @@ fi
 [ -n "${DOCKER:-}" ] || { echo "Docker bulunamadı. Docker Desktop'ı kurun ya da DOCKER=/yol/docker verin."; exit 1; }
 export PATH="$(dirname "$DOCKER"):$PATH"
 ENVS=(-e TEST_NAME="$TEST" -e BASE_URL="${BASE_URL:-http://host.docker.internal:5001}")
-for v in TENANT ADMIN_TOKEN DEALER_TOKEN ADMIN_EMAIL ADMIN_PASSWORD DEALER_EMAIL DEALER_PASSWORD PEAK HOLD DURATION RATE WRITE_OK ALLOW_DEFAULT_TENANT; do
+for v in TENANT ADMIN_TOKEN DEALER_TOKEN ADMIN_EMAIL ADMIN_PASSWORD DEALER_EMAIL DEALER_PASSWORD PEAK HOLD DURATION RATE WRITE_OK ALLOW_DEFAULT_TENANT \
+  ADMINS DEALERS RAMP USERS MAX_RPS HOT_IDS APPROVERS APPROVER_POOL BUYERS BROWSERS QUOTERS CASHIERS NOISY QUIET HEAVY HEAVY_RATE BATCH BASE MAX_VUS; do
   [ -n "${!v:-}" ] && ENVS+=(-e "$v=${!v}")
 done
 # DOCKER_NETWORK: k6 backend'le aynı Docker ağında çalışır (Mac'in port yönlendirmesi devre dışı kalır), ör.
 #   DOCKER_NETWORK=akis_b2bsistem_default BASE_URL=http://backend:5001 ./loadtest/run.sh load
 NET=()
 [ -n "${DOCKER_NETWORK:-}" ] && NET=(--network "$DOCKER_NETWORK")
-exec "$DOCKER" run --rm -i "${NET[@]}" --add-host=host.docker.internal:host-gateway -v "$PWD":/scripts -w /scripts "${ENVS[@]}" grafana/k6:0.54.0 run "$TEST.js" "$@"
+# OUT_DIR: ham çıktı için ayrı klasör, k6'da /out olarak görünür (ör. OUT_DIR=/tmp/k6 … --out json=/out/scale.jsonl).
+#   Proje iCloud'daysa yüzlerce MB'lık çıktı senkronize edilirken işlemciyi testle paylaşır, ölçümü bozar.
+VOL=()
+[ -n "${OUT_DIR:-}" ] && { mkdir -p "$OUT_DIR"; VOL=(-v "$OUT_DIR":/out); }
+exec "$DOCKER" run --rm -i "${NET[@]}" --add-host=host.docker.internal:host-gateway -v "$PWD":/scripts "${VOL[@]}" -w /scripts "${ENVS[@]}" grafana/k6:0.54.0 run "$TEST.js" "$@"

@@ -1,6 +1,6 @@
 import fs from 'fs/promises';
 import path from 'path';
-import xlsx from 'xlsx';
+import { workbookBuffer } from '../utils/xlsxStream.js';
 import prisma, { currentTenantId } from '../utils/prisma.js';
 import { localDay, localMonth } from '../utils/dates.js';
 import { CASH_DOC_DIR, CASH_DOC_TYPES } from '../middlewares/upload.js';
@@ -451,7 +451,7 @@ const openItems = async (side) => {
     select: { id: true, name: true, currentBalance: true, paymentTermDays: true, currency: true }
   });
   if (!companies.length) return [];
-  const moves = await loadOpenMoves(companies.map((c) => c.id), { type: receivable ? 'DEBT' : 'CREDIT', excludeSources: ['REVERSAL', 'PAYMENT'] });
+  const moves = await loadOpenMoves(companies.map((c) => c.id), { type: receivable ? 'DEBT' : 'CREDIT', excludeSources: ['REVERSAL', 'PAYMENT'], cover: companies.map((c) => Math.abs(c.currentBalance)) });
   const byCompany = new Map();
   for (const t of moves) {
     if (!byCompany.has(t.companyId)) byCompany.set(t.companyId, []);
@@ -559,12 +559,8 @@ export const exportCash = async (req, res) => {
   try {
     const data = await loadPeriod(req.query);
     const s = data.summary;
-    const wb = xlsx.utils.book_new();
-    const sheet = (rows, name, widths) => {
-      const ws = xlsx.utils.json_to_sheet(rows);
-      ws['!cols'] = widths.map((wch) => ({ wch }));
-      xlsx.utils.book_append_sheet(wb, ws, name);
-    };
+    const sheets = [];
+    const sheet = (rows, name, widths) => sheets.push({ name, rows, widths });
     sheet([
       { Kalem: 'Carilerden tahsilat', 'Tutar (TL)': s.collections },
       { Kalem: 'Diğer gelirler', 'Tutar (TL)': s.otherIncome },
@@ -583,8 +579,9 @@ export const exportCash = async (req, res) => {
       Düzenli: e.recurringId ? 'Evet' : '', Belge: e.hasFile ? 'Var' : '', Giren: e.createdByName || ''
     })), 'Kayıtlar', [12, 8, 24, 14, 7, 12, 10, 40, 8, 7, 18]);
     res.setHeader('Content-Type', 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet');
+    const buffer = await workbookBuffer(sheets);
     res.setHeader('Content-Disposition', `attachment; filename="gelir-gider-${data.key}.xlsx"`);
-    res.send(xlsx.write(wb, { type: 'buffer', bookType: 'xlsx' }));
+    res.send(buffer);
   } catch (error) {
     fail(res, error, 'Excel oluşturulamadı.');
   }

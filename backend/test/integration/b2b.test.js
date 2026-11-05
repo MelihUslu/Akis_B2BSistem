@@ -362,3 +362,15 @@ test('sunucuda sepet: kaydedilir, aynı kullanıcı başka cihazda alır; başka
   assert.deepEqual((await api('/cart', { token: T.tokens.vip })).data.items, []);
   assert.equal((await api('/cart', { token: T.tokens.admin })).status, 403);
 });
+
+test('eşzamanlı tahsilat ve teklif: sıra numaraları çakışmaz, hepsi kaydedilir', { skip }, async () => {
+  // Kampanya günü yük testinde aynı anda girilen tahsilatların %6'sı makbuz numarası çakışmasıyla düşüyordu
+  const pays = await Promise.all(Array.from({ length: 12 }, (_, i) => api(`/partners/${T.std}/payments`, { token: T.tokens.admin, method: 'POST', body: { method: 'CASH', amount: 100 + i } })));
+  assert.deepEqual(pays.map((r) => r.status).filter((s) => s !== 201 && s !== 200), [], JSON.stringify(pays.map((r) => r.data?.message)));
+  const receipts = await P(() => prisma.payment.findMany({ where: { tenantId: T.id, receiptNo: { not: null } }, select: { receiptNo: true } }));
+  assert.equal(new Set(receipts.map((r) => r.receiptNo)).size, receipts.length);
+  const quotes = await Promise.all(Array.from({ length: 8 }, () => api('/quotes', { token: T.tokens.std, method: 'POST', body: { items: [{ productId: T.plenty, quantity: 40 }], note: 'eşzamanlı' } })));
+  assert.deepEqual(quotes.map((r) => r.status).filter((s) => s !== 201), [], JSON.stringify(quotes.map((r) => r.data?.message)));
+  const numbers = await P(() => prisma.quoteRequest.findMany({ where: { tenantId: T.id }, select: { number: true } }));
+  assert.equal(new Set(numbers.map((q) => q.number)).size, numbers.length);
+});

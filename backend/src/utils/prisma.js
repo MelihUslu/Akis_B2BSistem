@@ -2,6 +2,7 @@ import { AsyncLocalStorage } from 'node:async_hooks';
 import pkg from '@prisma/client';
 const { PrismaClient } = pkg;
 import { invalidate } from './cache.js';
+import { noteDbError } from './dbHealth.js';
 
 /**
  * Çok kiracılı (multi-tenant) veri izolasyonu.
@@ -69,34 +70,53 @@ export const basePrisma = new PrismaClient(poolOptions());
 const prisma = basePrisma.$extends({
   query: {
     $allModels: {
-      async $allOperations({ model, operation, args, query }) {
-        if (!TENANT_MODELS.has(model)) return query(args);
-
-        const store = tenantStorage.getStore();
-        if (store?.platform) {
-          const result = await query(args);
-          afterWrite(model, operation, args, null);
-          return result;
+      // Bağlantı hatası (veritabanı kapalı) görülürse kısa süre yeni istekler 503 alır (utils/dbHealth.js)
+      async $allOperations(params) {
+        try {
+          return await scopedOperation(params);
+        } catch (error) {
+          noteDbError(error);
+          throw error;
         }
-
-        const tenantId = store?.tenantId;
-        if (!tenantId) {
-          throw new Error(`[Tenant] Kiracı bağlamı olmadan ${model}.${operation} çağrıldı.`);
-        }
-
-        const scoped = { ...args };
-        if (WHERE_OPERATIONS.has(operation)) scoped.where = { ...(args.where || {}), tenantId };
-        if (operation === 'create') scoped.data = { ...args.data, tenantId };
-        if (operation === 'createMany' || operation === 'createManyAndReturn') {
-          scoped.data = (Array.isArray(args.data) ? args.data : [args.data]).map(d => ({ ...d, tenantId }));
-        }
-        if (operation === 'upsert') scoped.create = { ...args.create, tenantId };
-        const result = await query(scoped);
-        afterWrite(model, operation, args, tenantId);
-        return result;
       }
     }
   }
 });
 
+async function scopedOperation({ model, operation, args, query }) {
+  if (!TENANT_MODELS.has(model)) return query(args);
+
+  const store = tenantStorage.getStore();
+  if (store?.platform) {
+    const result = await query(args);
+    afterWrite(model, operation, args, null);
+    return result;
+  }
+
+  const tenantId = store?.tenantId;
+  if (!tenantId) {
+    throw new Error(`[Tenant] Kiracı bağlamı olmadan ${model}.${operation} çağrıldı.`);
+  }
+
+  const scoped = { ...args };
+  if (WHERE_OPERATIONS.has(operation)) scoped.where = { ...(args.where || {}), tenantId };
+  if (operation === 'create') scoped.data = { ...args.data, tenantId };
+  if (operation === 'createMany' || operation === 'createManyAndReturn') {
+    scoped.data = (Array.isArray(args.data) ? args.data : [args.data]).map(d => ({ ...d, tenantId }));
+  }
+  if (operation === 'upsert') scoped.create = { ...args.create, tenantId };
+  const result = await query(scoped);
+  afterWrite(model, operation, args, tenantId);
+  return result;
+}
+
 export default prisma;
+
+/**
+ * Firma içinde sıra numarası (makbuz, teklif no) verilirken işlem sonuna kadar tutulan kilit: aynı firmanın eşzamanlı
+ * işlemleri numarayı sırayla alır ("en büyük + 1" çakışmaz), diğer firmalar beklemez. İşlem içinde, numara
+ * hesaplanmadan önce çağrılır. (Kampanya günü yük testinde 10 eşzamanlı tahsilatın %6'sı makbuz numarası çakışmasıyla
+ * düşüyordu; yeniden deneme yoğun yükte yetmiyordu.)
+ */
+const SEQUENCES = { RECEIPT: 7101, QUOTE: 7102 };
+export const sequenceLock = (tx, name) => tx.$queryRaw`SELECT 1 AS ok FROM pg_advisory_xact_lock(${SEQUENCES[name]}::int, ${currentTenantId()}::int)`;

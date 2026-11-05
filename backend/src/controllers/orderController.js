@@ -9,7 +9,7 @@ import { cargoCreds } from '../services/cargoService.js';
 import { adjustStock, availableStock, defaultWarehouse, StockError } from '../services/stockService.js';
 import { orderEvent, markShipped, markDelivered, markReadyForPickup } from '../services/orderShippingService.js';
 import { resolveShippingAddress } from './addressController.js';
-import xlsx from 'xlsx';
+import { workbookBuffer } from '../utils/xlsxStream.js';
 import { currentTenantId } from '../utils/prisma.js';
 import { postEntry, orderRate } from '../services/accountPosting.js';
 import { getExchangeRates } from '../services/exchangeRateService.js';
@@ -137,11 +137,10 @@ export const exportOrders = async (req, res) => {
       'Sipariş Notu': o.note || '',
       'Giren': CHANNEL_TR[o.channel] || o.channel
     })));
-    const wb = xlsx.utils.book_new();
-    xlsx.utils.book_append_sheet(wb, xlsx.utils.json_to_sheet(rows), 'Siparişler');
+    const buffer = await workbookBuffer([{ name: 'Siparişler', rows }]);
     res.setHeader('Content-Type', 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet');
     res.setHeader('Content-Disposition', `attachment; filename="siparisler-${localDay()}.xlsx"`);
-    res.send(xlsx.write(wb, { type: 'buffer', bookType: 'xlsx' }));
+    res.send(buffer);
   } catch (error) {
     console.error('exportOrders error:', error);
     res.status(500).json({ message: 'Excel oluşturulamadı.' });
@@ -257,7 +256,7 @@ export const createOrderRecord = async ({ company, userId, paymentMethod, lines,
     });
 
     return order;
-  }).then((order) => {
+  }, { maxWait: 10000, timeout: 30000 }).then((order) => { // yoğun yükte stok satırı kilidi beklenirken varsayılan 5 sn yetmiyordu (kampanya testi)
     emitEvent(currentTenantId(), 'order.created', orderEvent(order));
     return order;
   });

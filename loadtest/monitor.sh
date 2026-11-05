@@ -7,12 +7,13 @@ DOCKER="${DOCKER:-docker}"
 BACKEND="${BACKEND_CONTAINER:-akis_loadtest_backend}"
 DB="${DB_CONTAINER:-akis_b2bsistem-db-1}"
 mkdir -p "$(dirname "$OUT")"
-echo "zaman,backend_cpu,backend_bellek,db_cpu,db_bellek,db_baglanti,db_aktif" > "$OUT"
+echo "zaman,backend_cpu,backend_bellek,db_cpu,db_bellek,db_baglanti,db_aktif,kilit_bekleyen,en_uzun_sorgu_sn" > "$OUT"
 while true; do
   STATS=$("$DOCKER" stats --no-stream --format '{{.Name}} {{.CPUPerc}} {{.MemUsage}}' "$BACKEND" "$DB" 2>/dev/null)
   B=$(echo "$STATS" | awk -v n="$BACKEND" '$1==n {print $2","$3}')
   D=$(echo "$STATS" | awk -v n="$DB" '$1==n {print $2","$3}')
-  C=$("$DOCKER" exec "$DB" psql -U akis -d postgres -At -c "select count(*), count(*) filter (where state='active') from pg_stat_activity where datname='akis_load'" 2>/dev/null | tr '|' ',')
+  # Bağlantı, aktif sorgu, kilit bekleyen sorgu sayısı ve en uzun süren aktif sorgu (sn)
+  C=$("$DOCKER" exec "$DB" psql -U akis -d postgres -At -c "select count(*), count(*) filter (where state='active'), count(*) filter (where wait_event_type='Lock'), coalesce(round(max(extract(epoch from now()-query_start)) filter (where state='active')::numeric, 1), 0) from pg_stat_activity where datname='akis_load' and pid <> pg_backend_pid()" 2>/dev/null | tr '|' ',')
   echo "$(date +%H:%M:%S),$B,$D,$C" >> "$OUT"
   sleep 5
 done

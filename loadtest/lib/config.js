@@ -13,9 +13,10 @@ export const THRESHOLDS = {
   checks: ['rate>0.99']
 };
 
-export const headers = (token) => ({
+// tenant: çok firmalı testlerde isteğin firması (varsayılan TENANT)
+export const headers = (token, tenant = TENANT) => ({
   'Content-Type': 'application/json',
-  'X-Tenant': TENANT,
+  'X-Tenant': tenant,
   ...(token && { Authorization: `Bearer ${token}` })
 });
 

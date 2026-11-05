@@ -11,7 +11,16 @@
 
 api.{$ROOT_DOMAIN} {
 	encode zstd gzip
-	reverse_proxy backend:5001
+	# Backend'e en fazla 1024 kalıcı bağlantı; boşalanlar kapatılmaz (yoğunlukta yeni bağlantı açılmaz). Ani yük testinde
+	# (5 Kasım 2026) sınırsızken yoğunlukta açılan yeni bağlantılar Node cluster'ın devir kuyruğunda 60 sn bekledi.
+	# İşçi başına düşen bağlantı (1024 / WEB_CONCURRENCY) backend'in MAX_INFLIGHT eşiğinden (100) büyük kalmalı:
+	# fazla istek burada kuyrukta beklemesin, backend'den hemen 503 alsın (middlewares/overload.js).
+	reverse_proxy backend:5001 {
+		transport http {
+			max_conns_per_host 1024
+			keepalive_idle_conns_per_host 1024
+		}
+	}
 }
 
 https:// {

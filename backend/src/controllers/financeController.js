@@ -1,5 +1,5 @@
 import prisma from '../utils/prisma.js';
-import xlsx from 'xlsx';
+import { workbookBuffer } from '../utils/xlsxStream.js';
 import { availableCredit, round2 } from '../services/pricingService.js';
 import { notifyAdmins, notifyCompany, safeNotify } from '../services/notificationService.js';
 import { postEntry, rateOrCurrent, CurrencyError } from '../services/accountPosting.js';
@@ -191,14 +191,11 @@ export const exportStatement = async (req, res) => {
     }));
     rows.unshift({ 'Tarih': '', 'Açıklama': 'Açılış bakiyesi', 'Borç': '', 'Alacak': '', 'Bakiye': statement.openingBalance, 'Para Birimi': statement.company.currency === 'TRY' ? 'TL' : statement.company.currency });
 
-    const ws = xlsx.utils.json_to_sheet(rows);
-    ws['!cols'] = [{ wch: 20 }, { wch: 50 }, { wch: 14 }, { wch: 14 }, { wch: 14 }];
-    const wb = xlsx.utils.book_new();
-    xlsx.utils.book_append_sheet(wb, ws, 'Ekstre');
+    const buffer = await workbookBuffer([{ name: 'Ekstre', rows, widths: [20, 50, 14, 14, 14] }]);
     const safeName = statement.company.name.replace(/[^\w\-ğüşöçıİĞÜŞÖÇ ]/g, '').slice(0, 40).trim().replace(/\s+/g, '-');
     res.setHeader('Content-Type', 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet');
     res.setHeader('Content-Disposition', `attachment; filename*=UTF-8''${encodeURIComponent(`ekstre-${safeName}-${localDay()}.xlsx`)}`);
-    res.send(xlsx.write(wb, { type: 'buffer', bookType: 'xlsx' }));
+    res.send(buffer);
   } catch (error) {
     res.status(500).json({ message: 'Ekstre Excel\'i oluşturulamadı.' });
   }

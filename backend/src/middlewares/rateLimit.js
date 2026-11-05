@@ -27,11 +27,13 @@ const redisIncr = async (redis, key, windowMs) => {
   return { count, reset: Date.now() + (ttl > 0 ? ttl : windowMs) };
 };
 
-export const rateLimit = ({ windowMs, max, message }) => {
+// key: sayacın anahtarı (varsayılan IP + yol). Yolda kimlik olan uçlarda (/orders/:id) her kimlik ayrı sayılır;
+// API anahtarı gibi bir kimlikle sınırlanacaksa key verilir.
+export const rateLimit = ({ windowMs, max, message, key: keyOf }) => {
   const memory = memoryStore(windowMs);
 
   return async (req, res, next) => {
-    const key = `${req.ip}:${req.baseUrl}${req.path}`;
+    const key = keyOf ? keyOf(req) : `${req.ip}:${req.baseUrl}${req.path}`;
     let entry;
     try {
       const redis = redisReady();

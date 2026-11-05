@@ -2,23 +2,14 @@
 
 4 Kasım 2026 itibarıyla bilerek sonraya bırakılanlar, canlıya çıkmadan önce elle denenmesi gerekenler ve bilinen sınırlar.
 
-## Sonraya bırakılan yük testleri
+## Kalan yük testleri
 
-4 Kasım'da planlandı, sonraya bırakıldı. Ayrıntı ve süreler: [`loadtest/README.md` → Sonraya bırakılan testler](../../loadtest/README.md).
+4 Kasım'da dokuz ileri test planlandı; yedisi 5 Kasım'da yapıldı (bkz. [9. bölüm](09-testler-kalite.md)). Kalanlar ([`loadtest/README.md` → İleri testler](../../loadtest/README.md)):
 
 | # | Test | Ne ölçer |
 |---|---|---|
-| 1 | Kampanya günü | Yazma ağırlıklı karışık yük: 1000 bayi sipariş verir, 50 yönetici onaylar |
-| 2 | 100 firma, gürültülü komşu | Bir firma ağır yükteyken diğer firmaların yanıt süresi |
-| 3 | Uzun süre (2–4 saat) | Bellek sızıntısı, açık bağlantılar, büyüyen tablolar |
-| 4 | 10 kat veri | 500 bin sipariş, 50 bin ürün, 10 bin bayide sorgu planları |
-| 5 | Ağır uçlar | Excel, 12 aylık rapor, ekstre, PDF bir süreci kilitliyor mu? |
-| 6 | ERP API yükü | On binlerce ürünün stok / fiyat güncellemesi |
-| 7 | Aşırı ani yük | 10 sn'de 0 → 3000 kullanıcı |
-| 8 | Dayanıklılık | Yük altında Redis / işçi süreç / veritabanı kesintisi |
+| 3 | Uzun süre (2–4 saat, gece) | Bellek sızıntısı, açık bağlantılar, büyüyen tablolar |
 | 9 | Tarayıcıyla sayfa açılışı | Yük altında katalog ve ödeme sayfasının açılış süresi |
-
-Önerilen sıra: 1, 2, 4, 5 → gece 3 → 6, 7, 8, 9. Hazırlık yaklaşık 4–5 saat, çalışma yaklaşık 2 saat ve bir gece.
 
 ## Canlıdan önce elle denenecekler
 
@@ -41,6 +32,7 @@ Dış servise ya da fiziksel çıktıya bağlı oldukları için otomatik testle
 - **e-İrsaliye entegre değil.** İrsaliye numarası elle ya da ERP'den girilir, fiyatsız irsaliye yazdırılır. GİB'e elektronik irsaliye gönderilmez; e-İrsaliye mükellefi firmalar irsaliyeyi ERP / muhasebe programından düzenler.
 - **Barkod okutma** https ister; tarayıcı kamera izni sorar.
 - **Yük testi sayıları** geliştirme bilgisayarında alındı; canlı kapasiteyi göstermez.
+- **Tüm veri dışa aktarımı** çok büyük firmada uzun sürer (600 bin sipariş: boşta 49 sn, yoğunlukta 3 dakikadan fazla); tarayıcı sonuna kadar bekler. Bu boyutta firmalar için arka planda hazırlayıp e-postayla bağlantı göndermek daha uygun olur.
 - **iPhone'da anlık bildirim** yalnızca ana ekrana eklenen uygulamada çalışır (iOS 16.4+).
 - **Personel yönetimi:** dini bayram tarihleri firma tarafından eklenir; yaşa bağlı izin kuralı ve iki aşamalı onay yok; ayrıntı [11. bölüm](11-personel-yonetimi.md).
 
@@ -53,9 +45,17 @@ Kullanıcıların fark edeceği değişiklikler, duyurulmalı:
 - **Sepet kullanıcıya özel:** çıkışta tarayıcıdan silinir; bayinin sepeti sunucuda saklanır.
 - **Plasiyer girişi:** plasiyerler artık kendi hesabıyla girer ve plasiyer paneline düşer.
 
+## 5 Kasım'daki davranış değişiklikleri
+
+- **Satış raporu ekranı** ürün, bayi ve satılmayan listelerinde ilk 200 satırı gösterir; tamamı Excel'dedir.
+- **Ağır işlerde sınır:** firma başına aynı anda en fazla 2 Excel / rapor dışa aktarımı; tüm veri dışa aktarımı bütün sistemde tek. Dolu ise "biri bitince tekrar deneyin" mesajı çıkar.
+- **Marka filtresi** alfabetik sıralı gelir.
+- **Sistem çok yoğunken** istekler beklemek yerine "sistem şu an çok yoğun" (503) yanıtı alır; ekranlar okuma isteklerini birkaç saniye sonra kendiliğinden yeniden dener. Veritabanına kısa süre ulaşılamazsa da aynı yanıt döner.
+- **ERP API istek sınırı** artık API anahtarı başına, bütün uçlar toplamında dakikada 600 (önce IP ve uç başınaydı). Dakikada 600'den fazla istek atan bir entegrasyon varsa partileri büyütmeli (tek istekte 1.000 kayıt).
+
 ## Canlıya alırken
 
-- Veritabanı migration'ları: `npx prisma migrate deploy` (son migration `20261126120000_b2b_eksikleri`; tekliften gelen mevcut siparişlere kanal, kargoya verilmiş siparişlerin kalemlerine gönderilen miktar yazılır).
+- Veritabanı migration'ları: `npx prisma migrate deploy` (son migration `20261129120000_buyuk_veri_indeksleri`). `20261126120000_b2b_eksikleri` tekliften gelen mevcut siparişlere kanal, kargoya verilmiş siparişlerin kalemlerine gönderilen miktar yazar. Son migration `pg_trgm` eklentisini kurar (PostgreSQL 13+'ta veritabanı sahibi kurabilir) ve ürün / sipariş tablolarına indeks ekler; büyük tabloda birkaç saniye yazma bekletebilir.
 - Frontend bağımlılıkları: `npm ci` (yeni paket `@zxing/browser`).
 - `ENCRYPTION_KEY` bir kez belirlenir, sonra değiştirilmez; değişirse firmaların kayıtlı anahtarları çözülemez.
 - Google ile giriş için `GOOGLE_CLIENT_ID` / `GOOGLE_CLIENT_SECRET` (yönlendirme adresi: `https://api.akisb2b.com/api/public/google/callback`).
@@ -65,5 +65,5 @@ Kullanıcıların fark edeceği değişiklikler, duyurulmalı:
 ## Depo durumu
 
 - SaaS dönemine ait 66 commit `feature/saas-platform` dalındadır; `main` dalında yalnızca Mayıs sürümü var.
-- Dal henüz uzak depoya gönderilmedi. `main`'e birleştirme ve gönderim ayrıca kararlaştırılacak.
+- Dal 5 Kasım'da uzak depoya gönderildi. `main`'e birleştirme ayrıca kararlaştırılacak.
 - `.env`, `uploads/support`, `uploads/private` ve `backups` depoya girmez.

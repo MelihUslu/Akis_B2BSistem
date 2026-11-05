@@ -291,6 +291,13 @@ model Product {
   @@unique([tenantId, sku])
   @@index([tenantId])
   @@index([parentId])
+  // Katalog varsayılan sıralaması: ilk sayfa tablo taranmadan bulunur
+  @@index([tenantId, sortOrder, createdAt(sort: Desc)])
+  // Katalog araması (ad, stok kodu, barkod, marka içinde geçen; büyük/küçük harf duyarsız): pg_trgm
+  @@index([name(ops: raw("gin_trgm_ops"))], type: Gin)
+  @@index([sku(ops: raw("gin_trgm_ops"))], type: Gin)
+  @@index([barcode(ops: raw("gin_trgm_ops"))], type: Gin)
+  @@index([brand(ops: raw("gin_trgm_ops"))], type: Gin)
 }
 
 model Order {
@@ -356,6 +363,9 @@ model Order {
   @@index([tenantId])
   @@index([tenantId, createdAt])
   @@index([tenantId, status])
+  // Bekleyen tutar ve en eski bekleyen sipariş yalnızca indeksten okunur. Durum sayaçları dar indeksi kullanır:
+  // yalnızca bu geniş indeks olunca planlayıcı tabloyu taramayı seçiyor, yük altında sayaçlar 1,3 sn sürüyordu.
+  @@index([tenantId, status, createdAt, totalAmount])
   @@index([companyId, createdAt])
 }
 

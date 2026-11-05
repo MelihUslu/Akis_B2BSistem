@@ -73,6 +73,7 @@ const main = async () => {
   const STATUSES = [['COMPLETED', 0.62], ['SHIPPED', 0.1], ['APPROVED', 0.08], ['PARTIAL_APPROVED', 0.03], ['PENDING', 0.07], ['CANCELLED', 0.1]];
   const status = () => { let x = rnd(); for (const [s, p] of STATUSES) { if ((x -= p) <= 0) return s; } return 'COMPLETED'; };
   const debts = new Map();
+  const pendingQty = new Map(); // bekleyen siparişlerdeki miktar (stok ayırma kuralı: stoğu aşamaz)
   let created = 0;
   for (const part of chunk(Array.from({ length: ORDERS }, (_, i) => i), 2000)) {
     const drafts = part.map(() => {
@@ -89,6 +90,7 @@ const main = async () => {
     const txs = [];
     orders.forEach((o, k) => {
       drafts[k].lines.forEach((l) => items.push({ tenantId, orderId: o.id, productId: l.productId, quantity: l.quantity, price: l.price, vatRate: 20, status: 'APPROVED' }));
+      if (o.status === 'PENDING') drafts[k].lines.forEach((l) => pendingQty.set(l.productId, (pendingQty.get(l.productId) || 0) + l.quantity));
       if (o.approvedAt) {
         txs.push({ tenantId, companyId: o.companyId, orderId: o.id, type: 'DEBT', amount: o.totalAmount, source: 'ORDER', date: o.approvedAt, description: `#AK-${o.id} sipariş onayı` });
         debts.set(o.companyId, (debts.get(o.companyId) || 0) + o.totalAmount);
@@ -99,6 +101,17 @@ const main = async () => {
     created += orders.length;
     if (created % 10000 === 0 || created === ORDERS) log(`${created} sipariş`);
   }
+
+  // Stok ayırma: bekleyen siparişler stoğu aşmasın (gerçekte sipariş anında engellenir); gerekirse stok artırılır
+  const raise = [];
+  const pendingProducts = [];
+  for (const ids of chunk([...pendingQty.keys()], 10000)) pendingProducts.push(...await prisma.product.findMany({ where: { tenantId, id: { in: ids } }, select: { id: true, stock: true } })); // parametre sınırı 32.767
+  for (const p of pendingProducts) {
+    const need = pendingQty.get(p.id);
+    if (p.stock < need) raise.push({ id: p.id, stock: need + Math.round(rnd() * 100) });
+  }
+  for (const c of chunk(raise, 200)) await prisma.$transaction(c.map((r) => prisma.product.update({ where: { id: r.id }, data: { stock: r.stock } })));
+  log(`${raise.length} ürünün stoğu bekleyen siparişleri karşılayacak kadar artırıldı`);
 
   // Tahsilatlar: borcun %70–100'ü ödenmiş; kalan bakiye carilere yazılır (yaşlandırma ve risk ekranları için)
   const pays = [];
@@ -115,7 +128,7 @@ const main = async () => {
   // Oturum anahtarları (yük testi backend'iyle aynı JWT_SECRET)
   const sign = (u, role) => jwt.sign({ id: u.id, role, companyId: u.companyId || null, tenantId }, process.env.JWT_SECRET, { expiresIn: '12h' });
   fs.mkdirSync(OUT, { recursive: true });
-  fs.writeFileSync(`${OUT}/tokens.json`, JSON.stringify({ tenant: SLUG, admins: admins.map((u) => sign(u, 'ADMIN')), dealers: dealers.map((u) => sign(u, 'BAYI')) }));
+  fs.writeFileSync(`${OUT}/tokens.json`, JSON.stringify({ tenant: SLUG, admins: admins.map((u) => sign(u, 'ADMIN')), dealers: dealers.map((u) => sign(u, 'BAYI')), companies: dealers.map((u) => u.companyId) }));
   log(`oturum anahtarları: ${OUT}/tokens.json (${admins.length} yönetici, ${dealers.length} bayi)`);
   await prisma.$executeRawUnsafe('ANALYZE');
   log('bitti');

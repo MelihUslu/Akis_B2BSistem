@@ -7,6 +7,7 @@ import { createPayment, getPayment, getTransactions, exportTransactions, reverse
 import { addNote, updateNote, deleteNote, uploadDocument, downloadDocument, deleteDocument, createStatementLink } from '../controllers/partnerExtrasController.js';
 import { verifyToken, checkRole, requireAnyPermission, requirePermission } from '../middlewares/authMiddleware.js';
 import { excelUpload, partnerDocUpload } from '../middlewares/upload.js';
+import { heavyLimit } from '../middlewares/heavyLimit.js';
 
 // Cari Hesaplar (bayi + portal dışı müşteri + tedarikçi)
 const router = express.Router();
@@ -16,7 +17,7 @@ router.use(verifyToken, checkRole(['ADMIN']));
 
 router.get('/', partnerAccess, listPartners);
 router.get('/meta', partnerAccess, partnerMeta);
-router.get('/export', partnerAccess, exportPartners);
+router.get('/export', heavyLimit, partnerAccess, exportPartners);
 router.get('/import/template', partnerAccess, importTemplate);
 router.post('/import', partnerAccess, excelUpload.single('file'), importPartners);
 // Teklif hazırlayan personel de hızlıca müşteri kartı açabilir (türü kontrolcüde denetlenir)
@@ -31,7 +32,7 @@ router.post('/:id/convert-to-dealer', requirePermission('DEALERS'), convertToDea
 // Cari defteri (Finans)
 router.post('/:id/payments', finance, createPayment);
 router.get('/:id/transactions', finance, getTransactions);
-router.get('/:id/transactions/export', finance, exportTransactions);
+router.get('/:id/transactions/export', heavyLimit, finance, exportTransactions);
 router.post('/:id/transactions/:txId/reverse', finance, reverse);
 router.post('/:id/statement-link', finance, createStatementLink);
 

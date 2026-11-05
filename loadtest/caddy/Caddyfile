@@ -1,0 +1,18 @@
+# Yük testinde canlıdaki gibi Caddy arkasından ölçmek için (deploy/Caddyfile → api bloğu; HTTPS yok).
+# k6 binlerce bağlantıyı doğrudan Node'a açınca bağlantı kuyruğu darboğaz oluyor; canlıda istemciler Caddy'ye bağlanır,
+# Caddy de backend'e kalıcı bağlantılarla gider.
+#   docker run -d --name akis_loadtest_caddy --network akis_b2bsistem_default -v "$PWD/loadtest/caddy/Caddyfile:/etc/caddy/Caddyfile:ro" caddy:2.8-alpine
+#   BASE_URL=http://akis_loadtest_caddy:8080 ./loadtest/run.sh ani
+{
+	admin off
+}
+
+:8080 {
+	encode zstd gzip
+	reverse_proxy akis_loadtest_backend:5001 {
+		transport http {
+			max_conns_per_host 1024
+			keepalive_idle_conns_per_host 1024
+		}
+	}
+}

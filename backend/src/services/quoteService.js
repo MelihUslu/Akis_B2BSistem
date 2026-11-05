@@ -1,5 +1,5 @@
 import crypto from 'crypto';
-import prisma from '../utils/prisma.js';
+import prisma, { sequenceLock } from '../utils/prisma.js';
 import {
   loadOrderableProducts, loadSpecialPrices, buildPricingContext, effectiveProduct, unitPriceFor,
   variantLabelOf, computeTotals, availableCredit, round2
@@ -220,9 +220,10 @@ export const createWithNumber = async (create) => {
   for (let attempt = 0; attempt < 5; attempt++) {
     try {
       return await prisma.$transaction(async (tx) => {
+        await sequenceLock(tx, 'QUOTE'); // teklif numarası firma içinde sırayla
         const agg = await tx.quoteRequest.aggregate({ _max: { number: true } });
         return create(tx, (agg._max.number || 0) + 1);
-      });
+      }, { maxWait: 10000, timeout: 30000 }); // numara kilidi sırayla verir; yoğun yükte 5 sn yetmiyordu
     } catch (error) {
       if (error.code !== 'P2002' || attempt === 4) throw error;
     }
