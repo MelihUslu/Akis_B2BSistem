@@ -8,6 +8,7 @@ import { withJobLock } from '../utils/redis.js';
 import { trackJob, cleanupMonitoring, startMetricsFlush } from './monitoring.js';
 import { sendDailyDigestIfDue } from './monitoringReport.js';
 import { pushToUsers } from './pushService.js';
+import { accessFor, isVisibleTo } from './catalogAccess.js';
 
 // E-posta için firma bilgisi (ad, portal adresi); kısa süreli önbellek
 const tenantCache = new Map();
@@ -104,10 +105,19 @@ export const notifyRestocked = async (productIds) => {
   if (!productIds?.length) return;
   const alerts = await prisma.stockAlert.findMany({
     where: { productId: { in: productIds }, notifiedAt: null, product: { stock: { gt: 0 }, isActive: true } },
-    include: { product: { select: { name: true, sku: true } } }
+    include: {
+      product: { select: { name: true, sku: true, visibleGroups: true, categoryId: true, parent: { select: { visibleGroups: true, categoryId: true } } } },
+      user: { select: { company: { select: { dealerGroup: true } } } }
+    }
   });
 
+  // Ürün abonelikten sonra bayinin grubuna kapatıldıysa bildirim gitmez (adı ve kodu sızmasın)
+  const access = new Map();
   for (const alert of alerts) {
+    const company = alert.user.company;
+    const group = company?.dealerGroup || 'STANDART';
+    if (!access.has(group)) access.set(group, await accessFor(prisma, company));
+    if (!isVisibleTo(alert.product, access.get(group))) continue;
     await create(alert.userId, {
       type: 'STOCK',
       title: 'Beklediğiniz ürün stokta!',

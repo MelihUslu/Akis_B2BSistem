@@ -13,4 +13,4 @@ http.createServer((req, res) => {
   if (!file.startsWith(root) || !fs.existsSync(file) || fs.statSync(file).isDirectory()) file = path.join(root, 'index.html');
   res.writeHead(200, { 'Content-Type': TYPES[path.extname(file)] || 'application/octet-stream' });
   fs.createReadStream(file).pipe(res);
-}).listen(Number(port), () => console.log(`UAT frontend: http://uat.localhost:${port}`));
+}).listen(Number(port), () => console.log(`UAT frontend: http://uat.${process.env.UAT_HOST || 'localhost'}:${port}`));

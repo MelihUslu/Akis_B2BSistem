@@ -25,6 +25,7 @@ Dış servise ya da fiziksel çıktıya bağlı oldukları için otomatik testle
 - [ ] **Google ile giriş:** Google Cloud'da OAuth istemcisi ve yönlendirme adresi tanımlandıktan sonra gerçek Google hesabıyla, firma girişinde ve `/giris`'te.
 - [ ] **Personel yönetimi:** gerçek verilerle bir ay: izin ve masraf talepleri, ödeme ve Gelir-Gider, ay sonunda hedef kapanışı ve prim ödemesi. Kullanmadan önce İzin ayarlarına o yılın dini bayramlarını ekleyin ve personel kartlarına işe giriş tarihi / devir bakiyesi girin.
 - [ ] **Barkod okutma:** gerçek telefon kamerasıyla, https adresinde.
+- [ ] **Gerçek iPhone'da bir tur:** kabul testleri Safari motorunda ve iPhone taklidinde geçiyor; ekran klavyesi, alt güvenli alan ve ana ekrana eklenen uygulama yalnızca gerçek cihazda görülür (katalog, sepet, sipariş, ekstre).
 
 ## Bilinen sınırlar
 

@@ -19,7 +19,8 @@ test('bayi girişte kataloğa düşer, yönetici paneline giremez', async ({ pag
   await login(page, DEALERS.siparis.email);
   await expect(page).toHaveURL(/\/bayi$/);
   await expect(page.getByRole('heading', { name: 'Katalog' })).toBeVisible();
-  await expect(page.getByText(DEALERS.siparis.company).first()).toBeVisible();
+  // Ad başlıktaki hesap düğmesinde (telefonda düğmede yalnızca baş harfler görünür)
+  await expect(page.getByRole('button', { name: `${DEALERS.siparis.company} Yetkilisi` })).toBeVisible();
 
   await page.goto('/admin/orders');
   await expect(page).not.toHaveURL(/\/admin/);
@@ -28,7 +29,7 @@ test('bayi girişte kataloğa düşer, yönetici paneline giremez', async ({ pag
 test('yönetici girişte yönetim paneline düşer', async ({ page }) => {
   await login(page, ADMIN.email);
   await expect(page).toHaveURL(/\/admin$/);
-  await expect(page.getByText(ADMIN.name).first()).toBeVisible();
+  await expect(page.getByRole('button', { name: ADMIN.name })).toBeVisible();
 });
 
 test('başka firmanın bayisi bu firmanın adresinden giriş yapamaz', async ({ page }) => {

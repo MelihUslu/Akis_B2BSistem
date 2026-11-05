@@ -115,9 +115,13 @@ const ProductCatalog = () => {
     else delete next[item.id];
     return next;
   });
-  // Miktar değişen satır kendiliğinden işaretlenir (toplu eklemeye hazır)
+  // Miktar değişen satır kendiliğinden işaretlenir (toplu eklemeye hazır). Değişmeyen miktar (alana dokunup çıkmak)
+  // işaretlemez: işaret alt çubuğu açar; "Ekle"ye basınca alan odaktan çıkarken açılan çubuk düğmenin üstüne gelip
+  // tıklamayı yutuyordu (telefonda ve sayfa sonunda)
   const setQty = (item, val, normalize) => {
-    setQtys((prev) => ({ ...prev, [item.id]: normalize ? normalizeQty(val, item) : val }));
+    const next = normalize ? normalizeQty(val, item) : val;
+    if (String(next) === String(qtyOf(item))) return;
+    setQtys((prev) => ({ ...prev, [item.id]: next }));
     if (canSelect(item)) select(item, true);
   };
   const step = (item, dir) => setQty(item, Math.max(item.moq || 1, normalizeQty(qtyOf(item), item) + dir * (item.stepQuantity || 1)), true);

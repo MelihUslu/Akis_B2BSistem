@@ -1,7 +1,7 @@
 // UAT-18 Personel yönetimi: yönetici modülü açar, personel kartı oluşturur → personel izin ve fişli masraf talebi açar
 // → yönetici onaylar (onay ödeme sayılmaz) → ödeme kaydedilir, Gelir-Gider'e bir kez yazılır → personel sonucu görür;
 // departmana duyuru yalnızca o departmana gider; plasiyer kendi alanını telefonda açar.
-import { test, expect, alertBox, confirm } from '../fixtures.mjs';
+import { test, expect, alertBox, confirm, openMenu } from '../fixtures.mjs';
 import { STAFF, PLASIYER } from '../data.mjs';
 
 test.describe.configure({ mode: 'serial' });
@@ -17,11 +17,13 @@ test('yönetici modülü açar, personel kartlarını oluşturur ve departmana d
   const page = await as('admin');
   // Kapalıyken de menüde "Kapalı" etiketiyle görünür; sayfadan tek tıkla açılır
   await page.goto('/admin');
+  await openMenu(page);
   await page.getByRole('button', { name: 'Personel', exact: true }).click(); // menü grubu
   await page.getByRole('link', { name: 'Personel Yönetimi Kapalı' }).click();
   await expect(page).toHaveURL(/\/admin\/personel$/);
   await page.getByRole('button', { name: 'Modülü aç' }).click();
   await ok(page, 'Personel yönetimi açıldı');
+  await openMenu(page);
   await expect(page.getByRole('link', { name: 'Personel Yönetimi', exact: true })).toBeVisible(); // etiket kalktı
   await expect(page.getByRole('link', { name: 'Personel Alanım' })).toBeVisible();
 

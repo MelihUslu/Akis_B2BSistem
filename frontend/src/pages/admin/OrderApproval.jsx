@@ -452,6 +452,7 @@ const OrderApproval = () => {
           {!isLoading && orders.length === 0 && <li className="text-center py-14 text-sm font-bold text-gray-500">Bu filtrede sipariş yok</li>}
           {orders.map((order) => {
             const waitingHours = order.status === 'PENDING' ? (now - new Date(order.createdAt).getTime()) / HOUR : 0;
+            const cancelledItems = order.items.filter((i) => i.status === 'CANCELLED').length;
             return (
               <li key={order.id}>
                 <div role="button" tabIndex={0} onClick={() => openOrder(order)} onKeyDown={(e) => { if (e.key === 'Enter') openOrder(order); }}
@@ -463,7 +464,7 @@ const OrderApproval = () => {
                   <div className="flex items-end justify-between gap-3">
                     <div className="min-w-0">
                       <p className="text-sm font-semibold text-gray-800 truncate">{order.company?.name}</p>
-                      <p className={`text-xs ${waitingHours >= 24 ? 'text-red-500 font-bold' : 'text-gray-400'}`}>{timeAgo(order.createdAt, now)} · {order.items.length} kalem · {order.paymentMethod === 'WIRE_TRANSFER' ? 'Havale/EFT' : 'Cari'}{isPickup(order) ? ' · Gel-Al' : ''}</p>
+                      <p className={`text-xs ${waitingHours >= 24 ? 'text-red-500 font-bold' : 'text-gray-400'}`}>{timeAgo(order.createdAt, now)} · {order.items.length} kalem{cancelledItems ? ` · ${cancelledItems} iptal` : ''} · {order.paymentMethod === 'WIRE_TRANSFER' ? 'Havale/EFT' : 'Cari'}{isPickup(order) ? ' · Gel-Al' : ''}</p>
                     </div>
                     <p className="text-base font-black text-gray-900 tabular-nums shrink-0">{formatTRY(order.totalAmount)}</p>
                   </div>

@@ -6,6 +6,7 @@
 #   ./uat/run.sh                      # hepsi
 #   ./uat/run.sh tests/siparis.spec.mjs --headed
 #   ./uat/run.sh --ui                 # Playwright arayüzüyle adım adım
+#   UAT_BROWSER=webkit ./uat/run.sh   # Safari motoruyla (iPhone'daki tarayıcılar); bir kez: npx --prefix uat playwright install webkit
 # Ek argümanlar olduğu gibi Playwright'a geçer. Rapor: npx --prefix uat playwright show-report uat/.data/report
 set -euo pipefail
 cd "$(dirname "$0")"
@@ -19,6 +20,9 @@ NET="${DOCKER_NETWORK:-akis_b2bsistem_default}"
 NAME=akis_uat_backend
 API_PORT=5002
 WEB_PORT=5174
+# Firma alt alan adıyla açılır (uat.localhost). WebKit macOS'ta *.localhost'u çözemez: lvh.me (*.lvh.me → 127.0.0.1)
+[ "${UAT_BROWSER:-}" = webkit ] && : "${UAT_HOST:=lvh.me}"
+export UAT_HOST="${UAT_HOST:-localhost}"
 
 mkdir -p .data
 [ -f .data/secret ] || openssl rand -hex 24 > .data/secret
@@ -40,14 +44,14 @@ IMAGE="$("$DOCKER" inspect "$DEV_BACKEND" --format '{{.Config.Image}}')"
 "$DOCKER" run -d --name "$NAME" --network "$NET" -p "$API_PORT:5001" \
   -v "$ROOT/backend:/app" -v "$NM:/app/node_modules:ro" -v "$UAT:/uat:ro" --tmpfs /app/uploads -w /app \
   -e DATABASE_URL="$UAT_URL" -e JWT_SECRET="$(cat .data/secret)" -e PORT=5001 -e TZ=Europe/Istanbul \
-  -e ROOT_DOMAIN=localhost -e FRONTEND_PORT="$WEB_PORT" -e REDIS_URL=redis://redis:6379/6 \
+  -e ROOT_DOMAIN="$UAT_HOST" -e FRONTEND_PORT="$WEB_PORT" -e REDIS_URL=redis://redis:6379/6 \
   "$IMAGE" sh -c 'npx prisma migrate deploy >/dev/null && node /uat/seed.mjs && exec node src/server.js' >/dev/null
 # Bitince backend günlüğü .data/backend.log'a yazılır ve kopya kapatılır (UAT_KEEP=1: açık kalır, veriye bakılabilir)
 cleanup() { "$DOCKER" logs "$NAME" > .data/backend.log 2>&1 || true; [ "${UAT_KEEP:-}" = 1 ] || "$DOCKER" rm -f "$NAME" >/dev/null 2>&1 || true; }
 trap cleanup EXIT
 
 echo "▸ Frontend derleniyor (canlı derleme, API → :$API_PORT)"
-(cd "$ROOT/frontend" && VITE_API_URL="http://localhost:$API_PORT/api" VITE_ROOT_DOMAIN=localhost VITE_DEFAULT_TENANT= \
+(cd "$ROOT/frontend" && VITE_API_URL="http://localhost:$API_PORT/api" VITE_ROOT_DOMAIN="$UAT_HOST" VITE_DEFAULT_TENANT= \
   npx vite build --outDir "$UAT/.data/web" --emptyOutDir --logLevel error)
 
 [ -d node_modules/@playwright/test ] || npm ci --no-audit --no-fund --loglevel error

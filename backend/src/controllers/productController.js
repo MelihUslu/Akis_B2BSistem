@@ -7,7 +7,7 @@ import {
 } from '../services/pricingService.js';
 import { syncOptionsAndVariants, VariantError } from '../services/variantService.js';
 import { notifyRestocked, safeNotify } from '../services/notificationService.js';
-import { accessFor, visibleProductWhere, isVisibleTo, reservedQuantities } from '../services/catalogAccess.js';
+import { accessFor, visibleProductWhere, isVisibleTo, reservedQuantities, findVisibleProduct } from '../services/catalogAccess.js';
 
 const isTrue = (v) => v === true || v === 'true';
 export const DEALER_GROUPS = ['STANDART', 'GOLD', 'VIP'];
@@ -504,6 +504,7 @@ export const reorderProducts = async (req, res) => {
 export const subscribeStockAlert = async (req, res) => {
   try {
     const productId = parseInt(req.params.id);
+    if (!(await findVisibleProduct(prisma, await loadCompany(req), productId))) return res.status(404).json({ message: 'Ürün bulunamadı.' });
     await prisma.stockAlert.upsert({
       where: { userId_productId: { userId: req.user.id, productId } },
       update: { notifiedAt: null },

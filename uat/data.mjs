@@ -8,7 +8,10 @@ export const PASSWORD = 'Uat12345!';
 
 export const WEB_PORT = 5174;
 export const API_PORT = 5002;
-export const WEB = `http://${TENANT}.localhost:${WEB_PORT}`;
+// Kök alan adı (UAT_HOST): firma alt alan adıyla açılır. Safari motoru (WebKit) macOS'ta *.localhost'u çözemez;
+// run.sh onda lvh.me kullanır (herkese açık DNS, *.lvh.me → 127.0.0.1)
+export const HOST = process.env.UAT_HOST || 'localhost';
+export const WEB = `http://${TENANT}.${HOST}:${WEB_PORT}`;
 export const API = `http://localhost:${API_PORT}/api`;
 
 export const ADMIN = { key: 'admin', email: 'yonetici@uat.test', name: 'Ayşe Yönetici' };

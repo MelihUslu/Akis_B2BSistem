@@ -1,12 +1,13 @@
 import prisma from '../utils/prisma.js';
+import { findVisibleProduct } from '../services/catalogAccess.js';
 
 // ─── Favoriler ───────────────────────────────────────────────────────────────
 
 export const addFavorite = async (req, res) => {
   try {
     const productId = parseInt(req.params.productId);
-    const product = await prisma.product.findFirst({ where: { id: productId, isMaster: true, isActive: true } });
-    if (!product) return res.status(404).json({ message: 'Ürün bulunamadı.' });
+    const company = await prisma.company.findUnique({ where: { id: req.user.companyId } });
+    if (!(await findVisibleProduct(prisma, company, productId, { isMaster: true }))) return res.status(404).json({ message: 'Ürün bulunamadı.' });
     await prisma.favorite.upsert({
       where: { userId_productId: { userId: req.user.id, productId } },
       update: {},

@@ -8,10 +8,14 @@ Bayinin ve yöneticinin gerçek iş akışları, gerçek tarayıcıda (Playwrigh
 ./uat/run.sh --headed                         # tarayıcıyı görerek
 ./uat/run.sh --ui                             # Playwright arayüzünde adım adım
 UAT_KEEP=1 ./uat/run.sh                       # bitince UAT backend'i açık kalsın (veriye bakmak için)
+UAT_BROWSER=webkit ./uat/run.sh               # Safari motoruyla (masaüstü boyutu)
+UAT_BROWSER=webkit UAT_DEVICE="iPhone 15" ./uat/run.sh   # iPhone ekranı, dokunmatik ve tarayıcı kimliğiyle
 npx --prefix uat playwright show-report uat/.data/report   # son çalıştırmanın raporu
 ```
 
 Gerekenler: geliştirme ortamı çalışıyor olmalı (`docker compose up`: db, redis, backend) ve bilgisayarda Google Chrome kurulu olmalı. Chrome yoksa `UAT_BROWSER=chromium` verin ve bir kez `npx --prefix uat playwright install chromium` çalıştırın.
+
+**Safari / iPhone:** iPhone'daki bütün tarayıcılar Safari motorunu (WebKit) kullanır. Bir kez `npx --prefix uat playwright install webkit`. WebKit macOS'ta `*.localhost` adlarını çözemediği için bu modda firma `uat.lvh.me:5174` adresinden açılır (`lvh.me` herkese açık bir DNS adı, her alt adı 127.0.0.1'e çözülür; internet bağlantısı gerekir; `UAT_HOST` ile değiştirilebilir). `UAT_DEVICE` Playwright'ın cihaz adlarından biridir; verildiğinde yönetici dahil bütün oturumlar o cihazda açılır. Senaryolar iki düzende de çalışır: sipariş listesi masaüstünde tablo satırı, telefonda kart olarak bulunur (`orderRow`), yan menü telefonda önce "Menü" ile açılır (`openMenu`). Taklit gerçek cihazın yerini tutmaz: ekran klavyesi, güvenli alanlar ve ana ekrana eklenen uygulama gerçek iPhone'da ayrıca denenmeli.
 
 ## Ortam: geliştirme verisine dokunulmaz
 

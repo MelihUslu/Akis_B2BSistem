@@ -8,10 +8,11 @@
 
 | Dosya | Test | Ne doğrular |
 |---|---|---|
-| `test/unit/*` | 34 | Fiyat ve KDV hesabı, teklif, ayar kontrolü, tarih (gece yarısı), güvenlik, çeviri, push, yardım |
+| `test/unit/*` | 38 | Fiyat ve KDV hesabı, teklif, ayar kontrolü, tarih (gece yarısı), güvenlik, çeviri, push, yardım |
 | `integration/isolation` | 30 | Firmalar arası veri yalıtımı, eşzamanlı onay ve iade, toplu bildirim, oturum önbelleği |
 | `integration/quotes` | 18 | Teklif akışı, sürümler, onay sınırları, siparişe dönüşüm |
-| `integration/b2b` | 12 | Stok ayırma, bayi iptali, kargo ücreti, otomatik onay, süreli fiyat, görünürlük, kısmi sevkiyat, hedef, bayi adına sipariş, sepet |
+| `integration/dealers` | 11 | Aynı firmadaki bayiler arası erişim: sipariş, fatura, ekstre, ödeme, iade, teklif, adres, şablon, bildirim, bayi kullanıcıları, özel fiyat ve kupon; gruba kapalı ürünler hiçbir uçtan görünmez |
+| `integration/b2b` | 13 | Stok ayırma, bayi iptali, kargo ücreti, otomatik onay, süreli fiyat, görünürlük, kısmi sevkiyat, hedef, bayi adına sipariş, sepet |
 | `integration/hr` | 15 | Personel yönetimi: modül, erişim, izolasyon, personel rolü, izin hakkı / tatiller / yarım gün, departman yöneticisi, onay akışları, kısmi ödeme ve mükerrer ödeme engeli, avans mahsubu, prim hesabı, duyurular |
 | `integration/google` | 8 | Google ile giriş: firma ve ortak giriş, tek kullanımlık bilet, tarayıcı bağı, iptal, doğrulanmamış e-posta, iki aşamalı doğrulama |
 | `integration/site` | 7 | Tanıtım sitesi, sohbet, talepler |
@@ -104,6 +105,13 @@ Planlanan dokuz ileri testin hepsi yapıldı: kampanya günü, 100 firmada gür�
 - Ağır iş sınırı tek sayaçtı ve her denemede süresi uzuyordu: çöken süreç ya da Redis kesintisi yüzünden kaybolan bir bırakma, kullanıcılar denedikçe yeri kalıcı dolu tutabiliyordu (tüm veri dışa aktarımında sınır 1: herkes kilitlenirdi). Artık her sahip kendi süresiyle tutuluyor.
 - Canlıda kayıt dosyaları döndürülüyor (servis başına 5 × 20 MB); önce sınırsız büyüyordu.
 
+**Bayiler arası erişim (6 Kasım)**
+
+- Firmalar arası yalıtım zaten test ediliyordu; aynı firmadaki iki bayinin birbirinin kaydına erişimi ise sistemli denenmemişti. Bayinin girebildiği ~90 uç rota dosyalarından çıkarıldı; numarayla kayıt açan ve `companyId` gibi parametre alan her biri `integration/dealers` testinde B'nin kaydıyla A'nın oturumundan denenir (her denemenin karşısında B'nin kendi kaydına eriştiği de doğrulanır).
+- Sipariş, fatura, ekstre, ödeme, iade, teklif, adres, şablon, bildirim, bayi kullanıcıları, özel fiyat ve kupon doğru korunuyordu. Bayinin sahibi olmayan kullanıcısı da kendi firmasının kullanıcılarını yönetemiyor.
+- Bulunan açık: "gelince haber ver" ve favori, bayinin grubuna kapalı ürüne de numarasıyla açılabiliyordu; ürün stoğa girince bildirimde gizli ürünün adı ve kodu gidiyordu (numaralar sıralı, tek tek denenebilir). Artık ikisi de görünmeyen ürüne var olmayan ürünle aynı 404'ü döner (`catalogAccess.js` → `findVisibleProduct`); bildirim gönderilirken de görünürlük yeniden kontrol edilir (ürün sonradan gruba kapatılmış olabilir).
+- Plasiyer ve personel hesapları oturum denetiminde kendi yollarıyla sınırlı; plasiyer bir bayi adına işlem yaparken o bayinin yetkisine iner.
+
 **Uzun süre: sızıntı yok**
 
 - 3 saat boyunca 300 kullanıcı okudu; yanında dakikada ~5 sipariş, onaylar, tahsilat ve teklif yazıldı. 2,6 milyon istek, %0 hata, %95 süre 27 ms.
@@ -126,6 +134,7 @@ Playwright ve Chrome ile gerçek tarayıcıda, ekrana tıklanarak (`819afaa`, `e
 - **Veri:** her senaryonun kendi bayisi ve ürünü vardır (`uat/data.mjs`); senaryolar paralel koşar, birbirinin stoğunu ve bakiyesini bozmaz.
 - **Oturumlar:** giriş ucu çağrılmadan UAT backend'inin gizli anahtarıyla imzalanır (giriş ucunun 15 dakikada 20 deneme sınırına takılmamak için). Giriş ekranının kendisi UAT-01'de gerçek girişle denenir.
 - **Kapsam:** 18 senaryo, 46 test, yaklaşık 2 dakika.
+- **Tarayıcılar (6 Kasım):** 46 test Chrome'da, Safari motorunda (WebKit, masaüstü) ve iPhone 15 taklidinde (ekran, dokunmatik, tarayıcı kimliği; yönetici akışları dahil) geçiyor: `UAT_BROWSER=webkit [UAT_DEVICE="iPhone 15"] ./uat/run.sh`. WebKit'te firma `uat.lvh.me` adresinden açılır (macOS `*.localhost` çözmüyor).
 
 | No | İş akışı |
 |---|---|
@@ -153,6 +162,8 @@ Playwright ve Chrome ile gerçek tarayıcıda, ekrana tıklanarak (`819afaa`, `e
 - Gelir-gider grafiğinde 1.300'ün "1 B" yazılması.
 - Pencere, uyarı, sepet ve bildirim panelinde `dialog` rolünün, bazı düğmelerde erişilebilir adın olmaması.
 - **Bayi adına sipariş tarayıcıda hiç çalışmıyordu:** `X-Act-As-Company` başlığı CORS izinli başlıklar listesinde yoktu. Backend testleri tarayıcı kullanmadığı için yakalayamamıştı; düzeltildi.
+- **Katalogda "Ekle" dokunuşu yutuluyordu (Safari / iPhone testinde, 6 Kasım):** miktar alanına dokunup değiştirmeden "Ekle"ye basınca alan odaktan çıkarken satır işaretleniyor, açılan alt çubuk düğmenin üstüne gelip tıklamayı alıyordu; ürün sepete girmiyordu (telefonda ve sayfa sonunda). Değişmeyen miktar artık satırı işaretlemez.
+- **Telefonda yönetici sipariş kartında iptal edilen kalem sayısı yoktu** (masaüstü satırında vardı); eklendi.
 
 Ayrıntı: [`uat/README.md`](../../uat/README.md).
 
@@ -164,6 +175,9 @@ cd backend && npm test
 
 # Entegrasyon testleri (boş test veritabanı; dosyalar sırayla koşar)
 TEST_DATABASE_URL=postgresql://akis:akis_dev_password@localhost:5433/akis_test npm run test:integration
+# Geliştirme backend kapsayıcısında (proje iCloud'daysa node_modules buluta boşaltılabiliyor; kapsayıcınınki etkilenmez).
+# REDIS_URL boş: CI gibi Redis'siz; yoksa geliştirme Redis'ine bağlanır ve testler bitince süreç kapanmaz
+docker exec akis_b2bsistem-backend-1 sh -c 'REDIS_URL= TEST_DATABASE_URL=postgresql://akis:akis_dev_password@db:5432/akis_test npm run test:integration'
 
 # Yük testi (proje kökünden)
 ./loadtest/run.sh smoke

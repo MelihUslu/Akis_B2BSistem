@@ -22,6 +22,11 @@ export { expect };
 export const money = (n) => `₺${n.toLocaleString('tr-TR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
 export const withVat = (n) => Math.round(n * 1.2 * 100) / 100;
 
+// Yan menü: geniş ekranın (lg, 1024 px) altında gizli, önce "Menü" düğmesiyle açılır (masaüstünde bir şey yapmaz)
+export const openMenu = async (page) => {
+  if (page.viewportSize().width < 1024) await page.getByRole('button', { name: 'Menü', exact: true }).click();
+};
+
 // Onay / bilgi penceresi (CustomAlert)
 export const alertBox = (page) => page.getByRole('alertdialog');
 export const confirm = (page, button) => alertBox(page).getByRole('button', { name: button, exact: true }).click();
@@ -40,6 +45,8 @@ export const addFromCatalog = async (page, sku, qty) => {
   await expect(page.getByText(`· ${sku}`)).toBeVisible(); // kartta "Marka · SKU"
   const qtyInput = page.getByLabel('Miktar', { exact: true });
   await qtyInput.fill(String(qty));
+  // Telefonda miktar girilince açılan alt çubuk (sticky) kartın düğmesini örtebilir; kullanıcı gibi sayfa sona kaydırılır
+  await page.evaluate(() => window.scrollTo(0, document.documentElement.scrollHeight));
   await page.getByRole('button', { name: 'Ekle', exact: true }).click();
   await expect(page.getByText(`Sepette ${qty}`, { exact: false })).toBeVisible();
 };
@@ -63,4 +70,5 @@ export const placeOrder = async (page) => {
 };
 
 // Yönetici: sipariş listesinde satır (numara tam eşleşir: #AK-1 ile #AK-11 karışmaz)
-export const orderRow = (page, id) => page.getByRole('row').filter({ has: page.getByText(`#AK-${id}`, { exact: true }) });
+// Sipariş satırı: masaüstünde tablo satırı, telefonda kart (aynı bilgi ve düğmeler; görünmeyen düzen elenir)
+export const orderRow = (page, id) => page.locator('tr, li').filter({ visible: true }).filter({ has: page.getByText(`#AK-${id}`, { exact: true }) });

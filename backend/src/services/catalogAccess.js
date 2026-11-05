@@ -48,6 +48,20 @@ export const isVisibleTo = (product, access) => {
 };
 
 /**
+ * Bayinin numarasıyla tek ürüne yaptığı işlemler için (stok bildirimi, favori): ürün yoksa, pasifse ya da bayinin
+ * grubuna kapalıysa null. Hepsi aynı yanıtı alır; numara denenerek gizli ürün bulunamaz.
+ */
+export const findVisibleProduct = async (prisma, company, id, where = {}) => {
+  if (!Number.isInteger(id)) return null;
+  const product = await prisma.product.findFirst({
+    where: { id, isActive: true, ...where },
+    include: { parent: { select: { isActive: true, visibleGroups: true, categoryId: true } } }
+  });
+  if (!product || product.parent?.isActive === false) return null;
+  return isVisibleTo(product, await accessFor(prisma, company)) ? product : null;
+};
+
+/**
  * Onay bekleyen siparişlerde ayrılmış miktarlar: Map<productId, adet>.
  * excludeOrderId: kendi siparişi hesaba katılmasın (onay anında).
  */
