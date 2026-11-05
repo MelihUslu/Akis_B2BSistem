@@ -60,7 +60,7 @@ Bu sayılar önceki ölçümle karşılaştırma içindir. "Canlıda kaç bayi k
 
 ### İleri testler (5 Kasım)
 
-Planlanan dokuz ileri testten yedisi yapıldı: kampanya günü, 100 firmada gürültülü komşu, 10 kat veri, ağır uçlar, ERP API yükü, aşırı ani yük ve dayanıklılık. Yeni betikler: `kampanya.js`, `komsu.js`, `agir.js`, `erp.js`, `ani.js`, `dayaniklilik.js` + `dayaniklilik.sh` (kesintileri uygular), `seed/neighbors.mjs` (99 komşu firma), `seed/apikey.mjs` (ERP anahtarları), `seed/check.mjs` (yazma testinden sonra doğruluk kontrolü), `seed/blocking.mjs` (ağır isteğin işçi süreci kilitleme süresi), `uclar.py` (uç bazında süre özeti), `dilimler.py` (10 sn'lik dilimlerle toparlanma), `caddy/Caddyfile` (canlıdaki gibi Caddy arkasından ölçmek için). Sayılar: [`loadtest/README.md` → 5 Kasım sonuçları](../../loadtest/README.md).
+Planlanan dokuz ileri testin hepsi yapıldı: kampanya günü, 100 firmada gürültülü komşu, uzun süre (3 saat), 10 kat veri, ağır uçlar, ERP API yükü, aşırı ani yük, dayanıklılık ve tarayıcıyla sayfa açılışı. Yeni betikler: `kampanya.js`, `komsu.js`, `agir.js`, `erp.js`, `ani.js`, `dayaniklilik.js` + `dayaniklilik.sh` (kesintileri uygular), `uzun.js` + `uzun.sh` (5 dk'da bir ölçüm), `seed/yoklama.mjs` (uzun testte sabit yoklama ve işçi belleği), `tarayici.js` (gerçek Chromium), `seed/neighbors.mjs` (99 komşu firma), `seed/apikey.mjs` (ERP anahtarları), `seed/check.mjs` (yazma testinden sonra doğruluk kontrolü), `seed/blocking.mjs` (ağır isteğin işçi süreci kilitleme süresi), `uclar.py` (uç bazında süre özeti), `dilimler.py` (10 sn'lik dilimlerle toparlanma), `caddy/Caddyfile` (canlıdaki gibi Caddy arkasından ölçmek için). Sayılar: [`loadtest/README.md` → 5 Kasım sonuçları](../../loadtest/README.md).
 
 **Kampanya günü: aynı anda yazma**
 
@@ -103,6 +103,18 @@ Planlanan dokuz ileri testten yedisi yapıldı: kampanya günü, 100 firmada gü
 - Veritabanı kapalıyken kullanıcılar 500 alıyor, kayıtlara 15 sn'de 11 bin satır yazılıyordu. Artık bağlantı hatası görülünce birkaç saniye istekler veritabanına gitmeden 503 alıyor (ön yüz yeniden dener); kayıt 172 satır (`utils/dbHealth.js`).
 - Ağır iş sınırı tek sayaçtı ve her denemede süresi uzuyordu: çöken süreç ya da Redis kesintisi yüzünden kaybolan bir bırakma, kullanıcılar denedikçe yeri kalıcı dolu tutabiliyordu (tüm veri dışa aktarımında sınır 1: herkes kilitlenirdi). Artık her sahip kendi süresiyle tutuluyor.
 - Canlıda kayıt dosyaları döndürülüyor (servis başına 5 × 20 MB); önce sınırsız büyüyordu.
+
+**Uzun süre: sızıntı yok**
+
+- 3 saat boyunca 300 kullanıcı okudu; yanında dakikada ~5 sipariş, onaylar, tahsilat ve teklif yazıldı. 2,6 milyon istek, %0 hata, %95 süre 27 ms.
+- 5 dk'da bir ölçüldü: işçi belleği ilk dakikalardan sonra ~1 GB'ta (4 işçi) sabit, veritabanı bağlantısı 61'de sabit, aynı isteklerin süresi baştan sona aynı. Saatlik işler yük altında üç kez çalıştı; günlükte hata yok.
+- Veritabanındaki büyümenin tamamı bildirim tablosu: test firmasındaki 1.000 yöneticinin hepsi sipariş yetkili, her sipariş ve teklif her birine bildirim yazıyor. Gerçek firmada olay başına yönetici sayısı kadar satır; okunanlar 90 günde siliniyor.
+
+**Tarayıcıyla sayfa açılışı**
+
+- Ön yüz yük testi firmasına sabit derlenip Caddy'den sunuldu; gerçek Chromium oturumları katalog ve ödeme sayfasını önce yük yokken, sonra 600 bayi API'ye yüklenirken açtı.
+- Katalog (ilk ürün kartı görünene kadar) sakinken 0,5 sn, yükte ortanca 1,6 sn (%95 2,2 sn); ödeme sayfası sakinken 0,4 sn, yükte 0,7 sn (%95 1,1 sn). Sayfa kayması (CLS) 0,03. Düzeltme gerekmedi; bulunan iyileştirme fırsatları [10. bölümde](10-sonraki-adimlar.md).
+- `run.sh` macOS'un bash'inde `OUT_DIR` / `DOCKER_NETWORK` verilmeden çalıştırılınca "unbound variable" hatasıyla duruyordu; düzeltildi.
 
 **Ölçümde dikkat:** proje iCloud'daysa testlerin yüzlerce MB'lık ham çıktısı senkronize edilirken işlemciyi testle paylaşır; aynı test %30–50 farklı sonuç verebilir. `OUT_DIR` ile ham çıktı iCloud dışına yazılır.
 

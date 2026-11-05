@@ -57,7 +57,7 @@ docker run -d --name akis_loadtest_backend --network akis_b2bsistem_default \
   -e WEB_CONCURRENCY=4 -e DB_POOL_SIZE=15 -e REDIS_URL=redis://akis_loadtest_redis:6379 \
   akis_b2bsistem-backend node src/server.js
 docker run -d --name akis_loadtest_caddy --network akis_b2bsistem_default \
-  -v "$PWD/loadtest/caddy/Caddyfile:/etc/caddy/Caddyfile:ro" caddy:2.8-alpine
+  -v "$PWD/loadtest/caddy/Caddyfile:/etc/caddy/Caddyfile:ro" -v "$PWD/loadtest/.data/web:/srv:ro" caddy:2.8-alpine
 # WEB_CONCURRENCY=4: 4 işçi süreç (canlıya yakın). Tek süreci ölçmek için bu satırı çıkarın.
 # Ayrı Redis: dayanıklılık testi onu yeniden başlatır; geliştirme Redis'ine dokunulmaz.
 # Caddy (loadtest/caddy/Caddyfile, canlıdaki api bloğunun HTTPS'siz hâli): ani yük ve dayanıklılık testleri canlıdaki gibi
@@ -93,6 +93,15 @@ WRITE_OK=1 ./loadtest/run.sh erp                         # USERS= BATCH=
 # Aşırı ani yük ve dayanıklılık: Caddy arkasından
 BASE_URL=http://akis_loadtest_caddy:8080 ./loadtest/run.sh ani      # taban → 10 sn'de tepe (PEAK=600 açılış/sn) → taban
 BASE_URL=http://akis_loadtest_caddy:8080 ./loadtest/dayaniklilik.sh  # yük sürerken: işçi süreç, Redis, veritabanı kesintisi
+
+# Uzun süre (gece, 2–4 saat): okuma yükü + düşük hızda yazma; 5 dk'da bir süre, işçi belleği, bağlantı ve tablo ölçümü
+# (results/uzun-olcum.csv, results/uzun-tablolar.txt). Bilgisayar açık ve prize takılı kalmalı.
+caffeinate -ims env BASE_URL=http://akis_loadtest_caddy:8080 WRITE_OK=1 DURATION=3h ./loadtest/uzun.sh
+
+# Tarayıcıyla sayfa açılışı: ön yüzü yük testi firmasına sabit derle (Caddy 8081'den sunar), sonra gerçek Chromium
+# oturumları katalog ve ödeme sayfasını önce yük yokken, sonra 600 bayi API'ye yüklenirken açar
+(cd frontend && VITE_API_URL=/api VITE_DEFAULT_TENANT=yuktest npx vite build --outDir ../loadtest/.data/web --emptyOutDir)
+BASE_URL=http://akis_loadtest_caddy:8080 ./loadtest/run.sh tarayici             # DEALERS= PAGES= WEB_URL=
 
 # 10 kat veri: aynı seed, büyük sayılarla (~3 dk)
 ./loadtest/seed/reset.sh && docker exec -w /app -e ADMINS=1000 -e DEALERS=10000 -e PRODUCTS=50000 -e ORDERS=600000 akis_loadtest_backend node /loadtest/seed/seed.mjs
@@ -136,19 +145,19 @@ docker exec akis_b2bsistem-db-1 psql -U akis -d akis_load -c 'select id, sku, st
 
 ## İleri testler
 
-4 Kasım 2026'da planlandı. 1, 2, 4, 5, 6, 7 ve 8 numaralılar 5 Kasım'da yapıldı; bulunan sorunlar düzeltildi.
+4 Kasım 2026'da planlandı, dokuzu da 5 Kasım'da yapıldı; bulunan sorunlar düzeltildi.
 
 | # | Test | Ne ölçer | Durum |
 |---|---|---|---|
 | 1 | **Kampanya günü** (`kampanya.js`) | 600 bayi sipariş verir, 50 yönetici onaylar, tahsilat ve teklif akar, katalog okunur. Kilit beklemesi, bağlantı havuzu, stok yarışı birlikte. | ✓ 5 Kasım |
 | 2 | **100 firma, gürültülü komşu** (`komsu.js`) | Büyük firma ağır iş yaparken (Excel, 12 aylık rapor, tüm veri dışa aktarımı) 99 komşu firmanın yanıt süresi bozuluyor mu? | ✓ 5 Kasım |
-| 3 | **Uzun süre** (2–4 saat, gece) | Bellek sızıntısı, açık kalan bağlantılar, büyüyen tablolar; saatlik işler yük altında birkaç kez çalışır. `soak.js` hazır, `caffeinate` ile başlatılır. | Bekliyor |
+| 3 | **Uzun süre** (`uzun.sh` + `uzun.js`, 3 saat) | 300 kullanıcı okurken düşük hızda sipariş, onay, tahsilat ve teklif. Bellek sızıntısı, açık kalan bağlantılar, büyüyen tablolar; saatlik işler yük altında birkaç kez çalışır. | ✓ 5 Kasım |
 | 4 | **10 kat veri** (`scale.js`, büyük seed) | 600 bin sipariş, 50 bin ürün, 10 bin bayi. Sorgu planları büyük veride değişiyor mu? | ✓ 5 Kasım |
 | 5 | **Ağır uçlar yük altında** (`agir.js`) | Excel, 12 aylık rapor, yaşlandırma, ekstre, tüm veri dışa aktarımı bir Node sürecini kilitleyip diğer istekleri bekletiyor mu? | ✓ 5 Kasım |
 | 6 | **ERP API yükü** (`erp.js`) | `/api/v1` ile on binlerce ürünün stok/fiyat güncellemesi; API anahtarı istek sınırları. | ✓ 5 Kasım |
 | 7 | **Aşırı ani yük** (`ani.js`) | 10 sn'de saniyede 600 açılışa (~3000 bayi) çıkış (kampanya bildirimi anı). Bilgisayarda kapasiteyi değil davranışı ve toparlanmayı gösterir. | ✓ 5 Kasım |
 | 8 | **Dayanıklılık** (`dayaniklilik.sh`) | Yük sürerken bir işçi süreci öldürmek, Redis'i yeniden başlatmak, veritabanını 15 sn kesmek. Sistem kendiliğinden toparlanıyor mu? | ✓ 5 Kasım |
-| 9 | **k6 tarayıcı ile sayfa açılışı** | 1000 bayi API'ye yüklenirken birkaç gerçek tarayıcıyla katalog ve ödeme sayfasının açılış süresi. | Bekliyor |
+| 9 | **Tarayıcıyla sayfa açılışı** (`tarayici.js`) | 600 bayi API'ye yüklenirken gerçek Chromium oturumlarıyla katalog ve ödeme sayfasının açılış süresi. | ✓ 5 Kasım |
 
 ### 5 Kasım sonuçları
 
@@ -163,6 +172,8 @@ Hepsi geliştirme bilgisayarında (10 çekirdek, Docker'a 8 GB) ölçüldü; k6,
 | ERP API | Stok / fiyat partisi kayıt başına sırayla sorgu atıyordu (1.000 kayıt: stok 11 sn, fiyat 5 sn; 50 bin ürünün tam senkronu ~7 dk). İstek sınırı IP + yol ile sayılıyordu: `/orders/:id`'de her sipariş ayrı sayılıyor, aynı IP'deki firmalar birbirinin sınırını yiyordu. Fiyat indeksi her fiyat güncellemesinde 10 indekse yazdırıyordu. | Parti 0,2 sn (tam senkron ~40 sn); sınır anahtar başına 600/dk (700 istekten tam 100'ü 429, komşu firma etkilenmedi); ürün güncellemelerinin %60'ı yerinde (önce %13). %0 hata. |
 | Aşırı ani yük | Kapasitenin ~3 katında istekler kuyrukta 60 sn bekleyip zaman aşımına düşüyordu (5.091 istek); Caddy arkasında da yeni bağlantılar Node'un devir kuyruğunda bekliyordu. | Yük atma (işçi başına 100 eşzamanlı istek; fazlasına anında 503) + Caddy'de backend'e 1024 kalıcı bağlantı: zaman aşımı yok, tepede %95 süre ~2 sn, tepe biter bitmez taban süreleri. Ön yüz 503'te okuma isteklerini kendiliğinden yeniden dener. |
 | Dayanıklılık | İşçi süreç ve Redis kesintisi sorunsuz. Veritabanı kesintisinde kullanıcılar 500 aldı, 15 sn'de 11 bin satır kayıt yazıldı. Ağır iş sınırında kaybolan bir bırakma, denemeler sürdükçe yeri kalıcı dolu tutabiliyordu. | Veritabanı kapalıyken istekler veritabanına gitmeden hızlı 503 alır (ön yüz yeniden dener), kayıt 172 satır; açılınca anında toparlanır. Ağır iş sınırı sahip başına süreli. |
+| Uzun süre (3 saat) | Sızıntı yok: işçi belleği ilk dakikalardan sonra ~1 GB'ta (4 işçi) sabit, veritabanı bağlantısı 61'de sabit, yoklama süreleri 3 saat boyunca aynı (katalog ortancası ~20 ms; yük bitince 12 ms). Sunucu ve veritabanı günlüğünde hata yok; 3 saatte tek yavaş sorgu (303 ms). Veritabanı 79 → 287 MB: büyümenin tamamı bildirimler (962 bin satır), çünkü test firmasındaki 1.000 yöneticinin hepsi sipariş yetkili ve her sipariş / teklif her birine bildirim yazar. Gerçek firmada yönetici sayısı kadar satır; okunanlar 90 günde silinir. | Düzeltme gerekmedi. 2,6 milyon istek, %0 hata, %95 süre 27 ms, %99 süre 59 ms. |
+| Tarayıcıyla sayfa açılışı | Katalog ilk ürün kartına kadar: sakinken ortanca 0,49 sn (%95 0,55); 600 bayi yüklenirken ortanca 1,57 sn (%95 2,15). Ödeme sayfası "Siparişi onayla" düğmesine kadar: sakinken 0,42 sn; yükte ortanca 0,72 sn (%95 1,1). LCP %95 0,86 sn, CLS 0,03. API yükünde 130 bin istekten 14'ü bilerek verilen 503 (yük atma; ön yüz yeniden dener). | Düzeltme gerekmedi. İyileştirme fırsatları: [`docs/yapilanlar/10-sonraki-adimlar.md`](../docs/yapilanlar/10-sonraki-adimlar.md). |
 
 Düzeltmelerin ayrıntısı: [`docs/yapilanlar/09-testler-kalite.md`](../docs/yapilanlar/09-testler-kalite.md).
 

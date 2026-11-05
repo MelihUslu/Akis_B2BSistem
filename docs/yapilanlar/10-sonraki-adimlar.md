@@ -2,14 +2,13 @@
 
 4 Kasım 2026 itibarıyla bilerek sonraya bırakılanlar, canlıya çıkmadan önce elle denenmesi gerekenler ve bilinen sınırlar.
 
-## Kalan yük testleri
+## Yük testlerinden kalan iyileştirmeler
 
-4 Kasım'da dokuz ileri test planlandı; yedisi 5 Kasım'da yapıldı (bkz. [9. bölüm](09-testler-kalite.md)). Kalanlar ([`loadtest/README.md` → İleri testler](../../loadtest/README.md)):
+4 Kasım'da planlanan dokuz ileri testin hepsi 5 Kasım'da yapıldı (bkz. [9. bölüm](09-testler-kalite.md)). Bulunan sorunlar düzeltildi; aşağıdakiler hata değil, ileride yapılabilecek iyileştirmeler:
 
-| # | Test | Ne ölçer |
-|---|---|---|
-| 3 | Uzun süre (2–4 saat, gece) | Bellek sızıntısı, açık bağlantılar, büyüyen tablolar |
-| 9 | Tarayıcıyla sayfa açılışı | Yük altında katalog ve ödeme sayfasının açılış süresi |
+- **Sayfa açılışında sıralı bekleme:** ön yüz firma bilgisini (`/api/tenant/public`) almadan hiçbir sayfayı çizmiyor; bayi sayfasının kodu ve katalog istekleri ancak ondan sonra başlıyor. Yoğunlukta bu tek istek 0,5–0,9 sn sürebiliyor ve açılışa olduğu gibi ekleniyor. Firma bilgisi tarayıcıda saklanıp sayfa onunla hemen çizilebilir, yenisi arka planda alınır.
+- **`/api/auth/me` sayfa başına üç kez:** oturum tazeleme, destek menüsü ve katalog aynı isteği ayrı ayrı atıyor. Tek istekte paylaşılabilir (bayi adına işlem yapılırken yanıt değiştiği için o da hesaba katılmalı).
+- **Okunmamış bildirimler hiç silinmiyor:** okunanlar 90 gün sonra siliniyor; bildirimlerine bakmayan bir personelin satırları birikir. Örneğin bir yıldan eski okunmamışlar da silinebilir.
 
 ## Canlıdan önce elle denenecekler
 

@@ -26,7 +26,7 @@ fi
 export PATH="$(dirname "$DOCKER"):$PATH"
 ENVS=(-e TEST_NAME="$TEST" -e BASE_URL="${BASE_URL:-http://host.docker.internal:5001}")
 for v in TENANT ADMIN_TOKEN DEALER_TOKEN ADMIN_EMAIL ADMIN_PASSWORD DEALER_EMAIL DEALER_PASSWORD PEAK HOLD DURATION RATE WRITE_OK ALLOW_DEFAULT_TENANT \
-  ADMINS DEALERS RAMP USERS MAX_RPS HOT_IDS APPROVERS APPROVER_POOL BUYERS BROWSERS QUOTERS CASHIERS NOISY QUIET HEAVY HEAVY_RATE BATCH BASE MAX_VUS; do
+  ADMINS DEALERS RAMP USERS MAX_RPS HOT_IDS APPROVERS APPROVER_POOL BUYERS BROWSERS QUOTERS CASHIERS NOISY QUIET HEAVY HEAVY_RATE BATCH BASE MAX_VUS WEB_URL PAGES; do
   [ -n "${!v:-}" ] && ENVS+=(-e "$v=${!v}")
 done
 # DOCKER_NETWORK: k6 backend'le aynı Docker ağında çalışır (Mac'in port yönlendirmesi devre dışı kalır), ör.
@@ -37,4 +37,9 @@ NET=()
 #   Proje iCloud'daysa yüzlerce MB'lık çıktı senkronize edilirken işlemciyi testle paylaşır, ölçümü bozar.
 VOL=()
 [ -n "${OUT_DIR:-}" ] && { mkdir -p "$OUT_DIR"; VOL=(-v "$OUT_DIR":/out); }
-exec "$DOCKER" run --rm -i "${NET[@]}" --add-host=host.docker.internal:host-gateway -v "$PWD":/scripts "${VOL[@]}" -w /scripts "${ENVS[@]}" grafana/k6:0.54.0 run "$TEST.js" "$@"
+# Tarayıcı testi (tarayici.js) Chromium içeren imajla ve geniş paylaşılan bellekle çalışır
+IMAGE="${K6_IMAGE:-grafana/k6:0.54.0}"
+EXTRA=()
+[ "$TEST" = tarayici ] && { IMAGE="${K6_IMAGE:-grafana/k6:0.54.0-with-browser}"; EXTRA=(--shm-size=1g); }
+# ${A[@]+"${A[@]}"}: boş dizi macOS'un bash 3.2'sinde set -u ile "unbound variable" vermesin
+exec "$DOCKER" run --rm -i ${NET[@]+"${NET[@]}"} ${EXTRA[@]+"${EXTRA[@]}"} --add-host=host.docker.internal:host-gateway -v "$PWD":/scripts ${VOL[@]+"${VOL[@]}"} -w /scripts "${ENVS[@]}" "$IMAGE" run "$TEST.js" "$@"
