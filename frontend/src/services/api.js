@@ -88,4 +88,16 @@ export const publicApi = axios.create({ baseURL: `${baseURL}/public` });
 export const errorMessage = (error, fallback = 'Beklenmeyen bir hata oluştu.') =>
   error?.response?.data?.message || fallback;
 
+// Oturumdaki kullanıcı ve firması (/auth/me). Sayfa açılırken oturum tazeleme, destek menüsü ve katalog aynı anda
+// ister: 10 sn içindeki istekler tek yanıtı paylaşır. Oturum ya da "bayi adına işlem" değişince yeniden istenir.
+let me = null;
+export const getMe = () => {
+  const key = `${localStorage.getItem('akis_token')}|${JSON.stringify(actingHeader())}`;
+  if (me && me.key === key && Date.now() - me.at < 10_000) return me.promise;
+  const promise = api.get('/auth/me');
+  me = { key, at: Date.now(), promise };
+  promise.catch(() => { if (me?.promise === promise) me = null; });
+  return promise;
+};
+
 export default api;

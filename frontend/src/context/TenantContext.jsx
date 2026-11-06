@@ -32,23 +32,46 @@ const applyManifest = (tenant) => {
 
 const TenantContext = createContext(null);
 
+// Son alınan firma bilgisi tarayıcıda saklanır (her alt alan adı ayrı köken, ayrı kayıt): sayfa onu beklemeden
+// çizilir, yenisi arka planda alınır. Yoğunlukta bu istek 0,5–0,9 sn sürüp açılışa olduğu gibi ekleniyordu.
+const CACHE_KEY = 'akis_tenant';
+const readCached = () => {
+  try { return JSON.parse(localStorage.getItem(CACHE_KEY)) || null; } catch { return null; }
+};
+const apply = (tenant) => {
+  document.title = `${tenant.name} · B2B Portal`;
+  applyManifest(tenant);
+};
+
 /**
  * Alt alan adındaki firmanın marka bilgisi (ad, logo) ve erişim durumu.
  * Firma bulunamazsa `notFound` true olur.
  */
 export const TenantProvider = ({ children }) => {
-  const [state, setState] = useState({ loading: true, tenant: null, notFound: false });
+  const [state, setState] = useState(() => {
+    const cached = readCached();
+    return cached ? { loading: false, tenant: cached, notFound: false } : { loading: true, tenant: null, notFound: false };
+  });
 
   const refresh = () =>
     api.get('/tenant/public')
       .then((res) => {
         setState({ loading: false, tenant: res.data, notFound: false });
-        document.title = `${res.data.name} · B2B Portal`;
-        applyManifest(res.data);
+        apply(res.data);
+        try { localStorage.setItem(CACHE_KEY, JSON.stringify(res.data)); } catch { /* gizli sekme */ }
       })
-      .catch((err) => setState({ loading: false, tenant: null, notFound: err.response?.status === 404 }));
+      .catch((err) => {
+        const notFound = err.response?.status === 404;
+        if (notFound) try { localStorage.removeItem(CACHE_KEY); } catch { /* gizli sekme */ }
+        // Ağ hatasında saklanan bilgiyle devam edilir
+        setState((prev) => (prev.tenant && !notFound ? prev : { loading: false, tenant: null, notFound }));
+      });
 
-  useEffect(() => { refresh(); }, []);
+  useEffect(() => {
+    const cached = readCached();
+    if (cached) apply(cached);
+    refresh();
+  }, []);
 
   return <TenantContext.Provider value={{ ...state, refresh }}>{children}</TenantContext.Provider>;
 };

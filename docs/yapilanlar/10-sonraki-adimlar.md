@@ -2,14 +2,6 @@
 
 4 Kasım 2026 itibarıyla bilerek sonraya bırakılanlar, canlıya çıkmadan önce elle denenmesi gerekenler ve bilinen sınırlar.
 
-## Yük testlerinden kalan iyileştirmeler
-
-4 Kasım'da planlanan dokuz ileri testin hepsi 5 Kasım'da yapıldı (bkz. [9. bölüm](09-testler-kalite.md)). Bulunan sorunlar düzeltildi; aşağıdakiler hata değil, ileride yapılabilecek iyileştirmeler:
-
-- **Sayfa açılışında sıralı bekleme:** ön yüz firma bilgisini (`/api/tenant/public`) almadan hiçbir sayfayı çizmiyor; bayi sayfasının kodu ve katalog istekleri ancak ondan sonra başlıyor. Yoğunlukta bu tek istek 0,5–0,9 sn sürebiliyor ve açılışa olduğu gibi ekleniyor. Firma bilgisi tarayıcıda saklanıp sayfa onunla hemen çizilebilir, yenisi arka planda alınır.
-- **`/api/auth/me` sayfa başına üç kez:** oturum tazeleme, destek menüsü ve katalog aynı isteği ayrı ayrı atıyor. Tek istekte paylaşılabilir (bayi adına işlem yapılırken yanıt değiştiği için o da hesaba katılmalı).
-- **Okunmamış bildirimler hiç silinmiyor:** okunanlar 90 gün sonra siliniyor; bildirimlerine bakmayan bir personelin satırları birikir. Örneğin bir yıldan eski okunmamışlar da silinebilir.
-
 ## Canlıdan önce elle denenecekler
 
 Dış servise ya da fiziksel çıktıya bağlı oldukları için otomatik testlerde yoklar ([`uat/README.md`](../../uat/README.md)):
@@ -52,6 +44,10 @@ Kullanıcıların fark edeceği değişiklikler, duyurulmalı:
 - **Marka filtresi** alfabetik sıralı gelir.
 - **Sistem çok yoğunken** istekler beklemek yerine "sistem şu an çok yoğun" (503) yanıtı alır; ekranlar okuma isteklerini birkaç saniye sonra kendiliğinden yeniden dener. Veritabanına kısa süre ulaşılamazsa da aynı yanıt döner.
 - **ERP API istek sınırı** artık API anahtarı başına, bütün uçlar toplamında dakikada 600 (önce IP ve uç başınaydı). Dakikada 600'den fazla istek atan bir entegrasyon varsa partileri büyütmeli (tek istekte 1.000 kayıt).
+
+## 6 Kasım'daki davranış değişiklikleri
+
+- **Okunmamış bildirimler** 180 gün sonra silinir (okunmuşlar 90 gün; vade hatırlatması gibi tekrar engelleyen kayıtlar silinmez).
 
 ## Canlıya alırken
 

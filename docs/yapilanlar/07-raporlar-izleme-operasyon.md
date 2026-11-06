@@ -18,7 +18,7 @@ Firmanın işini ölçtüğü raporlar ile platformun ayakta kalmasını sağlay
 - Panel içi bildirim, e-posta ve telefona anlık bildirim (Web Push, `ce93bea`).
 - **Tercihler** (`4c417c0`): kullanıcı türe göre e-posta bildirimini açar / kapatır. Yönetici bildirimleri yetkiye göre süzülür.
 - **Toplu yazma** (`2197736`): bildirimler tek sorguyla, tekrar engelleme anahtarıyla yazılır; e-posta ve push arka planda toplu gider.
-- **Saklama** (`3bf45bf`): okunmuş bildirimler 90 gün sonra saatlik işle 5000'lik parçalar hâlinde silinir. Okunmamışlar ve tekrar engelleme anahtarı olanlar (ör. vade hatırlatması) silinmez; silinseler aynı hatırlatma yeniden giderdi.
+- **Saklama** (`3bf45bf`; okunmamışlar 6 Kasım'dan): okunmuş bildirimler 90, okunmamışlar 180 gün sonra saatlik işle 5000'lik parçalar hâlinde silinir. Tekrar engelleme anahtarı olanlar (ör. vade hatırlatması) silinmez; silinseler aynı hatırlatma yeniden giderdi.
 
 ## Hata izleme (`117006d`)
 

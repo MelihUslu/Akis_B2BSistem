@@ -121,7 +121,8 @@ Planlanan dokuz ileri testin hepsi yapıldı: kampanya günü, 100 firmada gür�
 **Tarayıcıyla sayfa açılışı**
 
 - Ön yüz yük testi firmasına sabit derlenip Caddy'den sunuldu; gerçek Chromium oturumları katalog ve ödeme sayfasını önce yük yokken, sonra 600 bayi API'ye yüklenirken açtı.
-- Katalog (ilk ürün kartı görünene kadar) sakinken 0,5 sn, yükte ortanca 1,6 sn (%95 2,2 sn); ödeme sayfası sakinken 0,4 sn, yükte 0,7 sn (%95 1,1 sn). Sayfa kayması (CLS) 0,03. Düzeltme gerekmedi; bulunan iyileştirme fırsatları [10. bölümde](10-sonraki-adimlar.md).
+- Katalog (ilk ürün kartı görünene kadar) sakinken 0,5 sn, yükte ortanca 1,6 sn (%95 2,2 sn); ödeme sayfası sakinken 0,4 sn, yükte 0,7 sn (%95 1,1 sn). Sayfa kayması (CLS) 0,03. Hata yoktu; iki iyileştirme fırsatı çıktı.
+- **İyileştirme (6 Kasım):** firma bilgisi (`/api/tenant/public`) tarayıcıda saklanıyor, sayfa onu beklemeden çiziliyor, yenisi arka planda geliyor; `/api/auth/me`'yi isteyen üç bileşen (oturum tazeleme, destek menüsü, katalog) tek yanıtı paylaşıyor. Aynı ortamda arka arkaya ölçüldü, 600 bayi yüklenirken: katalog ortalama 1,82 → 1,64 sn (%95 3,10 → 2,60), ödeme sayfası 0,77 → 0,49 sn (%95 1,05 → 0,63); `/auth/me` istekleri %60 az.
 - `run.sh` macOS'un bash'inde `OUT_DIR` / `DOCKER_NETWORK` verilmeden çalıştırılınca "unbound variable" hatasıyla duruyordu; düzeltildi.
 
 **Ölçümde dikkat:** proje iCloud'daysa testlerin yüzlerce MB'lık ham çıktısı senkronize edilirken işlemciyi testle paylaşır; aynı test %30–50 farklı sonuç verebilir. `OUT_DIR` ile ham çıktı iCloud dışına yazılır.

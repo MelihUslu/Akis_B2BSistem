@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react';
 import { LifeBuoy, Phone, Mail, UserRound, MessageCircle } from 'lucide-react';
-import api from '../../services/api';
+import { getMe } from '../../services/api';
 import { useTenant } from '../../context/TenantContext';
 import { HeaderPopover } from '../shared/HeaderMenu';
 import { headerButtonClass } from '../../utils/ui';
@@ -30,7 +30,7 @@ const Contact = ({ icon: Icon, label, value, href, close }) => (
 const SupportMenu = () => {
   const { tenant } = useTenant();
   const [rep, setRep] = useState(null);
-  useEffect(() => { api.get('/auth/me').then((r) => setRep(r.data.company?.plasiyer || null)).catch(() => {}); }, []);
+  useEffect(() => { getMe().then((r) => setRep(r.data.company?.plasiyer || null)).catch(() => {}); }, []);
   const phone = tenant?.phone;
   const email = tenant?.contactEmail;
 

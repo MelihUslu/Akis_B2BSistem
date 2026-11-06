@@ -257,18 +257,23 @@ const purgeExpiredClosedTenants = async (tenants) => {
 // Çok sunuculu kurulumda her iş tek sunucuda çalışır (Redis kilidi); böylece bayilere çift hatırlatma gitmez
 // Her çalışma Platform → İzleme → Arka plan işleri'nde görünür; hata veren iş uyarı e-postası gönderir
 /**
- * Okunmuş bildirimler 90 gün sonra silinir (tablo sınırsız büyümesin). Tekrar engelleme anahtarı olanlar
- * (ör. vade hatırlatması) silinmez: silinirse aynı eski sipariş için hatırlatma yeniden gönderilirdi.
+ * Okunmuş bildirimler 90, okunmamışlar 180 gün sonra silinir (tablo sınırsız büyümesin; bildirimlerine bakmayan
+ * personelin satırları da birikmesin). Tekrar engelleme anahtarı olanlar (ör. vade hatırlatması) silinmez: silinirse
+ * aynı eski sipariş için hatırlatma yeniden gönderilirdi.
  * Birikmiş çok kayıt tabloyu uzun süre kilitlemesin diye parça parça silinir; kalan bir sonraki saate kalır.
  */
 export const NOTIFICATION_RETENTION_DAYS = 90;
+export const UNREAD_NOTIFICATION_RETENTION_DAYS = 180;
 export const cleanupNotifications = async ({ batch = 5000, maxBatches = 40 } = {}) => {
   const cutoff = new Date(Date.now() - NOTIFICATION_RETENTION_DAYS * 86400000);
+  const unreadCutoff = new Date(Date.now() - UNREAD_NOTIFICATION_RETENTION_DAYS * 86400000);
   let deleted = 0;
   for (let i = 0; i < maxBatches; i++) {
     const n = await basePrisma.$executeRaw`
       DELETE FROM "Notification" WHERE id IN (
-        SELECT id FROM "Notification" WHERE "createdAt" < ${cutoff} AND "isRead" = true AND "dedupeKey" IS NULL LIMIT ${batch}
+        SELECT id FROM "Notification"
+        WHERE "dedupeKey" IS NULL AND ("createdAt" < ${unreadCutoff} OR ("createdAt" < ${cutoff} AND "isRead" = true))
+        LIMIT ${batch}
       )`;
     deleted += n;
     if (n < batch) break;

@@ -1,5 +1,5 @@
 import { useState, useEffect, useMemo, useRef } from 'react';
-import api from '../../services/api';
+import api, { getMe } from '../../services/api';
 import { ShoppingBag, Search, Package, Tag, X, Loader2, CheckCircle2, ShoppingCart, LayoutGrid, List } from 'lucide-react';
 import ProductDetailModal from '../../components/bayi/ProductDetailModal';
 import QuoteRequestModal from '../../components/bayi/QuoteRequestModal';
@@ -73,7 +73,7 @@ const ProductCatalog = () => {
     Promise.all([
       api.get('/categories').then((r) => setCategories(r.data)),
       api.get('/products/filters').then((r) => setFacets(r.data)),
-      api.get('/auth/me').then((r) => setCompany(r.data.company))
+      getMe().then((r) => setCompany(r.data.company))
     ]).catch(() => {});
   }, []);
 

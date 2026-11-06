@@ -1,5 +1,5 @@
 import { createContext, useContext, useState, useEffect } from 'react';
-import api from '../services/api';
+import api, { getMe } from '../services/api';
 import { disablePushOnLogout } from '../utils/push';
 import { stopActing } from '../utils/acting';
 
@@ -21,7 +21,7 @@ export const AuthProvider = ({ children }) => {
   useEffect(() => {
     if (readStoredUser()) {
       // Yetkiler değişmiş olabilir: kullanıcı bilgisini sunucudan tazele
-      api.get('/auth/me').then(({ data }) => {
+      getMe().then(({ data }) => {
         const fresh = {
           id: data.id, name: data.name, email: data.email, role: data.role, companyId: data.companyId,
           isOwner: data.isOwner, permissions: Array.isArray(data.permissions) ? data.permissions : [],

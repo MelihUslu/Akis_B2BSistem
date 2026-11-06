@@ -121,7 +121,7 @@ docker exec -w /app akis_loadtest_backend node /loadtest/seed/blocking.mjs
 docker exec akis_b2bsistem-db-1 psql -U akis -d postgres -c 'ALTER DATABASE akis_load SET log_min_duration_statement = 300'
 ```
 
-Oturum anahtarları `seed.mjs` tarafından `loadtest/.data/tokens.json` dosyasına yazılır (git'e girmez); her sanal kullanıcı farklı bir hesapla girer.
+Oturum anahtarları `seed.mjs` tarafından `loadtest/.data/tokens.json` dosyasına yazılır (git'e girmez); her sanal kullanıcı farklı bir hesapla girer. Anahtarlar 12 saat geçerlidir; süresi dolunca bütün istekler 401 alır. Veriyi yeniden üretmeden yenilemek için: `docker exec akis_loadtest_backend node /loadtest/seed/tokens.mjs`.
 
 **Eşzamanlılık testinden sonra stok kontrolü** (hiçbir ürün eksiye düşmemeli):
 
@@ -173,7 +173,7 @@ Hepsi geliştirme bilgisayarında (10 çekirdek, Docker'a 8 GB) ölçüldü; k6,
 | Aşırı ani yük | Kapasitenin ~3 katında istekler kuyrukta 60 sn bekleyip zaman aşımına düşüyordu (5.091 istek); Caddy arkasında da yeni bağlantılar Node'un devir kuyruğunda bekliyordu. | Yük atma (işçi başına 100 eşzamanlı istek; fazlasına anında 503) + Caddy'de backend'e 1024 kalıcı bağlantı: zaman aşımı yok, tepede %95 süre ~2 sn, tepe biter bitmez taban süreleri. Ön yüz 503'te okuma isteklerini kendiliğinden yeniden dener. |
 | Dayanıklılık | İşçi süreç ve Redis kesintisi sorunsuz. Veritabanı kesintisinde kullanıcılar 500 aldı, 15 sn'de 11 bin satır kayıt yazıldı. Ağır iş sınırında kaybolan bir bırakma, denemeler sürdükçe yeri kalıcı dolu tutabiliyordu. | Veritabanı kapalıyken istekler veritabanına gitmeden hızlı 503 alır (ön yüz yeniden dener), kayıt 172 satır; açılınca anında toparlanır. Ağır iş sınırı sahip başına süreli. |
 | Uzun süre (3 saat) | Sızıntı yok: işçi belleği ilk dakikalardan sonra ~1 GB'ta (4 işçi) sabit, veritabanı bağlantısı 61'de sabit, yoklama süreleri 3 saat boyunca aynı (katalog ortancası ~20 ms; yük bitince 12 ms). Sunucu ve veritabanı günlüğünde hata yok; 3 saatte tek yavaş sorgu (303 ms). Veritabanı 79 → 287 MB: büyümenin tamamı bildirimler (962 bin satır), çünkü test firmasındaki 1.000 yöneticinin hepsi sipariş yetkili ve her sipariş / teklif her birine bildirim yazar. Gerçek firmada yönetici sayısı kadar satır; okunanlar 90 günde silinir. | Düzeltme gerekmedi. 2,6 milyon istek, %0 hata, %95 süre 27 ms, %99 süre 59 ms. |
-| Tarayıcıyla sayfa açılışı | Katalog ilk ürün kartına kadar: sakinken ortanca 0,49 sn (%95 0,55); 600 bayi yüklenirken ortanca 1,57 sn (%95 2,15). Ödeme sayfası "Siparişi onayla" düğmesine kadar: sakinken 0,42 sn; yükte ortanca 0,72 sn (%95 1,1). LCP %95 0,86 sn, CLS 0,03. API yükünde 130 bin istekten 14'ü bilerek verilen 503 (yük atma; ön yüz yeniden dener). | Düzeltme gerekmedi. İyileştirme fırsatları: [`docs/yapilanlar/10-sonraki-adimlar.md`](../docs/yapilanlar/10-sonraki-adimlar.md). |
+| Tarayıcıyla sayfa açılışı | Katalog ilk ürün kartına kadar: sakinken ortanca 0,49 sn (%95 0,55); 600 bayi yüklenirken ortanca 1,57 sn (%95 2,15). Ödeme sayfası "Siparişi onayla" düğmesine kadar: sakinken 0,42 sn; yükte ortanca 0,72 sn (%95 1,1). LCP %95 0,86 sn, CLS 0,03. API yükünde 130 bin istekten 14'ü bilerek verilen 503 (yük atma; ön yüz yeniden dener). | Hata yok. 6 Kasım iyileştirmesi (firma bilgisi tarayıcıda saklanır, `/auth/me` tek istek): yükte katalog ort. 1,82 → 1,64 sn, ödeme 0,77 → 0,49 sn; `/auth/me` istekleri %60 az. |
 
 Düzeltmelerin ayrıntısı: [`docs/yapilanlar/09-testler-kalite.md`](../docs/yapilanlar/09-testler-kalite.md).
 

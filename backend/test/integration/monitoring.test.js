@@ -147,16 +147,19 @@ test('günlük özet: sorunlar konu satırına ve metne yansır', { skip }, asyn
   assert.ok(d.text.includes(SVC));
 });
 
-test('bildirim temizliği: 90 günden eski okunmuşlar silinir; okunmamış, yeni ve tekrar anahtarlı olanlar kalır', { skip }, async () => {
-  const { cleanupNotifications, NOTIFICATION_RETENTION_DAYS } = await import('../../src/services/notificationService.js');
+test('bildirim temizliği: okunmuşlar 90, okunmamışlar 180 günde silinir; yeni ve tekrar anahtarlı olanlar kalır', { skip }, async () => {
+  const { cleanupNotifications, NOTIFICATION_RETENTION_DAYS, UNREAD_NOTIFICATION_RETENTION_DAYS } = await import('../../src/services/notificationService.js');
   const user = await runAsPlatform(() => prisma.user.findFirst({ where: { tenantId: T.id } }));
   const old = new Date(Date.now() - (NOTIFICATION_RETENTION_DAYS + 1) * 86400000);
   const recent = new Date(Date.now() - (NOTIFICATION_RETENTION_DAYS - 1) * 86400000);
+  const veryOld = new Date(Date.now() - (UNREAD_NOTIFICATION_RETENTION_DAYS + 1) * 86400000);
   const rows = {
     oldRead: { createdAt: old, isRead: true },
     oldUnread: { createdAt: old, isRead: false },
     recentRead: { createdAt: recent, isRead: true },
-    oldReadKeyed: { createdAt: old, isRead: true, dedupeKey: `itest-temizlik:${Date.now()}` } // ör. vade hatırlatması
+    oldReadKeyed: { createdAt: old, isRead: true, dedupeKey: `itest-temizlik:${Date.now()}` }, // ör. vade hatırlatması
+    veryOldUnread: { createdAt: veryOld, isRead: false },
+    veryOldUnreadKeyed: { createdAt: veryOld, isRead: false, dedupeKey: `itest-temizlik-2:${Date.now()}` }
   };
   const ids = {};
   for (const [k, v] of Object.entries(rows)) {
@@ -165,7 +168,9 @@ test('bildirim temizliği: 90 günden eski okunmuşlar silinir; okunmamış, yen
   await cleanupNotifications({ batch: 1 }); // parça parça silme sona kadar devam eder
   const left = new Set((await runAsPlatform(() => prisma.notification.findMany({ where: { id: { in: Object.values(ids) } }, select: { id: true } }))).map((n) => n.id));
   assert.equal(left.has(ids.oldRead), false);
-  assert.ok(left.has(ids.oldUnread), 'okunmamış kalmalı');
+  assert.ok(left.has(ids.oldUnread), '180 günden yeni okunmamış kalmalı');
+  assert.equal(left.has(ids.veryOldUnread), false, '180 günden eski okunmamış silinmeli');
+  assert.ok(left.has(ids.veryOldUnreadKeyed), 'tekrar anahtarlı okunmamış da kalmalı');
   assert.ok(left.has(ids.recentRead), '90 günden yeni kalmalı');
   assert.ok(left.has(ids.oldReadKeyed), 'tekrar anahtarlı kalmalı (yoksa hatırlatma yeniden gider)');
 });
