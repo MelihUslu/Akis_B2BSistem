@@ -3,6 +3,7 @@ import { invalidateTenantCache } from '../middlewares/tenantMiddleware.js';
 import { smsCreds, encryptSmsConfig, smsActive, normalizePhone, PhoneError, testSms, smsHeaders } from '../services/smsService.js';
 import { SMS_TYPES, firmSmsTypes, typesFor } from '../services/notificationPrefs.js';
 import { forgetTenantForMail } from '../services/notificationService.js';
+import { OPTOUT_KEY, optOutText } from '../services/bulkSmsService.js';
 
 // Seçilebilir türler (ad ve açıklamayla): bayiye ve ekibe giden ayrı listeler
 const typeOptions = () => ({
@@ -25,10 +26,11 @@ const fail = (res, error) => res.status(400).json({ message: error.message || '�
 export const getSmsSettings = async (req, res) => {
   const creds = smsCreds(req.tenant);
   const since = new Date(Date.now() - 14 * 864e5);
-  const [calls, lastError, phones] = await Promise.all([
+  const [calls, lastError, phones, optOut] = await Promise.all([
     basePrisma.externalCall.findMany({ where: { tenantId: req.tenant.id, service: 'Netgsm', operation: { startsWith: 'SMS' }, createdAt: { gte: since } }, select: { ok: true, operation: true } }),
     basePrisma.externalCall.findFirst({ where: { tenantId: req.tenant.id, service: 'Netgsm', ok: false }, orderBy: { createdAt: 'desc' }, select: { error: true, createdAt: true } }),
-    prisma.user.groupBy({ by: ['role'], where: { isActive: true, phone: { not: null } }, _count: true })
+    prisma.user.groupBy({ by: ['role'], where: { isActive: true, phone: { not: null } }, _count: true }),
+    optOutText(req.tenant.id)
   ]);
   const count = (c) => parseInt(/\((\d+)\)/.exec(c.operation || '')?.[1]) || 1; // "SMS (3)" → 3 mesaj
   res.json({
@@ -39,6 +41,7 @@ export const getSmsSettings = async (req, res) => {
     header: creds?.header || '',
     hasPassword: Boolean(creds?.password),
     types: firmSmsTypes(req.tenant),
+    optOut, // Ticari toplu SMS'in sonuna eklenen ret metni
     options: typeOptions(),
     stats: {
       sent: calls.filter((c) => c.ok).reduce((s, c) => s + count(c), 0),
@@ -68,6 +71,11 @@ export const saveSmsSettings = async (req, res) => {
         ...(creds.username && { smsProvider: 'NETGSM', smsConfigEnc: encryptSmsConfig(creds) })
       }
     });
+  }
+  // Ticari toplu SMS'in ret metni (ör. "Ret için RET yazıp 3XXX'e gönderin. B0XX")
+  if (typeof req.body.optOutText === 'string') {
+    const value = req.body.optOutText.trim().slice(0, 160);
+    await prisma.setting.upsert({ where: { tenantId_key: { tenantId: req.tenant.id, key: OPTOUT_KEY } }, update: { value }, create: { key: OPTOUT_KEY, value } });
   }
   invalidateTenantCache(req.tenant.slug);
   forgetTenantForMail(req.tenant.id);

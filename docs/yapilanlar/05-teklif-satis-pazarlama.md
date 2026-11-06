@@ -42,6 +42,16 @@ Telefonla ya da WhatsApp'tan gelen sipariş için:
 - Emin olmadığında, müşteri insan / indirim istediğinde, şikâyette ya da hata olursa konuşma ekibe devredilir ve bildirim gider.
 - **Gelen kutusu:** konuşma listesi ve filtreler, mesaj durumları, devral / yapay zekâya bırak / kapat, ekip yanıtı, 24 saat kuralı. Yazan kişi müşteri adaylarına otomatik eklenir.
 
+## Toplu SMS (6 Kasım)
+
+Müşteriler → **Toplu SMS** ("Toplu SMS" yetkisi; firmada SMS açık ve Netgsm bağlıyken gönderir).
+
+- **Alıcılar:** bayiler, bayi olmayan müşteri carileri ve müşteri adayları; seçim sekmeler arasında korunur. Süzgeçler: ad, etiket, bayi grubu, plasiyer, borcu olanlar, 30 / 60 / 90 gündür sipariş vermeyenler; adaylarda durum, kaynak, şehir.
+- **Numaralar** sunucuda kayıtlardan çözülür (yalnızca cep telefonu): önce bayi kullanıcıları (ana kullanıcı önce), sonra cari yetkili kişileri, sonra carinin telefonu. Firma başına bir numara ya da bütün numaraları; aynı numaraya bir kez.
+- **Mesaj:** `{ad}`, `{yetkili}`, `{bakiye}` ile kişiselleştirme, önizleme, karakter / SMS boyu / toplam SMS tahmini, göndermeden önce onay. En fazla 900 karakter, tek gönderimde 5.000 numara.
+- **Tür:** *Bilgilendirme* (bayram tatili, teslimat günü…) İYS süzgeci olmadan gider. *Ticari (İYS)* (kampanya, indirim, yeni ürün) Netgsm'in İYS süzgeciyle gider (cariler tacir `12`, adaylar bireysel `11`; değerler Netgsm belgelerinden, canlıda Netgsm'den teyit edilmeli) ve sonuna firmanın ret metni eklenir (Ayarlar → SMS; yoksa ticari gönderilemez).
+- **Geçmiş:** her gönderim alıcılarıyla kaydedilir (kim, ne zaman, hangi metin, kaçı gönderildi, hata); Netgsm'e 500'lük partilerle gider, başarısız parti diğerlerini durdurmaz. İşlem kaydında "Toplu SMS gönderildi" olarak görünür.
+
 ## Tanıtım sitesi (platformun satış sitesi)
 
 - **Yeniden tasarım** (`d5327df`, `0da0fd2`): pastel giriş bölümü, HTML ile çizilmiş bayi portalı, sekmeli özellikler, 4 adımlı kurulum, aylık / yıllık paketler, kayıt formu, SSS. Önce / sonra karşılaştırması, canlı olay akışı, rol bazlı faydalar, 6 başlıkta tam özellik listesi, kazanç hesaplayıcı, e-ticaret altyapısıyla karşılaştırma, telefonda sabit "ücretsiz dene" çubuğu. Yalnızca ürünün gerçekten yaptıkları yazıldı.

@@ -191,7 +191,8 @@ Portal telefona uygulama olarak kurulur (Android/masaüstü Chrome: menüdeki **
 - **Web Push:** bildirim zilinde izin verilince cihaz abone olur; panel bildirimleri uygulama kapalıyken de telefona düşer. Çıkışta cihazın aboneliği silinir. iPhone'da push yalnızca ana ekrana eklenen uygulamada çalışır (iOS 16.4+).
 - `backend/.env`: `VAPID_PUBLIC_KEY`, `VAPID_PRIVATE_KEY`, `VAPID_SUBJECT` (üretmek için `npx web-push generate-vapid-keys`). Boşsa push kapalıdır; panel içi bildirim ve e-posta çalışmaya devam eder. Anahtarlar değişirse cihazlar bir sonraki açılışta kendiliğinden yeniden abone olur.
 - Service worker yalnızca production build'de kaydolur (push izni verilince geliştirmede de kaydolur). Push için site HTTPS üzerinden sunulmalıdır (localhost hariç).
-- **SMS (isteğe bağlı):** firma Ayarlar → SMS'te kendi Netgsm hesabını bağlayıp açar / kapatır; seçtiği bildirimler cep telefonu kayıtlı kullanıcılara SMS olarak da gider (kullanıcı tür tür kapatabilir). Yalnızca bilgilendirme mesajı; ücret firmanın Netgsm hesabından düşer.
+- **SMS (isteğe bağlı):** firma Ayarlar → SMS'te kendi Netgsm hesabını bağlayıp açar / kapatır; seçtiği bildirimler cep telefonu kayıtlı kullanıcılara SMS olarak da gider (kullanıcı tür tür kapatabilir). Ücret firmanın Netgsm hesabından düşer.
+- **Toplu SMS:** Müşteriler → Toplu SMS'te bayiler, bayi olmayan müşteri carileri ve müşteri adayları süzülüp seçilir; bilgilendirme ya da ticari (İYS süzgeçli, ret metniyle) mesaj kişiselleştirilerek gönderilir, gönderim geçmişi alıcılarıyla tutulur ("Toplu SMS" yetkisi).
 - **Saklama:** okunmuş bildirimler 90, okunmamışlar 180 gün sonra saatlik işle silinir. Tekrar engelleme anahtarı olanlar (ör. vade hatırlatması; silinirse aynı hatırlatma yeniden giderdi) silinmez.
 
 ### Çoklu dil (bayi portalı)

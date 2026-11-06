@@ -17,7 +17,7 @@ const SmsSettings = ({ showAlert, confirm }) => {
 
   const load = () => api.get('/sms-settings').then((r) => {
     setSaved(r.data);
-    setForm({ enabled: r.data.enabled, username: r.data.username, password: '', header: r.data.header, types: r.data.types });
+    setForm({ enabled: r.data.enabled, username: r.data.username, password: '', header: r.data.header, types: r.data.types, optOutText: r.data.optOut || '' });
   }).catch(() => {});
   useEffect(() => { load(); }, []);
 
@@ -116,9 +116,16 @@ const SmsSettings = ({ showAlert, confirm }) => {
         <p className="text-[11px] text-gray-400">Bayi telefonları: Bayiler → Kullanıcılar (ya da bayinin kendi profili). Ekip: her kullanıcı Hesabım → Bildirim tercihleri'nden kendi numarasını girer.</p>
       </Section>
 
+      <Section icon={MessageSquareText} title="Toplu SMS: ticari mesaj ret metni" color="amber"
+        description="Müşteriler → Toplu SMS'te “Ticari (İYS)” gönderimlerin sonuna eklenir. İYS'deki marka kodunuzu ve ret yolunu Netgsm panelinden alın. Boşsa ticari SMS gönderilemez; bilgilendirme mesajlarına eklenmez.">
+        <Field label="Ret metni" hint={`${form.optOutText.length} / 160 karakter`}>
+          <IconInput icon={MessageSquareText} maxLength={160} value={form.optOutText} onChange={(e) => setForm({ ...form, optOutText: e.target.value })} placeholder="Ör. Ret için RET yazıp 3XXX'e gönderin. B0XX" />
+        </Field>
+      </Section>
+
       <div className="flex flex-wrap justify-between gap-3">
         {saved.configured ? <button type="button" disabled={busy} onClick={disconnect} className="inline-flex items-center h-12 px-5 rounded-xl text-sm font-bold text-red-600 hover:bg-red-50"><Unplug className="h-4 w-4 mr-2" /> Bağlantıyı kaldır</button> : <span />}
-        <button disabled={busy} onClick={async () => { if (await call(() => api.put('/sms-settings', { ...creds, enabled: form.enabled, types: form.types }), 'Kaydedildi')) load(); }} className="btn-gradient h-12 px-8 py-0 disabled:opacity-50"><Save className="h-4 w-4 mr-2" /> Kaydet</button>
+        <button disabled={busy} onClick={async () => { if (await call(() => api.put('/sms-settings', { ...creds, enabled: form.enabled, types: form.types, optOutText: form.optOutText }), 'Kaydedildi')) load(); }} className="btn-gradient h-12 px-8 py-0 disabled:opacity-50"><Save className="h-4 w-4 mr-2" /> Kaydet</button>
       </div>
     </div>
   );

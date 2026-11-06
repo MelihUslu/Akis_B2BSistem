@@ -2,6 +2,10 @@ import prisma, { runAsPlatform } from '../utils/prisma.js';
 
 // Rota → okunabilir işlem adı ("METHOD /api/... kalıbı")
 const LABELS = {
+  'POST /api/bulk-sms/send': 'Toplu SMS gönderildi',
+  'PUT /api/sms-settings': 'SMS ayarları değiştirildi',
+  'POST /api/sms-settings/test': 'Deneme SMS\'i gönderildi',
+  'POST /api/sms-settings/headers': 'Netgsm bağlantısı denendi',
   'POST /api/products': 'Ürün oluşturuldu',
   'PATCH /api/products/:id': 'Ürün güncellendi',
   'DELETE /api/products/:id': 'Ürün silindi / pasife alındı',

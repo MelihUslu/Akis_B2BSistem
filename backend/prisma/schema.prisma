@@ -62,6 +62,7 @@ model User {
   favorites         Favorite[]
   orderTemplates    OrderTemplate[]
   supportTickets    SupportTicket[]
+  smsCampaigns      SmsCampaign[]
   employee          Employee?          @relation("EmployeeUser")
 
   @@index([tenantId])
@@ -793,6 +794,7 @@ model Tenant {
   staffTargets           StaffTarget[]
   staffAnnouncements     StaffAnnouncement[]
   staffPayments          StaffPayment[]
+  smsCampaigns           SmsCampaign[]
 }
 
 // Kiracının platforma yaptığı abonelik ödemeleri (iyzico veya manuel)
@@ -1761,4 +1763,40 @@ model StaffPayment {
   @@index([claimId])
   @@index([targetId])
   @@index([advanceId])
+}
+
+// Toplu SMS (Müşteriler → Toplu SMS): seçilen bayi, müşteri carisi ve müşteri adaylarına Netgsm ile gönderim.
+// INFO: bilgilendirme; COMMERCIAL: ticari (İYS süzgeçli, sonuna firmanın ret metni eklenir)
+model SmsCampaign {
+  id          Int                    @id @default(autoincrement())
+  tenantId    Int
+  tenant      Tenant                 @relation(fields: [tenantId], references: [id])
+  createdById Int?
+  createdBy   User?                  @relation(fields: [createdById], references: [id], onDelete: SetNull)
+  kind        String // INFO, COMMERCIAL
+  text        String // Şablon ({ad}, {yetkili}, {bakiye} doldurulmadan)
+  total       Int // Alıcı numara sayısı
+  sent        Int                    @default(0)
+  failed      Int                    @default(0)
+  parts       Int                    @default(1) // En uzun mesajın tahmini SMS boyu
+  error       String?
+  createdAt   DateTime               @default(now())
+  recipients  SmsCampaignRecipient[]
+
+  @@index([tenantId, createdAt])
+}
+
+model SmsCampaignRecipient {
+  id         Int         @id @default(autoincrement())
+  tenantId   Int
+  campaignId Int
+  campaign   SmsCampaign @relation(fields: [campaignId], references: [id], onDelete: Cascade)
+  source     String // DEALER, CUSTOMER, LEAD
+  sourceId   Int
+  name       String
+  phone      String
+  ok         Boolean
+  error      String?
+
+  @@index([campaignId])
 }

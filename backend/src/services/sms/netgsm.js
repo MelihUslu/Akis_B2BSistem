@@ -3,7 +3,8 @@
  *   POST /send       { msgheader, encoding: 'TR', messages: [{ msg, no: '5XXXXXXXXX' }] } → { code: '00', jobid }
  *   GET  /msgheader  onaylı gönderici adları → { code: '00', msgheaders: [...] }
  * Kimlik: Basic (Netgsm kullanıcı adı / abone no : API şifresi). Gövdede code "00" değilse hata.
- * Bilgilendirme (işlem) mesajı gönderilir; ticari ileti gönderilmediği için İYS süzgeci (iysfilter) verilmez.
+ * Bilgilendirme mesajında İYS süzgeci (iysfilter) verilmez. Ticari toplu SMS'te verilir: alıcı bireyselse "11", tacirse "12"
+ * (Netgsm belgelerindeki değerler; canlıda Netgsm'den teyit edin). Netgsm, İYS'de reddetmiş alıcıya göndermez.
  */
 import { trackExternal } from '../monitoring.js';
 
@@ -48,9 +49,11 @@ const request = async (creds, method, path, body) => {
   return data;
 };
 
+export const IYS_FILTER = { INDIVIDUAL: '11', MERCHANT: '12' };
+
 /** messages: [{ no: '5XXXXXXXXX', msg }] — tek istekte gider (Netgsm bire-çok gönderim). İş numarası döner. */
-export const sendSms = (creds, messages) => trackExternal('Netgsm', `SMS (${messages.length})`, async () => {
-  const data = await request(creds, 'POST', '/send', { msgheader: creds.header, encoding: 'TR', messages });
+export const sendSms = (creds, messages, { iysfilter } = {}) => trackExternal('Netgsm', `SMS (${messages.length})`, async () => {
+  const data = await request(creds, 'POST', '/send', { msgheader: creds.header, encoding: 'TR', ...(iysfilter && { iysfilter }), messages });
   return data.jobid || null;
 });
 

@@ -40,7 +40,7 @@ Test anahtarı okur, yazma isteklerini doğrular ama kaydetmez. ERP yazılımcı
 | Yapay zekâ sağlayıcısı | Akıllı teklif, WhatsApp cevabı, sohbet botu | [5](05-teklif-satis-pazarlama.md) |
 | Meta WhatsApp Cloud API | WhatsApp gelen kutusu | [5](05-teklif-satis-pazarlama.md) |
 | SMTP | E-postalar | |
-| Netgsm | SMS bildirimi (firmanın kendi hesabı; isteğe bağlı, Ayarlar → SMS) | [7](07-raporlar-izleme-operasyon.md) |
+| Netgsm | SMS bildirimi ve toplu SMS (firmanın kendi hesabı; isteğe bağlı, Ayarlar → SMS) | [5](05-teklif-satis-pazarlama.md), [7](07-raporlar-izleme-operasyon.md) |
 | Web Push (VAPID) | Telefona anlık bildirim | [8](08-arayuz-tasarim.md) |
 
 Firmaların kendi anahtarları (sanal POS, Paraşüt, Yurtiçi, WhatsApp) şifreli saklanır. Her dış servis çağrısı süre ve sonucuyla kaydedilir (`cad46b7`).
