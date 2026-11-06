@@ -8,12 +8,13 @@
 
 | Dosya | Test | Ne doğrular |
 |---|---|---|
-| `test/unit/*` | 38 | Fiyat ve KDV hesabı, teklif, ayar kontrolü, tarih (gece yarısı), güvenlik, çeviri, push, yardım |
+| `test/unit/*` | 43 | Fiyat ve KDV hesabı, teklif, ayar kontrolü, tarih (gece yarısı), güvenlik, çeviri, push, yardım |
 | `integration/isolation` | 30 | Firmalar arası veri yalıtımı, eşzamanlı onay ve iade, toplu bildirim, oturum önbelleği |
 | `integration/quotes` | 18 | Teklif akışı, sürümler, onay sınırları, siparişe dönüşüm |
 | `integration/dealers` | 11 | Aynı firmadaki bayiler arası erişim: sipariş, fatura, ekstre, ödeme, iade, teklif, adres, şablon, bildirim, bayi kullanıcıları, özel fiyat ve kupon; gruba kapalı ürünler hiçbir uçtan görünmez |
 | `integration/b2b` | 13 | Stok ayırma, bayi iptali, kargo ücreti, otomatik onay, süreli fiyat, görünürlük, kısmi sevkiyat, hedef, bayi adına sipariş, sepet |
 | `integration/hr` | 15 | Personel yönetimi: modül, erişim, izolasyon, personel rolü, izin hakkı / tatiller / yarım gün, departman yöneticisi, onay akışları, kısmi ödeme ve mükerrer ödeme engeli, avans mahsubu, prim hesabı, duyurular |
+| `integration/sms` | 4 | SMS (Netgsm taklidi): ayar yetkisi, şifreli saklama, deneme SMS'i, cep telefonu biçimi, tür / kullanıcı tercihi / kapalı firma, Netgsm hatasının görünmesi |
 | `integration/google` | 8 | Google ile giriş: firma ve ortak giriş, tek kullanımlık bilet, tarayıcı bağı, iptal, doğrulanmamış e-posta, iki aşamalı doğrulama |
 | `integration/site` | 7 | Tanıtım sitesi, sohbet, talepler |
 | `integration/monitoring` | 7 | İzleme kayıtları ve uyarılar |

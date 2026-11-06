@@ -2,7 +2,8 @@ import prisma, { runWithTenant, runAsPlatform, basePrisma } from '../utils/prism
 import { getSettingsMap, num } from './settingsService.js';
 import { tenantAccess } from '../middlewares/tenantMiddleware.js';
 import { sendTrialEndingMail, sendNotificationMail, smtpConfigured } from './mailService.js';
-import { wantsEmail, TYPE_PERMISSION } from './notificationPrefs.js';
+import { wantsEmail, wantsSms, TYPE_PERMISSION } from './notificationPrefs.js';
+import { smsActive, smsText, sendSmsBatch } from './smsService.js';
 import { currentTenantId } from '../utils/prisma.js';
 import { withJobLock } from '../utils/redis.js';
 import { trackJob, cleanupMonitoring, startMetricsFlush } from './monitoring.js';
@@ -15,18 +16,23 @@ const tenantCache = new Map();
 const tenantForMail = async (tenantId) => {
   const hit = tenantCache.get(tenantId);
   if (hit && Date.now() - hit.at < 60_000) return hit.tenant;
-  const tenant = await runAsPlatform(() => prisma.tenant.findUnique({ where: { id: tenantId }, select: { id: true, name: true, slug: true, customDomain: true, customDomainVerifiedAt: true } }));
+  const tenant = await runAsPlatform(() => prisma.tenant.findUnique({ where: { id: tenantId }, select: { id: true, name: true, slug: true, customDomain: true, customDomainVerifiedAt: true, smsEnabled: true, smsProvider: true, smsConfigEnc: true, smsTypes: true } }));
   tenantCache.set(tenantId, { tenant, at: Date.now() });
   return tenant;
 };
 
-const USER_FIELDS = { id: true, email: true, name: true, role: true, isActive: true, notificationPrefs: true };
+// Firma bilgisi ve SMS ayarı değişince önbellek boşaltılır (Ayarlar → SMS kaydı hemen geçerli olsun)
+export const forgetTenantForMail = (tenantId) => tenantCache.delete(tenantId);
 
-// E-posta ve push arka planda: yalnızca isteyen ve aktif kullanıcılara, sırayla (asıl işlemi ve veritabanı havuzunu bekletmez)
+const USER_FIELDS = { id: true, email: true, name: true, role: true, isActive: true, notificationPrefs: true, phone: true, smsPrefs: true };
+
+// E-posta, SMS ve push arka planda: yalnızca isteyen ve aktif kullanıcılara, sırayla (asıl işlemi ve veritabanı havuzunu bekletmez)
 const fanOut = (created, usersById) => {
   const tenantId = currentTenantId();
   if (!tenantId || !created.length) return;
   (async () => {
+    let tenant;
+    const loadTenant = async () => (tenant ??= await tenantForMail(tenantId));
     const mailTo = created.filter((n) => {
       const u = usersById.get(n.userId);
       return u?.email && u.isActive !== false && wantsEmail(u, n.type);
@@ -35,12 +41,20 @@ const fanOut = (created, usersById) => {
       if (!smtpConfigured()) {
         if (process.env.NODE_ENV !== 'production') console.log(`[MAIL - SMTP tanımlı değil] ${mailTo.length} alıcıya bildirim e-postası: ${mailTo[0].title}`);
       } else {
-        const tenant = await tenantForMail(tenantId);
+        await loadTenant();
         for (const n of mailTo) {
           const u = usersById.get(n.userId);
           await sendNotificationMail({ to: u.email, name: u.name, tenant, notification: n }).catch((err) => console.error('[Bildirim e-postası]', err.message));
         }
       }
+    }
+    // SMS: firmada açıksa, cep telefonu olan ve bu türü kapatmamış kullanıcılara; hepsi tek Netgsm isteğinde
+    if (created.some((n) => usersById.get(n.userId)?.phone) && smsActive(await loadTenant())) {
+      const items = created.filter((n) => {
+        const u = usersById.get(n.userId);
+        return u && u.isActive !== false && wantsSms(tenant, u, n.type);
+      }).map((n) => ({ phone: usersById.get(n.userId).phone, text: smsText(tenant, n) }));
+      if (items.length) await sendSmsBatch(tenant, items).catch((err) => console.error('[SMS bildirimi]', err.message));
     }
     await pushToUsers(created);
   })().catch((err) => console.error('[Bildirim dağıtımı]', err.message));

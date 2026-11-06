@@ -82,8 +82,8 @@ export const Segmented = ({ options, value, onChange, size = 'md' }) => (
   </div>
 );
 
-export const Toggle = ({ checked, onChange, color = 'blue' }) => (
-  <button type="button" role="switch" aria-checked={checked} onClick={() => onChange(!checked)}
+export const Toggle = ({ checked, onChange, color = 'blue', label }) => (
+  <button type="button" role="switch" aria-checked={checked} aria-label={label} onClick={() => onChange(!checked)}
     className={`w-11 h-6 rounded-full relative transition-colors shrink-0 ${checked ? SWITCH[color] || SWITCH.blue : 'bg-gray-200'}`}>
     <span className={`absolute top-1 w-4 h-4 bg-white rounded-full shadow transition-all ${checked ? 'left-6' : 'left-1'}`} />
   </button>

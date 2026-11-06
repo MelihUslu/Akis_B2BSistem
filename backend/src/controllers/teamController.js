@@ -3,6 +3,7 @@ import crypto from 'crypto';
 import prisma from '../utils/prisma.js';
 import { normalizePermissions, PERMISSIONS } from '../services/permissions.js';
 import { assertWithinLimit, LimitError } from '../services/limitService.js';
+import { normalizePhone, PhoneError } from '../services/smsService.js';
 import { sendCredentialsMail } from '../services/mailService.js';
 
 const generatePassword = () => crypto.randomBytes(9).toString('base64url').slice(0, 12);
@@ -100,10 +101,12 @@ export const addDealerUser = async (req, res) => {
   const name = String(req.body.name || '').trim();
   if (!name || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) return res.status(400).json({ message: 'Ad ve geçerli bir e-posta girin.' });
   if (await prisma.user.findFirst({ where: { email } })) return res.status(400).json({ message: 'Bu e-posta ile kayıtlı bir kullanıcı var.' });
+  let phone;
+  try { phone = normalizePhone(req.body.phone); } catch (error) { if (error instanceof PhoneError) return res.status(400).json({ message: error.message }); throw error; }
 
   const password = generatePassword();
   const user = await prisma.user.create({
-    data: { email, name, role: 'BAYI', companyId, password: await bcrypt.hash(password, 10), emailVerifiedAt: new Date() }
+    data: { email, name, phone, role: 'BAYI', companyId, password: await bcrypt.hash(password, 10), emailVerifiedAt: new Date() }
   });
   const mail = await sendCredentialsMail({ to: email, name, password, tenant: req.tenant }).catch(() => ({ delivered: false }));
   res.status(201).json({ message: `${name} eklendi. ${mailResult(mail, email)}`, user: publicUser(user) });
@@ -118,6 +121,10 @@ export const updateDealerUser = async (req, res) => {
   const data = {};
   if (req.body.isActive !== undefined) data.isActive = Boolean(req.body.isActive);
   if (req.body.name) data.name = String(req.body.name).trim();
+  // Cep telefonu (SMS bildirimi için; boş bırakılırsa silinir)
+  if (req.body.phone !== undefined) {
+    try { data.phone = normalizePhone(req.body.phone); } catch (error) { if (error instanceof PhoneError) return res.status(400).json({ message: error.message }); throw error; }
+  }
   // Ana kullanıcıyı sadece admin değiştirebilir
   if (req.body.isOwner === true && req.user.role === 'ADMIN') {
     await prisma.user.updateMany({ where: { companyId: target.companyId, role: 'BAYI' }, data: { isOwner: false } });

@@ -130,4 +130,5 @@ export default {
   'Google ile girişin süresi doldu. Lütfen tekrar deneyin.': 'Google sign-in has expired. Please try again.',
   'Google ile giriş bu portala ait değil. Lütfen tekrar deneyin.': 'This Google sign-in does not belong to this portal. Please try again.',
   'Bu Google girişi daha önce kullanıldı. Lütfen tekrar deneyin.': 'This Google sign-in has already been used. Please try again.',
+  'Geçerli bir cep telefonu girin (5XX XXX XX XX).': 'Enter a valid Turkish mobile number (5XX XXX XX XX).',
 };

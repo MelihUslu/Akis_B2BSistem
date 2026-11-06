@@ -37,6 +37,9 @@ model User {
   passwordChangedAt    DateTime?
   // E-posta bildirim tercihleri: { ORDER: true, PAYMENT: false, … } (yoksa varsayılanlar)
   notificationPrefs    Json?
+  // SMS bildirimi (firmada SMS açıksa): cep telefonu 5XXXXXXXXX biçiminde; tercihler { ORDER: false, … } (yoksa açık)
+  phone                String?
+  smsPrefs             Json?
   cart                 Json? // Sunucuda saklanan sepet: [{ id, quantity }] (cihazlar arasında taşınır)
   cartUpdatedAt        DateTime?
   companyId            Int?
@@ -719,6 +722,11 @@ model Tenant {
   cargoProvider          String?
   cargoMode              String            @default("TEST") // TEST, LIVE
   cargoConfigEnc         String?
+  // SMS bildirimi (NETGSM): firma kendi hesabını bağlar, istediğinde kapatır (ayarlar silinmez). Bilgiler şifreli JSON.
+  smsEnabled             Boolean           @default(false)
+  smsProvider            String?
+  smsConfigEnc           String?
+  smsTypes               Json? // SMS ile gidecek bildirimler: { dealer: ['ORDER', …], staff: ['ORDER'] }
   deliveryAddresses      DeliveryAddress[]
   warehouses             Warehouse[]
   warehouseStocks        WarehouseStock[]

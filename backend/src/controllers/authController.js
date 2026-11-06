@@ -1,4 +1,5 @@
-import { typesFor, emailPrefs } from '../services/notificationPrefs.js';
+import { typesFor, emailPrefs, smsTypesFor, smsPrefs } from '../services/notificationPrefs.js';
+import { smsActive, normalizePhone, PhoneError } from '../services/smsService.js';
 import { issueResetToken, findByResetToken, setNewPassword, passwordProblem } from '../services/passwordResetService.js';
 import { sendPasswordResetMail } from '../services/mailService.js';
 import { tenantPortalUrl } from '../config.js';
@@ -310,15 +311,31 @@ export const resetPassword = async (req, res) => {
 
 // ─── Bildirim tercihleri (e-posta) ───────────────────────────────────────────
 
+// SMS bölümü yalnızca firmada SMS açıkken gösterilir (cep telefonu her zaman kaydedilebilir)
+const smsSection = (tenant, user) => ({ available: smsActive(tenant), types: smsTypesFor(tenant, user.role), prefs: smsPrefs(tenant, user) });
+
 export const getNotificationPrefs = async (req, res) => {
-  const user = await prisma.user.findUnique({ where: { id: req.user.id }, select: { role: true, notificationPrefs: true } });
-  res.json({ types: typesFor(user.role), prefs: emailPrefs(user) });
+  const user = await prisma.user.findUnique({ where: { id: req.user.id }, select: { role: true, notificationPrefs: true, phone: true, smsPrefs: true } });
+  res.json({ types: typesFor(user.role), prefs: emailPrefs(user), phone: user.phone || '', sms: smsSection(req.tenant, user) });
 };
 
 export const saveNotificationPrefs = async (req, res) => {
-  const user = await prisma.user.findUnique({ where: { id: req.user.id }, select: { role: true } });
-  const allowed = new Set(typesFor(user.role).map((t) => t.id));
-  const prefs = Object.fromEntries(Object.entries(req.body.prefs || {}).filter(([k]) => allowed.has(k)).map(([k, v]) => [k, v === true]));
-  await prisma.user.update({ where: { id: req.user.id }, data: { notificationPrefs: prefs } });
-  res.json({ message: 'Bildirim tercihleriniz kaydedildi.', prefs: emailPrefs({ role: user.role, notificationPrefs: prefs }) });
+  const user = await prisma.user.findUnique({ where: { id: req.user.id }, select: { role: true, notificationPrefs: true, smsPrefs: true } });
+  const data = {};
+  if (req.body.prefs) {
+    const allowed = new Set(typesFor(user.role).map((t) => t.id));
+    data.notificationPrefs = Object.fromEntries(Object.entries(req.body.prefs).filter(([k]) => allowed.has(k)).map(([k, v]) => [k, v === true]));
+  }
+  if (req.body.smsPrefs) {
+    const allowed = new Set(smsTypesFor(req.tenant, user.role).map((t) => t.id));
+    data.smsPrefs = { ...(user.smsPrefs || {}), ...Object.fromEntries(Object.entries(req.body.smsPrefs).filter(([k]) => allowed.has(k)).map(([k, v]) => [k, v === true])) };
+  }
+  if (req.body.phone !== undefined) {
+    try { data.phone = normalizePhone(req.body.phone); } catch (error) {
+      if (error instanceof PhoneError) return res.status(400).json({ message: error.message });
+      throw error;
+    }
+  }
+  const saved = await prisma.user.update({ where: { id: req.user.id }, data, select: { role: true, notificationPrefs: true, phone: true, smsPrefs: true } });
+  res.json({ message: 'Bildirim tercihleriniz kaydedildi.', prefs: emailPrefs(saved), phone: saved.phone || '', sms: smsSection(req.tenant, saved) });
 };

@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react';
-import { UserPlus, KeyRound, Crown, Users } from 'lucide-react';
+import { UserPlus, KeyRound, Crown, Users, Smartphone, Check } from 'lucide-react';
 import api, { errorMessage } from '../../services/api';
 import { formatDate } from '../../utils/format';
 import { t } from '../../i18n';
@@ -9,9 +9,13 @@ import ModalHeader from '../shared/ModalHeader';
  * Bir bayinin kullanıcıları (şube / çalışan hesapları).
  * base: admin için `/companies/:id/users`, bayinin ana kullanıcısı için `/team/my-company`
  */
+// 5321234567 → 532 123 45 67
+const formatPhone = (p) => (p ? `${p.slice(0, 3)} ${p.slice(3, 6)} ${p.slice(6, 8)} ${p.slice(8)}` : '');
+
 const DealerUsersModal = ({ title, base, isAdmin, onClose, showAlert, confirm, inline = false }) => {
   const [users, setUsers] = useState(null);
   const [form, setForm] = useState(null);
+  const [phoneEdit, setPhoneEdit] = useState(null); // { id, value }
 
   const load = () => api.get(base).then((r) => setUsers(r.data)).catch(() => setUsers([]));
   useEffect(() => { load(); }, [base]); // eslint-disable-line react-hooks/exhaustive-deps
@@ -32,9 +36,15 @@ const DealerUsersModal = ({ title, base, isAdmin, onClose, showAlert, confirm, i
     try {
       await api.patch(`${base}/${u.id}`, data);
       load();
+      return true;
     } catch (err) {
       showAlert({ type: 'error', title: t('Hata'), message: errorMessage(err, t('Güncellenemedi.')) });
+      return false;
     }
+  };
+  const savePhone = async (e) => {
+    e.preventDefault();
+    if (await patch({ id: phoneEdit.id }, { phone: phoneEdit.value })) setPhoneEdit(null);
   };
 
   const reset = async (u) => {
@@ -51,7 +61,18 @@ const DealerUsersModal = ({ title, base, isAdmin, onClose, showAlert, confirm, i
             <div key={u.id} className={`p-4 flex flex-col sm:flex-row sm:items-center gap-3 ${u.isActive ? '' : 'opacity-50'}`}>
               <div className="flex-1 min-w-0">
                 <p className="text-sm font-bold text-gray-900 flex items-center">{u.name}{u.isOwner && <span className="ml-2 inline-flex items-center text-[11px] font-black text-amber-600"><Crown className="h-3 w-3 mr-0.5" /> {t('Ana kullanıcı')}</span>}</p>
-                <p className="text-xs text-gray-400">{u.email} · Son giriş: {u.lastLoginAt ? formatDate(u.lastLoginAt, true) : '—'}</p>
+                <p className="text-xs text-gray-400">{u.email} · {t('Son giriş')}: {u.lastLoginAt ? formatDate(u.lastLoginAt, true) : '—'}</p>
+                {phoneEdit?.id === u.id ? (
+                  <form onSubmit={savePhone} className="mt-1.5 flex items-center gap-1.5">
+                    <input autoFocus type="tel" inputMode="tel" className="premium-input !py-1.5 !text-xs !w-44" placeholder="5XX XXX XX XX" value={phoneEdit.value} onChange={(e) => setPhoneEdit({ ...phoneEdit, value: e.target.value })} aria-label={t('Cep telefonu')} />
+                    <button type="submit" className="p-1.5 rounded-lg text-emerald-600 hover:bg-emerald-50" title={t('Kaydet')}><Check className="h-4 w-4" /></button>
+                    <button type="button" onClick={() => setPhoneEdit(null)} className="text-[11px] font-bold text-gray-400 hover:text-gray-600">{t('Vazgeç')}</button>
+                  </form>
+                ) : (
+                  <button type="button" onClick={() => setPhoneEdit({ id: u.id, value: u.phone || '' })} className="mt-0.5 inline-flex items-center gap-1 text-xs text-gray-500 hover:text-brand-600">
+                    <Smartphone className="h-3.5 w-3.5" /> {u.phone ? formatPhone(u.phone) : t('Cep telefonu ekle (SMS)')}
+                  </button>
+                )}
               </div>
               <div className="flex items-center gap-2">
                 {isAdmin && !u.isOwner && u.isActive && <button onClick={() => patch(u, { isOwner: true })} className="px-2.5 py-1.5 rounded-lg text-[11px] font-black text-amber-700 bg-amber-50">{t('Ana Kullanıcı Yap')}</button>}
@@ -67,13 +88,14 @@ const DealerUsersModal = ({ title, base, isAdmin, onClose, showAlert, confirm, i
         </div>
       )}
       {form ? (
-        <form onSubmit={add} className="bg-brand-50/40 rounded-2xl p-4 grid grid-cols-1 sm:grid-cols-[minmax(0,1fr)_minmax(0,1fr)_auto] gap-2">
+        <form onSubmit={add} className="bg-brand-50/40 rounded-2xl p-4 grid grid-cols-1 sm:grid-cols-[minmax(0,1fr)_minmax(0,1fr)_minmax(0,0.8fr)_auto] gap-2">
           <input required className="premium-input !bg-white" placeholder={t('Ad Soyad / Şube')} value={form.name} onChange={(e) => setForm({ ...form, name: e.target.value })} />
           <input required type="email" className="premium-input !bg-white" placeholder={t('E-posta')} value={form.email} onChange={(e) => setForm({ ...form, email: e.target.value })} />
+          <input type="tel" inputMode="tel" className="premium-input !bg-white" placeholder={t('Cep telefonu (isteğe bağlı)')} value={form.phone} onChange={(e) => setForm({ ...form, phone: e.target.value })} />
           <button type="submit" className="btn-gradient">{t('Ekle')}</button>
         </form>
       ) : (
-        <button onClick={() => setForm({ name: '', email: '' })} className="flex items-center px-4 py-2.5 rounded-xl bg-brand-50 text-brand-700 text-xs font-black hover:bg-brand-100">
+        <button onClick={() => setForm({ name: '', email: '', phone: '' })} className="flex items-center px-4 py-2.5 rounded-xl bg-brand-50 text-brand-700 text-xs font-black hover:bg-brand-100">
           <UserPlus className="h-4 w-4 mr-1.5" /> {t('Kullanıcı Ekle')}
         </button>
       )}

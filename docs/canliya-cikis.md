@@ -178,6 +178,7 @@ Bunlar kodda hazır, ancak gerçek hesap olmadan doğrulanamadı. Canlıya çık
 | Abonelik tahsilatı | `IYZICO_*` (canlı) | Deneme firmasıyla paket satın alın; Paketler → iyzico eşlemesini yapın |
 | E-fatura | Paraşüt hesabı (test şirketi) | Ayarlar → E-Fatura → bağlantı testi; bir e-arşiv ve bir e-fatura kesin |
 | Kargo | Yurtiçi hesabı | Bir siparişte gönderi oluşturup etiket yazdırın |
+| SMS (isteğe bağlı) | firmanın Netgsm hesabı | Ayarlar → SMS → bağlantı testi ve deneme SMS'i; bir sipariş onayında bayiye SMS gelmeli. Netgsm API kullanıcısında IP kısıtı varsa sunucunun IP'sini ekleyin |
 
 ## 9. Bilinen sınırlar
 

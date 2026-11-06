@@ -17,6 +17,7 @@ Dış servise ya da fiziksel çıktıya bağlı oldukları için otomatik testle
 - [ ] **Google ile giriş:** Google Cloud'da OAuth istemcisi ve yönlendirme adresi tanımlandıktan sonra gerçek Google hesabıyla, firma girişinde ve `/giris`'te.
 - [ ] **Personel yönetimi:** gerçek verilerle bir ay: izin ve masraf talepleri, ödeme ve Gelir-Gider, ay sonunda hedef kapanışı ve prim ödemesi. Kullanmadan önce İzin ayarlarına o yılın dini bayramlarını ekleyin ve personel kartlarına işe giriş tarihi / devir bakiyesi girin.
 - [ ] **Barkod okutma:** gerçek telefon kamerasıyla, https adresinde.
+- [ ] **SMS (Netgsm):** firmanın gerçek hesabıyla Ayarlar → SMS → Bağlantıyı test et ve deneme SMS'i; ardından bir siparişi onaylayıp bayinin telefonuna SMS geldiğini görün. Netgsm'de API kullanıcısının IP kısıtı varsa sunucunun IP'si eklenmeli. İYS hatası (kod 50 / 51) gelirse Netgsm'e bilgilendirme amaçlı gönderimin nasıl işaretleneceği sorulmalı.
 - [ ] **Gerçek iPhone'da bir tur:** kabul testleri Safari motorunda ve iPhone taklidinde geçiyor; ekran klavyesi, alt güvenli alan ve ana ekrana eklenen uygulama yalnızca gerçek cihazda görülür (katalog, sepet, sipariş, ekstre).
 
 ## Bilinen sınırlar
@@ -51,7 +52,7 @@ Kullanıcıların fark edeceği değişiklikler, duyurulmalı:
 
 ## Canlıya alırken
 
-- Veritabanı migration'ları: `npx prisma migrate deploy` (son migration `20261129120000_buyuk_veri_indeksleri`). `20261126120000_b2b_eksikleri` tekliften gelen mevcut siparişlere kanal, kargoya verilmiş siparişlerin kalemlerine gönderilen miktar yazar. Son migration `pg_trgm` eklentisini kurar (PostgreSQL 13+'ta veritabanı sahibi kurabilir) ve ürün / sipariş tablolarına indeks ekler; büyük tabloda birkaç saniye yazma bekletebilir.
+- Veritabanı migration'ları: `npx prisma migrate deploy` (son migration `20261130120000_sms_bildirim`: firmaya SMS ayarları, kullanıcıya cep telefonu ve SMS tercihleri; yalnızca sütun ekler). `20261126120000_b2b_eksikleri` tekliften gelen mevcut siparişlere kanal, kargoya verilmiş siparişlerin kalemlerine gönderilen miktar yazar. `20261129120000_buyuk_veri_indeksleri` `pg_trgm` eklentisini kurar (PostgreSQL 13+'ta veritabanı sahibi kurabilir) ve ürün / sipariş tablolarına indeks ekler; büyük tabloda birkaç saniye yazma bekletebilir.
 - Frontend bağımlılıkları: `npm ci` (yeni paket `@zxing/browser`).
 - `ENCRYPTION_KEY` bir kez belirlenir, sonra değiştirilmez; değişirse firmaların kayıtlı anahtarları çözülemez.
 - Google ile giriş için `GOOGLE_CLIENT_ID` / `GOOGLE_CLIENT_SECRET` (yönlendirme adresi: `https://api.akisb2b.com/api/public/google/callback`).

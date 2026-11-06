@@ -34,3 +34,27 @@ export const typesFor = (role) => Object.entries(NOTIFICATION_TYPES)
 export const emailPrefs = (user) => ({ ...(DEFAULTS[user.role] || {}), ...(user.notificationPrefs || {}) });
 
 export const wantsEmail = (user, type) => Boolean(emailPrefs(user)[type]);
+
+// ─── SMS (firmada açıksa) ────────────────────────────────────────────────────
+// SMS'e uygun bildirimler (kısa, bilgilendirme amaçlı): bayiye ve firmanın ekibine ayrı listeler.
+// Firma Ayarlar → SMS'te hangilerinin gideceğini seçer; kullanıcı kendisine gelenleri tek tek kapatabilir.
+export const SMS_TYPES = {
+  dealer: ['ORDER', 'PAYMENT', 'PAYMENT_DUE', 'QUOTE', 'RETURN'],
+  staff: ['ORDER', 'PAYMENT', 'QUOTE', 'RETURN']
+};
+export const SMS_DEFAULT_TYPES = { dealer: ['ORDER', 'PAYMENT', 'PAYMENT_DUE'], staff: ['ORDER'] };
+const audience = (role) => (role === 'BAYI' ? 'dealer' : role === 'ADMIN' ? 'staff' : null);
+
+/** Firmanın SMS'le gönderdiği türler (ayar yoksa varsayılan), yalnızca izin verilenler */
+export const firmSmsTypes = (tenant) => {
+  const saved = tenant?.smsTypes && typeof tenant.smsTypes === 'object' ? tenant.smsTypes : SMS_DEFAULT_TYPES;
+  return Object.fromEntries(Object.entries(SMS_TYPES).map(([k, allowed]) => [k, (Array.isArray(saved[k]) ? saved[k] : []).filter((t) => allowed.includes(t))]));
+};
+
+/** Kullanıcının SMS alabileceği türler (firmanın açtıkları) ve tercihi (kapatmadıysa açık) */
+export const smsTypesFor = (tenant, role) => {
+  const list = firmSmsTypes(tenant)[audience(role)] || [];
+  return typesFor(role).filter((t) => list.includes(t.id));
+};
+export const smsPrefs = (tenant, user) => Object.fromEntries(smsTypesFor(tenant, user.role).map((t) => [t.id, user.smsPrefs?.[t.id] !== false]));
+export const wantsSms = (tenant, user, type) => Boolean(user.phone) && Boolean(smsPrefs(tenant, user)[type]);
