@@ -39,6 +39,8 @@ Firmanın işini ölçtüğü raporlar ile platformun ayakta kalmasını sağlay
 - Compose'daki `backup` servisi her gün veritabanını ve yüklenen dosyaları yedekler; `BACKUP_KEEP_DAYS` (varsayılan 14) günden eskiler silinir.
 - Geri yükleme betiği; yedek doğrulama ve isteğe bağlı sunucu dışı kopya komutu. Geri yükleme denendi.
 - Sistem Durumu sayfasında son yedek 26 saatten eskiyse kırmızı görünür.
+- **Google Drive'a şifreli kopya (6 Kasım):** yedek servisi rclone'lu kalıpla (`deploy/Dockerfile.backup`) her yedekten sonra Drive'a kopyalar: günlük veritabanı yedeği 30 gün, her ayın ilki 12 ay; yüklenen dosyalar yalnızca değişenler gönderilerek eşitlenir, eski hâlleri 30 gün durur. İçerik ve adlar rclone crypt ile şifreli, erişim `drive.file` izniyle sınırlı. Kurulum bir kez: `scripts/drive-setup.sh`. Saat `BACKUP_TIME` (03:00).
+- **Yedek geçmişi:** her çalışma `backups/.yedek-gecmisi.jsonl`'a yazılır (zaman, tetikleyen, veritabanı boyutu ve tablo sayısı, dosya sayısı, Drive bağlantısı, hata). Platform → Geliştirici → **Yedekler** sayfası geçmişi tarih aralığı ve "yalnızca hatalılar" süzgeciyle gösterir; Sistem Durumu ve günlük özet e-postası Drive kopyasını da kontrol eder.
 
 ## Canlıya çıkış hazırlığı (`5f9f72c`)
 

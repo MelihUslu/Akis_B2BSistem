@@ -1,5 +1,6 @@
 import express from 'express';
 import { systemStatus } from '../services/systemStatus.js';
+import { backupOverview } from '../services/backupStatus.js';
 import { getSiteAdmin, putSiteAdmin, listChats, getChatAdmin, replyChat, updateChat, listLeads, updateLead } from '../controllers/siteController.js';
 import { monitoringOverview, listJobRuns, listExternalCalls, listApiRequests, listSlowRequests, monitoringFilters } from '../services/monitoringReport.js';
 import {
@@ -57,6 +58,8 @@ router.post('/tenants/:id/purge', purgeTenantData);
 router.get('/audit-logs', platformAuditLogs);
 router.get('/errors', listErrors);
 router.get('/system', async (req, res) => res.json(await systemStatus()));
+// Yedekler: son yedek, Google Drive kopyası ve her çalışmanın kaydı (scripts/backup.sh)
+router.get('/backups', async (req, res) => res.json(await backupOverview()));
 // İzleme (istek metrikleri, arka plan işleri, dış servisler, entegrasyon API'si)
 // Tanıtım sitesi ayarları, canlı sohbet ve satış talepleri
 router.get('/site', getSiteAdmin);

@@ -1,4 +1,5 @@
 import { useEffect, useState } from 'react';
+import { Link } from 'react-router-dom';
 import { Activity, CheckCircle2, XCircle, AlertTriangle, Database, HardDrive, RefreshCw, Coins } from 'lucide-react';
 import { platformApi } from '../../services/api';
 import { formatDate } from '../../utils/format';
@@ -57,6 +58,10 @@ const PlatformSystem = () => {
               {!b.ok && <p className="text-xs font-bold text-red-600">Son yedek 26 saatten eski; yedek servisini kontrol edin.</p>}
             </>
           ) : <p className="flex items-center gap-2 text-sm text-red-600"><Dot ok={false} /> {b.note}</p>}
+          {b.configured && (
+            <p className="flex items-center gap-2 text-sm"><Dot ok={s.drive.configured ? s.drive.ok : (s.nodeEnv === 'production' ? false : null)} /> Google Drive: {!s.drive.configured ? 'kurulmadı' : s.drive.lastOkAt ? `${s.drive.ageHours} saat önce` : 'hiç kopyalanmadı'}{s.drive.configured && !s.drive.ok && s.drive.error ? ' (son deneme hatalı)' : ''}</p>
+          )}
+          <Link to="/backups" className="inline-block text-xs font-bold text-brand-600 hover:underline">Yedek geçmişi →</Link>
         </div>
         <div className="rounded-2xl bg-white ring-1 ring-gray-100 p-5 space-y-2">
           <p className="flex items-center font-black text-gray-900"><Coins className="h-4 w-4 mr-2 text-brand-500" /> Döviz kuru</p>

@@ -83,23 +83,32 @@ services:
       - backend
     restart: always
 
-  # Günlük yedek: açılışta bir kez, sonra her gün 03:00 → ./backups (BACKUP_KEEP_DAYS gün saklanır)
+  # Günlük yedek: açılışta bir kez, sonra her gün BACKUP_TIME'da (03:00, bayilerin çalışmadığı saat) → ./backups
+  # (BACKUP_KEEP_DAYS gün) ve kuruluysa Google Drive'a şifreli kopya (bir kez: scripts/drive-setup.sh; rclone ayarı
+  # ./rclone'da). Her çalışmanın kaydı: Platform → Yedekler
   backup:
     logging: *logging
-    image: postgres:15-alpine
+    build:
+      context: ./deploy
+      dockerfile: Dockerfile.backup
     environment:
       PGHOST: db
       PGUSER: ${POSTGRES_USER:-akis}
       PGPASSWORD: ${POSTGRES_PASSWORD}
       PGDATABASE: ${POSTGRES_DB:-akis_b2b}
+      BACKUP_TIME: ${BACKUP_TIME:-03:00}
       BACKUP_KEEP_DAYS: ${BACKUP_KEEP_DAYS:-14}
+      BACKUP_DRIVE_KEEP_DAYS: ${BACKUP_DRIVE_KEEP_DAYS:-30}
+      BACKUP_DRIVE_KEEP_MONTHS: ${BACKUP_DRIVE_KEEP_MONTHS:-12}
       BACKUP_POST_CMD: ${BACKUP_POST_CMD:-}
+      RCLONE_CONFIG: /config/rclone.conf
       TZ: Europe/Istanbul
     volumes:
       - ./scripts:/scripts:ro
       - ./backups:/backups
       - ./backend/uploads:/uploads:ro
-    entrypoint: ["/bin/sh", "-c", "/scripts/backup.sh; while true; do sleep $$(( ( $$(date -d 03:00 +%s 2>/dev/null || date +%s) + 86400 - $$(date +%s) ) % 86400 + 1 )); /scripts/backup.sh || echo '[yedek] HATA'; done"]
+      - ./rclone:/config
+    entrypoint: ["/bin/sh", "-c", "/scripts/backup.sh acilis; while true; do sleep $$(( ( $$(date -d \"$$BACKUP_TIME\" +%s 2>/dev/null || date +%s) + 86400 - $$(date +%s) ) % 86400 + 1 )); /scripts/backup.sh zamanli || echo '[yedek] HATA'; done"]
     depends_on:
       db:
         condition: service_healthy

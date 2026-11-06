@@ -7,7 +7,7 @@ Bu belge, Akis B2B'yi bir Linux sunucuda canlıya almak için gereken adımları
 ```
 İnternet ──443──> web (Caddy) ──┬── statik arayüz (firma.akisb2b.com, platform.akisb2b.com, b2b.firmasi.com)
                                 └── api.akisb2b.com ──> backend (Node) ──> db (PostgreSQL), redis
-                       backup ── her gün 03:00 ──> ./backups  (+ isteğe bağlı sunucu dışı kopya)
+                       backup ── her gün 03:00 ──> ./backups ──şifreli──> Google Drive (rclone)
 ```
 
 | Dosya | Görev |
@@ -76,39 +76,80 @@ docker compose -f docker-compose.prod.yml logs -f backend   # "Server is running
 - **İzleme (Platform → Geliştirici → İzleme):** uç bazında istek sayısı, süre ve hata oranı; yavaş istekler (1 sn üzeri); arka plan işleri; dış servis çağrıları (iyzico, PayTR, Paraşüt, Yurtiçi, TCMB, yapay zekâ, SMTP); ERP API istekleri. Kayıtlar 7–30 gün tutulur.
 - **Uyarı e-postaları** (`PLATFORM_ALERT_EMAIL`): yeni hata, "çözüldü" işaretlenen hatanın tekrarlaması, son 10 dakikada `ALERT_ERROR_SPIKE` (varsayılan 30) sunucu hatası ve hata veren arka plan işi için gönderilir. Aynı konu saatte en fazla bir kez gelir. Her sabah `DIGEST_HOUR` (varsayılan 08:00) saatinde günlük özet gider; kapatmak için `DAILY_DIGEST=false`.
 - **Sentry (isteğe bağlı):** `npm install @sentry/node` yapıp `SENTRY_DSN` tanımlayın.
-- **Sistem Durumu:** Son yedek 26 saatten eskiyse kırmızı görünür.
+- **Yedekler (Platform → Geliştirici → Yedekler):** her yedeklemenin zamanı, alınan veritabanı ve dosyalar, Google Drive bağlantısı ve varsa hatası. Sistem Durumu'nda son yedek ya da son Drive kopyası 26 saatten eskiyse kırmızı görünür; günlük özet e-postası da ikisini raporlar ve sorun varsa "kontrol edilmesi gerekenler var" konusuyla gelir.
 - **Disk:** `df -h` ile disk doluluğunu izleyin. Yedekler `BACKUP_KEEP_DAYS` (varsayılan 14) günden sonra silinir.
 
 ## 6. Yedekleme ve geri yükleme
 
-`backup` servisi açılışta ve her gün 03:00'te iki dosya üretir:
+`backup` servisi açılışta ve her gün `BACKUP_TIME`'da (varsayılan 03:00; bayilerin çalışmadığı saat) çalışır:
 
-- `backups/db-*.dump`: veritabanı yedeği. Yedek alındıktan sonra okunabilir olduğu doğrulanır.
+- `backups/db-*.dump`: veritabanı yedeği. Alındıktan sonra okunabildiği ve tablo verisi içerdiği doğrulanır.
 - `backups/uploads-*.tar.gz`: yüklenen dosyalar (ürün görselleri, destek ekleri, cari belgeleri).
+- Sunucuda `BACKUP_KEEP_DAYS` (14) gün saklanır. Her çalışmanın kaydı (ne alındı, Drive kopyası, hata) `backups/.yedek-gecmisi.jsonl`'a yazılır ve **Platform → Geliştirici → Yedekler**'de görünür.
 
-**Sunucu dışı kopya şarttır;** sunucu kaybolursa yerel yedek de kaybolur. İki yol var:
+### Google Drive'a şifreli kopya
 
-- Sunucunun kendi cron'u ile (önerilen):
+**Sunucu dışı kopya şarttır;** sunucu kaybolursa yerel yedek de kaybolur. Yedek servisi her yedekten hemen sonra rclone ile Google Drive'a kopyalar:
 
-  ```bash
-  # rclone ile S3 / Backblaze / Google Drive vb. (bir kez: rclone config)
-  15 3 * * * rclone copy /opt/akis/backups yedek:akis-yedek --max-age 48h
-  ```
+| Drive'da | Ne | Saklama |
+|---|---|---|
+| `gunluk/` | Her günün veritabanı yedeği | `BACKUP_DRIVE_KEEP_DAYS` (30) gün |
+| `aylik/` | Her ayın ilk veritabanı yedeği | `BACKUP_DRIVE_KEEP_MONTHS` (12) ay |
+| `dosyalar/` | Yüklenen dosyalar; her gece yalnızca yeni / değişenler gider | Güncel hâl |
+| `dosyalar-eski/<zaman>/` | Değişen ya da silinen dosyanın önceki hâli | 30 gün |
 
-- `BACKUP_POST_CMD` ile: yedek servisi her yedekten sonra bu komutu çalıştırır. Komut, yedek konteynerinde bulunan araçlarla yazılmalıdır; rclone gibi ek araç gerekiyorsa cron yolunu kullanın.
+İçerik ve dosya adları şifrelenir (rclone crypt): Drive hesabı ele geçse de yedek okunamaz. Erişim `drive.file` izniyle sınırlıdır; rclone Drive'da yalnızca kendi oluşturduğu `Akis-B2B-Yedek` klasörünü görür. Silinen eski yedekler çöp kutusuna gitmez (kotayı doldurmasın). Ücretsiz Drive 15 GB'tır; Yedekler sayfasındaki boyutlara göre (30 günlük + 12 aylık veritabanı yedeği + dosyalar) gerekirse Google One ile büyütün ya da süreleri kısaltın.
 
-**Geri yükleme** (önce mutlaka ayrı bir veritabanına yükleyip kontrol edin):
+**Kurulum (bir kez, ~5 dakika):**
+
+1. Tarayıcısı olan bir bilgisayarda rclone kurun (Mac: `brew install rclone`; diğerleri: rclone.org/install). Yedeklerin gideceği Google hesabıyla giriş yapın; ekrana yazılan `{"access_token":...}` satırını kopyalayın:
+
+   ```bash
+   rclone authorize "drive" "eyJzY29wZSI6ImRyaXZlLmZpbGUifQ"
+   ```
+
+2. Sunucuda, proje klasöründe:
+
+   ```bash
+   docker compose -f docker-compose.prod.yml up -d --build backup            # rclone'lu yedek kalıbı
+   docker compose -f docker-compose.prod.yml exec backup /scripts/drive-setup.sh '<kopyalanan satır>'
+   docker compose -f docker-compose.prod.yml exec backup /scripts/backup.sh  # ilk kopyayı hemen al
+   ```
+
+   Kurulum bir deneme dosyasını şifreleyip yükler, geri okur ve siler. Sonunda **yedek şifresi** bir kez gösterilir: parola yöneticisine kaydedin. Sunucu kaybolursa Drive'daki yedekler yalnızca bu şifreyle açılır. rclone ayarı (Google girişi + şifreleme anahtarı) sunucuda `rclone/rclone.conf`'tadır, git'e girmez.
+
+3. Platform → Yedekler'de son satırda "Drive'da aç" bağlantısını ve Drive'da `Akis-B2B-Yedek` klasörünü görün.
+
+Google girişi geçersiz olursa (şifre değiştirildi, erişim kaldırıldı) Yedekler sayfasında ve günlük özette Drive hatası görünür. 1. adımı tekrarlayıp `drive-setup.sh '<yeni satır>' --yenile` çalıştırın; yedek şifresi değişmez.
+
+### Geri yükleme
+
+Önce mutlaka ayrı bir veritabanına yükleyip kontrol edin:
 
 ```bash
+# Sunucudaki yedekten
 docker compose -f docker-compose.prod.yml exec backup /scripts/restore.sh /backups/db-YYYYMMDD-HHMMSS.dump kontrol_db
+# Drive'daki yedekten: önce listele ve sunucuya indir (şifre otomatik çözülür)
+docker compose -f docker-compose.prod.yml exec backup rclone lsl yedek:gunluk     # aylıklar: yedek:aylik
+docker compose -f docker-compose.prod.yml exec backup rclone copy yedek:gunluk/db-YYYYMMDD-HHMMSS.dump /backups/
 # kontrol ettikten sonra asıl veritabanına (MEVCUT VERİ SİLİNİR):
 docker compose -f docker-compose.prod.yml stop backend
 docker compose -f docker-compose.prod.yml exec backup /scripts/restore.sh /backups/db-YYYYMMDD-HHMMSS.dump
 tar -xzf backups/uploads-YYYYMMDD-HHMMSS.tar.gz -C backend/uploads
+#   ya da dosyaları Drive'dan:
+docker compose -f docker-compose.prod.yml run --rm --entrypoint rclone -v ./backend/uploads:/geri backup copy yedek:dosyalar /geri
 docker compose -f docker-compose.prod.yml start backend
 ```
 
-> Geri yükleme 27.10.2026'da geliştirme ortamında denendi: yedekten ayrı bir veritabanına yüklenen verinin tablo sayıları ve migration listesi birebir tuttu; dosya arşivinde cari belgeleri klasörü de vardı. Canlıda ilk haftada bir kez daha deneyin.
+**Sunucu tamamen kaybolduysa:** yeni sunucuyu bu rehberle kurun, 1. adımdaki satırı alın ve eski şifreyle bağlanın; sonra yukarıdaki gibi indirip geri yükleyin:
+
+```bash
+docker compose -f docker-compose.prod.yml exec -e YEDEK_SIFRESI='<kayıtlı şifre>' backup /scripts/drive-setup.sh '<satır>'
+```
+
+**Ek komut:** `BACKUP_POST_CMD` tanımlanırsa her yedekten sonra yedek konteynerinde çalışır (ör. ikinci bir depoya kopya). Başarısız olursa yedek geçmişinde hata görünür.
+
+> Geri yükleme 27.10.2026'da geliştirme ortamında denendi: yedekten ayrı bir veritabanına yüklenen verinin tablo sayıları ve migration listesi birebir tuttu; dosya arşivinde cari belgeleri klasörü de vardı. Canlıda ilk haftada bir kez daha deneyin. Drive'dan geri yükleme de canlıda bir kez denenmeli (Yedekler sayfasının altında komutlar var).
 
 ## 7. Güncelleme
 

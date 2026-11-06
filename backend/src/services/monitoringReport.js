@@ -1,5 +1,6 @@
 import { basePrisma as db } from '../utils/prisma.js';
 import { jobLastRuns, trackJob } from './monitoring.js';
+import { backupOverview } from './backupStatus.js';
 
 /**
  * İzleme raporları: platform panelindeki İzleme sayfası ve günlük özet e-postası.
@@ -167,7 +168,21 @@ export const buildDigest = async () => {
   const apiCalls = o.api.reduce((s, a) => s + a.count, 0);
   if (apiCalls) lines.push(`Entegrasyon API: ${apiCalls} istek, ${o.api.reduce((s, a) => s + a.errors, 0)} hatalı`);
   if (o.slowest[0]) lines.push(`En yavaş uç: ${o.slowest[0].method} ${o.slowest[0].route} (ort. ${o.slowest[0].avgMs} ms)`);
-  const healthy = t.errorRate < 1 && !badJobs.length && !badServices.length && !t.newErrors;
+  // Yedek (yedek servisi ayrı konteynerde; sonucu BACKUP_DIR'den okunur)
+  const { backup, drive } = await backupOverview().catch(() => ({ backup: { configured: false }, drive: { configured: false } }));
+  let backupOk = true;
+  if (backup.configured) {
+    backupOk = Boolean(backup.ok);
+    lines.push(backup.ok ? `Yedek: ${backup.ageHours} saat önce (${backup.file})` : `YEDEK SORUNU: ${backup.note || `son yedek ${backup.ageHours} saat önce`}`);
+    if (drive.configured) {
+      backupOk = backupOk && drive.ok;
+      lines.push(drive.ok ? `Google Drive kopyası: ${drive.ageHours} saat önce` : `GOOGLE DRIVE KOPYASI SORUNU: ${drive.error || `son başarılı kopya ${drive.ageHours ?? '—'} saat önce`}`);
+    } else if (process.env.NODE_ENV === 'production') {
+      backupOk = false;
+      lines.push('Sunucu dışı yedek yok: Google Drive kopyası kurulmadı (scripts/drive-setup.sh)');
+    }
+  }
+  const healthy = t.errorRate < 1 && !badJobs.length && !badServices.length && !t.newErrors && backupOk;
   return { subject: healthy ? 'Günlük özet: sorun yok' : 'Günlük özet: kontrol edilmesi gerekenler var', text: lines.join('\n'), overview: o };
 };
 

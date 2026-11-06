@@ -25,6 +25,8 @@ backend/uploads/private/
 
 # Yedekler (asla depoya girmez)
 backups/
+# Google Drive yedeğinin rclone ayarı (giriş ve şifreleme anahtarı; scripts/drive-setup.sh)
+rclone/
 
 # UAT: oturumlar, derleme, rapor ve ekran kayıtları
 uat/.data/

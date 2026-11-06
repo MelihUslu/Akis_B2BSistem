@@ -71,8 +71,8 @@ services:
       - ./scripts:/scripts:ro
       - ./backups:/backups
       - ./backend/uploads:/uploads:ro
-    # Açılışta bir yedek alır, sonra her gün 03:00'te
-    entrypoint: ["/bin/sh", "-c", "/scripts/backup.sh; while true; do sleep $$(( ( $$(date -d 03:00 +%s 2>/dev/null || date +%s) + 86400 - $$(date +%s) ) % 86400 + 1 )); /scripts/backup.sh || echo '[yedek] HATA'; done"]
+    # Açılışta bir yedek alır, sonra her gün 03:00'te (geliştirmede Google Drive kopyası yok; canlı: docker-compose.prod.yml)
+    entrypoint: ["/bin/sh", "-c", "/scripts/backup.sh acilis; while true; do sleep $$(( ( $$(date -d 03:00 +%s 2>/dev/null || date +%s) + 86400 - $$(date +%s) ) % 86400 + 1 )); /scripts/backup.sh zamanli || echo '[yedek] HATA'; done"]
     depends_on:
       db:
         condition: service_healthy

@@ -1,7 +1,7 @@
 import { Suspense, lazy, useState } from 'react';
 import { Routes, Route, Navigate, NavLink, useNavigate, useLocation, Link } from 'react-router-dom';
 import ErrorBoundary from '../../components/ErrorBoundary';
-import { LayoutDashboard, Building2, Layers, Receipt, LogOut, Lock, Mail, Megaphone, LifeBuoy, ScrollText, ShieldCheck, Menu, X, Bug, BookOpen, Activity, Gauge, MessagesSquare, Globe, LogIn, Loader2, ArrowRight } from 'lucide-react';
+import { LayoutDashboard, Building2, Layers, Receipt, LogOut, Lock, Mail, Megaphone, LifeBuoy, ScrollText, ShieldCheck, Menu, X, Bug, BookOpen, Activity, Gauge, MessagesSquare, Globe, LogIn, Loader2, ArrowRight, DatabaseBackup } from 'lucide-react';
 import { platformApi, errorMessage } from '../../services/api';
 import TwoFactorStep from '../../components/TwoFactorStep';
 import ThemeToggle from '../../components/ThemeToggle';
@@ -22,6 +22,7 @@ const PlatformSecurity = lazy(() => import('./PlatformSecurity'));
 const PlatformErrors = lazy(() => import('./PlatformErrors'));
 const PlatformSystem = lazy(() => import('./PlatformSystem'));
 const PlatformMonitoring = lazy(() => import('./PlatformMonitoring'));
+const PlatformBackups = lazy(() => import('./PlatformBackups'));
 const PlatformLiveChat = lazy(() => import('./PlatformLiveChat'));
 const PlatformSite = lazy(() => import('./PlatformSite'));
 const PlatformHelp = lazy(() => import('./PlatformHelp'));
@@ -110,6 +111,7 @@ const MENU = [
   { name: 'İzleme', path: '/monitoring', icon: Gauge },
   { name: 'Hatalar', path: '/errors', icon: Bug },
   { name: 'Sistem Durumu', path: '/system', icon: Activity },
+  { name: 'Yedekler', path: '/backups', icon: DatabaseBackup },
 ];
 
 const PlatformNav = ({ user, onLogout, mobile = false, onNavigate }) => (
@@ -173,6 +175,7 @@ const PlatformLayout = ({ user, onLogout }) => {
         <Route path="errors" element={<PlatformErrors />} />
         <Route path="system" element={<PlatformSystem />} />
         <Route path="monitoring" element={<PlatformMonitoring />} />
+        <Route path="backups" element={<PlatformBackups />} />
         <Route path="live-chat" element={<PlatformLiveChat />} />
         <Route path="site" element={<PlatformSite />} />
         <Route path="*" element={<Navigate to="/" replace />} />

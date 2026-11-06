@@ -60,6 +60,7 @@ Kullanıcıların fark edeceği değişiklikler, duyurulmalı:
 - `ENCRYPTION_KEY` bir kez belirlenir, sonra değiştirilmez; değişirse firmaların kayıtlı anahtarları çözülemez.
 - Google ile giriş için `GOOGLE_CLIENT_ID` / `GOOGLE_CLIENT_SECRET` (yönlendirme adresi: `https://api.akisb2b.com/api/public/google/callback`).
 - Push için `VAPID_*` anahtarları; uyarılar için `PLATFORM_ALERT_EMAIL` ve SMTP.
+- **Google Drive yedeği:** `scripts/drive-setup.sh` ile bir kez kurun, gösterilen yedek şifresini parola yöneticisine kaydedin; ilk hafta Drive'daki bir yedeği ayrı veritabanına geri yükleyip deneyin ([6. bölüm](../canliya-cikis.md)).
 - Adım adım: [`docs/canliya-cikis.md`](../canliya-cikis.md).
 
 ## Depo durumu
