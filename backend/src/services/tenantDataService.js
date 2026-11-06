@@ -103,6 +103,9 @@ export const exportTenantWorkbook = (tenantId, { signal } = {}) => withSlot('ten
     await paged('Personel Ödemeleri', 'staffPayment');
     await paged('Toplu SMS', 'smsCampaign');
     await paged('Toplu SMS Alıcıları', 'smsCampaignRecipient');
+    await paged('Toplu E-posta', 'mailCampaign');
+    await paged('Toplu E-posta Alıcıları', 'mailCampaignRecipient');
+    await paged('E-posta Aboneliğinden Çıkanlar', 'emailOptOut');
     await book.close();
   } catch (error) {
     await book.abort();
@@ -200,6 +203,9 @@ const purgeTenantRecords = (tenantId) => runAsPlatform(() => prisma.$transaction
   await tx.notification.deleteMany(w);
   await tx.smsCampaignRecipient.deleteMany(w);
   await tx.smsCampaign.deleteMany(w);
+  await tx.mailCampaignRecipient.deleteMany(w);
+  await tx.mailCampaign.deleteMany(w);
+  await tx.emailOptOut.deleteMany(w);
   await tx.pushSubscription.deleteMany(w);
   await tx.stockAlert.deleteMany(w);
   await tx.favorite.deleteMany(w);

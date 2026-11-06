@@ -10,6 +10,7 @@ export const PERMISSIONS = {
   MESSAGES: 'WhatsApp gelen kutusu: müşteri mesajlarını görme ve yanıtlama',
   LEADS: 'Müşteri adayları (Instagram, WhatsApp, talep formu) ve Excel',
   SMS: 'Toplu SMS: bayilere, müşterilere ve müşteri adaylarına SMS gönderme (firmada SMS açıksa)',
+  EMAIL: 'Toplu e-posta: bayilere, müşterilere ve müşteri adaylarına e-posta gönderme',
   HR: 'Personel: kartlar, izin / masraf / avans onayı, satış hedefi ve prim, duyurular (ödemeler Finans yetkisiyle)',
   SETTINGS: 'Ayarlar, ekip, entegrasyon, sanal POS, abonelik'
 };

@@ -63,6 +63,7 @@ model User {
   orderTemplates    OrderTemplate[]
   supportTickets    SupportTicket[]
   smsCampaigns      SmsCampaign[]
+  mailCampaigns     MailCampaign[]
   employee          Employee?          @relation("EmployeeUser")
 
   @@index([tenantId])
@@ -795,6 +796,8 @@ model Tenant {
   staffAnnouncements     StaffAnnouncement[]
   staffPayments          StaffPayment[]
   smsCampaigns           SmsCampaign[]
+  mailCampaigns          MailCampaign[]
+  emailOptOuts           EmailOptOut[]
 }
 
 // Kiracının platforma yaptığı abonelik ödemeleri (iyzico veya manuel)
@@ -1799,4 +1802,57 @@ model SmsCampaignRecipient {
   error      String?
 
   @@index([campaignId])
+}
+
+// Toplu e-posta (Müşteriler → Toplu E-posta): arka planda, hızı ve günlük sınırı ayarlı gönderilir; sunucu yeniden
+// başlarsa bekleyen alıcılardan devam edilir. Her e-postada abonelikten çıkma bağlantısı vardır.
+model MailCampaign {
+  id          Int                     @id @default(autoincrement())
+  tenantId    Int
+  tenant      Tenant                  @relation(fields: [tenantId], references: [id])
+  createdById Int?
+  createdBy   User?                   @relation(fields: [createdById], references: [id], onDelete: SetNull)
+  kind        String // INFO (bilgilendirme), COMMERCIAL (ticari)
+  subject     String
+  body        String // Şablon ({ad}, {yetkili}, {bakiye} doldurulmadan), düz metin
+  total       Int
+  sent        Int                     @default(0)
+  failed      Int                     @default(0)
+  status      String                  @default("SENDING") // SENDING, DONE
+  error       String?
+  createdAt   DateTime                @default(now())
+  updatedAt   DateTime                @updatedAt // Gönderim sürerken her partide güncellenir (yarıda kalanı bulmak için)
+  finishedAt  DateTime?
+  recipients  MailCampaignRecipient[]
+
+  @@index([tenantId, createdAt])
+  @@index([status, updatedAt])
+}
+
+model MailCampaignRecipient {
+  id         Int          @id @default(autoincrement())
+  tenantId   Int
+  campaignId Int
+  campaign   MailCampaign @relation(fields: [campaignId], references: [id], onDelete: Cascade)
+  source     String // DEALER, CUSTOMER, LEAD
+  sourceId   Int
+  name       String
+  email      String
+  status     String       @default("PENDING") // PENDING, SENDING, SENT, FAILED
+  error      String?
+  sentAt     DateTime?
+  updatedAt  DateTime     @updatedAt
+
+  @@index([campaignId, status])
+}
+
+// Toplu e-postadan çıkanlar: bu adrese firmanın toplu e-postası bir daha gitmez (bildirim e-postaları ayrı)
+model EmailOptOut {
+  id        Int      @id @default(autoincrement())
+  tenantId  Int
+  tenant    Tenant   @relation(fields: [tenantId], references: [id])
+  email     String
+  createdAt DateTime @default(now())
+
+  @@unique([tenantId, email])
 }

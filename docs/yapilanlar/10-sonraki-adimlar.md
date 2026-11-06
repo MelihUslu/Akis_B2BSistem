@@ -18,6 +18,7 @@ Dış servise ya da fiziksel çıktıya bağlı oldukları için otomatik testle
 - [ ] **Personel yönetimi:** gerçek verilerle bir ay: izin ve masraf talepleri, ödeme ve Gelir-Gider, ay sonunda hedef kapanışı ve prim ödemesi. Kullanmadan önce İzin ayarlarına o yılın dini bayramlarını ekleyin ve personel kartlarına işe giriş tarihi / devir bakiyesi girin.
 - [ ] **Barkod okutma:** gerçek telefon kamerasıyla, https adresinde.
 - [ ] **SMS (Netgsm):** firmanın gerçek hesabıyla Ayarlar → SMS → Bağlantıyı test et ve deneme SMS'i; ardından bir siparişi onaylayıp bayinin telefonuna SMS geldiğini görün. Netgsm'de API kullanıcısının IP kısıtı varsa sunucunun IP'si eklenmeli. İYS hatası (kod 50 / 51) gelirse Netgsm'e bilgilendirme amaçlı gönderimin nasıl işaretleneceği sorulmalı. Toplu SMS'te ticari gönderim için İYS süzgeç değerleri (tacir `12`, bireysel `11`) ve ret metni Netgsm'den teyit edilmeli; firmanın İYS marka kaydı olmalı.
+- [ ] **Toplu e-posta:** canlı SMTP ile Müşteriler → Toplu E-posta → "Kendime deneme": gelen kutusuna (spam'e değil) düşüyor mu, gönderen adı firmanın adı mı, "Yanıtla" firmanın adresine mi gidiyor? Ardından iki üç kendi adresinize gerçek gönderim; e-postadaki "abonelikten çık" bağlantısı ve Gmail'deki "Aboneliği iptal et" düğmesi çalışıyor mu? Gmail / Yahoo günde 5.000'den fazla gönderen alan adından SPF, DKIM, DMARC ve tek tıkla çıkma ister; gönderim alan adında üçü de tanımlı olmalı.
 - [ ] **Gerçek iPhone'da bir tur:** kabul testleri Safari motorunda ve iPhone taklidinde geçiyor; ekran klavyesi, alt güvenli alan ve ana ekrana eklenen uygulama yalnızca gerçek cihazda görülür (katalog, sepet, sipariş, ekstre).
 
 ## Bilinen sınırlar
@@ -27,6 +28,8 @@ Dış servise ya da fiziksel çıktıya bağlı oldukları için otomatik testle
 - **Yük testi sayıları** geliştirme bilgisayarında alındı; canlı kapasiteyi göstermez.
 - **Tüm veri dışa aktarımı** çok büyük firmada uzun sürer (600 bin sipariş: boşta 49 sn, yoğunlukta 3 dakikadan fazla); tarayıcı sonuna kadar bekler. Bu boyutta firmalar için arka planda hazırlayıp e-postayla bağlantı göndermek daha uygun olur.
 - **iPhone'da anlık bildirim** yalnızca ana ekrana eklenen uygulamada çalışır (iOS 16.4+).
+- **Toplu e-posta** platformun SMTP hesabından gider: firma başına günde 2.000 adres, her gönderim dakikada en fazla 120 e-posta (ortam değişkeniyle değişir; aynı anda süren gönderimler toplanır). SMTP sağlayıcısının kendi sınırı daha düşükse (ör. Google Workspace kullanıcısı günde 2.000, ücretsiz Gmail 500; bütün firmaların gönderimi toplamda) çok firmalı kullanımda toplu e-posta için Amazon SES, Brevo, Postmark gibi bir gönderim servisi gerekir. Açılma / tıklanma takibi ve geri dönen (bounce) adreslerin otomatik ayıklanması yok; SMTP'nin anında reddettiği adres gönderim geçmişinde hatalı görünür.
+- **Ticari e-posta için izin:** ticari ileti onayı (6563 sayılı Kanun, İYS) firmanın sorumluluğundadır; sistem bayi / müşterinin onay verip vermediğini bilmez. Tacir ve esnafa (bayilerin ve carilerin çoğu) giden ticari iletide önceden onay gerekmez ama ret hakkı tanınmalıdır; bireylere (müşteri adaylarının çoğu) önceden onay gerekir. Her iletide çıkma bağlantısı bulunur.
 - **Personel yönetimi:** dini bayram tarihleri firma tarafından eklenir; yaşa bağlı izin kuralı ve iki aşamalı onay yok; ayrıntı [11. bölüm](11-personel-yonetimi.md).
 
 ## 4 Kasım'daki davranış değişiklikleri
@@ -49,14 +52,15 @@ Kullanıcıların fark edeceği değişiklikler, duyurulmalı:
 ## 6 Kasım'daki davranış değişiklikleri
 
 - **Okunmamış bildirimler** 180 gün sonra silinir (okunmuşlar 90 gün; vade hatırlatması gibi tekrar engelleyen kayıtlar silinmez).
+- **Yeni yetkiler:** "Toplu SMS" ve "Toplu e-posta". Firma sahibi otomatik görür; diğer yöneticilere Ayarlar → Ekip ve Yetkiler'den verilmelidir (mevcut yöneticilere kendiliğinden verilmez).
 
 ## Canlıya alırken
 
-- Veritabanı migration'ları: `npx prisma migrate deploy` (son migration `20261201120000_toplu_sms`: toplu SMS gönderim ve alıcı tabloları; ondan önceki `20261130120000_sms_bildirim` firmaya SMS ayarları, kullanıcıya cep telefonu ve SMS tercihleri ekler; ikisi de veri değiştirmez). `20261126120000_b2b_eksikleri` tekliften gelen mevcut siparişlere kanal, kargoya verilmiş siparişlerin kalemlerine gönderilen miktar yazar. `20261129120000_buyuk_veri_indeksleri` `pg_trgm` eklentisini kurar (PostgreSQL 13+'ta veritabanı sahibi kurabilir) ve ürün / sipariş tablolarına indeks ekler; büyük tabloda birkaç saniye yazma bekletebilir.
+- Veritabanı migration'ları: `npx prisma migrate deploy` (son migration `20261202120000_toplu_eposta`: toplu e-posta gönderim, alıcı ve abonelikten çıkanlar tabloları; ondan önceki `20261201120000_toplu_sms` toplu SMS gönderim ve alıcı tablolarını, ondan önceki `20261130120000_sms_bildirim` firmaya SMS ayarları, kullanıcıya cep telefonu ve SMS tercihleri ekler; üçü de veri değiştirmez). `20261126120000_b2b_eksikleri` tekliften gelen mevcut siparişlere kanal, kargoya verilmiş siparişlerin kalemlerine gönderilen miktar yazar. `20261129120000_buyuk_veri_indeksleri` `pg_trgm` eklentisini kurar (PostgreSQL 13+'ta veritabanı sahibi kurabilir) ve ürün / sipariş tablolarına indeks ekler; büyük tabloda birkaç saniye yazma bekletebilir.
 - Frontend bağımlılıkları: `npm ci` (yeni paket `@zxing/browser`).
 - `ENCRYPTION_KEY` bir kez belirlenir, sonra değiştirilmez; değişirse firmaların kayıtlı anahtarları çözülemez.
 - Google ile giriş için `GOOGLE_CLIENT_ID` / `GOOGLE_CLIENT_SECRET` (yönlendirme adresi: `https://api.akisb2b.com/api/public/google/callback`).
-- Push için `VAPID_*` anahtarları; uyarılar için `PLATFORM_ALERT_EMAIL` ve SMTP.
+- Push için `VAPID_*` anahtarları; uyarılar için `PLATFORM_ALERT_EMAIL` ve SMTP. Toplu e-posta sınırları `BULK_MAIL_DAILY_LIMIT` (firma başına günlük adres, varsayılan 2000) ve `BULK_MAIL_PER_MINUTE` (gönderim başına, varsayılan 120); SMTP sağlayıcısının sınırına göre ayarlayın. Abonelikten çıkma bağlantısı `API_PUBLIC_URL`'e gider.
 - **Google Drive yedeği:** `scripts/drive-setup.sh` ile bir kez kurun, gösterilen yedek şifresini parola yöneticisine kaydedin; ilk hafta Drive'daki bir yedeği ayrı veritabanına geri yükleyip deneyin ([6. bölüm](../canliya-cikis.md)).
 - Adım adım: [`docs/canliya-cikis.md`](../canliya-cikis.md).
 

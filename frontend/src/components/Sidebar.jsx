@@ -6,7 +6,7 @@ import { useTenant } from '../context/TenantContext';
 import TenantBrand from './TenantBrand';
 import { can } from '../utils/permissions';
 import { 
-  LayoutDashboard, Package, ShoppingCart, CreditCard, BarChart3, Settings, LogOut, UserCheck, ChevronLeft, ChevronRight, RotateCcw, Crown, FileSignature, TicketPercent, X, BookUser, Inbox, MessageCircle, ChevronDown, Tags, Briefcase, Users, Wallet, FolderTree, Scale, IdCard, UserRound, Contact, MessageSquareText
+  LayoutDashboard, Package, ShoppingCart, CreditCard, BarChart3, Settings, LogOut, UserCheck, ChevronLeft, ChevronRight, RotateCcw, Crown, FileSignature, TicketPercent, X, BookUser, Inbox, MessageCircle, ChevronDown, Tags, Briefcase, Users, Wallet, FolderTree, Scale, IdCard, UserRound, Contact, MessageSquareText, Mail
 } from 'lucide-react';
 
 // Menü: tek bağlantılar ve açılır gruplar. perm: tek yetki ya da yetkilerden biri yeterli
@@ -27,6 +27,7 @@ const MENU = [
     { name: 'Müşteri Adayları', path: '/admin/leads', badge: 'leads', icon: Inbox, perm: 'LEADS' },
     { name: 'WhatsApp', path: '/admin/whatsapp', badge: 'whatsapp', icon: MessageCircle, perm: ['MESSAGES', 'SETTINGS'] },
     { name: 'Toplu SMS', path: '/admin/sms', icon: MessageSquareText, perm: 'SMS' },
+    { name: 'Toplu E-posta', path: '/admin/mail', icon: Mail, perm: 'EMAIL' },
   ] },
   { key: 'finance', name: 'Finans', icon: Wallet, items: [
     { name: 'Cari Hesaplar', path: '/admin/partners', icon: BookUser, perm: ['FINANCE', 'DEALERS'] },

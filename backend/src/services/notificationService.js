@@ -312,5 +312,10 @@ export const startNotificationJobs = () => {
   // Günlük özet e-postası (08:00, PLATFORM_ALERT_EMAIL)
   const digest = () => withJobLock('daily-digest', 50 * 60 * 1000, () => sendDailyDigestIfDue()).catch(err => console.error('[Günlük özet] Hata:', err.message));
   setInterval(digest, 10 * 60 * 1000);
+  // Yarıda kalan toplu e-postalar (gönderen süreç yeniden başladıysa) bekleyen alıcılardan devam eder
+  const mailResume = () => import('./bulkMailService.js').then((m) => withJobLock('bulk-mail-resume', 60 * 1000, () => m.resumeStaleCampaigns()))
+    .catch(err => console.error('[Toplu e-posta devam] Hata:', err.message));
+  setTimeout(mailResume, 30 * 1000);
+  setInterval(mailResume, 2 * 60 * 1000);
   startMetricsFlush();
 };

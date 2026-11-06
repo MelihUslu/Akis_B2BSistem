@@ -1,6 +1,7 @@
 import prisma from '../utils/prisma.js';
 import { smsActive } from '../services/smsService.js';
-import { SOURCES, KINDS, MAX_RECIPIENTS, MAX_TEXT, BulkSmsError, listRecipients, sendBulk, listCampaigns, campaignDetail, optOutText } from '../services/bulkSmsService.js';
+import { KINDS, MAX_RECIPIENTS, MAX_TEXT, BulkSmsError, sendBulk, listCampaigns, campaignDetail, optOutText } from '../services/bulkSmsService.js';
+import { SOURCES, listRecipients, filtersFromQuery } from '../services/recipientService.js';
 import { STATUSES as LEAD_STATUSES, SOURCES as LEAD_SOURCES } from './customerLeadController.js';
 import { DEALER_GROUPS } from './productController.js';
 
@@ -31,13 +32,8 @@ export const bulkSmsMeta = async (req, res) => {
 
 export const bulkSmsRecipients = async (req, res) => {
   try {
-    const q = req.query;
-    const source = SOURCES[q.source] ? q.source : 'DEALER';
-    const rows = await listRecipients(source, {
-      q: String(q.q || '').trim() || null, tag: q.tag || null, group: q.group || null,
-      plasiyerId: parseInt(q.plasiyerId) || null, debtOnly: q.debtOnly === 'true', noOrderDays: parseInt(q.noOrderDays) || null,
-      status: LEAD_STATUSES[q.status] ? q.status : null, leadSource: LEAD_SOURCES[q.leadSource] ? q.leadSource : null, city: String(q.city || '').trim() || null
-    });
+    const source = SOURCES[req.query.source] ? req.query.source : 'DEALER';
+    const rows = await listRecipients(source, filtersFromQuery(req.query, { leadStatuses: LEAD_STATUSES, leadSources: LEAD_SOURCES }));
     res.json({ rows, withPhone: rows.filter((r) => r.phones.length).length });
   } catch (error) {
     fail(res, error, 'Alıcılar alınamadı.');

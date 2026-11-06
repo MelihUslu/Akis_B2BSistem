@@ -52,6 +52,18 @@ Müşteriler → **Toplu SMS** ("Toplu SMS" yetkisi; firmada SMS açık ve Netgs
 - **Tür:** *Bilgilendirme* (bayram tatili, teslimat günü…) İYS süzgeci olmadan gider. *Ticari (İYS)* (kampanya, indirim, yeni ürün) Netgsm'in İYS süzgeciyle gider (cariler tacir `12`, adaylar bireysel `11`; değerler Netgsm belgelerinden, canlıda Netgsm'den teyit edilmeli) ve sonuna firmanın ret metni eklenir (Ayarlar → SMS; yoksa ticari gönderilemez).
 - **Geçmiş:** her gönderim alıcılarıyla kaydedilir (kim, ne zaman, hangi metin, kaçı gönderildi, hata); Netgsm'e 500'lük partilerle gider, başarısız parti diğerlerini durdurmaz. İşlem kaydında "Toplu SMS gönderildi" olarak görünür.
 
+## Toplu E-posta (6 Kasım)
+
+Müşteriler → **Toplu E-posta** ("Toplu e-posta" yetkisi). Alıcı seçimi Toplu SMS ile aynı ekran ve aynı süzgeçlerdir (iki sayfa ortak alıcı listesini kullanır).
+
+- **Gönderen:** platformun SMTP sunucusu; gönderen adı firmanın adı, yanıtlar firmanın iletişim e-postasına gider (Ayarlar → Genel). Firmanın ayrıca bir şey bağlaması gerekmez; SMTP tanımlı değilse sayfa uyarı gösterir, gönderim yapılmaz.
+- **Adresler** sunucuda kayıtlardan çözülür: önce bayi kullanıcıları (ana kullanıcı önce), sonra cari yetkili kişileri, sonra carinin e-postası. Firma başına bir adres ya da bütün adresleri; aynı adrese bir kez. Abonelikten çıkmış adres atlanır, firmanın sıradaki adresi kullanılır.
+- **İleti:** konu (en fazla 150 karakter) ve metin (en fazla 10.000 karakter); `{ad}`, `{yetkili}`, `{bakiye}` ile kişiselleştirme, önizleme, bağlantılar tıklanabilir hâle gelir. "Kendime deneme" ilk alıcıya göre doldurulmuş iletiyi gönderenin kendi adresine yollar. Göndermeden önce onay.
+- **Tür:** *Bilgilendirme* ya da *Ticari*. Ticari iletinin altına "Bu bir ticari iletidir." yazılır. Her iletide abonelikten çıkma bağlantısı ve `List-Unsubscribe` başlıkları vardır (Gmail / Outlook'taki "aboneliği iptal et" düğmesi tek tıkla çalışır). Çıkan adrese o firmanın toplu e-postası bir daha gitmez; sipariş, ödeme gibi hesap bildirimleri etkilenmez.
+- **Sınırlar:** firma başına günde 2.000 adres (`BULK_MAIL_DAILY_LIMIT`), her gönderim dakikada en fazla 120 e-posta (`BULK_MAIL_PER_MINUTE`; aynı anda iki gönderim sürüyorsa toplam iki katı), tek gönderimde 5.000 adres. Platformun gönderici itibarı bütün firmaların ortak malı olduğu için sınır var; ekranda bugün kalan hak görünür.
+- **Arka planda gönderim:** gönderim başlatılınca sayfa geçmişe geçer, ilerleme çubuğu kendiliğinden yenilenir. Alıcılar 20'lik partilerle alınır; iki süreç aynı kişiye göndermez. Sunucu yeniden başlarsa gönderim kaldığı yerden sürer; tam o sırada gönderilmekte olan adresler, iki kez gitmesin diye yeniden denenmez ve "gidip gitmediği bilinmiyor" diye hatalı sayılır.
+- **Geçmiş:** her gönderim alıcılarıyla kaydedilir (adres, durum, hata, gönderilme zamanı). İşlem kaydında "Toplu e-posta gönderimi başlatıldı" ve "Deneme e-postası gönderildi" olarak görünür. Firmanın veri dışa aktarımına ve hesap silmeye dahildir.
+
 ## Tanıtım sitesi (platformun satış sitesi)
 
 - **Yeniden tasarım** (`d5327df`, `0da0fd2`): pastel giriş bölümü, HTML ile çizilmiş bayi portalı, sekmeli özellikler, 4 adımlı kurulum, aylık / yıllık paketler, kayıt formu, SSS. Önce / sonra karşılaştırması, canlı olay akışı, rol bazlı faydalar, 6 başlıkta tam özellik listesi, kazanç hesaplayıcı, e-ticaret altyapısıyla karşılaştırma, telefonda sabit "ücretsiz dene" çubuğu. Yalnızca ürünün gerçekten yaptıkları yazıldı.
@@ -68,3 +80,4 @@ Müşteriler → **Toplu SMS** ("Toplu SMS" yetkisi; firmada SMS açık ve Netgs
 | `3abe067`, `95838b9` | 2 Kasım | Müşteri adayları, talep formu düzenleyici |
 | `321bb9a` | 2 Kasım | WhatsApp entegrasyonu |
 | `a8e2226` | 4 Kasım | Plasiyer paneli, bayi adına sipariş |
+| `fc4be5c` | 6 Kasım | Toplu SMS |

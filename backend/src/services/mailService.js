@@ -6,8 +6,16 @@ import { trackExternal } from './monitoring.js';
  * SMTP tanımlı değilse mailler gönderilmez; geliştirme ortamında içerik konsola yazılır.
  */
 let transporterPromise = null;
+let testTransport = false;
+
+// Testlerde gerçek SMTP yerine (ör. nodemailer jsonTransport); yalnızca test kodundan çağrılır
+export const setMailTransportForTests = (transport) => {
+  testTransport = Boolean(transport);
+  transporterPromise = transport ? Promise.resolve(transport) : null;
+};
 
 const getTransporter = async () => {
+  if (testTransport) return transporterPromise;
   if (!process.env.SMTP_HOST) return null;
   if (!transporterPromise) {
     transporterPromise = import('nodemailer').then(({ default: nodemailer }) =>
@@ -23,9 +31,10 @@ const getTransporter = async () => {
 };
 
 // SMTP tanımlı mı? (toplu bildirimde tanımlı değilse her alıcı için ayrı ayrı günlüğe yazılmaz)
-export const smtpConfigured = () => Boolean(process.env.SMTP_HOST);
+export const smtpConfigured = () => Boolean(process.env.SMTP_HOST) || testTransport;
 
-export const sendMail = async ({ to, subject, html, fromName }) => {
+// replyTo: yanıt firmaya gitsin; headers: ör. toplu e-postada List-Unsubscribe; text: düz metin sürümü
+export const sendMail = async ({ to, subject, html, text, fromName, replyTo, headers }) => {
   const transporter = await getTransporter();
 
   if (!transporter) {
@@ -43,7 +52,10 @@ export const sendMail = async ({ to, subject, html, fromName }) => {
     from: fromName ? `"${fromName.replace(/"/g, '')}" <${address.replace(/^.*<|>$/g, '')}>` : address,
     to,
     subject,
-    html
+    html,
+    ...(text && { text }),
+    ...(replyTo && { replyTo }),
+    ...(headers && { headers })
   }));
   return { delivered: true };
 };

@@ -193,6 +193,7 @@ Portal telefona uygulama olarak kurulur (Android/masaüstü Chrome: menüdeki **
 - Service worker yalnızca production build'de kaydolur (push izni verilince geliştirmede de kaydolur). Push için site HTTPS üzerinden sunulmalıdır (localhost hariç).
 - **SMS (isteğe bağlı):** firma Ayarlar → SMS'te kendi Netgsm hesabını bağlayıp açar / kapatır; seçtiği bildirimler cep telefonu kayıtlı kullanıcılara SMS olarak da gider (kullanıcı tür tür kapatabilir). Ücret firmanın Netgsm hesabından düşer.
 - **Toplu SMS:** Müşteriler → Toplu SMS'te bayiler, bayi olmayan müşteri carileri ve müşteri adayları süzülüp seçilir; bilgilendirme ya da ticari (İYS süzgeçli, ret metniyle) mesaj kişiselleştirilerek gönderilir, gönderim geçmişi alıcılarıyla tutulur ("Toplu SMS" yetkisi).
+- **Toplu E-posta:** Müşteriler → Toplu E-posta'da aynı alıcı seçimiyle kişiselleştirilmiş e-posta gönderilir. Platformun SMTP'sinden firmanın adıyla gider, yanıtlar firmanın adresine gelir; her iletide abonelikten çıkma bağlantısı ve `List-Unsubscribe` başlığı vardır. Gönderim arka planda, hızı ayarlı ve firma başına günlük sınırlıdır (`BULK_MAIL_DAILY_LIMIT`, `BULK_MAIL_PER_MINUTE`); geçmişte alıcı bazında durum görünür ("Toplu e-posta" yetkisi).
 - **Saklama:** okunmuş bildirimler 90, okunmamışlar 180 gün sonra saatlik işle silinir. Tekrar engelleme anahtarı olanlar (ör. vade hatırlatması; silinirse aynı hatırlatma yeniden giderdi) silinmez.
 
 ### Çoklu dil (bayi portalı)

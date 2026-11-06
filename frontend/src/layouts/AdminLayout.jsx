@@ -34,6 +34,7 @@ const ReportsPage = lazy(() => import('../pages/admin/ReportsPage'));
 const CashPage = lazy(() => import('../pages/admin/CashPage'));
 const LeadManagement = lazy(() => import('../pages/admin/LeadManagement'));
 const BulkSms = lazy(() => import('../pages/admin/BulkSms'));
+const BulkMail = lazy(() => import('../pages/admin/BulkMail'));
 const WhatsAppPage = lazy(() => import('../pages/admin/WhatsAppPage'));
 const HrManagement = lazy(() => import('../pages/admin/HrManagement'));
 const StaffArea = lazy(() => import('../pages/hr/StaffArea'));
@@ -132,6 +133,7 @@ const AdminLayout = () => {
               <Route path="whatsapp" element={<Guard perm={['MESSAGES', 'SETTINGS']}><WhatsAppPage /></Guard>} />
               <Route path="leads" element={<Guard perm="LEADS"><LeadManagement /></Guard>} />
               <Route path="sms" element={<Guard perm="SMS"><BulkSms /></Guard>} />
+              <Route path="mail" element={<Guard perm="EMAIL"><BulkMail /></Guard>} />
               <Route path="coupons" element={<Guard perm="CATALOG"><CouponManagement /></Guard>} />
               <Route path="reports" element={<Guard perm={['ORDERS', 'FINANCE']}><ReportsPage /></Guard>} />
               <Route path="cash" element={<Guard perm="FINANCE"><CashPage /></Guard>} />

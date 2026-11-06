@@ -3,6 +3,7 @@ import { reportClientError, domainCheck, getPlans, slugAvailable, portalLookup, 
 import { platformContext } from '../middlewares/tenantMiddleware.js';
 import { posCallback, paytrNotify } from '../controllers/paymentController.js';
 import { rateLimit } from '../middlewares/rateLimit.js';
+import { unsubscribe } from '../controllers/bulkMailController.js';
 import { getPublicSite, startChat, getChat, postChat, postChatContact, postLead } from '../controllers/siteController.js';
 
 const router = express.Router();
@@ -11,6 +12,9 @@ const router = express.Router();
 router.use(platformContext);
 
 router.get('/plans', getPlans);
+// Toplu e-postadan abonelikten çıkma (e-postadaki bağlantı; POST: e-posta istemcisinin tek tıkla çık isteği)
+router.get('/unsubscribe/:token', rateLimit({ windowMs: 60 * 1000, max: 30 }), unsubscribe);
+router.post('/unsubscribe/:token', rateLimit({ windowMs: 60 * 1000, max: 30 }), unsubscribe);
 // Caddy on-demand TLS: yalnızca bize ait alan adlarına sertifika alınsın
 router.get('/domain-check', domainCheck);
 // Arayüz hata izleme

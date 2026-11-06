@@ -171,6 +171,7 @@ Bunlar kodda hazır, ancak gerçek hesap olmadan doğrulanamadı. Canlıya çık
 | Konu | Gerekli | Nasıl denenir |
 |---|---|---|
 | E-posta | `SMTP_*` | Şifremi unuttum → e-posta gelmeli; bir teklifi e-postayla gönderin |
+| Toplu e-posta | `SMTP_*`, SPF / DKIM / DMARC | Müşteriler → Toplu E-posta → Kendime deneme: gelen kutusuna düşmeli, gönderen firmanın adı, yanıt firmanın adresi olmalı. Kendi adreslerinize küçük bir gönderim yapıp abonelikten çıkma bağlantısını deneyin. SMTP sağlayıcınızın günlük sınırına göre `BULK_MAIL_DAILY_LIMIT` / `BULK_MAIL_PER_MINUTE` ayarlayın |
 | Yapay zekâ ile teklif | `AI_API_KEY` | Teklifler → Yeni Teklif → gerçek ürünlerinizle bir talep yazın; önerileri kontrol edin |
 | Google ile giriş | `GOOGLE_CLIENT_*` | Firma girişinde ve `/giris`'te "Google ile giriş yap" → portalda kayıtlı e-postanın Google hesabıyla girin; kayıtlı olmayan bir Google hesabıyla girişin reddedildiğini görün |
 | Telefona bildirim | `VAPID_*`, HTTPS | Telefonda portalı açın → Uygulamayı Yükle → bildirim izni → bilgisayardan siparişi onaylayın |

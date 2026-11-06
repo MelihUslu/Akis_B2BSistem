@@ -8,21 +8,17 @@
  */
 import prisma from '../utils/prisma.js';
 import * as netgsm from './sms/netgsm.js';
-import { smsActive, smsCreds, normalizePhone } from './smsService.js';
+import { smsActive, smsCreds } from './smsService.js';
 import { formatMoney } from './money.js';
+import { rowsByKeys, MAX_ROWS } from './recipientService.js';
 
-export const SOURCES = { DEALER: 'Bayiler', CUSTOMER: 'Müşteriler', LEAD: 'Müşteri adayları' };
 export const KINDS = { INFO: 'Bilgilendirme', COMMERCIAL: 'Ticari (İYS)' };
 export const OPTOUT_KEY = 'sms_optout_text';
-export const MAX_RECIPIENTS = 5000;
+export const MAX_RECIPIENTS = MAX_ROWS;
 export const MAX_TEXT = 900;
 const CHUNK = 500;
-const KEY_PREFIX = { DEALER: 'D', CUSTOMER: 'C', LEAD: 'L' };
 
 export class BulkSmsError extends Error {}
-
-const mobile = (v) => { try { return normalizePhone(v); } catch { return null; } };
-const uniq = (list) => [...new Set(list.filter(Boolean))];
 
 // SMS boyu (Türkçe karakterli): 155 karaktere kadar 1, uzunsa 150'şer karakterlik parçalar (yaklaşık; Netgsm böyle sayar)
 export const smsParts = (text) => (text.length <= 155 ? 1 : Math.ceil(text.length / 150));
@@ -36,82 +32,11 @@ export const fillTemplate = (template, row) => template
 export const optOutText = async (tenantId) =>
   (await prisma.setting.findUnique({ where: { tenantId_key: { tenantId, key: OPTOUT_KEY } } }))?.value?.trim() || '';
 
-// Cari (bayi ya da müşteri) satırları. Numara sırası: portal kullanıcıları (önce ana kullanıcı), yetkili kişiler
-// (önce birincil), carinin telefonu; yalnızca cep telefonları
-const companyRows = async (kind, f = {}) => {
-  const companies = await prisma.company.findMany({
-    where: {
-      kind,
-      ...(kind === 'DEALER' ? { status: 'ACTIVE' } : { status: { not: 'PASSIVE' } }),
-      ...(f.ids && { id: { in: f.ids } }),
-      ...(f.q && { name: { contains: f.q, mode: 'insensitive' } }),
-      ...(f.tag && { tags: { has: f.tag } }),
-      ...(f.group && { dealerGroup: f.group }),
-      ...(f.plasiyerId && { plasiyerId: f.plasiyerId }),
-      ...(f.debtOnly && { currentBalance: { lt: 0 } })
-    },
-    select: {
-      id: true, name: true, authorizedPerson: true, phone: true, tags: true, dealerGroup: true, currentBalance: true, currency: true,
-      plasiyer: { select: { name: true } },
-      users: { where: { role: 'BAYI', isActive: true, phone: { not: null } }, select: { name: true, phone: true }, orderBy: [{ isOwner: 'desc' }, { id: 'asc' }] },
-      contacts: { select: { name: true, phone: true }, orderBy: [{ isPrimary: 'desc' }, { sortOrder: 'asc' }] }
-    },
-    orderBy: { name: 'asc' },
-    take: MAX_RECIPIENTS
-  });
-  const last = new Map((await prisma.order.groupBy({
-    by: ['companyId'], where: { companyId: { in: companies.map((c) => c.id) }, status: { not: 'CANCELLED' } }, _max: { createdAt: true }
-  })).map((r) => [r.companyId, r._max.createdAt]));
-  const cutoff = f.noOrderDays ? Date.now() - f.noOrderDays * 864e5 : null;
-  return companies
-    .map((c) => ({
-      key: `${KEY_PREFIX[kind]}:${c.id}`, source: kind, id: c.id, name: c.name,
-      contact: c.users[0]?.name || c.contacts[0]?.name || c.authorizedPerson || '',
-      phones: uniq([...c.users.map((u) => u.phone), ...c.contacts.map((x) => mobile(x.phone)), mobile(c.phone)]),
-      tags: c.tags, group: kind === 'DEALER' ? c.dealerGroup : null, plasiyer: c.plasiyer?.name || null,
-      balance: c.currentBalance, currency: c.currency, lastOrderAt: last.get(c.id) || null
-    }))
-    .filter((r) => !cutoff || !r.lastOrderAt || r.lastOrderAt.getTime() < cutoff);
-};
-
-const leadRows = async (f = {}) => {
-  const leads = await prisma.customerLead.findMany({
-    where: {
-      ...(f.ids && { id: { in: f.ids } }),
-      ...(f.q && { OR: [{ name: { contains: f.q, mode: 'insensitive' } }, { phone: { contains: f.q } }] }),
-      ...(f.status && { status: f.status }),
-      ...(f.leadSource && { source: f.leadSource }),
-      ...(f.city && { city: { contains: f.city, mode: 'insensitive' } })
-    },
-    select: { id: true, name: true, phone: true, city: true, source: true, status: true, createdAt: true },
-    orderBy: { createdAt: 'desc' },
-    take: MAX_RECIPIENTS
-  });
-  return leads.map((l) => ({
-    key: `L:${l.id}`, source: 'LEAD', id: l.id, name: l.name || l.phone, contact: l.name, phones: uniq([mobile(l.phone)]),
-    city: l.city, leadSource: l.source, status: l.status, createdAt: l.createdAt, balance: null
-  }));
-};
-
-/** Seçim ekranı: kaynağa ve süzgeçlere göre adaylar (telefonu olmayanlar da gelir, seçilemez) */
-export const listRecipients = (source, filters) => (source === 'LEAD' ? leadRows(filters) : companyRows(source, filters));
-
-/** "D:12", "C:5", "L:9" anahtarlarından alıcılar (numaralar kayıtlardan); aynı numaraya bir kez */
+/** Seçilen kayıtların numaraları (firma başına bir ya da hepsi); aynı numaraya bir kez */
 const resolve = async (keys, allNumbers) => {
-  const ids = { DEALER: [], CUSTOMER: [], LEAD: [] };
-  const byPrefix = Object.fromEntries(Object.entries(KEY_PREFIX).map(([k, p]) => [p, k]));
-  for (const key of keys) {
-    const [p, id] = String(key).split(':');
-    if (byPrefix[p] && Number.isInteger(+id)) ids[byPrefix[p]].push(+id);
-  }
-  const rows = [
-    ...(ids.DEALER.length ? await companyRows('DEALER', { ids: ids.DEALER }) : []),
-    ...(ids.CUSTOMER.length ? await companyRows('CUSTOMER', { ids: ids.CUSTOMER }) : []),
-    ...(ids.LEAD.length ? await leadRows({ ids: ids.LEAD }) : [])
-  ];
   const seen = new Set();
   const out = [];
-  for (const row of rows) {
+  for (const row of await rowsByKeys(keys)) {
     for (const phone of allNumbers ? row.phones : row.phones.slice(0, 1)) {
       if (seen.has(phone)) continue;
       seen.add(phone);

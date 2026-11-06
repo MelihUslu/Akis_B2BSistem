@@ -16,6 +16,7 @@
 | `integration/hr` | 15 | Personel yönetimi: modül, erişim, izolasyon, personel rolü, izin hakkı / tatiller / yarım gün, departman yöneticisi, onay akışları, kısmi ödeme ve mükerrer ödeme engeli, avans mahsubu, prim hesabı, duyurular |
 | `integration/sms` | 4 | SMS (Netgsm taklidi): ayar yetkisi, şifreli saklama, deneme SMS'i, cep telefonu biçimi, tür / kullanıcı tercihi / kapalı firma, Netgsm hatasının görünmesi |
 | `integration/bulkSms` | 5 | Toplu SMS (Netgsm taklidi): yetki, süzgeçler, yalnızca cep numaraları, tekilleştirme, kişiselleştirme, ticaride İYS süzgeci ve ret metni, Netgsm hatası, kapalı SMS |
+| `integration/bulkMail` | 7 | Toplu e-posta (sahte SMTP): yetki, adres sırası ve tekilleştirme, kişiselleştirme, gönderen adı / yanıt adresi, ticari ileti notu, abonelikten çıkma bağlantısı ve tek tık çıkış, sahte imza, çıkan adresin atlanması, kendine deneme, günlük sınır, arka planda gönderim ve yarıda kalanın sürdürülmesi, SMTP'nin bir adresi reddetmesi, SMTP tanımlı değilken gönderim olmaması |
 | `integration/google` | 8 | Google ile giriş: firma ve ortak giriş, tek kullanımlık bilet, tarayıcı bağı, iptal, doğrulanmamış e-posta, iki aşamalı doğrulama |
 | `integration/site` | 7 | Tanıtım sitesi, sohbet, talepler |
 | `integration/monitoring` | 7 | İzleme kayıtları ve uyarılar |
