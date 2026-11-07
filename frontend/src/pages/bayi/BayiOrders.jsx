@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react';
-import { Link } from 'react-router-dom';
+import { Link, useSearchParams } from 'react-router-dom';
 import api from '../../services/api';
-import { History, Package, Truck, RotateCw, ChevronRight, FileSpreadsheet } from 'lucide-react';
+import { History, Package, Truck, RotateCw, ChevronRight, FileSpreadsheet, ClipboardCheck } from 'lucide-react';
 import { downloadFile } from '../../utils/download';
 import { carrierName } from '../../utils/cargo';
 import OrderTimeline from '../../components/OrderTimeline';
@@ -11,12 +11,22 @@ import { formatTRY, formatDate, ORDER_STATUS } from '../../utils/format';
 import { t } from '../../i18n';
 import PageHeader from '../../components/shared/PageHeader';
 import EmptyState from '../../components/shared/EmptyState';
+import FilterTabs from '../../components/shared/FilterTabs';
+import OrderRequests from '../../components/bayi/OrderRequests';
 
 const BayiOrders = () => {
   const [orders, setOrders] = useState([]);
   const [isLoading, setIsLoading] = useState(true);
   const reorder = useReorder();
-  const { alertElement, showAlert } = useAlert();
+  const { alertElement, showAlert, confirm } = useAlert();
+  // Bayi içinde sipariş onayı: talep varsa (ya da bildirimden gelindiyse) sekmeler görünür
+  const [params, setParams] = useSearchParams();
+  const tab = params.get('tab') === 'requests' ? 'requests' : 'orders';
+  const setTab = (id) => setParams(id === 'requests' ? { tab: 'requests' } : {}, { replace: true });
+  const [requests, setRequests] = useState({ requests: [], pending: 0, isOwner: false });
+  const loadRequests = () => api.get('/order-requests').then((r) => setRequests(r.data)).catch(() => {});
+  useEffect(() => { loadRequests(); }, []);
+  const showTabs = requests.requests.length > 0 || tab === 'requests';
 
   useEffect(() => {
     const fetchOrders = async () => {
@@ -53,6 +63,16 @@ const BayiOrders = () => {
       <PageHeader icon={History} tone="blue" title={t('Sipariş Geçmişim')} subtitle={t('Geçmiş ve mevcut tüm siparişlerinizin durumunu takip edin.')}
         actions={<button onClick={() => downloadFile('/orders/export', {}, 'siparislerim.xlsx')} className="flex items-center h-11 px-4 rounded-2xl bg-white border border-gray-100 shadow-sm text-xs font-bold text-gray-600 hover:text-emerald-700 hover:border-emerald-200"><FileSpreadsheet className="h-4 w-4 mr-1.5" /> {t("Excel'e Aktar")}</button>} />
 
+      {showTabs && (
+        <FilterTabs value={tab} onChange={setTab} tabs={[
+          { id: 'orders', label: t('Siparişler'), icon: History },
+          { id: 'requests', label: t('Onay talepleri'), icon: ClipboardCheck, tone: 'orange', count: requests.pending, alert: true },
+        ]} />
+      )}
+
+      {tab === 'requests' ? (
+        <OrderRequests data={requests} reload={loadRequests} showAlert={showAlert} confirm={confirm} />
+      ) : (
       <div className="space-y-4">
         {isLoading ? (
           <div className="text-center py-12 text-gray-400">{t('Yükleniyor...')}</div>
@@ -120,6 +140,7 @@ const BayiOrders = () => {
           );
         })}
       </div>
+      )}
     </div>
   );
 };

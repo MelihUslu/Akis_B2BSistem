@@ -8,7 +8,7 @@ import { FileSpreadsheet, Printer } from 'lucide-react';
 import { downloadFile } from '../../utils/download';
 
 // Firmanın sanal POS'u (iyzico / PayTR): tutar alınır, sağlayıcının güvenli ödeme sayfasına yönlendirilir
-const CardPayModal = ({ suggested, provider, onClose }) => {
+const CardPayModal = ({ suggested, provider, maxInstallment = 1, installmentMin = 0, onClose }) => {
   const [amount, setAmount] = useState(suggested > 0 ? suggested.toFixed(2) : '');
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
@@ -35,6 +35,14 @@ const CardPayModal = ({ suggested, provider, onClose }) => {
           <label className="premium-label">{t('Ödeme Tutarı (₺)')}</label>
           <input required type="number" step="0.01" min="1" className="premium-input text-lg" value={amount} onChange={(e) => setAmount(e.target.value)} />
         </div>
+        {maxInstallment > 1 && (
+          <p className="text-xs font-semibold text-brand-800 bg-brand-50 p-3 rounded-xl">
+            {installmentMin > 0
+              ? t('{amount} ve üzeri ödemelerde {n} taksite kadar bölebilirsiniz.', { amount: formatTRY(installmentMin), n: maxInstallment })
+              : t('{n} taksite kadar bölebilirsiniz.', { n: maxInstallment })}
+            {' '}{t('Vade farkı varsa ödeme sayfasında gösterilir; carinize yazdığınız tutar işlenir.')}
+          </p>
+        )}
         {error && <p className="text-xs font-bold text-red-600 bg-red-50 p-3 rounded-xl">{error}</p>}
         <button type="submit" disabled={loading} className="w-full btn-gradient py-4 disabled:opacity-60"><Lock className="h-4 w-4 mr-2" /> {loading ? t('Yönlendiriliyor...') : t('Güvenli Ödeme Sayfasına Git')}</button>
         <p className="text-[11px] text-center text-gray-400">{t('Kart bilgileriniz')} {provider === 'PAYTR' ? 'PayTR' : 'iyzico'} güvenli ödeme sayfasında işlenir, firmamızda saklanmaz.</p>
@@ -132,6 +140,7 @@ const BayiFinance = () => {
   const [isLoading, setIsLoading] = useState(true);
   const [isPosOpen, setIsPosOpen] = useState(false);
   const [posMode, setPosMode] = useState(null); // IYZICO | PAYTR | DEMO | NONE
+  const [posInfo, setPosInfo] = useState({ maxInstallment: 1, installmentMin: 0 });
   const [targets, setTargets] = useState([]);
   const [params, setParams] = useSearchParams();
   const { alertElement, showAlert, confirm } = useAlert();
@@ -144,7 +153,7 @@ const BayiFinance = () => {
 
   useEffect(() => {
     fetchStatement();
-    api.get('/payments/pos-info').then((r) => setPosMode(r.data.mode)).catch(() => setPosMode('NONE'));
+    api.get('/payments/pos-info').then((r) => { setPosMode(r.data.mode); setPosInfo(r.data); }).catch(() => setPosMode('NONE'));
     api.get('/targets/mine').then((r) => setTargets(r.data)).catch(() => setTargets([]));
     // iyzico ödeme sayfasından dönüş
     const result = params.get('pos');
@@ -193,7 +202,7 @@ const BayiFinance = () => {
   return (
     <div className="space-y-6 md:space-y-8">
       {alertElement}
-      {isPosOpen && ['IYZICO', 'PAYTR'].includes(posMode) && <CardPayModal provider={posMode} suggested={debtTRY} onClose={() => setIsPosOpen(false)} />}
+      {isPosOpen && ['IYZICO', 'PAYTR'].includes(posMode) && <CardPayModal provider={posMode} suggested={debtTRY} maxInstallment={posInfo.maxInstallment} installmentMin={posInfo.installmentMin} onClose={() => setIsPosOpen(false)} />}
       {isPosOpen && posMode === 'DEMO' && (
         <PosModal
           suggested={debtTRY}

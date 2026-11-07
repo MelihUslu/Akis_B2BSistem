@@ -175,7 +175,7 @@ Bunlar kodda hazır, ancak gerçek hesap olmadan doğrulanamadı. Canlıya çık
 | Yapay zekâ ile teklif | `AI_API_KEY` | Teklifler → Yeni Teklif → gerçek ürünlerinizle bir talep yazın; önerileri kontrol edin |
 | Google ile giriş | `GOOGLE_CLIENT_*` | Firma girişinde ve `/giris`'te "Google ile giriş yap" → portalda kayıtlı e-postanın Google hesabıyla girin; kayıtlı olmayan bir Google hesabıyla girişin reddedildiğini görün |
 | Telefona bildirim | `VAPID_*`, HTTPS | Telefonda portalı açın → Uygulamayı Yükle → bildirim izni → bilgisayardan siparişi onaylayın |
-| Sanal POS | firmanın iyzico/PayTR hesabı | Bayi olarak küçük bir tutarla kartla ödeyin; cariye işlendiğini görün |
+| Sanal POS | firmanın iyzico/PayTR hesabı | Bayi olarak küçük bir tutarla kartla ödeyin; cariye işlendiğini görün. Taksit açacaksanız Ayarlar → Sanal POS → Taksit'i ve sağlayıcı panelindeki vade farkı ayarını yapıp taksitli bir ödeme deneyin (cariye net tutar işlenmeli) |
 | Abonelik tahsilatı | `IYZICO_*` (canlı) | Deneme firmasıyla paket satın alın; Paketler → iyzico eşlemesini yapın |
 | E-fatura | Paraşüt hesabı (test şirketi) | Ayarlar → E-Fatura → bağlantı testi; bir e-arşiv ve bir e-fatura kesin |
 | Kargo | Yurtiçi hesabı | Bir siparişte gönderi oluşturup etiket yazdırın |

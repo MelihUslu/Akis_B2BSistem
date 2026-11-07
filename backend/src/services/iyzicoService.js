@@ -119,7 +119,8 @@ export const toDate = (value) => {
 
 const money = (n) => Number(n).toFixed(2);
 
-export const initializePaymentCheckout = (creds, { amount, conversationId, basketId, callbackUrl, buyer, address, itemName }) =>
+// installments: ödeme formunda gösterilecek taksitler (ör. [1, 2, 3]); vade farkı iyzico panelindeki ayara göre karta yansır
+export const initializePaymentCheckout = (creds, { amount, conversationId, basketId, callbackUrl, buyer, address, itemName, installments = [1] }) =>
   request('POST', '/payment/iyzipos/checkoutform/initialize/auth/ecom', {
     locale: 'tr',
     conversationId,
@@ -129,7 +130,7 @@ export const initializePaymentCheckout = (creds, { amount, conversationId, baske
     basketId,
     paymentGroup: 'PRODUCT',
     callbackUrl,
-    enabledInstallments: [1],
+    enabledInstallments: installments,
     buyer,
     shippingAddress: address,
     billingAddress: address,

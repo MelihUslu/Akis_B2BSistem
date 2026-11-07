@@ -1,11 +1,16 @@
 import { useEffect, useMemo, useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
-import { Search, ShoppingCart, History, FileText, Store, TrendingUp, Award, AlertTriangle, Phone, UserRound, ChevronRight } from 'lucide-react';
+import { Search, ShoppingCart, History, FileText, Store, TrendingUp, Award, AlertTriangle, Phone, UserRound, ChevronRight, MapPin, CalendarPlus, CalendarCheck, X } from 'lucide-react';
 import api from '../../services/api';
 import { startActing } from '../../utils/acting';
 import { formatMoney, formatTRY, formatDate } from '../../utils/format';
 import PlasiyerHeader from '../../components/plasiyer/PlasiyerHeader';
 import { useTenant } from '../../context/TenantContext';
+import useAlert from '../../hooks/useAlert';
+import { VisitRecordModal, VisitPlanModal } from '../../components/plasiyer/VisitModals';
+
+const daysSince = (d) => Math.floor((Date.now() - new Date(d).getTime()) / 864e5);
+const dayOf = (d) => new Date(d).toLocaleDateString('sv-SE');
 
 /**
  * Plasiyer (saha satış) ana sayfası: sorumlu olduğu bayiler, bakiyeleri ve prim özeti.
@@ -26,12 +31,24 @@ const PlasiyerHome = () => {
   const [summary, setSummary] = useState(null);
   const [q, setQ] = useState('');
   const [error, setError] = useState(null);
+  const [visits, setVisits] = useState(null);
+  const [modal, setModal] = useState(null); // { type: 'record' | 'plan', dealer, planned? }
+  const { alertElement, showAlert, confirm } = useAlert();
 
-  useEffect(() => {
-    Promise.all([api.get('/plasiyer/dealers'), api.get('/plasiyer/summary')])
-      .then(([d, s]) => { setDealers(d.data); setSummary(s.data); })
-      .catch(() => setError('Bilgiler yüklenemedi. Sayfayı yenileyin.'));
-  }, []);
+  const load = () => Promise.all([api.get('/plasiyer/dealers'), api.get('/plasiyer/summary'), api.get('/plasiyer/visits')])
+    .then(([d, s, v]) => { setDealers(d.data); setSummary(s.data); setVisits(v.data); })
+    .catch(() => setError('Bilgiler yüklenemedi. Sayfayı yenileyin.'));
+  useEffect(() => { load(); }, []);
+
+  const saved = (message) => { setModal(null); showAlert({ type: 'success', title: 'Kaydedildi', message }); load(); };
+  const cancelPlan = async (v) => {
+    if (!(await confirm({ type: 'warning', title: 'Planlı ziyaret iptal edilsin mi?', message: `${v.company.name} · ${new Date(v.plannedFor).toLocaleDateString('tr-TR')}`, confirmText: 'İptal et' }))) return;
+    try { await api.post(`/plasiyer/visits/${v.id}/cancel`); load(); } catch { showAlert({ type: 'error', title: 'Hata', message: 'Ziyaret iptal edilemedi.' }); }
+  };
+  const todayKey = visits?.today;
+  const todayPlans = (visits?.visits || []).filter((v) => v.status === 'PLANNED' && dayOf(v.plannedFor) <= todayKey);
+  const upcoming = (visits?.visits || []).filter((v) => v.status === 'PLANNED' && dayOf(v.plannedFor) > todayKey).slice(0, 5);
+  const doneToday = (visits?.visits || []).filter((v) => v.status === 'DONE' && dayOf(v.doneAt) === todayKey).length;
 
   const list = useMemo(() => {
     const term = q.trim().toLocaleLowerCase('tr');
@@ -45,6 +62,9 @@ const PlasiyerHome = () => {
 
   return (
     <div className="min-h-screen bg-navy-50 text-gray-900 pb-16">
+      {alertElement}
+      {modal?.type === 'record' && <VisitRecordModal dealer={modal.dealer} planned={modal.planned} onClose={() => setModal(null)} onSaved={saved} />}
+      {modal?.type === 'plan' && <VisitPlanModal dealer={modal.dealer} onClose={() => setModal(null)} onSaved={saved} />}
       <PlasiyerHeader />
 
       <main className="max-w-5xl mx-auto px-4 pt-6 space-y-6">
@@ -70,6 +90,36 @@ const PlasiyerHome = () => {
             <Stat icon={Award} label="Bu ay prim" value={`${summary.monthPoints.toLocaleString('tr-TR')} puan`} />
             <Stat icon={Award} label="Toplam prim" value={`${summary.totalPoints.toLocaleString('tr-TR')} puan`} />
           </div>
+        )}
+
+        {visits && (
+          <section className="bg-white rounded-2xl border border-gray-100 p-4 md:p-5 space-y-3">
+            <div className="flex items-center justify-between gap-3">
+              <h2 className="font-black text-gray-900 flex items-center gap-2"><CalendarCheck className="h-5 w-5 text-brand-500" /> Bugünkü ziyaretler</h2>
+              <span className="text-xs font-bold text-gray-500">{doneToday} ziyaret yapıldı</span>
+            </div>
+            {todayPlans.length === 0 ? (
+              <p className="text-sm text-gray-500">Bugün için planlı ziyaret yok. Bayi kartındaki "Planla" ile ekleyebilirsiniz.</p>
+            ) : (
+              <ul className="divide-y divide-gray-50">
+                {todayPlans.map((v) => (
+                  <li key={v.id} className="py-2.5 flex items-center justify-between gap-3">
+                    <span className="min-w-0">
+                      <span className="block text-sm font-bold text-gray-900 truncate">{v.company.name}</span>
+                      <span className={`block text-xs ${dayOf(v.plannedFor) < todayKey ? 'text-red-600 font-bold' : 'text-gray-500'}`}>{dayOf(v.plannedFor) < todayKey ? `Gecikti · ${new Date(v.plannedFor).toLocaleDateString('tr-TR')}` : 'Bugün'}{v.note && ` · ${v.note}`}</span>
+                    </span>
+                    <span className="flex items-center gap-1.5 shrink-0">
+                      <button type="button" onClick={() => setModal({ type: 'record', dealer: v.company, planned: v })} className="h-9 px-3 rounded-xl bg-navy-900 text-white text-xs font-bold inline-flex items-center gap-1"><MapPin className="h-3.5 w-3.5" /> Ziyaret et</button>
+                      <button type="button" onClick={() => cancelPlan(v)} aria-label="Planı iptal et" className="h-9 w-9 rounded-xl text-gray-400 hover:text-red-600 hover:bg-red-50 inline-flex items-center justify-center"><X className="h-4 w-4" /></button>
+                    </span>
+                  </li>
+                ))}
+              </ul>
+            )}
+            {upcoming.length > 0 && (
+              <p className="text-xs text-gray-500">Yaklaşan: {upcoming.map((v) => `${v.company.name} (${new Date(v.plannedFor).toLocaleDateString('tr-TR', { day: 'numeric', month: 'short' })})`).join(' · ')}</p>
+            )}
+          </section>
         )}
 
         <div className="relative">
@@ -108,6 +158,17 @@ const PlasiyerHome = () => {
                   <div><dt className="text-gray-400 font-bold">Son sipariş</dt><dd className="mt-0.5 font-bold text-gray-700">{d.lastOrderAt ? formatDate(d.lastOrderAt) : 'Yok'}</dd></div>
                 </dl>
                 {d.overdue > 0 && <p className="flex items-center gap-1.5 text-xs font-bold text-red-600 bg-red-50 rounded-lg px-3 py-2"><AlertTriangle className="h-4 w-4 shrink-0" /> Vadesi geçen: {formatTRY(d.overdue)}</p>}
+                <div className="flex flex-wrap items-center justify-between gap-2 text-xs">
+                  <span className={!d.lastVisitAt || daysSince(d.lastVisitAt) > 30 ? 'font-bold text-amber-700' : 'text-gray-500'}>
+                    <MapPin className="inline h-3.5 w-3.5 mr-1 -mt-0.5" />
+                    {d.lastVisitAt ? `Son ziyaret ${daysSince(d.lastVisitAt) === 0 ? 'bugün' : `${daysSince(d.lastVisitAt)} gün önce`}` : 'Hiç ziyaret edilmedi'}
+                    {d.nextVisitOn && <span className="font-normal text-gray-500"> · planlı {new Date(d.nextVisitOn).toLocaleDateString('tr-TR', { day: 'numeric', month: 'short' })}</span>}
+                  </span>
+                  <span className="flex gap-1.5">
+                    <button type="button" onClick={() => setModal({ type: 'record', dealer: d })} className="h-8 px-2.5 rounded-lg bg-brand-50 text-brand-700 font-bold inline-flex items-center gap-1 hover:bg-brand-100"><MapPin className="h-3.5 w-3.5" /> Ziyaret kaydet</button>
+                    <button type="button" onClick={() => setModal({ type: 'plan', dealer: d })} className="h-8 px-2.5 rounded-lg bg-gray-100 text-gray-700 font-bold inline-flex items-center gap-1 hover:bg-gray-200"><CalendarPlus className="h-3.5 w-3.5" /> Planla</button>
+                  </span>
+                </div>
                 <div className="grid grid-cols-2 sm:grid-cols-3 gap-2">
                   <button onClick={() => open(d, '/bayi')} className="col-span-2 sm:col-span-1 h-11 rounded-xl bg-navy-900 text-white text-sm font-bold flex items-center justify-center gap-1.5 hover:bg-navy-950"><ShoppingCart className="h-4 w-4" /> Sipariş ver</button>
                   <button onClick={() => open(d, '/bayi/orders')} className="h-11 rounded-xl bg-gray-100 text-gray-700 text-sm font-bold flex items-center justify-center gap-1.5 hover:bg-gray-200"><History className="h-4 w-4" /> Siparişleri</button>

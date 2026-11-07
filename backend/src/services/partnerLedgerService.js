@@ -66,6 +66,7 @@ export const recordPayment = async ({ company, body, user }) => {
 
   const reference = str(body.reference, 80);
   const bankName = str(body.bankName, 80);
+  const drawer = str(body.drawer, 120); // çek / senette keşideci (cariden farklı olabilir)
   const note = str(body.note, 500);
 
   for (let attempt = 0; attempt < 5; attempt++) {
@@ -89,12 +90,58 @@ export const recordPayment = async ({ company, body, user }) => {
           company, type: direction === 'IN' ? 'CREDIT' : 'DEBT', amount: accountAmount, amountTRY, rate,
           description, date, source: 'PAYMENT', paymentId: payment.id, createdByName: user.name
         });
+        // Çek / senetle tahsilat portföye girer (Finans → Çek / Senet)
+        if (direction === 'IN' && ['CHECK', 'NOTE'].includes(method)) {
+          await tx.cheque.create({
+            data: {
+              kind: method, paymentId: payment.id, companyId: company.id, number: reference, bankName, drawer, amount, currency: paid, dueDate,
+              statusAt: new Date(), history: [{ status: 'PORTFOY', at: new Date(), by: user.name }]
+            }
+          });
+        }
         return payment;
       }, { maxWait: 10000, timeout: 30000 }); // numara kilidi sırayla verir; yoğun yükte 5 sn yetmiyordu
     } catch (error) {
       if (error.code !== 'P2002' || attempt === 4) throw error;
     }
   }
+};
+
+/**
+ * Ters kayıt (işlem içinde): tutarı ve kuru aynı, yönü ters hareket eklenir; bağlı tahsilat / ödeme iptal olur.
+ * Cari ekranından elle yapılan ters kayıtta portföydeki çek de buna uyar (ciro ödemesi geri alınırsa çek portföye döner,
+ * tahsilatı geri alınan çek iptal olur). Çek ekranı kendi durumunu yazdığı için cheque: false ile çağırır.
+ */
+export const reverseEntryInTx = async (tx, original, why, user, { cheque = true } = {}) => {
+  const reversal = await postEntry(tx, {
+    company: { id: original.companyId, currency: original.currency },
+    type: original.type === 'DEBT' ? 'CREDIT' : 'DEBT',
+    amount: original.amount,
+    amountTRY: original.amountTRY ?? undefined,
+    rate: original.rate,
+    description: `Ters kayıt: ${original.description || ''} — ${why}`.slice(0, 500),
+    source: 'REVERSAL',
+    reversalOfId: original.id,
+    createdByName: user.name
+  });
+  if (original.paymentId) {
+    await tx.payment.update({ where: { id: original.paymentId }, data: { status: 'CANCELLED' } });
+    if (cheque) {
+      const at = new Date();
+      const received = await tx.cheque.findFirst({ where: { paymentId: original.paymentId, status: { in: ['PORTFOY', 'BANKADA'] } } });
+      if (received) {
+        await tx.cheque.update({ where: { id: received.id }, data: { status: 'IPTAL', statusAt: at, history: [...(received.history || []), { status: 'IPTAL', at, by: user.name, note: `Tahsilat ters kaydedildi: ${why}` }] } });
+      }
+      const endorsed = await tx.cheque.findFirst({ where: { endorsePaymentId: original.paymentId, status: 'CIRO' } });
+      if (endorsed) {
+        await tx.cheque.update({
+          where: { id: endorsed.id },
+          data: { status: 'PORTFOY', statusAt: at, endorsedToId: null, endorsePaymentId: null, history: [...(endorsed.history || []), { status: 'PORTFOY', at, by: user.name, note: `Ciro ödemesi ters kaydedildi: ${why}` }] }
+        });
+      }
+    }
+  }
+  return reversal;
 };
 
 /**
@@ -111,22 +158,7 @@ export const reverseTransaction = async ({ id, reason, user }) => {
   const why = str(reason, 300);
   if (!why) throw new LedgerError('Ters kayıt nedenini yazın.');
   try {
-    return await prisma.$transaction(async (tx) => {
-      // Orijinal hareketin tutarı ve kuruyla, ters yönde (borç ters kaydı cariyi alacaklandırır)
-      const reversal = await postEntry(tx, {
-        company: { id: original.companyId, currency: original.currency },
-        type: original.type === 'DEBT' ? 'CREDIT' : 'DEBT',
-        amount: original.amount,
-        amountTRY: original.amountTRY ?? undefined,
-        rate: original.rate,
-        description: `Ters kayıt: ${original.description || ''} — ${why}`.slice(0, 500),
-        source: 'REVERSAL',
-        reversalOfId: original.id,
-        createdByName: user.name
-      });
-      if (original.paymentId) await tx.payment.update({ where: { id: original.paymentId }, data: { status: 'CANCELLED' } });
-      return reversal;
-    });
+    return await prisma.$transaction((tx) => reverseEntryInTx(tx, original, why, user));
   } catch (error) {
     if (error.code === 'P2002') throw new LedgerError('Bu hareket zaten ters kaydedilmiş.');
     throw error;

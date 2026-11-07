@@ -23,6 +23,7 @@ export const SETTING_DEFAULTS = {
   shipping_free_over: '0',      // Bu KDV hariç sepet tutarı ve üstünde kargo ücretsiz (0 = eşik yok)
   auto_approve: 'false',        // Limiti yeten, stoktaki cari hesaplı siparişler otomatik onaylansın
   auto_approve_max: '0',        // Otomatik onayın üst sınırı (KDV dahil TL; 0 = sınırsız)
+  dealer_feed: 'false',          // Bayiler XML ürün beslemesi adresi üretebilsin (kendi fiyatlarıyla, e-ticaret sitelerine)
   hr_enabled: 'false',          // Personel yönetimi modülü (izin, masraf / avans, hedef ve prim, duyurular)
   hr_saturday_workday: 'false', // İzinde Cumartesi iş günü sayılsın
   hr_negative_leave: 'false',   // Kalan günü aşan yıllık izin (avans izin) talep edilebilsin
@@ -48,6 +49,7 @@ export const flag = (value) => String(value) === 'true';
 // Bayi portalının bilmesi gereken sipariş / teslimat ayarları
 export const portalSettings = (map, tenant) => ({
   quoteOutOfStock: flag(map.quote_out_of_stock),
+  dealerFeed: flag(map.dealer_feed),
   pickup: {
     enabled: flag(map.pickup_enabled),
     address: map.pickup_address || tenant?.address || '',

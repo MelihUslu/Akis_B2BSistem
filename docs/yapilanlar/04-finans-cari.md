@@ -18,6 +18,29 @@ Siparişin parası bu bölümde izlenir: cari borç ve alacak, tahsilat, fatura,
 - **Mutabakat:** ekstre bağlantısıyla mutabakat isteği, cari özet kartı, portal dışı müşteriyi bayiye dönüştürme.
 - Finans ve Prim ekranı tahsilat, vade, prim ve mutabakat takibine sadeleştirildi.
 
+## Kartla ödemede taksit (7 Kasım)
+
+- Firma Ayarlar → Sanal POS'ta en fazla taksiti (tek çekim, 2, 3, 6, 9, 12) ve taksit için en düşük tutarı seçer. iyzico ödeme formuna bu taksitler, PayTR'ye en fazla taksit gönderilir; tutar alt sınırın altındaysa tek çekim.
+- Vade farkı ve komisyon iyzico / PayTR panelindeki ayara göre karta yansır. Ödeme, istenen net tutarla eşleştirilir (karttan çekilen bundan az olamaz); cariye her zaman net tutar işlenir. Taksit sayısı ve karttan çekilen toplam ödeme kaydında, taksit sayısı cari hareketinin açıklamasında görünür.
+- Bayi ödeme penceresinde kaç taksite kadar bölebileceğini görür.
+
+## Çek / senet portföyü (7 Kasım)
+
+Finans → **Çek / Senet**. Çek ya da senetle alınan tahsilat (cari kartı → Tahsilat al; çek no, banka, vade, keşideci) portföye girer; tahsilat cariyi o anda alacaklandırmıştır.
+
+| İşlem | Durum | Cariye etkisi |
+|---|---|---|
+| Tahsile ver | Portföyde → Tahsile verildi | Yok |
+| Tahsil edildi | Portföyde / Tahsilde → Tahsil edildi | Yok |
+| Ciro et | Portföyde → Ciro edildi | Seçilen tedarikçiye ödeme (çek / senetle) yazılır |
+| Karşılıksız | Portföyde / Tahsilde / Ciro edildi → Karşılıksız | Tahsilat ters kaydedilir (müşteri yeniden borçlanır); ciroluysa tedarikçiye ödeme de ters kaydedilir, ikisi tek işlemde |
+| Müşteriye iade | Portföyde / Tahsilde → İade edildi | Tahsilat ters kaydedilir |
+
+- Cari ekranından tahsilat elle ters kaydedilirse çek "İptal" olur; ciro ödemesi elle ters kaydedilirse çek portföye döner.
+- Özet: elde (portföy + tahsilde) toplam, vadesi geçmiş, 7 gün içinde vadeli, karşılıksız. Durum ve arama süzgeci; her çekin işlem geçmişi.
+- Aynı çek üzerinde eşzamanlı iki işlemden yalnızca biri yürür.
+- Kurulumda bugüne kadar çek / senetle alınmış, iptal edilmemiş tahsilatlar portföye "Portföyde" olarak eklendi (yalnızca ekleme; tahsilat ve cari değişmedi); gerçek durumları portföyden işaretlenir.
+
 ## Dövizli cari (`20a8661`)
 
 - Cari para birimi TL, USD ya da EUR olabilir; bakiye, risk limiti ve ekstre carinin para birimindedir. Hareketi olan carinin para birimi değiştirilemez.

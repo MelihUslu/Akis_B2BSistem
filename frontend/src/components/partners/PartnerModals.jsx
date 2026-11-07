@@ -14,7 +14,7 @@ const cancelBtn = (onClose) => <button type="button" onClick={onClose} className
  */
 export const PaymentModal = ({ partner, direction: initial, onClose, onSaved }) => {
   const account = partner.currency || 'TRY';
-  const [form, setForm] = useState({ direction: initial, method: 'CASH', amount: '', date: today(), bankName: '', reference: '', dueDate: '', note: '', currency: account, rate: partner.summary?.fx?.rate || '' });
+  const [form, setForm] = useState({ direction: initial, method: 'CASH', amount: '', date: today(), bankName: '', reference: '', dueDate: '', drawer: '', note: '', currency: account, rate: partner.summary?.fx?.rate || '' });
   // Dövizli caride ödeme TL veya cari dövizinde alınabilir; cariye kurla çevrilerek işlenir
   const r = parseFloat(String(form.rate).replace(',', '.')) || 0;
   const amt = parseFloat(form.amount) || 0;
@@ -78,7 +78,9 @@ export const PaymentModal = ({ partner, direction: initial, onClose, onSaved }) 
         {['WIRE_TRANSFER', 'CHECK', 'CARD'].includes(form.method) && <Field label="Banka"><input className="premium-input" value={form.bankName} onChange={set('bankName')} /></Field>}
         <Field label={['CHECK', 'NOTE'].includes(form.method) ? 'Çek / senet no' : 'Belge / dekont no'}><input className="premium-input" value={form.reference} onChange={set('reference')} /></Field>
         {['CHECK', 'NOTE'].includes(form.method) && <Field label="Vade tarihi" required><input required type="date" className="premium-input" value={form.dueDate} onChange={set('dueDate')} /></Field>}
+        {inbound && ['CHECK', 'NOTE'].includes(form.method) && <Field label={form.method === 'CHECK' ? 'Keşideci' : 'Borçlu'} hint="Cariden farklıysa (ör. müşterinin müşterisi)"><input className="premium-input" value={form.drawer} onChange={set('drawer')} placeholder="İsteğe bağlı" /></Field>}
       </div>
+      {inbound && ['CHECK', 'NOTE'].includes(form.method) && <p className="text-[11px] font-semibold text-brand-700">Kaydedince Finans → Çek / Senet portföyüne girer; bankaya verme, tahsil, ciro ve karşılıksız oradan işaretlenir.</p>}
       <Field label="Açıklama"><input className="premium-input" value={form.note} onChange={set('note')} placeholder="İsteğe bağlı" /></Field>
       <p className="text-[11px] text-gray-400">{inbound ? 'Tahsilat cariyi alacaklandırır (borcu düşer).' : 'Ödeme cariyi borçlandırır (tedarikçiye olan borcumuz düşer).'} Yanlış kayıt, hareketler sekmesinden ters kayıtla düzeltilir.</p>
       {error && <p className="text-xs font-bold text-red-600">{error}</p>}

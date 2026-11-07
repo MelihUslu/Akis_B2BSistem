@@ -3,7 +3,7 @@ import { encrypt } from '../utils/secretBox.js';
 import * as iyzico from '../services/iyzicoService.js';
 import * as paytr from '../services/paytrService.js';
 import { API_PUBLIC_URL, tenantUrl, tenantPortalUrl } from '../config.js';
-import { tenantPosCreds } from '../services/tenantPosService.js';
+import { tenantPosCreds, INSTALLMENT_OPTIONS } from '../services/tenantPosService.js';
 import { tenantAccess, invalidateTenantCache } from '../middlewares/tenantMiddleware.js';
 import { googleEnabled } from '../services/googleAuth.js';
 import { hrEnabled } from '../services/hrService.js';
@@ -56,6 +56,9 @@ const posView = (t) => ({
   mode: t.posMode,
   apiKeyMasked: mask(t.posApiKey),
   configured: Boolean(t.posProvider && t.posApiKey && t.posSecretEnc),
+  maxInstallment: t.posMaxInstallment,
+  installmentMin: t.posInstallmentMin,
+  installmentOptions: INSTALLMENT_OPTIONS,
   // PayTR: mağaza panelinde "Bildirim URL" olarak girilmesi gereken adres
   paytrNotifyUrl: `${API_PUBLIC_URL}/api/public/paytr/notify/${t.slug}`
 });
@@ -109,6 +112,17 @@ export const savePosSettings = async (req, res) => {
     console.error('savePosSettings error:', error);
     res.status(400).json({ message: 'Sanal POS ayarları kaydedilemedi.' });
   }
+};
+
+// Taksit ayarı (anahtarlardan ayrı; anahtar yeniden girilmeden değişir)
+export const savePosInstallments = async (req, res) => {
+  const max = parseInt(req.body.maxInstallment);
+  const min = req.body.installmentMin === '' || req.body.installmentMin == null ? 0 : Number(req.body.installmentMin);
+  if (!INSTALLMENT_OPTIONS.includes(max)) return res.status(400).json({ message: `Taksit sayısı ${INSTALLMENT_OPTIONS.join(', ')} olabilir.` });
+  if (!Number.isFinite(min) || min < 0 || min > 1_000_000) return res.status(400).json({ message: 'Taksit için en düşük tutar 0 ile 1.000.000 arasında olmalı.' });
+  const tenant = await prisma.tenant.update({ where: { id: req.tenant.id }, data: { posMaxInstallment: max, posInstallmentMin: Math.round(min * 100) / 100 } });
+  invalidateTenantCache(tenant.slug);
+  res.json({ message: max > 1 ? `Bayileriniz ${max} taksite kadar ödeyebilir.` : 'Kartla ödeme tek çekim.', pos: posView(tenant) });
 };
 
 export const removePosSettings = async (req, res) => {

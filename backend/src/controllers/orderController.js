@@ -2,7 +2,7 @@ import prisma from '../utils/prisma.js';
 import { quoteCart, availableCredit, round2, computeTotals, withShipping } from '../services/pricingService.js';
 import { getSettingsMap, num, flag, portalSettings } from '../services/settingsService.js';
 import { reservedQuantities } from '../services/catalogAccess.js';
-import { notifyCompany, notifyAdmins, notifyRestocked, safeNotify } from '../services/notificationService.js';
+import { notifyCompany, notifyAdmins, notifyRestocked, notifyUser, safeNotify } from '../services/notificationService.js';
 import { emitEvent } from '../services/webhookService.js';
 import { autoInvoice, invoiceCreds } from '../services/invoiceService.js';
 import { cargoCreds } from '../services/cargoService.js';
@@ -185,7 +185,12 @@ export const quoteOrder = async (req, res) => {
   }
 };
 
-export class OrderError extends Error {}
+export class OrderError extends Error {
+  constructor(message, errors = null) {
+    super(message);
+    this.errors = errors; // sepet kuralı ihlalleri (istemci satır satır gösterir)
+  }
+}
 
 /**
  * Siparişi kalemleriyle birlikte oluşturur; kupon varsa kullanım sayısını eşzamanlılığa dayanıklı şekilde artırır.
@@ -262,90 +267,148 @@ export const createOrderRecord = async ({ company, userId, paymentMethod, lines,
   });
 };
 
+// Siparişte istemciden alınan alanlar (bayi içi onay talebinde de aynı biçimde saklanır)
+export const orderBodyOf = (b = {}) => ({
+  items: Array.isArray(b.items) ? b.items.map((i) => ({ productId: i?.productId, quantity: i?.quantity })) : b.items,
+  paymentMethod: b.paymentMethod,
+  deliveryMethod: b.deliveryMethod === 'PICKUP' ? 'PICKUP' : 'SHIPPING',
+  addressId: b.addressId ?? null,
+  pickupAt: b.pickupAt ?? null,
+  couponCode: b.couponCode ?? null,
+  note: b.note ?? null,
+  customerRef: b.customerRef ?? null
+});
+
+/** Sepeti doğrular; kural ihlalinde OrderError. Bayi içi onay talebi de açılmadan önce buradan geçer. */
+export const validateDealerCart = async ({ tenant, company, body, checkCredit = true }) => {
+  if (!PAYMENT_METHODS.includes(body.paymentMethod)) throw new OrderError('Geçersiz ödeme yöntemi.');
+  const delivery = body.deliveryMethod === 'PICKUP' ? 'PICKUP' : 'SHIPPING';
+  const quote = await quoteCart(prisma, company, body.items, { couponCode: body.couponCode, delivery });
+  if (quote.errors.length > 0) throw new OrderError(quote.errors.join(' '), quote.errors);
+
+  if (checkCredit && body.paymentMethod === 'CURRENT_ACCOUNT') {
+    const { availableTRY: available } = await availableCredit(prisma, company);
+    if (available === null) throw new OrderError('Cari hesabınızın döviz kuru şu an alınamıyor; lütfen biraz sonra tekrar deneyin veya Havale/EFT seçin.');
+    if (quote.total > available) {
+      throw new OrderError(`Risk limitiniz bu sipariş için yetersiz. Kullanılabilir limit: ₺${Math.max(0, available).toLocaleString('tr-TR')}. Ödeme yaparak limitinizi açabilir veya Havale/EFT seçebilirsiniz.`);
+    }
+  }
+
+  // Gel-Al: teslimat adresi yerine bayinin seçtiği teslim alma zamanı (kargo ücreti yok; stok ve ödeme kuralları aynı)
+  let ship = { address: null };
+  let pickupAt = null;
+  const settings = await getSettingsMap();
+  if (delivery === 'PICKUP') {
+    const check = pickupTimeError(body.pickupAt, portalSettings(settings, tenant).pickup);
+    if (check.error) throw new OrderError(check.error);
+    pickupAt = check.at;
+  } else {
+    ship = await resolveShippingAddress(company, body.addressId);
+    if (ship.error) throw new OrderError(ship.error);
+  }
+  return { quote, ship, pickupAt, settings };
+};
+
+/**
+ * Bayinin siparişini oluşturur: sepet doğrulaması, stok ayırma, otomatik onay, bildirimler.
+ * Bayinin kendi siparişi ve bayi içi onay talebinin onayı (talebi açan kullanıcı adına) bunu kullanır.
+ * user: { id, actingAs? } · Kural ihlalinde OrderError.
+ */
+export const placeDealerOrder = async ({ tenant, company, user, body, channel = 'PORTAL' }) => {
+  const { quote, ship, pickupAt, settings } = await validateDealerCart({ tenant, company, body });
+  const order = await createOrderRecord({
+    company,
+    userId: user.id,
+    paymentMethod: body.paymentMethod,
+    lines: quote.lines,
+    totals: quote,
+    coupon: quote.couponRecord,
+    shippingAddress: ship.address,
+    fxRates: quote.rates,
+    pickupAt,
+    note: cleanText(body.note, 500),
+    customerRef: cleanText(body.customerRef, 60),
+    channel,
+    checkStock: true
+  });
+
+  // Otomatik onay (ayarlıysa): cari hesaplı, üst sınırın altındaki siparişler. Onaylanamazsa (ör. stok) onay bekler.
+  let approved = null;
+  const max = num(settings.auto_approve_max, 0);
+  if (flag(settings.auto_approve) && body.paymentMethod === 'CURRENT_ACCOUNT' && (max <= 0 || quote.total <= max)) {
+    approved = await decideOrder(tenant, order.id, null, { auto: true })
+      .then((r) => r.updatedOrder)
+      .catch((e) => { if (!(e instanceof ApprovalError)) console.error('Otomatik onay hatası:', e); return null; });
+  }
+
+  const acting = user.actingAs;
+  const by = acting ? `${acting.name} (${acting.role === 'PLASIYER' ? 'plasiyer' : 'yönetici'}), ${company.name} adına` : company.name;
+  safeNotify(notifyAdmins({
+    type: 'ORDER',
+    title: approved ? 'Yeni sipariş (otomatik onaylandı)' : 'Yeni sipariş',
+    message: `${by} ₺${quote.total.toLocaleString('tr-TR')} tutarında sipariş verdi (#AK-${order.id})${pickupAt ? `; Gel-Al, teslim alma: ${pickupAt.toLocaleString('tr-TR', { timeZone: 'Europe/Istanbul', dateStyle: 'short', timeStyle: 'short' })}` : ''}.`,
+    link: '/admin/orders'
+  }));
+  if (acting) {
+    safeNotify(notifyCompany(company.id, {
+      type: 'ORDER',
+      title: 'Adınıza sipariş oluşturuldu',
+      message: `${acting.name} sizin adınıza #AK-${order.id} numaralı siparişi oluşturdu (₺${quote.total.toLocaleString('tr-TR')}).`,
+      link: `/bayi/orders/${order.id}`
+    }));
+  }
+  return approved || order;
+};
+
+// Kullanıcının bayi içi onay kuralı bu sepete uyuyor mu? (ana kullanıcı ve kuralı olmayan kullanıcı onaysız sipariş verir)
+export const approvalNeeded = (user, total) => {
+  if (!user || user.isOwner || user.role !== 'BAYI') return false;
+  if (user.orderApproval === 'ALWAYS') return true;
+  return user.orderApproval === 'OVER' && total > (user.orderApprovalLimit ?? 0);
+};
+
+/**
+ * Onay gerekiyorsa sepeti doğrulayıp onay talebi açar ve ana kullanıcı(lar)a bildirir; gerekmiyorsa null.
+ * Talep stok ayırmaz, firmaya düşmez; limit onay anında denetlenir (ana kullanıcı önce ödeme yapabilir).
+ */
+export const requestApprovalIfNeeded = async ({ tenant, company, userId, body }) => {
+  const user = await prisma.user.findUnique({ where: { id: userId } });
+  if (!user || user.isOwner || user.orderApproval === 'NONE') return null;
+  const { quote } = await validateDealerCart({ tenant, company, body, checkCredit: false });
+  if (!approvalNeeded(user, quote.total)) return null;
+
+  const request = await prisma.orderRequest.create({
+    data: { companyId: company.id, userId: user.id, payload: body, total: quote.total, itemCount: quote.lines.length }
+  });
+  const owners = await prisma.user.findMany({ where: { companyId: company.id, role: 'BAYI', isOwner: true, isActive: true }, select: { id: true, name: true } });
+  for (const o of owners) {
+    safeNotify(notifyUser(o.id, {
+      type: 'ORDER',
+      title: 'Onayınızı bekleyen sipariş',
+      message: `${user.name} ₺${quote.total.toLocaleString('tr-TR')} tutarında sipariş oluşturdu; onaylarsanız firmaya iletilir.`,
+      link: '/bayi/orders?tab=requests'
+    }));
+  }
+  const approver = owners.map((o) => o.name).join(', ') || 'ana kullanıcınız';
+  return { request, message: `Siparişiniz ${approver} onayına gönderildi. Onaylanınca firmaya iletilir.` };
+};
+
 export const createOrder = async (req, res) => {
   try {
-    const { items, paymentMethod } = req.body;
     const company = await loadDealerCompany(req);
     if (!company) return res.status(403).json({ message: 'Sadece bayi hesapları sipariş verebilir.' });
+    const body = orderBodyOf(req.body);
 
-    if (!PAYMENT_METHODS.includes(paymentMethod)) {
-      return res.status(400).json({ message: 'Geçersiz ödeme yöntemi.' });
+    // Bayi içinde onay: kuralı olan çalışanın siparişi ana kullanıcının onayına gider (bayi adına işlemde uygulanmaz)
+    if (!req.user.actingAs) {
+      const request = await requestApprovalIfNeeded({ tenant: req.tenant, company, userId: req.user.id, body });
+      if (request) return res.status(202).json(request);
     }
 
-    const delivery = req.body.deliveryMethod === 'PICKUP' ? 'PICKUP' : 'SHIPPING';
-    const quote = await quoteCart(prisma, company, items, { couponCode: req.body.couponCode, delivery });
-    if (quote.errors.length > 0) {
-      return res.status(400).json({ message: quote.errors.join(' '), errors: quote.errors });
-    }
-
-    if (paymentMethod === 'CURRENT_ACCOUNT') {
-      const { availableTRY: available } = await availableCredit(prisma, company);
-      if (available === null) return res.status(400).json({ message: 'Cari hesabınızın döviz kuru şu an alınamıyor; lütfen biraz sonra tekrar deneyin veya Havale/EFT seçin.' });
-      if (quote.total > available) {
-        return res.status(400).json({
-          message: `Risk limitiniz bu sipariş için yetersiz. Kullanılabilir limit: ₺${Math.max(0, available).toLocaleString('tr-TR')}. Ödeme yaparak limitinizi açabilir veya Havale/EFT seçebilirsiniz.`
-        });
-      }
-    }
-
-    // Gel-Al: teslimat adresi yerine bayinin seçtiği teslim alma zamanı (kargo ücreti yok; stok ve ödeme kuralları aynı)
-    let ship = { address: null };
-    let pickupAt = null;
-    const settings = await getSettingsMap();
-    if (delivery === 'PICKUP') {
-      const check = pickupTimeError(req.body.pickupAt, portalSettings(settings, req.tenant).pickup);
-      if (check.error) return res.status(400).json({ message: check.error });
-      pickupAt = check.at;
-    } else {
-      ship = await resolveShippingAddress(company, req.body.addressId);
-      if (ship.error) return res.status(400).json({ message: ship.error });
-    }
-
-    const order = await createOrderRecord({
-      company,
-      userId: req.user.id,
-      paymentMethod,
-      lines: quote.lines,
-      totals: quote,
-      coupon: quote.couponRecord,
-      shippingAddress: ship.address,
-      fxRates: quote.rates,
-      pickupAt,
-      note: cleanText(req.body.note, 500),
-      customerRef: cleanText(req.body.customerRef, 60),
-      channel: channelOf(req),
-      checkStock: true
-    });
-
-    // Otomatik onay (ayarlıysa): cari hesaplı, üst sınırın altındaki siparişler. Onaylanamazsa (ör. stok) onay bekler.
-    let approved = null;
-    const max = num(settings.auto_approve_max, 0);
-    if (flag(settings.auto_approve) && paymentMethod === 'CURRENT_ACCOUNT' && (max <= 0 || quote.total <= max)) {
-      approved = await decideOrder(req.tenant, order.id, null, { auto: true })
-        .then((r) => r.updatedOrder)
-        .catch((e) => { if (!(e instanceof ApprovalError)) console.error('Otomatik onay hatası:', e); return null; });
-    }
-
-    const acting = req.user.actingAs;
-    const by = acting ? `${acting.name} (${acting.role === 'PLASIYER' ? 'plasiyer' : 'yönetici'}), ${company.name} adına` : company.name;
-    safeNotify(notifyAdmins({
-      type: 'ORDER',
-      title: approved ? 'Yeni sipariş (otomatik onaylandı)' : 'Yeni sipariş',
-      message: `${by} ₺${quote.total.toLocaleString('tr-TR')} tutarında sipariş verdi (#AK-${order.id})${pickupAt ? `; Gel-Al, teslim alma: ${pickupAt.toLocaleString('tr-TR', { timeZone: 'Europe/Istanbul', dateStyle: 'short', timeStyle: 'short' })}` : ''}.`,
-      link: '/admin/orders'
-    }));
-    if (acting) {
-      safeNotify(notifyCompany(company.id, {
-        type: 'ORDER',
-        title: 'Adınıza sipariş oluşturuldu',
-        message: `${acting.name} sizin adınıza #AK-${order.id} numaralı siparişi oluşturdu (₺${quote.total.toLocaleString('tr-TR')}).`,
-        link: `/bayi/orders/${order.id}`
-      }));
-    }
-
-    res.status(201).json(approved || order);
+    const order = await placeDealerOrder({ tenant: req.tenant, company, user: req.user, body, channel: channelOf(req) });
+    res.status(201).json(order);
   } catch (error) {
-    if (error instanceof OrderError) return res.status(400).json({ message: error.message });
+    if (error instanceof OrderError) return res.status(400).json({ message: error.message, ...(error.errors && { errors: error.errors }) });
     console.error('Order creation error:', error);
     res.status(400).json({ message: 'Sipariş oluşturulamadı.' });
   }

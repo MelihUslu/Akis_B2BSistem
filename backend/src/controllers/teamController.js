@@ -125,6 +125,15 @@ export const updateDealerUser = async (req, res) => {
   if (req.body.phone !== undefined) {
     try { data.phone = normalizePhone(req.body.phone); } catch (error) { if (error instanceof PhoneError) return res.status(400).json({ message: error.message }); throw error; }
   }
+  // Bayi içinde sipariş onayı kuralı (ana kullanıcıya uygulanmaz; o onaylayan kişidir)
+  if (req.body.orderApproval !== undefined) {
+    const mode = String(req.body.orderApproval);
+    if (!['NONE', 'ALWAYS', 'OVER'].includes(mode)) return res.status(400).json({ message: 'Geçersiz onay kuralı.' });
+    const limit = Number(req.body.orderApprovalLimit);
+    if (mode === 'OVER' && !(limit > 0)) return res.status(400).json({ message: 'Onay için tutar sınırını girin.' });
+    data.orderApproval = target.isOwner ? 'NONE' : mode;
+    data.orderApprovalLimit = mode === 'OVER' ? Math.round(limit * 100) / 100 : null;
+  }
   // Ana kullanıcıyı sadece admin değiştirebilir
   if (req.body.isOwner === true && req.user.role === 'ADMIN') {
     await prisma.user.updateMany({ where: { companyId: target.companyId, role: 'BAYI' }, data: { isOwner: false } });

@@ -21,6 +21,9 @@ model User {
   role                 String    @default("BAYI") // SUPER_ADMIN (platform), ADMIN (kiracı yöneticisi), BAYI, PLASIYER, PERSONEL (yalnızca Personel Alanım)
   // Firma sahibi (ADMIN) tüm yetkilere sahiptir ve silinemez; bayide ana kullanıcıdır (alt kullanıcı yönetir)
   isOwner              Boolean   @default(false)
+  // Bayi içinde sipariş onayı (yalnızca ana kullanıcı olmayan bayi kullanıcıları): NONE, ALWAYS, OVER (limit üstü)
+  orderApproval        String    @default("NONE")
+  orderApprovalLimit   Float? // OVER: bu tutarı (KDV dahil TL) aşan sipariş ana kullanıcının onayına gider
   permissions          Json? // ADMIN personeli için: ["CATALOG","ORDERS","DEALERS","FINANCE","SETTINGS"]
   isActive             Boolean   @default(true)
   lastLoginAt          DateTime?
@@ -64,6 +67,9 @@ model User {
   supportTickets    SupportTicket[]
   smsCampaigns      SmsCampaign[]
   mailCampaigns     MailCampaign[]
+  orderRequests     OrderRequest[] @relation("OrderRequestUser")
+  visits            Visit[]
+  orderDecisions    OrderRequest[] @relation("OrderRequestDecider")
   employee          Employee?          @relation("EmployeeUser")
 
   @@index([tenantId])
@@ -102,10 +108,16 @@ model Company {
   paymentTermDays  Int      @default(30) // Vade (gün)
   plasiyerId       Int? // Bayiden sorumlu plasiyer (prim için)
   plasiyer         User?    @relation("CompanyPlasiyer", fields: [plasiyerId], references: [id])
+  feedToken        String?  @unique // Bayinin XML ürün beslemesi adresindeki gizli anahtar (firma açtıysa bayi üretir)
+  feedTokenAt      DateTime? // Anahtarın üretildiği zaman
   createdAt        DateTime @default(now())
   updatedAt        DateTime @updatedAt
 
   users           User[]
+  orderRequests   OrderRequest[]
+  chequesFrom     Cheque[]          @relation("ChequeFrom")
+  visits          Visit[]
+  chequesTo       Cheque[]          @relation("ChequeTo")
   addresses       DeliveryAddress[]
   orders          Order[]
   transactions    FinancialTransaction[]
@@ -364,6 +376,7 @@ model Order {
   transactions     FinancialTransaction[]
   returnRequests   ReturnRequest[]
   quoteRequest     QuoteRequest?
+  orderRequest     OrderRequest?
 
   @@index([tenantId])
   @@index([tenantId, createdAt])
@@ -494,6 +507,8 @@ model Payment {
   note          String?
   createdByName String?
   cardLast4     String? // Sadece son 4 hane saklanır
+  installment   Int? // Kartla ödemede taksit sayısı (1: tek çekim)
+  paidTotal     Float? // Karttan çekilen toplam (vade farkı dahil; cariye amount işlenir)
   reference     String? // Provizyon / referans no
   paymentDate   DateTime               @default(now())
   status        String                 @default("COMPLETED")
@@ -501,6 +516,8 @@ model Payment {
   token         String?                @unique // Ödeme formu token'ı (dönüşte doğrulama)
   userId        Int?
   transactions  FinancialTransaction[]
+  cheque        Cheque?                @relation("ChequePayment")
+  endorsedCheque Cheque?               @relation("ChequeEndorsement")
 
   @@unique([tenantId, receiptNo])
   @@index([tenantId])
@@ -715,6 +732,8 @@ model Tenant {
   posMode                String            @default("SANDBOX") // SANDBOX, LIVE
   posApiKey              String?
   posSecretEnc           String?
+  posMaxInstallment      Int               @default(1) // Kartla ödemede en fazla taksit (1: tek çekim; 2, 3, 6, 9, 12)
+  posInstallmentMin      Float             @default(0) // Taksit için en düşük ödeme tutarı (₺; 0: sınır yok)
   // E-fatura: PARASUT (otomatik) veya boş (ERP'den / elle numara girilir). Anahtarlar şifreli JSON.
   invoiceProvider        String?
   invoiceConfigEnc       String?
@@ -798,6 +817,9 @@ model Tenant {
   smsCampaigns           SmsCampaign[]
   mailCampaigns          MailCampaign[]
   emailOptOuts           EmailOptOut[]
+  orderRequests          OrderRequest[]
+  cheques                Cheque[]
+  visits                 Visit[]
 }
 
 // Kiracının platforma yaptığı abonelik ödemeleri (iyzico veya manuel)
@@ -1855,4 +1877,85 @@ model EmailOptOut {
   createdAt DateTime @default(now())
 
   @@unique([tenantId, email])
+}
+
+// Bayi içinde sipariş onayı: onay gereken çalışanın sepeti. Ana kullanıcı onaylayınca sipariş o anki fiyat, stok ve
+// limitle (normal sipariş akışıyla, çalışan adına) oluşur; o zamana kadar stok ayrılmaz, firmaya düşmez.
+model OrderRequest {
+  id          Int       @id @default(autoincrement())
+  tenantId    Int
+  tenant      Tenant    @relation(fields: [tenantId], references: [id])
+  companyId   Int
+  company     Company   @relation(fields: [companyId], references: [id])
+  userId      Int // Talebi açan bayi kullanıcısı
+  user        User      @relation("OrderRequestUser", fields: [userId], references: [id])
+  payload     Json // { items, paymentMethod, deliveryMethod, addressId, pickupAt, couponCode, note, customerRef }
+  total       Float // Talep anındaki KDV dahil toplam (bilgi; onayda yeniden hesaplanır)
+  itemCount   Int
+  status      String    @default("PENDING") // PENDING, APPROVED, REJECTED, CANCELLED
+  decidedById Int?
+  decidedBy   User?     @relation("OrderRequestDecider", fields: [decidedById], references: [id])
+  decidedAt   DateTime?
+  reason      String? // Ret nedeni
+  orderId     Int?      @unique
+  order       Order?    @relation(fields: [orderId], references: [id])
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+
+  @@index([tenantId, companyId, status])
+}
+
+// Çek / senet portföyü: cariden çek / senetle alınan tahsilat portföye girer (tahsilat cariyi o anda alacaklandırmıştır).
+// Bankaya verme ve tahsil cariyi etkilemez; ciro tedarikçiye ödeme kaydıdır; karşılıksız / iade tahsilatı ters kaydeder.
+model Cheque {
+  id               Int       @id @default(autoincrement())
+  tenantId         Int
+  tenant           Tenant    @relation(fields: [tenantId], references: [id])
+  kind             String // CHECK (çek), NOTE (senet)
+  paymentId        Int       @unique // Portföye giren tahsilat
+  payment          Payment   @relation("ChequePayment", fields: [paymentId], references: [id])
+  companyId        Int // Alındığı cari
+  company          Company   @relation("ChequeFrom", fields: [companyId], references: [id])
+  number           String? // Çek / senet numarası
+  bankName         String? // Çekin bankası (ve şubesi)
+  drawer           String? // Keşideci / borçlu (cariden farklı olabilir: müşterinin müşterisi)
+  amount           Float
+  currency         String    @default("TRY")
+  dueDate          DateTime
+  status           String    @default("PORTFOY") // PORTFOY, BANKADA, TAHSIL, CIRO, KARSILIKSIZ, IADE, IPTAL
+  statusAt         DateTime? // Son durum değişikliği
+  endorsedToId     Int? // Ciro edilen cari (tedarikçi)
+  endorsedTo       Company?  @relation("ChequeTo", fields: [endorsedToId], references: [id])
+  endorsePaymentId Int?      @unique // Ciro ödemesi (tedarikçiye)
+  endorsePayment   Payment?  @relation("ChequeEndorsement", fields: [endorsePaymentId], references: [id])
+  history          Json      @default("[]") // [{ status, at, by, note }]
+  createdAt        DateTime  @default(now())
+  updatedAt        DateTime  @updatedAt
+
+  @@index([tenantId, status, dueDate])
+}
+
+// Plasiyer saha ziyareti: planlanan (PLANNED) ya da yapılan (DONE) ziyaret. Konum, plasiyerin telefonundan izin verirse
+// ziyaret kaydedilirken alınır. Sonraki ziyaret tarihi verilirse o gün için planlı ziyaret açılır.
+model Visit {
+  id          Int       @id @default(autoincrement())
+  tenantId    Int
+  tenant      Tenant    @relation(fields: [tenantId], references: [id])
+  userId      Int // Plasiyer
+  user        User      @relation(fields: [userId], references: [id])
+  companyId   Int // Bayi
+  company     Company   @relation(fields: [companyId], references: [id])
+  plannedFor  DateTime? // Planlanan gün (planlı ziyaret)
+  status      String    @default("PLANNED") // PLANNED, DONE, CANCELLED
+  doneAt      DateTime?
+  result      String? // ORDER (sipariş alındı), PAYMENT (tahsilat), INFO (bilgilendirme), NO_CONTACT (görüşülemedi)
+  note        String?
+  lat         Float?
+  lng         Float?
+  accuracy    Float? // Konum doğruluğu (metre)
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+
+  @@index([tenantId, userId, status, plannedFor])
+  @@index([tenantId, companyId, doneAt])
 }

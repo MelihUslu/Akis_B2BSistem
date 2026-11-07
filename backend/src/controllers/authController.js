@@ -19,7 +19,8 @@ const sessionFor = (user, tenantId) => ({
   token: jwt.sign({ id: user.id, role: user.role, companyId: user.companyId, tenantId }, JWT_SECRET, { expiresIn: '1d' }),
   user: {
     id: user.id, name: user.name, email: user.email, role: user.role, companyId: user.companyId,
-    isOwner: user.isOwner, permissions: Array.isArray(user.permissions) ? user.permissions : []
+    isOwner: user.isOwner, permissions: Array.isArray(user.permissions) ? user.permissions : [],
+    orderApproval: user.orderApproval, orderApprovalLimit: user.orderApprovalLimit
   }
 });
 
@@ -142,9 +143,11 @@ export const getMe = async (req, res) => {
 
     const { password, twoFactorSecretEnc, twoFactorRecovery, emailVerifyToken, passwordResetHash, passwordResetExpires, cart, cartUpdatedAt, ...userData } = user;
     // Bayi adına işlem: kişi kendi kimliğiyle kalır, "company" işlem yapılan bayidir (katalog başlığı, sorumlu plasiyer)
-    const company = req.user.actingAs
+    const full = req.user.actingAs
       ? await prisma.company.findUnique({ where: { id: req.user.companyId }, include: { plasiyer: { select: { name: true, email: true } } } })
       : userData.company;
+    // XML besleme anahtarı yalnızca Profilim'de ana kullanıcıya gösterilir
+    const company = full && { ...full, feedToken: undefined };
     res.json({ ...userData, company, actingAs: req.user.actingAs || null, impersonatedBy: req.user.impersonatedBy || null });
   } catch (error) {
     res.status(500).json({ message: 'Kullanıcı bilgileri alınamadı.' });

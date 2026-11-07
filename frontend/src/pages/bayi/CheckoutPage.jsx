@@ -9,12 +9,14 @@ import { formatTRY } from '../../utils/format';
 import { t } from '../../i18n';
 import PageHeader from '../../components/shared/PageHeader';
 import usePortalSettings from '../../hooks/usePortalSettings';
+import { useAuth } from '../../context/AuthContext';
 
 // datetime-local alanı için yerel saatle 'YYYY-MM-DDTHH:mm'
 const localInput = (d) => new Date(d.getTime() - d.getTimezoneOffset() * 60000).toISOString().slice(0, 16);
 
 const CheckoutPage = () => {
   const { cart, clearCart } = useCart();
+  const { user } = useAuth();
   const [paymentMethod, setPaymentMethod] = useState('CURRENT_ACCOUNT');
   const [addressId, setAddressId] = useState(null);
   const { pickup } = usePortalSettings();
@@ -56,7 +58,10 @@ const CheckoutPage = () => {
   }, [cart, couponCode, isPickup]); // eslint-disable-line react-hooks/exhaustive-deps
 
   const creditShort = paymentMethod === 'CURRENT_ACCOUNT' && quote && quote.total > quote.credit.available;
-  const blocked = !quote || quote.errors.length > 0 || creditShort || (isPickup && !pickupAt);
+  // Bayi içinde onay: bu kullanıcının siparişi ana kullanıcının onayına gider (limit onay anında denetlenir)
+  const needsApproval = user?.role === 'BAYI' && !user.isOwner && quote
+    && (user.orderApproval === 'ALWAYS' || (user.orderApproval === 'OVER' && quote.total > (user.orderApprovalLimit || 0)));
+  const blocked = !quote || quote.errors.length > 0 || (creditShort && !needsApproval) || (isPickup && !pickupAt);
 
   const handlePlaceOrder = async () => {
     if (!cart || cart.length === 0) {
@@ -75,6 +80,17 @@ const CheckoutPage = () => {
         ...(isPickup ? { deliveryMethod: 'PICKUP', pickupAt: new Date(pickupAt).toISOString() } : { addressId })
       });
       clearCart();
+
+      if (res.status === 202) {
+        showAlert({
+          type: 'success',
+          title: t('Onaya Gönderildi'),
+          message: t('Siparişiniz firmanızın ana kullanıcısının onayına gönderildi. Onaylanınca firmaya iletilir.'),
+          confirmText: t('Onay Taleplerine Git'),
+          onConfirm: () => navigate('/bayi/orders?tab=requests'),
+        });
+        return;
+      }
 
       showAlert({
         type: 'success',
@@ -313,6 +329,11 @@ const CheckoutPage = () => {
               )}
             </div>
 
+            {needsApproval && (
+              <p className="text-xs font-bold text-brand-800 bg-brand-50 rounded-2xl p-4 flex items-start">
+                <ShieldCheck className="h-4 w-4 mr-2 flex-shrink-0 mt-0.5" /> {t('Bu sipariş firmanızın ana kullanıcısının onayına gidecek; onaylanınca firmaya iletilir. Fiyat, stok ve limit onay anında yeniden denetlenir.')}
+              </p>
+            )}
             <button
               disabled={isSubmitting || blocked}
               onClick={handlePlaceOrder}
@@ -328,7 +349,7 @@ const CheckoutPage = () => {
                 </span>
               ) : (
                 <>
-                  {t('Siparişi onayla')}{' '}
+                  {needsApproval ? t('Onaya gönder') : t('Siparişi onayla')}{' '}
                   <ArrowRight className="inline-block ml-2 h-6 w-6 group-hover:translate-x-2 transition-transform" />
                 </>
               )}

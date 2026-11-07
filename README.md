@@ -193,6 +193,11 @@ Portal telefona uygulama olarak kurulur (Android/masaüstü Chrome: menüdeki **
 - Service worker yalnızca production build'de kaydolur (push izni verilince geliştirmede de kaydolur). Push için site HTTPS üzerinden sunulmalıdır (localhost hariç).
 - **SMS (isteğe bağlı):** firma Ayarlar → SMS'te kendi Netgsm hesabını bağlayıp açar / kapatır; seçtiği bildirimler cep telefonu kayıtlı kullanıcılara SMS olarak da gider (kullanıcı tür tür kapatabilir). Ücret firmanın Netgsm hesabından düşer.
 - **Toplu SMS:** Müşteriler → Toplu SMS'te bayiler, bayi olmayan müşteri carileri ve müşteri adayları süzülüp seçilir; bilgilendirme ya da ticari (İYS süzgeçli, ret metniyle) mesaj kişiselleştirilerek gönderilir, gönderim geçmişi alıcılarıyla tutulur ("Toplu SMS" yetkisi).
+- **Kartla taksit:** firma en fazla taksiti ve taksit için en düşük tutarı seçer (iyzico / PayTR); vade farkı sağlayıcı panelindeki ayara göre karta yansır, cariye net tutar işlenir.
+- **Çek / senet portföyü:** Finans → Çek / Senet. Çek / senetle tahsilat portföye girer; tahsile verme, tahsil, tedarikçiye ciro, karşılıksız ve iade (cari ters kaydıyla) buradan işaretlenir.
+- **Bayi içinde sipariş onayı:** bayinin ana kullanıcısı çalışanlarına "her sipariş" ya da "tutarı aşan sipariş onaya" kuralı koyar; talep onaylanınca sipariş o anki fiyat / stok / limitle oluşur.
+- **Bayilere XML ürün beslemesi:** firma açarsa bayi Profilim'den kendine özel adres üretir; e-ticaret sitesi ürünleri bayinin fiyatı, stoğu ve görselleriyle çeker.
+- **Plasiyer saha ziyareti:** plasiyer ziyaret planlar ve kaydeder (sonuç, not, konum); yönetim Saha Ziyaretleri'nde özeti ve ziyaret edilmeyen bayileri görür.
 - **Toplu E-posta:** Müşteriler → Toplu E-posta'da aynı alıcı seçimiyle kişiselleştirilmiş e-posta gönderilir. Platformun SMTP'sinden firmanın adıyla gider, yanıtlar firmanın adresine gelir; her iletide abonelikten çıkma bağlantısı ve `List-Unsubscribe` başlığı vardır. Gönderim arka planda, hızı ayarlı ve firma başına günlük sınırlıdır (`BULK_MAIL_DAILY_LIMIT`, `BULK_MAIL_PER_MINUTE`); geçmişte alıcı bazında durum görünür ("Toplu e-posta" yetkisi).
 - **Saklama:** okunmuş bildirimler 90, okunmamışlar 180 gün sonra saatlik işle silinir. Tekrar engelleme anahtarı olanlar (ör. vade hatırlatması; silinirse aynı hatırlatma yeniden giderdi) silinmez.
 

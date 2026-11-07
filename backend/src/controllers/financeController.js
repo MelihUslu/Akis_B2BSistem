@@ -51,6 +51,7 @@ const buildStatement = async (companyId) => {
     include: { plasiyer: { select: { name: true, email: true } } }
   });
   if (!company) return null;
+  delete company.feedToken; // XML besleme anahtarı ekstrede (bayinin bütün kullanıcıları görür) yer almaz
 
   const transactions = await prisma.financialTransaction.findMany({
     where: { companyId },

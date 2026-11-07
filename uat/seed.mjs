@@ -4,7 +4,7 @@
  *   docker exec -w /app akis_uat_backend node /uat/seed.mjs
  */
 import { createRequire } from 'module';
-import { TENANT, OTHER_TENANT, PASSWORD, ADMIN, PLASIYER, STAFF, DEALERS, OTHER_DEALER, PRODUCTS, PICKUP } from './data.mjs';
+import { TENANT, OTHER_TENANT, PASSWORD, ADMIN, PLASIYER, STAFF, DEALERS, DEALER_STAFF, OTHER_DEALER, PRODUCTS, PICKUP } from './data.mjs';
 
 // Paketler backend'in node_modules klasöründen yüklenir (betik uat/ altında durur)
 const require = createRequire('/app/package.json');
@@ -42,6 +42,10 @@ const main = async () => {
     const u = await prisma.user.create({ data: { tenantId: t.id, companyId: c.id, email: d.email, password, name: `${d.company} Yetkilisi`, role: 'BAYI', isOwner: true, emailVerifiedAt: new Date() } });
     sessions.push({ key, id: u.id, name: u.name, email: u.email, role: 'BAYI', companyId: c.id, isOwner: true });
     await prisma.deliveryAddress.create({ data: { tenantId: t.id, companyId: c.id, title: 'Merkez', contactName: 'Depo Sorumlusu', phone: '0532 000 00 00', city: 'İstanbul', district: 'Kadıköy', line: 'Moda Cad. No:1', isDefault: true } });
+    if (key === DEALER_STAFF.dealer) {
+      const s = await prisma.user.create({ data: { tenantId: t.id, companyId: c.id, email: DEALER_STAFF.email, password, name: DEALER_STAFF.name, role: 'BAYI', isOwner: false, orderApproval: 'ALWAYS', emailVerifiedAt: new Date() } });
+      sessions.push({ key: DEALER_STAFF.key, id: s.id, name: s.name, email: s.email, role: 'BAYI', companyId: c.id, isOwner: false });
+    }
   }
 
   const cat = await prisma.category.create({ data: { tenantId: t.id, name: 'El Aletleri' } });

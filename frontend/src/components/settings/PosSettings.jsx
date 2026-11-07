@@ -31,11 +31,14 @@ const PosSettings = ({ showAlert, confirm }) => {
   const [form, setForm] = useState(emptyForm('IYZICO'));
   const [saving, setSaving] = useState(false);
   const [copied, setCopied] = useState(false);
+  const [inst, setInst] = useState({ maxInstallment: 1, installmentMin: '' });
+  const [savingInst, setSavingInst] = useState(false);
 
   useEffect(() => {
     api.get('/tenant/pos').then((r) => {
       setPos(r.data);
       setForm(emptyForm(r.data.provider || 'IYZICO', r.data.mode || 'SANDBOX'));
+      setInst({ maxInstallment: r.data.maxInstallment || 1, installmentMin: r.data.installmentMin ? String(r.data.installmentMin) : '' });
     }).catch(() => {});
   }, []);
 
@@ -58,6 +61,20 @@ const PosSettings = ({ showAlert, confirm }) => {
     if (!(await confirm({ title: 'Sanal POS bağlantısı kaldırılsın mı?', message: 'Bayileriniz kartla ödeme yapamaz.', confirmText: 'Kaldır' }))) return;
     const res = await api.delete('/tenant/pos');
     setPos(res.data.pos);
+  };
+
+  const saveInstallments = async (e) => {
+    e.preventDefault();
+    setSavingInst(true);
+    try {
+      const res = await api.put('/tenant/pos/installments', inst);
+      setPos(res.data.pos);
+      showAlert({ type: 'success', title: 'Taksit ayarı kaydedildi', message: res.data.message });
+    } catch (err) {
+      showAlert({ type: 'error', title: 'Kaydedilemedi', message: errorMessage(err, 'Taksit ayarı kaydedilemedi.') });
+    } finally {
+      setSavingInst(false);
+    }
   };
 
   const copyNotifyUrl = () => {
@@ -96,6 +113,29 @@ const PosSettings = ({ showAlert, confirm }) => {
           </div>
         )}
       </div>
+
+      {pos.configured && (
+        <form onSubmit={saveInstallments} className="card-premium p-6 space-y-4">
+          <div>
+            <h3 className="font-black text-gray-900">Taksit</h3>
+            <p className="text-sm text-gray-600 mt-1">Bayileriniz kartla öderken taksit seçebilsin. Vade farkı ve komisyon {PROVIDERS[pos.provider]?.name} panelindeki ayarınıza göre karta yansır; carisine her zaman vade farkı hariç tutar işlenir.</p>
+          </div>
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+            <div>
+              <label className="premium-label" htmlFor="pos-max-inst">En fazla taksit</label>
+              <select id="pos-max-inst" className="premium-input" value={inst.maxInstallment} onChange={(e) => setInst({ ...inst, maxInstallment: Number(e.target.value) })}>
+                {(pos.installmentOptions || [1]).map((n) => <option key={n} value={n}>{n === 1 ? 'Tek çekim (taksit yok)' : `${n} taksite kadar`}</option>)}
+              </select>
+            </div>
+            <div>
+              <label className="premium-label" htmlFor="pos-inst-min">Taksit için en düşük tutar (₺)</label>
+              <input id="pos-inst-min" type="number" min="0" step="0.01" disabled={inst.maxInstallment === 1} className="premium-input disabled:opacity-50" placeholder="Sınır yok"
+                value={inst.installmentMin} onChange={(e) => setInst({ ...inst, installmentMin: e.target.value })} />
+            </div>
+          </div>
+          <button type="submit" disabled={savingInst} className="btn-gradient disabled:opacity-60">{savingInst ? 'Kaydediliyor...' : 'Taksit Ayarını Kaydet'}</button>
+        </form>
+      )}
 
       <form onSubmit={save} className="card-premium p-6 space-y-5">
         <div>

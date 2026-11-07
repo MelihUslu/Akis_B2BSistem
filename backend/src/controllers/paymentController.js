@@ -3,7 +3,7 @@ import prisma, { runWithTenant } from '../utils/prisma.js';
 import { API_PUBLIC_URL, tenantUrl, tenantPortalUrl } from '../config.js';
 import * as iyzico from '../services/iyzicoService.js';
 import * as paytr from '../services/paytrService.js';
-import { tenantPosCreds, posMode } from '../services/tenantPosService.js';
+import { tenantPosCreds, posMode, maxInstallmentFor, INSTALLMENT_OPTIONS } from '../services/tenantPosService.js';
 import { emitEvent } from '../services/webhookService.js';
 import { availableCredit, round2 } from '../services/pricingService.js';
 import { postEntry, currentRate } from '../services/accountPosting.js';
@@ -104,7 +104,14 @@ export const payWithPos = async (req, res) => {
 };
 
 // Bayi ekranı hangi ödeme yöntemini göstereceğini buradan öğrenir
-export const getPosInfo = (req, res) => res.json({ mode: posMode(req.tenant) });
+// Bayi ekranı: ödeme yöntemi ve taksit (en fazla kaç taksit, hangi tutardan itibaren)
+export const getPosInfo = (req, res) => res.json({
+  mode: posMode(req.tenant),
+  maxInstallment: maxInstallmentFor(req.tenant, Infinity),
+  installmentMin: req.tenant.posInstallmentMin || 0
+});
+
+const installmentText = (n) => (n > 1 ? `, ${n} taksit` : '');
 
 const splitName = (full = '') => {
   const parts = full.trim().split(/\s+/);
@@ -115,10 +122,11 @@ const splitName = (full = '') => {
  * Bekleyen bir bayi ödemesini tamamlar: cariye alacak yazılır, bakiye artar (risk limiti açılır).
  * Aynı ödeme iki kez işlenmez. Kiracı bağlamında çağrılmalıdır.
  */
-const completeDealerPayment = async (tenant, payment, { reference, cardLast4, description }) => {
+// installment / paidTotal: taksit sayısı ve karttan çekilen toplam (vade farkı dahil); cariye her zaman payment.amount işlenir
+const completeDealerPayment = async (tenant, payment, { reference, cardLast4, description, installment = null, paidTotal = null }) => {
   const claimed = await prisma.payment.updateMany({
     where: { id: payment.id, status: 'PENDING' },
-    data: { status: 'COMPLETED', cardLast4: cardLast4 || null, reference }
+    data: { status: 'COMPLETED', cardLast4: cardLast4 || null, reference, installment, paidTotal }
   });
   if (claimed.count !== 1) return false;
 
@@ -162,7 +170,7 @@ export const startPosCheckout = async (req, res) => {
       // merchant_oid: sadece harf ve rakam
       const merchantOid = `C${company.id}T${Date.now()}${crypto.randomBytes(3).toString('hex')}`;
       const result = await paytr.getPaymentToken(creds, {
-        amount, merchantOid, email: user.email, userIp,
+        amount, merchantOid, email: user.email, userIp, maxInstallment: maxInstallmentFor(req.tenant, amount),
         userName: company.authorizedPerson || user.name,
         userAddress: company.address || company.name,
         userPhone: `0${phone || '5000000000'}`,
@@ -185,6 +193,7 @@ export const startPosCheckout = async (req, res) => {
       basketId,
       callbackUrl: `${API_PUBLIC_URL}/api/public/pos/callback?tenant=${req.tenant.slug}`,
       itemName: `${company.name} cari ödeme`,
+      installments: INSTALLMENT_OPTIONS.filter((n) => n <= maxInstallmentFor(req.tenant, amount)),
       address,
       buyer: {
         id: String(company.id), name, surname,
@@ -228,15 +237,20 @@ export const posCallback = async (req, res) => {
       if (payment.status === 'COMPLETED') return back('success');
 
       const detail = await iyzico.retrievePaymentCheckout(creds, token);
-      const paid = String(detail.paymentStatus).toUpperCase() === 'SUCCESS' && round2(parseFloat(detail.paidPrice)) === round2(payment.amount);
+      // price: istenen tutar; paidPrice: karttan çekilen (taksitte vade farkı dahil, istenenden az olamaz)
+      const price = round2(parseFloat(detail.price ?? detail.paidPrice));
+      const paidPrice = round2(parseFloat(detail.paidPrice));
+      const paid = String(detail.paymentStatus).toUpperCase() === 'SUCCESS' && price === round2(payment.amount) && paidPrice >= price;
       if (!paid) {
         await prisma.payment.updateMany({ where: { id: payment.id, status: 'PENDING' }, data: { status: 'FAILED' } });
         return back('failed', detail.errorMessage || 'Ödeme onaylanmadı.');
       }
+      const installment = parseInt(detail.installment) || 1;
       await completeDealerPayment(tenant, payment, {
         reference: `iyzico:${detail.paymentId}`,
         cardLast4: detail.lastFourDigits,
-        description: `Kartla ödeme (**** ${detail.lastFourDigits || ''}) · iyzico ${detail.paymentId}`
+        installment, paidTotal: paidPrice,
+        description: `Kartla ödeme (**** ${detail.lastFourDigits || ''}${installmentText(installment)}) · iyzico ${detail.paymentId}`
       });
       return back('success');
     });
@@ -268,9 +282,13 @@ export const paytrNotify = async (req, res) => {
         await prisma.payment.updateMany({ where: { id: payment.id, status: 'PENDING' }, data: { status: 'FAILED', reference: `paytr:${req.body.failed_reason_code || 'mismatch'}` } });
         return;
       }
+      // total_amount: karttan çekilen (taksitte vade farkı dahil, kuruş)
+      const installment = parseInt(req.body.installment_count) || 1;
+      const total = parseInt(req.body.total_amount);
       await completeDealerPayment(tenant, payment, {
         reference: `paytr:${payment.token}`,
-        description: `Kartla ödeme · PayTR ${payment.token}${req.body.test_mode === '1' ? ' (test)' : ''}`
+        installment, paidTotal: Number.isFinite(total) && total >= requested ? total / 100 : payment.amount,
+        description: `Kartla ödeme${installment > 1 ? ` (${installment} taksit)` : ''} · PayTR ${payment.token}${req.body.test_mode === '1' ? ' (test)' : ''}`
       });
     });
     res.send('OK');

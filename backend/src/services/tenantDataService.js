@@ -81,7 +81,8 @@ export const exportTenantWorkbook = (tenantId, { signal } = {}) => withSlot('ten
   try {
     await table('Firma', [{ ad: tenant.name, adres: tenant.slug, paket: tenant.plan.name, durum: tenant.status, kayit: tenant.createdAt, disaAktarim: new Date() }]);
     await paged('Kullanıcılar', 'user', { select: { id: true, name: true, email: true, role: true, companyId: true, isOwner: true, isActive: true, createdAt: true, lastLoginAt: true } });
-    await paged('Bayiler', 'company');
+    // XML besleme anahtarı bayinin gizli adresi: yalnızca açık olup olmadığı yazılır
+    await paged('Bayiler', 'company', {}, (r) => ({ ...r, feedToken: r.feedToken ? 'açık' : '' }));
     await paged('Kategoriler', 'category');
     await paged('Ürünler', 'product');
     await paged('Siparişler', 'order');
@@ -104,6 +105,9 @@ export const exportTenantWorkbook = (tenantId, { signal } = {}) => withSlot('ten
     await paged('Toplu SMS', 'smsCampaign');
     await paged('Toplu SMS Alıcıları', 'smsCampaignRecipient');
     await paged('Toplu E-posta', 'mailCampaign');
+    await paged('Çek ve Senet Portföyü', 'cheque', { select: { id: true, kind: true, number: true, bankName: true, drawer: true, companyId: true, amount: true, currency: true, dueDate: true, status: true, statusAt: true, endorsedToId: true, paymentId: true, endorsePaymentId: true, createdAt: true } });
+    await paged('Saha Ziyaretleri', 'visit');
+    await paged('Sipariş Onay Talepleri', 'orderRequest', { select: { id: true, companyId: true, userId: true, total: true, itemCount: true, status: true, decidedById: true, decidedAt: true, reason: true, orderId: true, createdAt: true } });
     await paged('Toplu E-posta Alıcıları', 'mailCampaignRecipient');
     await paged('E-posta Aboneliğinden Çıkanlar', 'emailOptOut');
     await book.close();
@@ -216,6 +220,7 @@ const purgeTenantRecords = (tenantId) => runAsPlatform(() => prisma.$transaction
   await tx.returnRequest.deleteMany(w);
   await tx.reconciliation.deleteMany(w);
   await tx.plasiyerPoint.deleteMany(w);
+  await tx.cheque.deleteMany(w);
   await tx.financialTransaction.deleteMany(w);
   await tx.payment.deleteMany(w);
   await tx.invoice.deleteMany(w);
@@ -242,6 +247,8 @@ const purgeTenantRecords = (tenantId) => runAsPlatform(() => prisma.$transaction
   await tx.warehouseStock.deleteMany(w);
   await tx.orderShipment.deleteMany(w);
   await tx.dealerTarget.deleteMany(w);
+  await tx.orderRequest.deleteMany(w);
+  await tx.visit.deleteMany(w);
   await tx.orderItem.deleteMany(w);
   await tx.order.deleteMany(w);
   await tx.warehouse.deleteMany(w);

@@ -18,6 +18,8 @@ Teklif talebi (RFQ) SaaS dönüşümüyle geldi (`b0613c5`); 27 Ekim'de "akıll�
 - Plasiyer kendi hesabıyla girer ve `/plasiyer` paneline düşer.
 - Yalnızca sorumlu olduğu bayileri görür: bakiye, limit, vadesi geçen tutar, son sipariş; ayrıca kendi primleri.
 - Bayi seçip onun adına sipariş verir.
+- **Saha ziyareti (7 Kasım):** plasiyer bayi kartından ziyaret planlar ya da ziyareti kaydeder: sonuç (sipariş alındı, tahsilat, bilgilendirme, görüşülemedi), not, telefonun izniyle konum ve sonraki ziyaret günü (o gün için plan açılır). Panelde bugünkü ve geciken planlar, yaklaşan ziyaretler, her bayide son ve sıradaki ziyaret; 30 günü geçen bayi uyarıyla görünür. Yalnızca kendi aktif bayileri için.
+- **Saha Ziyaretleri (yönetim, Bayiler yetkisi):** plasiyer ve tarih süzgeciyle ziyaretler (konum haritada açılır), plasiyer başına ziyaret / ziyaret edilen bayi / sonuç özeti ve 30 gündür ziyaret edilmeyen bayiler.
 
 ## Bayi adına sipariş (`a8e2226`)
 

@@ -12,6 +12,26 @@ import ModalHeader from '../shared/ModalHeader';
 // 5321234567 → 532 123 45 67
 const formatPhone = (p) => (p ? `${p.slice(0, 3)} ${p.slice(3, 6)} ${p.slice(6, 8)} ${p.slice(8)}` : '');
 
+// Bayi içinde sipariş onayı: ana kullanıcı olmayan kullanıcının siparişi ana kullanıcının onayına gitsin mi?
+const ApprovalRule = ({ user, onSave }) => {
+  const [mode, setMode] = useState(user.orderApproval || 'NONE');
+  const [limit, setLimit] = useState(user.orderApprovalLimit ? String(user.orderApprovalLimit) : '');
+  const dirty = mode !== (user.orderApproval || 'NONE') || (mode === 'OVER' && Number(limit) !== Number(user.orderApprovalLimit || 0));
+  return (
+    <div className="mt-1.5 flex flex-wrap items-center gap-1.5">
+      <select aria-label={t('Sipariş onayı')} className="premium-input !py-1.5 !text-xs !w-auto" value={mode} onChange={(e) => setMode(e.target.value)}>
+        <option value="NONE">{t('Sipariş onaysız gider')}</option>
+        <option value="ALWAYS">{t('Her sipariş ana kullanıcı onayına')}</option>
+        <option value="OVER">{t('Tutarı aşan sipariş onaya')}</option>
+      </select>
+      {mode === 'OVER' && (
+        <input type="number" min="1" step="0.01" aria-label={t('Onay sınırı (₺, KDV dahil)')} placeholder={t('₺ sınır')} className="premium-input !py-1.5 !text-xs !w-28" value={limit} onChange={(e) => setLimit(e.target.value)} />
+      )}
+      {dirty && <button type="button" onClick={() => onSave({ orderApproval: mode, orderApprovalLimit: mode === 'OVER' ? limit : null })} className="p-1.5 rounded-lg text-emerald-600 hover:bg-emerald-50" title={t('Kaydet')}><Check className="h-4 w-4" /></button>}
+    </div>
+  );
+};
+
 const DealerUsersModal = ({ title, base, isAdmin, onClose, showAlert, confirm, inline = false }) => {
   const [users, setUsers] = useState(null);
   const [form, setForm] = useState(null);
@@ -73,6 +93,7 @@ const DealerUsersModal = ({ title, base, isAdmin, onClose, showAlert, confirm, i
                     <Smartphone className="h-3.5 w-3.5" /> {u.phone ? formatPhone(u.phone) : t('Cep telefonu ekle (SMS)')}
                   </button>
                 )}
+                {!u.isOwner && u.isActive && <ApprovalRule key={`${u.orderApproval}-${u.orderApprovalLimit}`} user={u} onSave={(data) => patch(u, data)} />}
               </div>
               <div className="flex items-center gap-2">
                 {isAdmin && !u.isOwner && u.isActive && <button onClick={() => patch(u, { isOwner: true })} className="px-2.5 py-1.5 rounded-lg text-[11px] font-black text-amber-700 bg-amber-50">{t('Ana Kullanıcı Yap')}</button>}
@@ -100,6 +121,7 @@ const DealerUsersModal = ({ title, base, isAdmin, onClose, showAlert, confirm, i
         </button>
       )}
       <p className="text-[11px] text-gray-400">{t('Yeni kullanıcıya güçlü bir şifre üretilip e-posta ile gönderilir. Tüm kullanıcılar aynı cari hesabı ve siparişleri görür.')}</p>
+      <p className="text-[11px] text-gray-400">{t('Sipariş onayı: seçilen kullanıcının siparişi önce ana kullanıcının onayına gider (Siparişlerim → Onay talepleri); onaylanınca firmaya iletilir.')}</p>
     </div>
   );
 

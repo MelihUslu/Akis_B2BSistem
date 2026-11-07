@@ -75,6 +75,24 @@ Bayi iade / değişim talebi açar, yönetici karar verir. Onaylanan iade stoğa
 
 Ayar açıkken bayi stokta olmayan üründe miktar belirterek teklif ister. Sipariş oluşmaz, stok düşmez; talep yöneticiye "stokta yoktu" uyarısıyla düşer. Yönetici fiyatlayıp gönderir, bayi onaylarsa sipariş oluşur. Stok ayırma kuralından beri stoktan fazla sipariş verilemediği için stokta olmayan mal bu yoldan istenir.
 
+## Bayi içinde sipariş onayı (7 Kasım)
+
+Büyük bayilerde çalışan sepeti hazırlar, sahibi onaylar:
+
+- Bayinin ana kullanıcısı (ya da firma, Bayi Yönetimi → kullanıcılar) her çalışan için kural koyar: *onaysız*, *her sipariş onaya*, *şu tutarı (KDV dahil) aşan sipariş onaya*. Ana kullanıcıya kural uygulanmaz; onaylayan odur.
+- Kurala uyan sipariş, sipariş olarak oluşmaz; **onay talebi** olur. Firmaya düşmez, stok ayırmaz. Sepet kuralları talep açılırken denetlenir; risk limiti onay anında denetlenir (ana kullanıcı önce ödeme yapabilir). Ödeme ekranında çalışan, siparişin onaya gideceğini önceden görür ("Onaya gönder").
+- Siparişlerim → **Onay talepleri**: ana kullanıcı bütün talepleri, çalışan kendi taleplerini görür. Bekleyen talepte güncel tutar ve sepet uyarıları (fiyat / stok değişmiş olabilir) gösterilir.
+- Ana kullanıcı onaylayınca sipariş, çalışan adına normal sipariş akışıyla o anki fiyat, stok ve limitle oluşur (otomatik onay ve bildirimler dahil). Kural ihlali olursa sipariş oluşmaz, talep beklemede kalır. Ret nedeniyle reddedilebilir; çalışan bekleyen talebini geri çekebilir. Her karar bildirimle gider.
+- Bayi adına işlemde (yönetici, plasiyer) onay kuralı uygulanmaz.
+
+## Bayilere XML ürün beslemesi (7 Kasım)
+
+E-ticaret sitesi olan bayi, ürünleri kendi fiyatlarıyla sitesine aktarır:
+
+- Firma Ayarlar → Sipariş ve Teslimat'ta açar. Bayinin ana kullanıcısı Profilim'den kendine özel, gizli bir adres üretir; adres istenince yenilenir (eskisi hemen çalışmaz) ya da kapatılır.
+- Adres bayinin katalogda gördüğü ürünleri verir (grup görünürlüğü uygulanır, pasif ürün yok): stok kodu, barkod, ad, marka, kategori yolu, açıklama, birim, en az sipariş, sipariş katı, stok, liste fiyatı ve bayiye özel fiyat (özel / kademeli fiyat ve iskontolar uygulanmış, KDV hariç, TL), KDV oranı, görseller. Varyantlar ana ürün koduyla ayrı satırdır. Fiyatı gizli ürünlerde fiyat yazılmaz; stok, onay bekleyen siparişler düşülmüş miktardır, 100'den fazlası 100 yazılır.
+- Erişim her istekte denetlenir (firma kapatınca, bayi pasifleşince, anahtar yenilenince hemen 404); liste 10 dakika önbellekte tutulur. Anahtar bayinin diğer kullanıcılarına ve ekstreye gitmez, tüm veri dışa aktarımına yalnızca "açık" olarak yazılır.
+
 ## Commit'ler
 
 | Commit | Tarih | Açıklama |

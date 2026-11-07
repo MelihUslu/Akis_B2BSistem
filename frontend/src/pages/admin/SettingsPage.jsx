@@ -157,6 +157,17 @@ const OrderOptionsCard = ({ draft, setDraft }) => {
           <p className="text-[11px] text-gray-400">Kapalıyken mevcut kural geçerli: stokta olmayan ürüne yalnızca "Gelince haber ver" denebilir.</p>
         </div>
 
+        <div className="rounded-2xl ring-1 ring-gray-100 p-5 space-y-2">
+          <div className="flex items-start justify-between gap-4">
+            <div>
+              <p className="font-black text-sm text-gray-900">Bayilere XML ürün beslemesi</p>
+              <p className="text-xs text-gray-500 mt-1">Açıkken bayinin ana kullanıcısı Profilim'den kendine özel bir adres üretir; e-ticaret sitesi ürünlerinizi bu adresten bayinin fiyatı, stoğu ve görselleriyle çeker.</p>
+            </div>
+            <Switch on={on('dealer_feed')} onChange={toggle('dealer_feed')} label="Bayilere XML ürün beslemesi" />
+          </div>
+          <p className="text-[11px] text-gray-400">Bayi yalnızca katalogda gördüğü ürünleri görür; fiyatı gizli ürünlerde fiyat yazılmaz, stok 100'den fazlaysa 100 yazılır. Kapatınca bütün adresler hemen çalışmaz olur.</p>
+        </div>
+
         <div className="rounded-2xl ring-1 ring-gray-100 p-5 space-y-4">
           <div className="flex items-start justify-between gap-4">
             <div>

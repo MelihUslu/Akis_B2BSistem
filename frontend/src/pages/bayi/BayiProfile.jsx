@@ -5,6 +5,7 @@ import AddressBook from '../../components/shared/AddressBook';
 import NotificationPrefs from '../../components/settings/NotificationPrefs';
 import useAlert from '../../hooks/useAlert';
 import DealerUsersModal from '../../components/admin/DealerUsersModal';
+import DealerFeedCard from '../../components/bayi/DealerFeedCard';
 import { Users } from 'lucide-react';
 import { formatTRY } from '../../utils/format';
 import { t } from '../../i18n';
@@ -117,6 +118,8 @@ const BayiProfile = () => {
       ) : (
         <p className="text-xs text-gray-400">{t('Kullanıcı eklemek için firmanızın ana kullanıcısıyla iletişime geçin.')}</p>
       )}
+
+      {me.isOwner && <DealerFeedCard showAlert={showAlert} confirm={confirm} />}
     </div>
   );
 };

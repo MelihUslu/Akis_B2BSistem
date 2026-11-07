@@ -6,7 +6,7 @@ import { useTenant } from '../context/TenantContext';
 import TenantBrand from './TenantBrand';
 import { can } from '../utils/permissions';
 import { 
-  LayoutDashboard, Package, ShoppingCart, CreditCard, BarChart3, Settings, LogOut, UserCheck, ChevronLeft, ChevronRight, RotateCcw, Crown, FileSignature, TicketPercent, X, BookUser, Inbox, MessageCircle, ChevronDown, Tags, Briefcase, Users, Wallet, FolderTree, Scale, IdCard, UserRound, Contact, MessageSquareText, Mail
+  LayoutDashboard, Package, ShoppingCart, CreditCard, BarChart3, Settings, LogOut, UserCheck, ChevronLeft, ChevronRight, RotateCcw, Crown, FileSignature, TicketPercent, X, BookUser, Inbox, MessageCircle, ChevronDown, Tags, Briefcase, Users, Wallet, FolderTree, Scale, IdCard, UserRound, Contact, MessageSquareText, Mail, Banknote, MapPinned
 } from 'lucide-react';
 
 // Menü: tek bağlantılar ve açılır gruplar. perm: tek yetki ya da yetkilerden biri yeterli
@@ -28,11 +28,13 @@ const MENU = [
     { name: 'WhatsApp', path: '/admin/whatsapp', badge: 'whatsapp', icon: MessageCircle, perm: ['MESSAGES', 'SETTINGS'] },
     { name: 'Toplu SMS', path: '/admin/sms', icon: MessageSquareText, perm: 'SMS' },
     { name: 'Toplu E-posta', path: '/admin/mail', icon: Mail, perm: 'EMAIL' },
+    { name: 'Saha Ziyaretleri', path: '/admin/visits', icon: MapPinned, perm: 'DEALERS' },
   ] },
   { key: 'finance', name: 'Finans', icon: Wallet, items: [
     { name: 'Cari Hesaplar', path: '/admin/partners', icon: BookUser, perm: ['FINANCE', 'DEALERS'] },
     { name: 'Finans & Prim', path: '/admin/finance', icon: CreditCard, perm: 'FINANCE' },
     { name: 'Gelir-Gider', path: '/admin/cash', icon: Scale, perm: 'FINANCE' },
+    { name: 'Çek / Senet', path: '/admin/cheques', icon: Banknote, perm: 'FINANCE' },
   ] },
   // Personel: firma modülü açtıysa (module). Kapalıyken yalnızca Ayarlar yetkilisi "Kapalı" etiketiyle görür ve
   // sayfadan tek tıkla açar (offItem). Personel Alanım tüm ekip üyelerine açık (kartı yoksa sayfa söyler)

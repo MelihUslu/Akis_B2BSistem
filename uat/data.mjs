@@ -34,8 +34,11 @@ export const DEALERS = {
   iptal: { email: 'iptal@uat.test', company: 'Vazgeçen Yapı', netDiscount: 0, riskLimit: 100000 },
   sevk: { email: 'sevk@uat.test', company: 'Parça Sevk Ticaret', netDiscount: 0, riskLimit: 100000 },
   hedef: { email: 'hedef@uat.test', company: 'Hedef Hırdavat', netDiscount: 0, riskLimit: 100000 },
-  sepet: { email: 'sepet@uat.test', company: 'Çok Cihazlı Bayi', netDiscount: 0, riskLimit: 100000 }
+  sepet: { email: 'sepet@uat.test', company: 'Çok Cihazlı Bayi', netDiscount: 0, riskLimit: 100000 },
+  onay: { email: 'onay@uat.test', company: 'Onaylı Yapı', netDiscount: 0, riskLimit: 100000 }
 };
+// Onaylı Yapı'nın çalışanı: her siparişi ana kullanıcının onayına gider (bayi içinde sipariş onayı)
+export const DEALER_STAFF = { key: 'onay-calisan', email: 'onay-calisan@uat.test', name: 'Onaylı Yapı Satınalma', dealer: 'onay' };
 
 // Başka bir firmanın bayisi: bu firmanın adresinden giriş yapamamalı
 export const OTHER_DEALER = { email: 'bayi@uat-diger.test', company: 'Diğer Firma Bayisi' };
@@ -57,7 +60,8 @@ export const PRODUCTS = {
   sevk1: { sku: 'UAT-SEVK-1', name: 'Kaynak Maskesi', price: 600, stock: 20 },
   sevk2: { sku: 'UAT-SEVK-2', name: 'Kaynak Eldiveni', price: 150, stock: 80 },
   hedef: { sku: 'UAT-HEDEF', name: 'Akülü Matkap 18V', price: 1500, stock: 30 },
-  sepet: { sku: 'UAT-SEPET', name: 'Su Pompası 1 HP', price: 2500, stock: 10 }
+  sepet: { sku: 'UAT-SEPET', name: 'Su Pompası 1 HP', price: 2500, stock: 10 },
+  onay: { sku: 'UAT-ONAY', name: 'Yalıtım Bandı 50 m', price: 50, stock: 100 }
 };
 
 export const PICKUP = { address: 'Merkez Depo — İkitelli OSB, Başakşehir/İstanbul', hours: 'Hafta içi 08:30–18:00' };

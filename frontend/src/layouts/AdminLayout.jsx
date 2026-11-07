@@ -32,6 +32,8 @@ const SupportPage = lazy(() => import('../pages/admin/SupportPage'));
 const AccountPage = lazy(() => import('../pages/admin/AccountPage'));
 const ReportsPage = lazy(() => import('../pages/admin/ReportsPage'));
 const CashPage = lazy(() => import('../pages/admin/CashPage'));
+const ChequePortfolio = lazy(() => import('../pages/admin/ChequePortfolio'));
+const VisitReport = lazy(() => import('../pages/admin/VisitReport'));
 const LeadManagement = lazy(() => import('../pages/admin/LeadManagement'));
 const BulkSms = lazy(() => import('../pages/admin/BulkSms'));
 const BulkMail = lazy(() => import('../pages/admin/BulkMail'));
@@ -137,6 +139,8 @@ const AdminLayout = () => {
               <Route path="coupons" element={<Guard perm="CATALOG"><CouponManagement /></Guard>} />
               <Route path="reports" element={<Guard perm={['ORDERS', 'FINANCE']}><ReportsPage /></Guard>} />
               <Route path="cash" element={<Guard perm="FINANCE"><CashPage /></Guard>} />
+              <Route path="cheques" element={<Guard perm="FINANCE"><ChequePortfolio /></Guard>} />
+              <Route path="visits" element={<Guard perm="DEALERS"><VisitReport /></Guard>} />
               <Route path="personel" element={<Guard perm={['HR', 'FINANCE']}><HrManagement /></Guard>} />
               <Route path="personel-alanim" element={<StaffArea />} />
               <Route path="support" element={<SupportPage />} />

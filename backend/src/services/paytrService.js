@@ -6,7 +6,8 @@ import { trackExternal } from './monitoring.js';
  * creds: { merchantId, merchantKey, merchantSalt, testMode }
  * Ödeme sonucu, PayTR mağaza panelinde tanımlanan "Bildirim URL"ine sunucudan sunucuya POST edilir.
  */
-const TOKEN_URL = 'https://www.paytr.com/odeme/api/get-token';
+// PAYTR_API_URL yalnızca testlerde (taklit sunucu)
+const TOKEN_URL = () => `${process.env.PAYTR_API_URL || 'https://www.paytr.com'}/odeme/api/get-token`;
 export const PAYMENT_PAGE = (token) => `https://www.paytr.com/odeme/guvenli/${token}`;
 
 export class PaytrError extends Error {}
@@ -15,12 +16,13 @@ const hmac = (key, data) => crypto.createHmac('sha256', key).update(data).digest
 
 /**
  * Ödeme token'ı alır. amount: TL (ör. 250.5) · merchantOid: sadece harf/rakam, benzersiz
+ * maxInstallment: 1 tek çekim; 2–12 o sayıya kadar taksit (vade farkı PayTR panelindeki ayara göre karta yansır)
  */
-export const getPaymentToken = async (creds, { amount, merchantOid, email, userIp, userName, userAddress, userPhone, basketName, okUrl, failUrl }) => {
+export const getPaymentToken = async (creds, { amount, merchantOid, email, userIp, userName, userAddress, userPhone, basketName, okUrl, failUrl, maxInstallment: max = 1 }) => {
   const paymentAmount = Math.round(amount * 100); // kuruş
   const userBasket = Buffer.from(JSON.stringify([[basketName, amount.toFixed(2), 1]])).toString('base64');
-  const noInstallment = '1';
-  const maxInstallment = '0';
+  const noInstallment = max > 1 ? '0' : '1';
+  const maxInstallment = max > 1 ? String(max) : '0';
   const currency = 'TL';
   const testMode = creds.testMode ? '1' : '0';
 
@@ -50,7 +52,7 @@ export const getPaymentToken = async (creds, { amount, merchantOid, email, userI
   });
 
   const data = await trackExternal('PayTR', 'get-token', async () => {
-    const res = await fetch(TOKEN_URL, { method: 'POST', body: form, signal: AbortSignal.timeout(15000) });
+    const res = await fetch(TOKEN_URL(), { method: 'POST', body: form, signal: AbortSignal.timeout(15000) });
     const body = await res.json().catch(() => ({}));
     if (body.status !== 'success' || !body.token) {
       console.error('[PayTR] get-token:', res.status, body.reason);
