@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
-import { Banknote, Search, Landmark, CheckCircle2, ArrowRightLeft, XCircle, Undo2, AlertTriangle, CalendarClock, History } from 'lucide-react';
+import { Banknote, Search, Landmark, CheckCircle2, ArrowRightLeft, XCircle, Undo2, AlertTriangle, CalendarClock, History, Info, BookUser } from 'lucide-react';
 import api, { errorMessage } from '../../services/api';
 import useAlert from '../../hooks/useAlert';
 import PageHeader from '../../components/shared/PageHeader';
@@ -114,7 +114,17 @@ const ChequePortfolio = () => {
       {alertElement}
       {action && <ActionModal cheque={action.cheque} action={action.action} showAlert={showAlert} onClose={() => setAction(null)} onDone={() => { setAction(null); load(); }} />}
       {history && <HistoryModal cheque={history} onClose={() => setHistory(null)} />}
-      <PageHeader icon={Banknote} title="Çek / Senet" subtitle="Müşterilerden alınan çek ve senetler. Portföye cari ekranındaki tahsilattan girer." />
+      <PageHeader icon={Banknote} title="Çek / Senet" subtitle="Müşterilerden alınan çek ve senetlerin takibi: vade, nerede olduğu, sonucu."
+        actions={<Link to="/admin/partners" className="btn-secondary"><BookUser className="h-4 w-4 mr-2" /> Cari Hesaplar'a git</Link>} />
+
+      {/* Çek / senet tek yerden girilir: müşterinin cari kartındaki tahsilat */}
+      <div className="flex items-start gap-3 rounded-2xl bg-brand-50 border border-brand-100 p-4 text-sm text-brand-900">
+        <Info className="h-5 w-5 shrink-0 mt-0.5 text-brand-600" />
+        <p>
+          <b>Çek ya da senet nasıl girilir?</b> <Link to="/admin/partners" className="font-bold underline">Cari Hesaplar</Link> → müşteriyi açın → <b>Tahsilat al</b> → Yöntem: <b>Çek</b> ya da <b>Senet</b>.
+          Kaydedince müşterinin carisine alacak yazılır ve çek bu listeye düşer. Sonrasını (tahsile verme, tahsil, tedarikçiye ciro, karşılıksız, iade) buradan işaretleyin.
+        </p>
+      </div>
 
       {data && (
         <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
@@ -142,7 +152,7 @@ const ChequePortfolio = () => {
       </div>
 
       {!data ? <p className="text-center text-gray-400 py-10">Yükleniyor...</p> : rows.length === 0 ? (
-        <EmptyState icon={Banknote}>Bu filtrede çek / senet yok. Çek ya da senetle tahsilat, cari kartındaki "Tahsilat al" ile girilir.</EmptyState>
+        <EmptyState icon={Banknote}>Bu filtrede çek / senet yok.</EmptyState>
       ) : (
         <div className="card-premium overflow-x-auto">
           <table className="w-full text-sm min-w-[900px]">
