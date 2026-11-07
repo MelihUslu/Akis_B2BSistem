@@ -16,6 +16,7 @@ import usePortalSettings from '../../hooks/usePortalSettings';
 import { formatTRY, normalizeQty } from '../../utils/format';
 import { cartQtyFor, canSelect, EMPTY_CATALOG_FILTERS } from '../../utils/catalog';
 import { t } from '../../i18n';
+import { dealerCan } from '../../utils/permissions';
 
 const PAGE_SIZE = 24;
 // Görünüm tercihi (kart / liste) kullanıcı başına bu tarayıcıda saklanır; diğeri seçilene kadar varsayılan kalır
@@ -271,7 +272,7 @@ const ProductCatalog = () => {
         ))}
         {chips.length > 0 && <button onClick={clearAll} className="text-xs font-bold text-brand-600 hover:underline px-1">{t('Tümünü temizle')}</button>}
         <div className="ml-auto flex items-center gap-3">
-          <p className="hidden xl:block text-xs text-gray-400">{t("İpucu: miktarı yazıp Enter'a basınca ürün sepete eklenir.")}</p>
+          {dealerCan(user, 'PRICES') && <p className="hidden xl:block text-xs text-gray-400">{t("İpucu: miktarı yazıp Enter'a basınca ürün sepete eklenir.")}</p>}
           {view === 'grid' && selectable.length > 0 && (
             <label className="flex items-center gap-2 text-xs font-bold text-gray-600 cursor-pointer">
               <input type="checkbox" checked={allSelected} onChange={toggleAll} className="h-4 w-4 rounded accent-brand-600" /> {t('Tümünü seç')}

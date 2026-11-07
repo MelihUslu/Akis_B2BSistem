@@ -14,6 +14,7 @@ import { currentTenantId } from '../utils/prisma.js';
 import { postEntry, orderRate } from '../services/accountPosting.js';
 import { getExchangeRates } from '../services/exchangeRateService.js';
 import { localDay } from '../utils/dates.js';
+import { dealerCan, orderBlockedMessage, maskOrderMoney } from '../services/dealerAccess.js';
 
 // Webhook için siparişin özet hali
 
@@ -34,6 +35,9 @@ export const CHANNEL_TR = { PORTAL: 'Bayi', STAFF: 'Yönetici (bayi adına)', PL
 const channelOf = (req) => (req.user.actingAs ? (req.user.actingAs.role === 'PLASIYER' ? 'PLASIYER' : 'STAFF') : 'PORTAL');
 const cleanText = (v, max) => String(v ?? '').trim().slice(0, max) || null;
 
+// Fiyatı göremeyen bayi kullanıcısına sipariş tutarları gizli gider
+const moneyFor = (req, orders) => (dealerCan(req.user, 'PRICES') ? orders : orders.map(maskOrderMoney));
+
 export const getOrders = async (req, res) => {
   try {
     const where = orderWhere(req);
@@ -49,7 +53,7 @@ export const getOrders = async (req, res) => {
         prisma.order.findMany({ where, include: orderInclude, orderBy, take, skip: (page - 1) * take }),
         prisma.order.count({ where })
       ]);
-      return res.json({ data, pagination: { total, page, pages: Math.max(1, Math.ceil(total / take)) } });
+      return res.json({ data: moneyFor(req, data), pagination: { total, page, pages: Math.max(1, Math.ceil(total / take)) } });
     }
 
     const orders = await prisma.order.findMany({
@@ -58,7 +62,7 @@ export const getOrders = async (req, res) => {
       orderBy: { createdAt: 'desc' }
     });
 
-    res.json(orders);
+    res.json(moneyFor(req, orders));
   } catch (error) {
     console.error('getOrders Error:', error);
     res.status(500).json({ message: 'Siparişler getirilirken hata oluştu.' });
@@ -109,6 +113,7 @@ const STATUS_TR = { PENDING: 'Onay Bekliyor', APPROVED: 'Onaylandı', PARTIAL_AP
 // Excel: her satır bir sipariş kalemi
 export const exportOrders = async (req, res) => {
   try {
+    if (!dealerCan(req.user, 'PRICES')) return res.status(403).json({ message: 'Fiyatları görme yetkiniz yok. Firmanızın ana kullanıcısı açabilir.', code: 'DEALER_PERMISSION', permission: 'PRICES' });
     const orders = await prisma.order.findMany({ where: orderWhere(req), include: { ...orderInclude, company: true }, orderBy: { createdAt: 'desc' }, take: 5000 });
     const rows = orders.flatMap(o => o.items.map(i => ({
       'Sipariş No': `AK-${o.id}`,
@@ -157,7 +162,7 @@ export const getOrderById = async (req, res) => {
     if (!order || (req.user.role === 'BAYI' && order.companyId !== req.user.companyId)) {
       return res.status(404).json({ message: 'Sipariş bulunamadı.' });
     }
-    res.json(order);
+    res.json(dealerCan(req.user, 'PRICES') ? order : maskOrderMoney(order));
   } catch (error) {
     res.status(500).json({ message: 'Sipariş getirilemedi.' });
   }
@@ -397,6 +402,8 @@ export const createOrder = async (req, res) => {
   try {
     const company = await loadDealerCompany(req);
     if (!company) return res.status(403).json({ message: 'Sadece bayi hesapları sipariş verebilir.' });
+    const blocked = orderBlockedMessage(req.user); // bayi kullanıcı yetkisi: sipariş kapalı ya da fiyat göremez
+    if (blocked) return res.status(403).json({ message: blocked, code: 'DEALER_PERMISSION', permission: 'ORDER' });
     const body = orderBodyOf(req.body);
 
     // Bayi içinde onay: kuralı olan çalışanın siparişi ana kullanıcının onayına gider (bayi adına işlemde uygulanmaz)

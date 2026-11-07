@@ -8,6 +8,7 @@ import {
 import { syncOptionsAndVariants, VariantError } from '../services/variantService.js';
 import { notifyRestocked, safeNotify } from '../services/notificationService.js';
 import { accessFor, visibleProductWhere, isVisibleTo, reservedQuantities, findVisibleProduct } from '../services/catalogAccess.js';
+import { dealerCan } from '../services/dealerAccess.js';
 
 const isTrue = (v) => v === true || v === 'true';
 export const DEALER_GROUPS = ['STANDART', 'GOLD', 'VIP'];
@@ -27,6 +28,7 @@ const presentForDealer = async (req, all, extraFor = () => ({})) => {
   const products = all.filter((p) => isVisibleTo(p, access));
   const ids = products.flatMap(p => [p.id, p.parentId, ...(p.variants || []).map(v => v.id)]);
   const ctx = await buildPricingContext(company, await loadSpecialPrices(prisma, company, ids));
+  if (!dealerCan(req.user, 'PRICES')) ctx.globalHide = true; // bayi kullanıcı yetkisi: fiyat göremez
   ctx.reserved = await reservedQuantities(prisma, products.flatMap(p => [p.id, ...(p.variants || []).map(v => v.id)]));
   const favorites = await prisma.favorite.findMany({ where: { userId: req.user.id, productId: { in: products.map(p => p.id) } }, select: { productId: true } });
   const favSet = new Set(favorites.map(f => f.productId));

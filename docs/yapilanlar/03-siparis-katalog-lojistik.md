@@ -75,11 +75,19 @@ Bayi iade / değişim talebi açar, yönetici karar verir. Onaylanan iade stoğa
 
 Ayar açıkken bayi stokta olmayan üründe miktar belirterek teklif ister. Sipariş oluşmaz, stok düşmez; talep yöneticiye "stokta yoktu" uyarısıyla düşer. Yönetici fiyatlayıp gönderir, bayi onaylarsa sipariş oluşur. Stok ayırma kuralından beri stoktan fazla sipariş verilemediği için stokta olmayan mal bu yoldan istenir.
 
-## Bayi içinde sipariş onayı (7 Kasım)
+## Bayi kullanıcı yetkileri ve sipariş onayı (7 Kasım)
 
-Büyük bayilerde çalışan sepeti hazırlar, sahibi onaylar:
+Bayinin ana kullanıcısı (ya da firma, Bayi Yönetimi → kullanıcılar) ana kullanıcı olmayan her çalışan için **Yetkiler**'i ayarlar. Varsayılan her şey açık; ana kullanıcıya ve bayi adına işlem yapan yönetici / plasiyere kısıt uygulanmaz. Kısıtlar sunucuda uygulanır; menüde kapalı bölüm görünmez, adres çubuğundan açılırsa "yetkiniz yok" yazar.
 
-- Bayinin ana kullanıcısı (ya da firma, Bayi Yönetimi → kullanıcılar) her çalışan için kural koyar: *onaysız*, *her sipariş onaya*, *şu tutarı (KDV dahil) aşan sipariş onaya*. Ana kullanıcıya kural uygulanmaz; onaylayan odur.
+| Yetki | Kapalıyken |
+|---|---|
+| Sipariş | *Onaysız* (varsayılan), *her sipariş ana kullanıcı onayına*, *şu tutarı (KDV dahil) aşan sipariş onaya*, *sipariş veremez*. Teklif kabulü de bu kurala bağlıdır: onaya tabi çalışan teklifi kabul edemez, "Ana kullanıcıya ilet" ile bildirir. |
+| Fiyatları görür | Katalog fiyatsız görünür ("Fiyat gizli"), sepete eklenemez, teklif istenemez; sipariş, teklifler, fatura, sipariş Excel'i ve cari kapalıdır. Siparişler durumuyla görünür, tutarları gizlenir. |
+| Cari ve ödeme | Finansal Durum, ekstre, mutabakat, kartla ödeme, hedef / prim kapalı. |
+| İade / değişim talebi | İade sayfası ve talep açma kapalı. |
+| Teslimat adreslerini yönetir | Adres eklenemez / değiştirilemez / silinemez (siparişte mevcut adres seçilir). |
+
+**Sipariş onayı** (büyük bayilerde çalışan sepeti hazırlar, sahibi onaylar):
 - Kurala uyan sipariş, sipariş olarak oluşmaz; **onay talebi** olur. Firmaya düşmez, stok ayırmaz. Sepet kuralları talep açılırken denetlenir; risk limiti onay anında denetlenir (ana kullanıcı önce ödeme yapabilir). Ödeme ekranında çalışan, siparişin onaya gideceğini önceden görür ("Onaya gönder").
 - Siparişlerim → **Onay talepleri**: ana kullanıcı bütün talepleri, çalışan kendi taleplerini görür. Bekleyen talepte güncel tutar ve sepet uyarıları (fiyat / stok değişmiş olabilir) gösterilir.
 - Ana kullanıcı onaylayınca sipariş, çalışan adına normal sipariş akışıyla o anki fiyat, stok ve limitle oluşur (otomatik onay ve bildirimler dahil). Kural ihlali olursa sipariş oluşmaz, talep beklemede kalır. Ret nedeniyle reddedilebilir; çalışan bekleyen talebini geri çekebilir. Her karar bildirimle gider.

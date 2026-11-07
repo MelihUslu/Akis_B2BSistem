@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
-import { FileSignature, CheckCircle2, XCircle, Clock, ChevronDown, FileDown, MessageSquareText } from 'lucide-react';
+import { FileSignature, CheckCircle2, XCircle, Clock, ChevronDown, FileDown, MessageSquareText, Send } from 'lucide-react';
 import api, { errorMessage } from '../../services/api';
 import useAlert from '../../hooks/useAlert';
 import QuoteDocument from '../../components/quotes/QuoteDocument';
@@ -9,6 +9,7 @@ import { QUOTE_STATUS } from '../../utils/quote';
 import { t } from '../../i18n';
 import PageHeader from '../../components/shared/PageHeader';
 import EmptyState from '../../components/shared/EmptyState';
+import { useAuth } from '../../context/AuthContext';
 
 const BayiQuotes = () => {
   const [quotes, setQuotes] = useState(null);
@@ -17,6 +18,18 @@ const BayiQuotes = () => {
   const [feedback, setFeedback] = useState(null); // { id, type, note }
   const navigate = useNavigate();
   const { alertElement, showAlert, confirm } = useAlert();
+  const { user } = useAuth();
+  // Bayi içinde onay: teklif kabulü sipariştir; kuralı olan çalışan kabul etmez, ana kullanıcıya iletir
+  const mustForward = (q) => user?.role === 'BAYI' && !user.isOwner && (user.orderApproval === 'ALWAYS' || user.orderApproval === 'BLOCKED'
+    || (user.orderApproval === 'OVER' && (q.document?.totals?.total ?? 0) > (user.orderApprovalLimit || 0)));
+  const forward = async (q) => {
+    try {
+      const res = await api.post(`/quotes/${q.id}/forward`);
+      showAlert({ type: 'success', title: t('İletildi'), message: res.data.message });
+    } catch (err) {
+      showAlert({ type: 'error', title: t('İletilemedi'), message: errorMessage(err, t('Teklif iletilemedi.')) });
+    }
+  };
 
   const load = () => api.get('/quotes').then((res) => setQuotes(res.data)).catch(() => setQuotes([]));
   useEffect(() => { load(); }, []);
@@ -119,7 +132,11 @@ const BayiQuotes = () => {
                         <option value="CURRENT_ACCOUNT">{t('Cari hesap')}</option>
                         <option value="WIRE_TRANSFER">{t('Havale / EFT')}</option>
                       </select>
-                      <button onClick={() => accept(q)} className="flex items-center px-5 py-2.5 rounded-xl text-xs font-black text-white bg-emerald-500 hover:bg-emerald-600"><CheckCircle2 className="h-4 w-4 mr-1.5" /> {t('Onayla ve Sipariş Ver')}</button>
+                      {mustForward(q) ? (
+                        <button onClick={() => forward(q)} title={t('Bu teklifi firmanızın ana kullanıcısı onaylar.')} className="flex items-center px-5 py-2.5 rounded-xl text-xs font-black text-white bg-brand-600 hover:bg-brand-700"><Send className="h-4 w-4 mr-1.5" /> {t('Ana kullanıcıya ilet')}</button>
+                      ) : (
+                        <button onClick={() => accept(q)} className="flex items-center px-5 py-2.5 rounded-xl text-xs font-black text-white bg-emerald-500 hover:bg-emerald-600"><CheckCircle2 className="h-4 w-4 mr-1.5" /> {t('Onayla ve Sipariş Ver')}</button>
+                      )}
                     </>
                   )}
                 </div>

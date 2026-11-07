@@ -1,9 +1,10 @@
 import { useEffect, useState } from 'react';
-import { UserPlus, KeyRound, Crown, Users, Smartphone, Check } from 'lucide-react';
+import { UserPlus, KeyRound, Crown, Users, Smartphone, Check, ShieldCheck } from 'lucide-react';
 import api, { errorMessage } from '../../services/api';
 import { formatDate } from '../../utils/format';
 import { t } from '../../i18n';
 import ModalHeader from '../shared/ModalHeader';
+import { DEALER_CAP_LABELS } from '../../utils/permissions';
 
 /**
  * Bir bayinin kullanıcıları (şube / çalışan hesapları).
@@ -12,22 +13,60 @@ import ModalHeader from '../shared/ModalHeader';
 // 5321234567 → 532 123 45 67
 const formatPhone = (p) => (p ? `${p.slice(0, 3)} ${p.slice(3, 6)} ${p.slice(6, 8)} ${p.slice(8)}` : '');
 
-// Bayi içinde sipariş onayı: ana kullanıcı olmayan kullanıcının siparişi ana kullanıcının onayına gitsin mi?
-const ApprovalRule = ({ user, onSave }) => {
+// Bayi kullanıcı yetkileri (ana kullanıcı olmayanlar): sipariş kuralı ve kapatılabilen yetkiler. Ana kullanıcı her şeyi yapar.
+const ORDER_OPTIONS = [
+  ['NONE', 'Sipariş verir (onaysız)'],
+  ['ALWAYS', 'Her sipariş ana kullanıcı onayına'],
+  ['OVER', 'Tutarı aşan sipariş onaya'],
+  ['BLOCKED', 'Sipariş veremez'],
+];
+const DealerPermissions = ({ user, onSave }) => {
+  const [open, setOpen] = useState(false);
   const [mode, setMode] = useState(user.orderApproval || 'NONE');
   const [limit, setLimit] = useState(user.orderApprovalLimit ? String(user.orderApprovalLimit) : '');
-  const dirty = mode !== (user.orderApproval || 'NONE') || (mode === 'OVER' && Number(limit) !== Number(user.orderApprovalLimit || 0));
+  const [deny, setDeny] = useState(user.dealerDeny || []);
+  const noPrice = deny.includes('PRICES');
+  const summary = [
+    noPrice ? t('Fiyat göremez') : t(ORDER_OPTIONS.find(([v]) => v === (user.orderApproval || 'NONE'))[1]),
+    ...(user.dealerDeny || []).filter((c) => c !== 'PRICES').map((c) => `${t(DEALER_CAP_LABELS[c])}: ${t('kapalı')}`),
+  ].join(' · ');
+  const toggle = (cap) => setDeny(deny.includes(cap) ? deny.filter((c) => c !== cap) : [...deny, cap]);
+  const save = async () => {
+    if (await onSave({ orderApproval: mode, orderApprovalLimit: mode === 'OVER' ? limit : null, dealerDeny: deny })) setOpen(false);
+  };
+
+  if (!open) {
+    return (
+      <button type="button" onClick={() => setOpen(true)} className="mt-1.5 inline-flex items-center gap-1 text-xs text-gray-500 hover:text-brand-600">
+        <ShieldCheck className="h-3.5 w-3.5" /> {t('Yetkiler')}: {summary}
+      </button>
+    );
+  }
   return (
-    <div className="mt-1.5 flex flex-wrap items-center gap-1.5">
-      <select aria-label={t('Sipariş onayı')} className="premium-input !py-1.5 !text-xs !w-auto" value={mode} onChange={(e) => setMode(e.target.value)}>
-        <option value="NONE">{t('Sipariş onaysız gider')}</option>
-        <option value="ALWAYS">{t('Her sipariş ana kullanıcı onayına')}</option>
-        <option value="OVER">{t('Tutarı aşan sipariş onaya')}</option>
-      </select>
-      {mode === 'OVER' && (
-        <input type="number" min="1" step="0.01" aria-label={t('Onay sınırı (₺, KDV dahil)')} placeholder={t('₺ sınır')} className="premium-input !py-1.5 !text-xs !w-28" value={limit} onChange={(e) => setLimit(e.target.value)} />
-      )}
-      {dirty && <button type="button" onClick={() => onSave({ orderApproval: mode, orderApprovalLimit: mode === 'OVER' ? limit : null })} className="p-1.5 rounded-lg text-emerald-600 hover:bg-emerald-50" title={t('Kaydet')}><Check className="h-4 w-4" /></button>}
+    <div className="mt-2 rounded-xl bg-gray-50 p-3 space-y-2.5">
+      <div className="flex flex-wrap items-center gap-1.5">
+        <select aria-label={t('Sipariş yetkisi')} disabled={noPrice} className="premium-input !bg-white !py-1.5 !text-xs !w-auto disabled:opacity-50" value={noPrice ? 'BLOCKED' : mode} onChange={(e) => setMode(e.target.value)}>
+          {ORDER_OPTIONS.map(([v, label]) => <option key={v} value={v}>{t(label)}</option>)}
+        </select>
+        {mode === 'OVER' && !noPrice && (
+          <input type="number" min="1" step="0.01" aria-label={t('Onay sınırı (₺, KDV dahil)')} placeholder={t('₺ sınır')} className="premium-input !bg-white !py-1.5 !text-xs !w-28" value={limit} onChange={(e) => setLimit(e.target.value)} />
+        )}
+      </div>
+      <div className="grid grid-cols-1 sm:grid-cols-2 gap-1.5">
+        {Object.entries(DEALER_CAP_LABELS).map(([cap, label]) => {
+          const implied = cap === 'FINANCE' && noPrice; // fiyatı göremeyen cariyi de göremez
+          return (
+            <label key={cap} className={`flex items-center gap-2 text-xs font-semibold ${implied ? 'text-gray-400' : 'text-gray-700'}`}>
+              <input type="checkbox" className="h-4 w-4 accent-brand-600" disabled={implied} checked={!deny.includes(cap) && !implied} onChange={() => toggle(cap)} /> {t(label)}
+            </label>
+          );
+        })}
+      </div>
+      {noPrice && <p className="text-[11px] text-gray-500">{t('Fiyatı göremeyen kullanıcı katalogu fiyatsız görür; sipariş, teklif ve cari ekranları kapalıdır, sipariş tutarları gizlenir.')}</p>}
+      <div className="flex gap-2">
+        <button type="button" onClick={save} className="h-8 px-3 rounded-lg bg-brand-600 text-white text-xs font-bold hover:bg-brand-700">{t('Kaydet')}</button>
+        <button type="button" onClick={() => setOpen(false)} className="h-8 px-3 rounded-lg text-xs font-bold text-gray-500 hover:bg-gray-100">{t('Vazgeç')}</button>
+      </div>
     </div>
   );
 };
@@ -93,7 +132,7 @@ const DealerUsersModal = ({ title, base, isAdmin, onClose, showAlert, confirm, i
                     <Smartphone className="h-3.5 w-3.5" /> {u.phone ? formatPhone(u.phone) : t('Cep telefonu ekle (SMS)')}
                   </button>
                 )}
-                {!u.isOwner && u.isActive && <ApprovalRule key={`${u.orderApproval}-${u.orderApprovalLimit}`} user={u} onSave={(data) => patch(u, data)} />}
+                {!u.isOwner && u.isActive && <DealerPermissions key={`${u.orderApproval}-${u.orderApprovalLimit}-${(u.dealerDeny || []).join()}`} user={u} onSave={(data) => patch(u, data)} />}
               </div>
               <div className="flex items-center gap-2">
                 {isAdmin && !u.isOwner && u.isActive && <button onClick={() => patch(u, { isOwner: true })} className="px-2.5 py-1.5 rounded-lg text-[11px] font-black text-amber-700 bg-amber-50">{t('Ana Kullanıcı Yap')}</button>}
@@ -121,7 +160,7 @@ const DealerUsersModal = ({ title, base, isAdmin, onClose, showAlert, confirm, i
         </button>
       )}
       <p className="text-[11px] text-gray-400">{t('Yeni kullanıcıya güçlü bir şifre üretilip e-posta ile gönderilir. Tüm kullanıcılar aynı cari hesabı ve siparişleri görür.')}</p>
-      <p className="text-[11px] text-gray-400">{t('Sipariş onayı: seçilen kullanıcının siparişi önce ana kullanıcının onayına gider (Siparişlerim → Onay talepleri); onaylanınca firmaya iletilir.')}</p>
+      <p className="text-[11px] text-gray-400">{t('Yetkiler: ana kullanıcı olmayan kullanıcının sipariş verme kuralı (onaya giden sipariş Siparişlerim → Onay talepleri\'ne düşer) ve fiyat, cari, iade, adres yetkileri. Ana kullanıcı her şeyi yapar.')}</p>
     </div>
   );
 

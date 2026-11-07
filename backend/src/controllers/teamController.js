@@ -5,6 +5,7 @@ import { normalizePermissions, PERMISSIONS } from '../services/permissions.js';
 import { assertWithinLimit, LimitError } from '../services/limitService.js';
 import { normalizePhone, PhoneError } from '../services/smsService.js';
 import { sendCredentialsMail } from '../services/mailService.js';
+import { normalizeDeny, ORDER_RULES } from '../services/dealerAccess.js';
 
 const generatePassword = () => crypto.randomBytes(9).toString('base64url').slice(0, 12);
 const publicUser = ({ password, emailVerifyToken, twoFactorSecretEnc, twoFactorRecovery, ...u }) => u;
@@ -125,10 +126,15 @@ export const updateDealerUser = async (req, res) => {
   if (req.body.phone !== undefined) {
     try { data.phone = normalizePhone(req.body.phone); } catch (error) { if (error instanceof PhoneError) return res.status(400).json({ message: error.message }); throw error; }
   }
-  // Bayi içinde sipariş onayı kuralı (ana kullanıcıya uygulanmaz; o onaylayan kişidir)
+  // Bayi kullanıcı yetkileri (ana kullanıcıya uygulanmaz; o her şeyi yapar ve siparişleri onaylar)
+  if (req.body.dealerDeny !== undefined) {
+    const deny = normalizeDeny(req.body.dealerDeny);
+    if (!deny) return res.status(400).json({ message: 'Geçersiz yetki.' });
+    data.dealerDeny = target.isOwner ? [] : deny;
+  }
   if (req.body.orderApproval !== undefined) {
     const mode = String(req.body.orderApproval);
-    if (!['NONE', 'ALWAYS', 'OVER'].includes(mode)) return res.status(400).json({ message: 'Geçersiz onay kuralı.' });
+    if (!ORDER_RULES.includes(mode)) return res.status(400).json({ message: 'Geçersiz onay kuralı.' });
     const limit = Number(req.body.orderApprovalLimit);
     if (mode === 'OVER' && !(limit > 0)) return res.status(400).json({ message: 'Onay için tutar sınırını girin.' });
     data.orderApproval = target.isOwner ? 'NONE' : mode;

@@ -6,6 +6,7 @@ const LABELS = {
   'POST /api/bulk-mail/send': 'Toplu e-posta gönderimi başlatıldı',
   'POST /api/feed': 'Bayi XML besleme adresi üretti',
   'POST /api/order-requests/:id/approve': 'Bayi sipariş talebini onayladı',
+  'POST /api/quotes/:id/forward': 'Bayi çalışanı teklifi ana kullanıcıya iletti',
   'POST /api/cheques/:id/:action': 'Çek / senet durumu değişti',
   'POST /api/plasiyer/visits': 'Saha ziyareti planlandı',
   'POST /api/plasiyer/visits/check-in': 'Saha ziyareti kaydedildi',

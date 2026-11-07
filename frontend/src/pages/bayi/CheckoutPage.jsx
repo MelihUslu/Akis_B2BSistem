@@ -61,7 +61,9 @@ const CheckoutPage = () => {
   // Bayi içinde onay: bu kullanıcının siparişi ana kullanıcının onayına gider (limit onay anında denetlenir)
   const needsApproval = user?.role === 'BAYI' && !user.isOwner && quote
     && (user.orderApproval === 'ALWAYS' || (user.orderApproval === 'OVER' && quote.total > (user.orderApprovalLimit || 0)));
-  const blocked = !quote || quote.errors.length > 0 || (creditShort && !needsApproval) || (isPickup && !pickupAt);
+  // Bayi kullanıcı yetkisi: sipariş verme kapalı (ana kullanıcı açabilir)
+  const orderClosed = user?.role === 'BAYI' && !user.isOwner && user.orderApproval === 'BLOCKED';
+  const blocked = orderClosed || !quote || quote.errors.length > 0 || (creditShort && !needsApproval) || (isPickup && !pickupAt);
 
   const handlePlaceOrder = async () => {
     if (!cart || cart.length === 0) {
@@ -329,7 +331,10 @@ const CheckoutPage = () => {
               )}
             </div>
 
-            {needsApproval && (
+            {orderClosed && (
+              <p className="text-xs font-bold text-red-700 bg-red-50 rounded-2xl p-4">{t('Sipariş verme yetkiniz yok. Firmanızın ana kullanıcısı açabilir.')}</p>
+            )}
+            {needsApproval && !orderClosed && (
               <p className="text-xs font-bold text-brand-800 bg-brand-50 rounded-2xl p-4 flex items-start">
                 <ShieldCheck className="h-4 w-4 mr-2 flex-shrink-0 mt-0.5" /> {t('Bu sipariş firmanızın ana kullanıcısının onayına gidecek; onaylanınca firmaya iletilir. Fiyat, stok ve limit onay anında yeniden denetlenir.')}
               </p>

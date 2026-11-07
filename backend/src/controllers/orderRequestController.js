@@ -2,6 +2,7 @@ import prisma from '../utils/prisma.js';
 import { quoteCart } from '../services/pricingService.js';
 import { notifyUser, safeNotify } from '../services/notificationService.js';
 import { placeDealerOrder, OrderError } from './orderController.js';
+import { dealerCan } from '../services/dealerAccess.js';
 
 /**
  * Bayi içinde sipariş onayı (Siparişlerim → Onay talepleri).
@@ -46,7 +47,9 @@ export const listOrderRequests = async (req, res) => {
       lines: lines(r), current
     });
   }
-  res.json({ isOwner: Boolean(req.user.isOwner), requests: out, pending: out.filter((r) => r.status === 'PENDING').length });
+  // Fiyatı göremeyen kullanıcıya tutarlar gizli gider
+  const visible = dealerCan(req.user, 'PRICES') ? out : out.map((r) => ({ ...r, total: null, current: r.current && { ...r.current, total: null } }));
+  res.json({ isOwner: Boolean(req.user.isOwner), requests: visible, pending: out.filter((r) => r.status === 'PENDING').length });
 };
 
 const ownerOnly = (req, res) => {

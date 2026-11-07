@@ -97,7 +97,7 @@ const BayiOrders = () => {
                   </div>
                   <div>
                     <p className="text-xs font-bold text-gray-400 uppercase">{t('Tutar')}</p>
-                    <p className="font-black text-gray-900">{formatTRY(order.totalAmount)}</p>
+                    <p className="font-black text-gray-900">{order.pricesHidden ? '—' : formatTRY(order.totalAmount)}</p>
                   </div>
                   <div>
                     <p className="text-xs font-bold text-gray-400 uppercase">{t('Kalem')}</p>

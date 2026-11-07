@@ -17,23 +17,25 @@ import InstallAppButton from './InstallAppButton';
 import LanguageSwitcher from './LanguageSwitcher';
 import { t } from '../i18n';
 import { getActing } from '../utils/acting';
+import { dealerCan } from '../utils/permissions';
 
 // mobile: telefonda açılır menü olarak gösterilir; onNavigate menüyü kapatır
 const BayiSidebar = ({ mobile = false, onNavigate }) => {
-  const { logout } = useAuth();
+  const { logout, user } = useAuth();
   const navigate = useNavigate();
   const location = useLocation();
 
   const menuItems = [
     { name: t('Ürün Kataloğu'), path: '/bayi', icon: ShoppingBag },
-    { name: t('Hızlı Sipariş'), path: '/bayi/quick-order', icon: Zap },
+    { name: t('Hızlı Sipariş'), path: '/bayi/quick-order', icon: Zap, cap: 'PRICES' },
     { name: t('Listelerim'), path: '/bayi/lists', icon: BookMarked },
     { name: t('Siparişlerim'), path: '/bayi/orders', icon: History },
-    { name: t('Tekliflerim'), path: '/bayi/quotes', icon: FileSignature },
-    { name: t('İade / Değişim'), path: '/bayi/returns', icon: RotateCcw },
-    { name: t('Finansal Durum'), path: '/bayi/finance', icon: CreditCard },
+    { name: t('Tekliflerim'), path: '/bayi/quotes', icon: FileSignature, cap: 'PRICES' },
+    { name: t('İade / Değişim'), path: '/bayi/returns', icon: RotateCcw, cap: 'RETURNS' },
+    { name: t('Finansal Durum'), path: '/bayi/finance', icon: CreditCard, cap: 'FINANCE' },
     { name: t('Profilim'), path: '/bayi/profile', icon: UserIcon },
-  ].filter((i) => !getActing() || !['/bayi/returns', '/bayi/profile'].includes(i.path)); // bayi adına modunda bayinin kendi işleri
+  ].filter((i) => (!getActing() || !['/bayi/returns', '/bayi/profile'].includes(i.path)) // bayi adına modunda bayinin kendi işleri
+    && (!i.cap || dealerCan(user, i.cap))); // bayi kullanıcı yetkileri
 
   const handleLogout = () => {
     logout();

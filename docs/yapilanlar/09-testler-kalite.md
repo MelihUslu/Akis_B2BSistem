@@ -20,6 +20,7 @@
 | `integration/pos` | 3 | Kartla ödemede taksit (iyzico ve PayTR taklidi): ayar yetkisi ve izinli taksitler, formdaki taksitler, tutar alt sınırında tek çekim, vade farkıyla çekilen ödemenin net tutarla eşleşmesi ve cariye net işlenmesi, tutmayan tutar, tekrar gelen dönüş |
 | `integration/dealerFeed` | 3 | Bayi XML ürün beslemesi: firma açmadan üretilemez, yalnızca ana kullanıcı, anahtarın başka yanıtlarda olmaması, grup görünürlüğü, net / özel / gizli fiyat, varyant, stok sınırı, XML kaçışı, yenileme / kapatma / pasif bayide 404 |
 | `integration/orderRequests` | 5 | Bayi içinde sipariş onayı: kural yetkisi, talebin sipariş olmaması ve stok ayırmaması, sınır altı doğrudan sipariş, liste, onayda güncel fiyatla çalışan adına sipariş, çift onay, stok ve limit ihlalinde beklemede kalma, ret, geri çekme |
+| `integration/dealerPermissions` | 4 | Bayi kullanıcı yetkileri: geçersiz yetki, ana kullanıcıya kısıt konmaması, cari / ödeme / iade / adres uçlarında 403, bayi adına işlemin etkilenmemesi, fiyat kapalıyken fiyatsız katalog ve kapalı sepet / sipariş / teklif / fatura / Excel / cari, gizli sipariş tutarları, sipariş veremez, teklif kabulünün onay kuralına bağlanması ve ana kullanıcıya iletme |
 | `integration/cheques` | 4 | Çek / senet portföyü: tahsilattan portföye, tahsile verme / tahsil (cari değişmez), ciro (tedarikçiye ödeme), cirolu çek karşılıksız (iki ters kayıt), iade, elle ters kaydın çeki iptal etmesi / ciroyu geri alması, eşzamanlı işlem, her adımda bakiye = hareketler |
 | `integration/visits` | 4 | Plasiyer saha ziyareti: yalnızca kendi aktif bayisi, plan doğrulaması, planlı / plansız ziyaret kaydı, konum ve sonraki ziyaret, bayi kartında son / sıradaki ziyaret, iptal, yönetim raporu ve ziyaret edilmeyen bayiler, yetki |
 | `integration/google` | 8 | Google ile giriş: firma ve ortak giriş, tek kullanımlık bilet, tarayıcı bağı, iptal, doğrulanmamış e-posta, iki aşamalı doğrulama |
@@ -142,7 +143,7 @@ Playwright ve Chrome ile gerçek tarayıcıda, ekrana tıklanarak (`819afaa`, `e
 - **Ortam:** `./uat/run.sh` her çalıştırmada sıfırdan kurar: ayrı veritabanı (`akis_uat`), backend kopyası (port 5002), canlı derleme arayüz (`uat.localhost:5174`), ayrı Redis veritabanı.
 - **Veri:** her senaryonun kendi bayisi ve ürünü vardır (`uat/data.mjs`); senaryolar paralel koşar, birbirinin stoğunu ve bakiyesini bozmaz.
 - **Oturumlar:** giriş ucu çağrılmadan UAT backend'inin gizli anahtarıyla imzalanır (giriş ucunun 15 dakikada 20 deneme sınırına takılmamak için). Giriş ekranının kendisi UAT-01'de gerçek girişle denenir.
-- **Kapsam:** 19 senaryo, 50 test, yaklaşık 2 dakika (7 Kasım: UAT-19 B2B ekleri).
+- **Kapsam:** 19 senaryo, 51 test, yaklaşık 2 dakika (7 Kasım: UAT-19 B2B ekleri).
 - **Tarayıcılar (6 Kasım):** 46 test Chrome'da, Safari motorunda (WebKit, masaüstü) ve iPhone 15 taklidinde (ekran, dokunmatik, tarayıcı kimliği; yönetici akışları dahil) geçiyor: `UAT_BROWSER=webkit [UAT_DEVICE="iPhone 15"] ./uat/run.sh`. WebKit'te firma `uat.lvh.me` adresinden açılır (macOS `*.localhost` çözmüyor).
 
 | No | İş akışı |
@@ -164,7 +165,7 @@ Playwright ve Chrome ile gerçek tarayıcıda, ekrana tıklanarak (`819afaa`, `e
 | UAT-16 | Bayi hedefi ve ciro primi |
 | UAT-17 | Sepet cihazlar arası |
 | UAT-18 | Personel yönetimi: talep → onay → ödeme → Gelir-Gider; personel girişi, yarım gün, yönetici onayı, kısmi ödeme |
-| UAT-19 | B2B ekleri: bayi çalışanının siparişi ana kullanıcının onayına gider ve onaylanır; XML besleme adresi ve içeriği; çekle tahsilat → portföy → tahsile verme; plasiyer ziyaret kaydı, planı ve yönetim raporu |
+| UAT-19 | B2B ekleri: bayi çalışanının siparişi ana kullanıcının onayına gider ve onaylanır; XML besleme adresi ve içeriği; çekle tahsilat → portföy → tahsile verme; plasiyer ziyaret kaydı, planı ve yönetim raporu; ana kullanıcının çalışanın fiyat yetkisini kapatması (fiyatsız katalog, cari menüsü yok) |
 
 **UAT'nin bulduğu hatalar:**
 

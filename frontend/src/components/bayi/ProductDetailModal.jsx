@@ -5,6 +5,8 @@ import {
 import { formatTRY, normalizeQty } from '../../utils/format';
 import { t } from '../../i18n';
 import usePortalSettings from '../../hooks/usePortalSettings';
+import { useAuth } from '../../context/AuthContext';
+import { dealerCan } from '../../utils/permissions';
 
 const parseImages = (images) => {
   try { return JSON.parse(images || '[]'); } catch { return []; }
@@ -31,6 +33,8 @@ const initialSelection = (product) => {
  */
 const ProductDetailModal = ({ product, rules, onClose, onAddToCart, onRequestQuote, onToggleFavorite, onToggleStockAlert, onOpenProduct }) => {
   const { quoteOutOfStock } = usePortalSettings();
+  const { user } = useAuth();
+  const noPrice = !dealerCan(user, 'PRICES'); // bayi kullanıcı yetkisi: fiyat, sepet ve teklif kapalı
   const options = product.options || [];
   const variants = product.variants || [];
   const hasVariants = product.requiresVariant && variants.length > 0;
@@ -173,7 +177,7 @@ const ProductDetailModal = ({ product, rules, onClose, onAddToCart, onRequestQuo
                 {active.hasSpecialPrice ? t('Size Özel Fiyat') : t('Net İskontolu Fiyat')}
               </p>
               {active.priceHidden ? (
-                <p className="text-xl font-black text-gray-500">{t('Bu ürün için teklif isteyin.')}</p>
+                <p className="text-xl font-black text-gray-500">{noPrice ? t('Fiyat görme yetkiniz yok.') : t('Bu ürün için teklif isteyin.')}</p>
               ) : !resolved && hasVariants ? (
                 <p className="text-3xl font-black text-brand-600 tracking-tighter">{formatTRY(minPrice)}<span className="text-sm text-brand-400">{t("'den başlayan")}</span></p>
               ) : (
@@ -263,7 +267,7 @@ const ProductDetailModal = ({ product, rules, onClose, onAddToCart, onRequestQuo
                 </button>
               )}
             </div>
-            {soldOut && quoteOutOfStock ? (
+            {noPrice ? null : soldOut && quoteOutOfStock ? (
               <div className="space-y-2">
                 <button onClick={() => onRequestQuote([quoteItem()])}
                   className="w-full py-3 rounded-2xl text-xs font-black uppercase tracking-widest flex items-center justify-center bg-amber-500 text-white hover:bg-amber-600">

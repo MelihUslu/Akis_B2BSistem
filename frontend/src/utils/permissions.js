@@ -18,3 +18,18 @@ export const hasAnyPermission = (user) => user?.role === 'ADMIN' && (user.isOwne
 
 export const can = (user, permission) =>
   user?.role === 'ADMIN' && (user.isOwner || (user.permissions || []).includes(permission));
+
+// Bayi kullanıcı yetkileri (backend services/dealerAccess.js ile aynı). Ana kullanıcı her şeyi yapar; bayi adına işlem
+// yapan yönetici / plasiyerin oturumu bayi rolünde olmadığı için kısıt ona da uygulanmaz.
+export const DEALER_CAP_LABELS = {
+  PRICES: 'Fiyatları görür',
+  FINANCE: 'Cari ve ödeme',
+  RETURNS: 'İade / değişim talebi',
+  ADDRESSES: 'Teslimat adreslerini yönetir',
+};
+export const dealerCan = (user, cap) => {
+  if (user?.role !== 'BAYI' || user.isOwner) return true;
+  const deny = user.dealerDeny || [];
+  if (deny.includes(cap)) return false;
+  return !(cap === 'FINANCE' && deny.includes('PRICES')); // fiyatı göremeyen cari tutarlarını da göremez
+};

@@ -1,7 +1,7 @@
 import { Suspense, lazy, useState } from 'react';
 import { Routes, Route, Navigate, useLocation, useNavigate } from 'react-router-dom';
 import ErrorBoundary from '../components/ErrorBoundary';
-import { ShoppingCart, Menu, UserRound, History, CreditCard, LogOut } from 'lucide-react';
+import { ShoppingCart, Menu, UserRound, History, CreditCard, LogOut, Lock } from 'lucide-react';
 import { UserMenu } from '../components/shared/HeaderMenu';
 import SupportMenu from '../components/bayi/SupportMenu';
 import { useCart } from '../context/CartContext';
@@ -17,6 +17,14 @@ import PageLoader from '../components/PageLoader';
 import { t } from '../i18n';
 import ActingBanner from '../components/bayi/ActingBanner';
 import { getActing, stopActing } from '../utils/acting';
+import { dealerCan } from '../utils/permissions';
+import EmptyState from '../components/shared/EmptyState';
+
+// Bayi kullanıcı yetkisi kapalıysa sayfa yerine bilgi (adres çubuğuna yazılarak açılırsa)
+const Need = ({ cap, children }) => {
+  const { user } = useAuth();
+  return dealerCan(user, cap) ? children : <EmptyState icon={Lock}>{t('Bu sayfa için yetkiniz yok. Firmanızın ana kullanıcısı açabilir.')}</EmptyState>;
+};
 
 const ProductCatalog = lazy(() => import('../pages/bayi/ProductCatalog'));
 const BayiOrders = lazy(() => import('../pages/bayi/BayiOrders'));
@@ -84,7 +92,7 @@ const BayiLayout = () => {
             ] : [
               { label: t('Profilim'), icon: UserRound, to: '/bayi/profile' },
               { label: t('Siparişlerim'), icon: History, to: '/bayi/orders' },
-              { label: t('Finansal Durum'), icon: CreditCard, to: '/bayi/finance' },
+              ...(dealerCan(user, 'FINANCE') ? [{ label: t('Finansal Durum'), icon: CreditCard, to: '/bayi/finance' }] : []),
               { divider: true },
               { label: t('Çıkış Yap'), icon: LogOut, danger: true, onClick: () => { logout(); navigate('/login'); } }
             ]} />
@@ -96,14 +104,14 @@ const BayiLayout = () => {
           <Suspense fallback={<PageLoader />}>
           <Routes>
             <Route index element={<ProductCatalog />} />
-            <Route path="quick-order" element={<QuickOrder />} />
+            <Route path="quick-order" element={<Need cap="PRICES"><QuickOrder /></Need>} />
             <Route path="lists" element={<BayiLists />} />
-            <Route path="quotes" element={<BayiQuotes />} />
+            <Route path="quotes" element={<Need cap="PRICES"><BayiQuotes /></Need>} />
             <Route path="orders" element={<BayiOrders />} />
             <Route path="orders/:id" element={<BayiOrderDetail />} />
             {/* İade talebi ve profil bayinin kendisine aittir; bayi adına modunda açılmaz */}
-            <Route path="returns" element={acting ? <Navigate to="/bayi" replace /> : <BayiReturns />} />
-            <Route path="finance" element={<BayiFinance />} />
+            <Route path="returns" element={acting ? <Navigate to="/bayi" replace /> : <Need cap="RETURNS"><BayiReturns /></Need>} />
+            <Route path="finance" element={<Need cap="FINANCE"><BayiFinance /></Need>} />
             <Route path="profile" element={acting ? <Navigate to="/bayi" replace /> : <BayiProfile />} />
             <Route path="checkout" element={<CheckoutPage />} />
           </Routes>

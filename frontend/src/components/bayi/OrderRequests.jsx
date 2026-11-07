@@ -48,7 +48,7 @@ const OrderRequests = ({ data, reload, showAlert, confirm }) => {
     <div className="space-y-4">
       {data.requests.map((r) => {
         const [label, cls] = STATUS[r.status] || STATUS.PENDING;
-        const changed = r.current && Math.abs(r.current.total - r.total) >= 0.01;
+        const changed = r.current?.total != null && r.total != null && Math.abs(r.current.total - r.total) >= 0.01;
         return (
           <div key={r.id} className="card-premium p-5 md:p-6 space-y-4">
             <div className="flex flex-wrap items-start justify-between gap-3">
@@ -68,7 +68,7 @@ const OrderRequests = ({ data, reload, showAlert, confirm }) => {
 
             <div className="flex flex-wrap items-end justify-between gap-3 pt-3 border-t border-gray-50">
               <div className="text-sm">
-                <p className="text-gray-500">{t('Talep tutarı')} <b className="text-gray-900">{formatTRY(r.total)}</b></p>
+                {r.total != null && <p className="text-gray-500">{t('Talep tutarı')} <b className="text-gray-900">{formatTRY(r.total)}</b></p>}
                 {changed && <p className="text-amber-700 font-semibold">{t('Güncel tutar')} {formatTRY(r.current.total)}</p>}
                 {r.current?.errors?.map((e) => <p key={e} className="text-xs font-bold text-amber-700 flex items-start mt-1"><AlertTriangle className="h-3.5 w-3.5 mr-1 mt-0.5 shrink-0" /> {e}</p>)}
                 {r.status === 'REJECTED' && <p className="text-xs text-red-600 mt-1">{r.decidedBy && `${r.decidedBy}: `}{r.reason || t('Neden belirtilmedi.')}</p>}

@@ -2,6 +2,8 @@ import { Minus, Plus, Package, ShoppingCart, BellRing, BellOff, FileText, Heart 
 import { formatTRY, firstImage } from '../../../utils/format';
 import { canSelect } from '../../../utils/catalog';
 import { t } from '../../../i18n';
+import { useAuth } from '../../../context/AuthContext';
+import { dealerCan } from '../../../utils/permissions';
 
 // Katalog tablosu ve kartlarının ortak parçaları (stok, fiyat, miktar, işlem düğmesi…)
 // row: { qtyOf, setQty, step, isSelected, toggle, add, open, favorite, stockAlert, inCart, quote, quoteOutOfStock }
@@ -16,6 +18,8 @@ export const Stock = ({ item }) => {
 
 export const Price = ({ item, summary, large }) => {
   const size = large ? 'text-lg' : 'text-[15px]';
+  const { user } = useAuth();
+  if (!dealerCan(user, 'PRICES')) return <p className="text-xs font-bold text-gray-500">{t('Fiyat gizli')}</p>; // bayi kullanıcı yetkisi
   if (summary) {
     return summary.minPrice !== null
       ? <p className={`${size} font-black text-gray-900 tabular-nums`}>{formatTRY(summary.minPrice)}<span className="text-xs font-semibold text-gray-400">{t("'den")}</span></p>
@@ -64,9 +68,11 @@ export const Qty = ({ item, row, wide }) => (
 
 export const Action = ({ item, row }) => {
   const base = 'h-9 w-full px-3 rounded-lg text-xs font-black flex items-center justify-center gap-1.5 whitespace-nowrap transition-colors';
+  const { user } = useAuth();
+  const noPrice = !dealerCan(user, 'PRICES'); // fiyat yetkisi yoksa sepet ve teklif de yok
   if (!item.inStock) {
     // Ayar açıksa stokta olmayan ürün için teklif istenir; "haber ver" yanında simge olarak kalır
-    if (row.quoteOutOfStock) {
+    if (row.quoteOutOfStock && !noPrice) {
       return (
         <div className="flex gap-1.5">
           <button type="button" onClick={() => row.quote(item)} className={`${base} flex-1 min-w-0 !px-2 !gap-1 bg-amber-500 text-white hover:bg-amber-600`}><FileText className="h-4 w-4" /> {t('Teklif iste')}</button>
@@ -81,6 +87,7 @@ export const Action = ({ item, row }) => {
       ? <button type="button" onClick={() => row.stockAlert(item)} className={`${base} bg-emerald-50 text-emerald-700 dark:text-emerald-400`}><BellOff className="h-4 w-4" /> {t('Takipte')}</button>
       : <button type="button" onClick={() => row.stockAlert(item)} className={`${base} border border-gray-200 text-gray-600 hover:border-brand-300 hover:text-brand-600`}><BellRing className="h-4 w-4" /> {t('Haber ver')}</button>;
   }
+  if (noPrice) return <span className={`${base} text-gray-400 font-bold`}>{t('Fiyat yetkiniz yok')}</span>;
   if (item.priceHidden) return <button type="button" onClick={() => row.add(item)} className={`${base} bg-gray-900 text-white hover:bg-navy-950`}><FileText className="h-4 w-4" /> {t('Teklif iste')}</button>;
   return <button type="button" onClick={() => row.add(item)} className={`${base} bg-brand-600 text-white hover:bg-brand-700`}><ShoppingCart className="h-4 w-4" /> {t('Ekle')}</button>;
 };

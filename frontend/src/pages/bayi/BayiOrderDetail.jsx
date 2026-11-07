@@ -12,6 +12,8 @@ import { formatTRY, formatDate, firstImage, ORDER_STATUS, RETURN_STATUS } from '
 import { t } from '../../i18n';
 import usePortalSettings from '../../hooks/usePortalSettings';
 import ModalHeader from '../../components/shared/ModalHeader';
+import { useAuth } from '../../context/AuthContext';
+import { dealerCan } from '../../utils/permissions';
 
 // Gel-Al siparişi: planlanan teslim alma zamanı ve adresi
 const PickupCard = ({ order }) => {
@@ -136,6 +138,8 @@ const ReturnForm = ({ item, maxQty, onClose, onCreated }) => {
 };
 
 const BayiOrderDetail = () => {
+  const { user } = useAuth();
+  const canReturn = dealerCan(user, 'RETURNS'); // bayi kullanıcı yetkisi
   const { id } = useParams();
   const [order, setOrder] = useState(null);
   const [error, setError] = useState(null);
@@ -210,7 +214,7 @@ const BayiOrderDetail = () => {
         </div>
         <div className="flex items-center gap-3">
           <span className={`px-4 py-1.5 rounded-full text-xs font-black uppercase ${status.className}`}>{t(status.label)}</span>
-          <Link to={`/print/order/${order.id}`} className="flex items-center px-4 py-2 rounded-xl text-xs font-black text-gray-600 bg-gray-100 hover:bg-gray-200"><Printer className="h-3.5 w-3.5 mr-1.5" /> {t('Yazdır / PDF')}</Link>
+          {!order.pricesHidden && <Link to={`/print/order/${order.id}`} className="flex items-center px-4 py-2 rounded-xl text-xs font-black text-gray-600 bg-gray-100 hover:bg-gray-200"><Printer className="h-3.5 w-3.5 mr-1.5" /> {t('Yazdır / PDF')}</Link>}
           {order.status !== 'CANCELLED' && (
             <button onClick={handleReorder} className="flex items-center px-4 py-2 rounded-xl text-xs font-black text-brand-600 bg-brand-50 hover:bg-brand-100">
               <RotateCw className="h-3.5 w-3.5 mr-1.5" /> {t('Yeniden Sipariş Ver')}
@@ -251,7 +255,7 @@ const BayiOrderDetail = () => {
         </div>
       )}
 
-      {order.invoice?.status === 'ISSUED' && (
+      {order.invoice?.status === 'ISSUED' && !order.pricesHidden && (
         <InvoicePanel orderId={order.id} orderStatus={order.status} onError={(message) => showAlert({ type: 'error', title: t('Fatura'), message })} />
       )}
 
@@ -320,8 +324,8 @@ const BayiOrderDetail = () => {
                   ))}
                 </div>
                 <div className="flex items-center gap-4">
-                  <p className="font-black text-gray-900">{formatTRY(item.price * item.quantity)}</p>
-                  {item.status === 'APPROVED' && RETURNABLE.includes(order.status) && remaining > 0 && (
+                  {!order.pricesHidden && <p className="font-black text-gray-900">{formatTRY(item.price * item.quantity)}</p>}
+                  {item.status === 'APPROVED' && RETURNABLE.includes(order.status) && remaining > 0 && canReturn && (
                     <button onClick={() => setReturnItem(item)} className="flex items-center px-3 py-2 rounded-xl text-[11px] font-black text-orange-600 bg-orange-50 hover:bg-orange-100">
                       <RotateCcw className="h-3.5 w-3.5 mr-1.5" /> {t('İade / Değişim')}
                     </button>
@@ -331,7 +335,7 @@ const BayiOrderDetail = () => {
             );
           })}
         </div>
-        <div className="p-6 bg-gray-50/60 space-y-2 text-sm">
+        <div className={`p-6 bg-gray-50/60 space-y-2 text-sm ${order.pricesHidden ? 'hidden' : ''}`}>
           <div className="flex justify-between font-bold text-gray-500"><span>{t('Ara Toplam (KDV hariç)')}</span><span className="text-gray-900">{formatTRY(order.subtotal || order.totalAmount / 1.2)}</span></div>
           {order.discountAmount > 0 && <div className="flex justify-between font-bold text-pink-600"><span>{t('Kupon')} {order.couponCode}</span><span>−{formatTRY(order.discountAmount)}</span></div>}
           {order.shippingFee > 0 && <div className="flex justify-between font-bold text-gray-500"><span>{t('Kargo (KDV hariç)')}</span><span className="text-gray-900">{formatTRY(order.shippingFee)}</span></div>}

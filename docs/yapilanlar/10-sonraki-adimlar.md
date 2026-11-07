@@ -62,7 +62,8 @@ Kullanıcıların fark edeceği değişiklikler, duyurulmalı:
 
 - **Çek / senet tahsilatları** portföye "Portföyde" olarak eklendi; gerçek durumları Finans → Çek / Senet'ten işaretlenmeli.
 - **Yeni menüler:** Finans → Çek / Senet (Finans yetkisi), Müşteriler → Saha Ziyaretleri (Bayiler yetkisi); bayide Siparişlerim → Onay talepleri (talep varsa).
-- **Sipariş onayı:** bayi çalışanına onay kuralı konunca o çalışanın siparişleri firmaya gelmeden önce bayinin ana kullanıcısına gider.
+- **Bayi kullanıcı yetkileri:** bayinin ana kullanıcısı çalışanlarının sipariş kuralını ve fiyat / cari / iade / adres yetkilerini ayarlayabilir (varsayılan hepsi açık). Onay kuralı olan çalışanın siparişleri ve teklif kabulü önce ana kullanıcıya gider.
+- **Bilinen sınır:** fiyatı kapalı çalışana giden bazı bildirim metinlerinde (ör. sipariş onaylandı) tutar geçebilir.
 
 ## Canlıya alırken
 

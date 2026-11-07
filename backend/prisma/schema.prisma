@@ -21,9 +21,11 @@ model User {
   role                 String    @default("BAYI") // SUPER_ADMIN (platform), ADMIN (kiracı yöneticisi), BAYI, PLASIYER, PERSONEL (yalnızca Personel Alanım)
   // Firma sahibi (ADMIN) tüm yetkilere sahiptir ve silinemez; bayide ana kullanıcıdır (alt kullanıcı yönetir)
   isOwner              Boolean   @default(false)
-  // Bayi içinde sipariş onayı (yalnızca ana kullanıcı olmayan bayi kullanıcıları): NONE, ALWAYS, OVER (limit üstü)
+  // Bayi kullanıcı yetkileri (ana kullanıcıya uygulanmaz). Sipariş: NONE (onaysız), ALWAYS (her sipariş ana kullanıcı
+  // onayına), OVER (limit üstü onaya), BLOCKED (sipariş veremez). Teklif kabulü de bu kurala bağlıdır.
   orderApproval        String    @default("NONE")
   orderApprovalLimit   Float? // OVER: bu tutarı (KDV dahil TL) aşan sipariş ana kullanıcının onayına gider
+  dealerDeny           String[]  @default([]) // Kapalı yetkiler: PRICES (fiyat), FINANCE (cari ve ödeme), RETURNS (iade), ADDRESSES (adres)
   permissions          Json? // ADMIN personeli için: ["CATALOG","ORDERS","DEALERS","FINANCE","SETTINGS"]
   isActive             Boolean   @default(true)
   lastLoginAt          DateTime?

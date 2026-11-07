@@ -4,15 +4,16 @@ import {
 } from '../controllers/financeController.js';
 import { verifyToken, checkRole, requirePermission } from '../middlewares/authMiddleware.js';
 import { getAging } from '../controllers/partnerLedgerController.js';
+import { requireDealer } from '../services/dealerAccess.js';
 
 const router = express.Router();
 
 router.use(verifyToken);
 
 // Bayi self-servis finans
-router.get('/my-statement', checkRole(['BAYI']), getMyStatement);
-router.get('/my-statement/export', checkRole(['BAYI']), exportStatement);
-router.post('/reconcile', checkRole(['BAYI']), reconcile);
+router.get('/my-statement', checkRole(['BAYI']), requireDealer('FINANCE'), getMyStatement);
+router.get('/my-statement/export', checkRole(['BAYI']), requireDealer('FINANCE'), exportStatement);
+router.post('/reconcile', checkRole(['BAYI']), requireDealer('FINANCE'), reconcile);
 
 // Admin
 router.post('/transaction', requirePermission('FINANCE'), createTransaction);

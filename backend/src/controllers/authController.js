@@ -20,7 +20,7 @@ const sessionFor = (user, tenantId) => ({
   user: {
     id: user.id, name: user.name, email: user.email, role: user.role, companyId: user.companyId,
     isOwner: user.isOwner, permissions: Array.isArray(user.permissions) ? user.permissions : [],
-    orderApproval: user.orderApproval, orderApprovalLimit: user.orderApprovalLimit
+    orderApproval: user.orderApproval, orderApprovalLimit: user.orderApprovalLimit, dealerDeny: user.dealerDeny || []
   }
 });
 

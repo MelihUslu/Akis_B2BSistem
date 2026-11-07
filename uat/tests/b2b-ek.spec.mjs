@@ -117,3 +117,24 @@ test('plasiyer ziyaret kaydeder ve planlar; yönetici saha ziyaretlerinde görü
   await expect(visit).toContainText(DEALERS.saha.company);
   await expect(visit).toContainText('Sipariş alındı');
 });
+
+test('bayi yetkileri: ana kullanıcı çalışanın fiyat yetkisini kapatır; çalışan katalogu fiyatsız görür, cari menüsü yoktur', async ({ as }) => {
+  const owner = await as('onay');
+  await owner.goto('/bayi/profile');
+  // Onaylı Yapı'nın ana kullanıcı dışında tek kullanıcısı var; "Yetkiler" açılınca düğme panele dönüşür
+  await owner.getByRole('button', { name: /^Yetkiler:/ }).click();
+  const panel = owner.locator('div.rounded-xl').filter({ has: owner.getByLabel('Sipariş yetkisi') });
+  await panel.getByLabel('Fiyatları görür').uncheck();
+  await panel.getByRole('button', { name: 'Kaydet', exact: true }).click();
+  await expect(owner.getByRole('button', { name: /^Yetkiler: Fiyat göremez/ })).toBeVisible();
+
+  const staff = await as(DEALER_STAFF.key);
+  await staff.goto('/bayi');
+  await staff.getByPlaceholder('Ürün adı, SKU, barkod veya marka ile ara').fill(P.sku);
+  await expect(staff.getByText('1 ürün', { exact: true })).toBeVisible();
+  await expect(staff.getByText('Fiyat gizli').first()).toBeVisible();
+  await expect(staff.getByText('Fiyat yetkiniz yok').first()).toBeVisible();
+  await expect(staff.getByRole('link', { name: 'Finansal Durum' })).toHaveCount(0);
+  await staff.goto('/bayi/finance');
+  await expect(staff.getByText('Bu sayfa için yetkiniz yok')).toBeVisible();
+});

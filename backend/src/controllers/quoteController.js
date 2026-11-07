@@ -2,7 +2,7 @@ import pkg from '@prisma/client';
 import { resolveShippingAddress } from './addressController.js';
 import prisma, { runAsPlatform } from '../utils/prisma.js';
 import { loadOrderableProducts, effectiveProduct, variantLabelOf, availableCredit, round2, loadSpecialPrices, buildPricingContext, unitPriceFor } from '../services/pricingService.js';
-import { createOrderRecord, OrderError } from './orderController.js';
+import { createOrderRecord, OrderError, approvalNeeded } from './orderController.js';
 import { accessFor, isVisibleTo } from '../services/catalogAccess.js';
 import { notifyAdmins, notifyCompany, notifyUser, safeNotify } from '../services/notificationService.js';
 import { emitEvent } from '../services/webhookService.js';
@@ -635,6 +635,10 @@ export const acceptQuote = async (req, res) => {
     quote = await expireIfNeeded(quote);
     const rev = await latestSentRevision(quote);
     const company = await prisma.company.findUnique({ where: { id: req.user.companyId } });
+    // Bayi içinde onay: teklif kabulü de sipariştir; kuralı olan çalışan kabul edemez, ana kullanıcıya iletir
+    if (!req.user.actingAs && (req.user.orderApproval === 'BLOCKED' || approvalNeeded(req.user, rev?.snapshot?.totals?.total ?? 0))) {
+      return res.status(403).json({ message: 'Bu teklifi firmanızın ana kullanıcısı onaylar. "Ana kullanıcıya ilet" ile bildirebilirsiniz.', code: 'DEALER_PERMISSION', permission: 'ORDER' });
+    }
 
     if (paymentMethod === 'CURRENT_ACCOUNT' && rev && parseInt(req.body.revision) === quote.sentRevision) {
       const { availableTRY: available } = await availableCredit(prisma, company);
@@ -659,6 +663,21 @@ export const acceptQuote = async (req, res) => {
     res.status(201).json({ message: 'Teklif onaylandı, siparişiniz oluşturuldu.', orderId: order.id });
   } catch (error) {
     fail(res, error, 'Teklif onaylanamadı.');
+  }
+};
+
+// Onay kuralı olan çalışan teklifi ana kullanıcı(lar)a iletir
+export const forwardQuote = async (req, res) => {
+  try {
+    const quote = await prisma.quoteRequest.findFirst({ where: { id: parseInt(req.params.id) || 0, companyId: req.user.companyId } });
+    if (!quote || !quote.sentRevision) return res.status(404).json({ message: 'Teklif bulunamadı.' });
+    const owners = await prisma.user.findMany({ where: { companyId: req.user.companyId, role: 'BAYI', isOwner: true, isActive: true }, select: { id: true } });
+    for (const o of owners) {
+      safeNotify(notifyUser(o.id, { type: 'QUOTE', title: 'Onayınızı bekleyen teklif', message: `${req.user.name}, ${quoteNo(quote)} teklifinin onaylanmasını istiyor.`, link: '/bayi/quotes' }));
+    }
+    res.json({ message: 'Teklif firmanızın ana kullanıcısına iletildi.' });
+  } catch (error) {
+    fail(res, error, 'Teklif iletilemedi.');
   }
 };
 

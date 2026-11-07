@@ -25,7 +25,7 @@ export const AuthProvider = ({ children }) => {
         const fresh = {
           id: data.id, name: data.name, email: data.email, role: data.role, companyId: data.companyId,
           isOwner: data.isOwner, permissions: Array.isArray(data.permissions) ? data.permissions : [],
-          orderApproval: data.orderApproval || 'NONE', orderApprovalLimit: data.orderApprovalLimit ?? null,
+          orderApproval: data.orderApproval || 'NONE', orderApprovalLimit: data.orderApprovalLimit ?? null, dealerDeny: data.dealerDeny || [],
           impersonatedBy: data.impersonatedBy || null
         };
         localStorage.setItem('akis_user', JSON.stringify(fresh));

@@ -50,7 +50,7 @@ export const verifyToken = async (req, res, next) => {
     // anında temizler (utils/prisma.js), pasife alınan kullanıcı / askıya alınan bayi beklemeden çıkarılır
     const user = await cached(`authuser:${req.tenant.id}:${decoded.id}`, 10_000, () => prisma.user.findUnique({
       where: { id: decoded.id },
-      select: { id: true, name: true, email: true, role: true, companyId: true, isOwner: true, permissions: true, isActive: true, passwordChangedAt: true, company: { select: { status: true } } }
+      select: { id: true, name: true, email: true, role: true, companyId: true, isOwner: true, permissions: true, isActive: true, passwordChangedAt: true, orderApproval: true, orderApprovalLimit: true, dealerDeny: true, company: { select: { status: true } } }
     }));
 
     if (!user) {
@@ -79,6 +79,8 @@ export const verifyToken = async (req, res, next) => {
     req.user = {
       id: user.id, name: user.name, email: user.email, role: user.role, companyId: user.companyId, tenantId: req.tenant.id,
       isOwner: user.isOwner, permissions: Array.isArray(user.permissions) ? user.permissions : [],
+      // Bayi kullanıcı yetkileri (services/dealerAccess.js; ana kullanıcıya ve bayi adına işleme uygulanmaz)
+      orderApproval: user.orderApproval, orderApprovalLimit: user.orderApprovalLimit, dealerDeny: user.dealerDeny || [],
       // Platform destek oturumu ise yöneticinin adı (işlem kaydına yazılır)
       impersonatedBy: decoded.impersonatedBy || null
     };
