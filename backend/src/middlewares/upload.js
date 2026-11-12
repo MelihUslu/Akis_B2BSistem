@@ -15,10 +15,11 @@ const keepContext = (upload) => {
     const original = upload[method].bind(upload);
     upload[method] = (...args) => {
       const middleware = original(...args);
-      return (req, res, next) => {
+      // isUpload: yetki matrisi testi yüklemenin kimlik doğrulamadan sonra geldiğini denetler
+      return Object.assign((req, res, next) => {
         const store = tenantStorage.getStore();
         middleware(req, res, (err) => (store ? tenantStorage.run(store, () => next(err)) : next(err)));
-      };
+      }, { isUpload: true });
     };
   }
   return upload;

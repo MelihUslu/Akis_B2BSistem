@@ -17,9 +17,17 @@ const batch = (req, res) => {
   if (items.length > MAX_BATCH) { res.status(400).json({ error: `Tek istekte en fazla ${MAX_BATCH} kayıt gönderilebilir.` }); return null; }
   return items;
 };
+// Tarih parametresi (ISO 8601); geçersizse 400 (hata işleyicide)
+const dateParam = (value, name) => {
+  if (!value) return null;
+  const d = new Date(String(value));
+  if (Number.isNaN(d.getTime())) throw Object.assign(new Error(`${name} geçerli bir tarih olmalı (ör. 2026-11-01 ya da 2026-11-01T08:00:00Z).`), { status: 400 });
+  return d;
+};
+
 const page = (req) => {
   const limit = Math.min(Math.max(parseInt(req.query.limit) || 100, 1), 500);
-  const p = Math.max(parseInt(req.query.page) || 1, 1);
+  const p = Math.min(Math.max(parseInt(req.query.page) || 1, 1), 100_000);
   return { take: limit, skip: (p - 1) * limit, page: p, limit };
 };
 const currency = (c) => (c === 'TL' ? 'TRY' : c);
@@ -114,7 +122,8 @@ const productOut = (p) => ({
 
 export const apiListProducts = async (req, res) => {
   const { take, skip, page: p, limit } = page(req);
-  const where = req.query.updatedSince ? { updatedAt: { gte: new Date(req.query.updatedSince) } } : {};
+  const since = dateParam(req.query.updatedSince, 'updatedSince');
+  const where = since ? { updatedAt: { gte: since } } : {};
   const [rows, total] = await Promise.all([
     prisma.product.findMany({ where, take, skip, orderBy: { id: 'asc' }, include: { category: true, parent: { select: { sku: true } }, ...VARIANT_VALUES_INCLUDE } }),
     prisma.product.count({ where })
@@ -355,7 +364,7 @@ export const apiListOrders = async (req, res) => {
     ...(req.query.status && { status: { in: String(req.query.status).split(',') } }),
     ...(req.query.exported === 'false' && { exportedAt: null }),
     ...(req.query.exported === 'true' && { exportedAt: { not: null } }),
-    ...(req.query.since && { createdAt: { gte: new Date(req.query.since) } })
+    ...(req.query.since && { createdAt: { gte: dateParam(req.query.since, 'since') } })
   };
   const [rows, total] = await Promise.all([
     prisma.order.findMany({ where, take, skip, orderBy: { id: 'asc' }, include: ORDER_INCLUDE }),

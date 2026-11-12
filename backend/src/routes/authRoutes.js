@@ -3,7 +3,7 @@ import {
   register, login, handoffLogin, googleLogin, getMe, changePassword, listUsers,
   verifyTwoFactorLogin, forgotPassword, resetPassword, getNotificationPrefs, saveNotificationPrefs, twoFactorStatus, twoFactorSetup, twoFactorEnable, twoFactorDisable
 } from '../controllers/authController.js';
-import { verifyToken, checkRole, requirePermission, blockImpersonation } from '../middlewares/authMiddleware.js';
+import { verifyToken, checkRole, requirePermission, requireAnyPermission, blockImpersonation } from '../middlewares/authMiddleware.js';
 import { rateLimit } from '../middlewares/rateLimit.js';
 
 const router = express.Router();
@@ -25,6 +25,7 @@ router.post('/change-password', verifyToken, blockImpersonation, changePassword)
 
 // Kullanıcı oluşturma ve listeleme sadece ADMIN yetkisindedir
 router.post('/register', verifyToken, requirePermission('SETTINGS'), register);
-router.get('/users', verifyToken, checkRole(['ADMIN']), listUsers);
+// Kullanıcı listesi (Ayarlar, Bayiler → plasiyer seçimi)
+router.get('/users', verifyToken, checkRole(['ADMIN']), requireAnyPermission('SETTINGS', 'DEALERS'), listUsers);
 
 export default router;

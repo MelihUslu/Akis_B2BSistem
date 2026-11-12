@@ -216,7 +216,7 @@ export const resetPassword = async (req, res) => {
 
     await prisma.user.update({
       where: { id: user.id },
-      data: { password: await bcrypt.hash(newPassword, 10) }
+      data: { password: await bcrypt.hash(newPassword, 10), passwordChangedAt: new Date() } // açık oturumlar kapanır
     });
 
     const mail = await sendCredentialsMail({ to: user.email, name: user.name, password: newPassword, isReset: true, tenant: req.tenant })

@@ -13,6 +13,7 @@ import * as twoFactor from '../services/twoFactorService.js';
 import { audit, clientIp } from '../services/auditService.js';
 import { consumeHandoff, HandoffError } from '../services/loginHandoff.js';
 import { consumeTicket, GoogleLoginError } from '../services/googleAuth.js';
+import { checkPassword, loginFailures, LOCKED_MESSAGE, emailKey } from '../services/loginGuard.js';
 
 // Oturum token'ı + istemciye dönen kullanıcı bilgisi
 const sessionFor = (user, tenantId) => ({
@@ -111,14 +112,18 @@ const finishLogin = async (req, res, user, via = null) => {
 export const login = async (req, res) => {
   try {
     const { email, password } = req.body;
+    const lockKey = `${req.tenant.id}:${emailKey(email)}`;
+    if (await loginFailures.blocked(lockKey)) return res.status(429).json({ message: LOCKED_MESSAGE });
 
     // Kullanıcı sadece bu alt alan adının kiracısında aranır
     const user = await prisma.user.findFirst({ where: { email: String(email || '').toLowerCase().trim() }, include: { company: true } });
-    if (!user || !(await bcrypt.compare(password || '', user.password))) {
+    if (!(await checkPassword(user, password))) {
+      await loginFailures.fail(lockKey);
       audit({ tenantId: req.tenant.id, actorType: 'USER', actorId: user?.id, actorName: String(email || '').slice(0, 100), action: 'Başarısız giriş denemesi', ip: clientIp(req) });
       return res.status(401).json({ message: 'Geçersiz e-posta veya şifre.' });
     }
 
+    await loginFailures.reset(lockKey);
     return await finishLogin(req, res, user);
   } catch (error) {
     console.error('Login error:', error);
@@ -239,12 +244,17 @@ export const verifyTwoFactorLogin = async (req, res) => {
   try {
     const { uid, tenantId } = twoFactor.readChallenge(req.body.challenge);
     if (tenantId !== req.tenant.id) return res.status(401).json({ message: 'Doğrulama bu firmaya ait değil.' });
+    // Kod denemesi hesap başına sınırlı: yeni bilet alınıp IP değiştirilse de 6 haneli kod taranamaz
+    const lockKey = `2fa:${uid}`;
+    if (await loginFailures.blocked(lockKey)) return res.status(429).json({ message: LOCKED_MESSAGE });
     const user = await prisma.user.findUnique({ where: { id: uid } });
     if (!user || !user.isActive) return res.status(401).json({ message: 'Kullanıcı bulunamadı.' });
     if (!(await twoFactor.checkCode(user, req.body.code))) {
+      await loginFailures.fail(lockKey);
       audit({ tenantId, actorId: user.id, actorName: user.name, action: 'Hatalı 2FA kodu', ip: clientIp(req) });
       return res.status(401).json({ message: 'Doğrulama kodu hatalı.' });
     }
+    await loginFailures.reset(lockKey);
     await prisma.user.update({ where: { id: user.id }, data: { lastLoginAt: new Date() } });
     audit({ tenantId, actorId: user.id, actorName: user.name, action: 'Giriş yapıldı (2FA)', ip: clientIp(req) });
     res.json({ message: 'Giriş başarılı.', ...sessionFor(user, tenantId) });

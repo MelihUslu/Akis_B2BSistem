@@ -2,7 +2,7 @@ import jwt from 'jsonwebtoken';
 import { sessionRevoked } from '../services/passwordResetService.js';
 import prisma from '../utils/prisma.js';
 import { cached } from '../utils/cache.js';
-import { JWT_SECRET } from '../config.js';
+import { JWT_SECRET, JWT_VERIFY } from '../config.js';
 import { tenantAccess, ACCESS_MESSAGES } from './tenantMiddleware.js';
 import { hasPermission } from '../services/permissions.js';
 
@@ -21,9 +21,9 @@ const ACT_READ_ONLY = ['/api/finance/my-statement', '/api/targets/mine', '/api/a
 const actingAllowed = (req) => ACT_PATHS.some((p) => req.originalUrl.startsWith(p))
   || (req.method === 'GET' && ACT_READ_ONLY.some((p) => req.originalUrl.startsWith(p)));
 // "Personel" hesabının (yalnızca Personel Alanım) açabildiği uçlar
-const PERSONEL_PATHS = ['/api/hr', '/api/auth/me', '/api/auth/change-password', '/api/auth/notification-prefs', '/api/notifications', '/api/tenant/public', '/api/push'];
+export const PERSONEL_PATHS = ['/api/hr', '/api/auth/me', '/api/auth/change-password', '/api/auth/notification-prefs', '/api/notifications', '/api/tenant/public', '/api/push'];
 // Plasiyerin kendi kimliğiyle açabildiği uçlar (bayi seçmeden)
-const PLASIYER_PATHS = ['/api/plasiyer', '/api/hr', '/api/auth/me', '/api/auth/change-password', '/api/notifications', '/api/tenant/public', '/api/settings/portal', '/api/push'];
+export const PLASIYER_PATHS = ['/api/plasiyer', '/api/hr', '/api/auth/me', '/api/auth/change-password', '/api/notifications', '/api/tenant/public', '/api/settings/portal', '/api/push'];
 
 // Kiracı kullanıcıları (ADMIN, BAYI). resolveTenant'tan sonra çalışmalıdır.
 export const verifyToken = async (req, res, next) => {
@@ -34,8 +34,12 @@ export const verifyToken = async (req, res, next) => {
 
   let decoded;
   try {
-    decoded = jwt.verify(token, JWT_SECRET);
+    decoded = jwt.verify(token, JWT_SECRET, JWT_VERIFY);
   } catch (error) {
+    return res.status(401).json({ message: 'Geçersiz veya süresi dolmuş token.' });
+  }
+  // Yalnızca oturum belirteci: giriş aktarımı / 2FA / Google biletleri (typ, purpose) oturum yerine geçmez
+  if (!Number.isInteger(decoded?.id) || decoded.typ || decoded.purpose) {
     return res.status(401).json({ message: 'Geçersiz veya süresi dolmuş token.' });
   }
 
@@ -110,7 +114,8 @@ export const verifyPlatform = async (req, res, next) => {
   if (!token) return res.status(401).json({ message: 'Yetkisiz erişim. Token bulunamadı.' });
 
   try {
-    const decoded = jwt.verify(token, JWT_SECRET);
+    const decoded = jwt.verify(token, JWT_SECRET, JWT_VERIFY);
+    if (!Number.isInteger(decoded.id) || decoded.typ || decoded.purpose) return res.status(401).json({ message: 'Geçersiz veya süresi dolmuş token.' });
     if (decoded.role !== 'SUPER_ADMIN' || decoded.tenantId !== null) {
       return res.status(403).json({ message: 'Bu alan sadece platform yöneticilerine açıktır.' });
     }
@@ -124,8 +129,14 @@ export const verifyPlatform = async (req, res, next) => {
   }
 };
 
+/**
+ * Yetki koruyucusu: allows(user) koruyucunun kime izin verdiğini söyler. Yetki matrisi testi
+ * (test/integration/authzMatrix.test.js) bütün uçlar için beklenen sonucu buradan hesaplar.
+ */
+export const guard = (allows, fn) => Object.assign(fn, { allows });
+
 export const checkRole = (roles) => {
-  return (req, res, next) => {
+  return guard((u) => roles.includes(u?.role), (req, res, next) => {
     if (!req.user) {
       return res.status(401).json({ message: 'Yetkisiz erişim. Kullanıcı bilgisi yok.' });
     }
@@ -135,23 +146,32 @@ export const checkRole = (roles) => {
     }
 
     next();
-  };
+  });
 };
 
 /**
  * Firma yöneticisinin belirli bir yetkisi olmalı (firma sahibi her zaman geçer).
  * verifyToken'dan sonra çalışmalıdır.
  */
-export const requirePermission = (permission) => (req, res, next) => {
+export const requirePermission = (permission) => guard((u) => hasPermission(u, permission), (req, res, next) => {
   if (hasPermission(req.user, permission)) return next();
   return res.status(403).json({ message: 'Bu işlem için yetkiniz yok. Firma yöneticinizden yetki isteyin.', code: 'NO_PERMISSION', permission });
-};
+});
 
 // Verilen yetkilerden en az birine sahip olmak yeterli
-export const requireAnyPermission = (...permissions) => (req, res, next) => {
+export const requireAnyPermission = (...permissions) => guard((u) => permissions.some((p) => hasPermission(u, p)), (req, res, next) => {
   if (permissions.some(p => hasPermission(req.user, p))) return next();
   return res.status(403).json({ message: 'Bu işlem için yetkiniz yok.', code: 'NO_PERMISSION' });
-};
+});
+
+/**
+ * Bayi ile yöneticinin ortak kullandığı okuma uçları: bayi yalnızca kendi kaydını görür (uçta süzülür);
+ * yönetici ekip üyesi için verilen yetkilerden biri gerekir (yetkisi olmayan ekip üyesi firma verisini okuyamaz).
+ */
+export const adminNeeds = (...permissions) => guard((u) => u?.role !== 'ADMIN' || permissions.some((p) => hasPermission(u, p)), (req, res, next) => {
+  if (req.user?.role !== 'ADMIN' || permissions.some((p) => hasPermission(req.user, p))) return next();
+  return res.status(403).json({ message: 'Bu işlem için yetkiniz yok. Firma yöneticinizden yetki isteyin.', code: 'NO_PERMISSION', permission: permissions[0] });
+});
 
 // Platform destek oturumunda (müşteri olarak giriş) hesabın güvenlik ayarları değiştirilemez
 export const blockImpersonation = (req, res, next) => {

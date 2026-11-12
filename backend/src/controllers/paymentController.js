@@ -221,7 +221,8 @@ export const startPosCheckout = async (req, res) => {
  * iyzico ödeme formu dönüşü (tarayıcı POST). Ödeme iyzico'dan sorgulanır, tutar eşleşirse tamamlanır.
  */
 export const posCallback = async (req, res) => {
-  const slug = String(req.query.tenant || '').toLowerCase();
+  // Adres yalnızca harf / rakam / tire taşıyan firma kısa adından üretilir (dışarıdan verilen adrese yönlendirme yapılmaz)
+  const slug = String(req.query.tenant || '').toLowerCase().replace(/[^a-z0-9-]/g, '');
   const back = (status, message) =>
     res.redirect(303, `${tenantUrl(slug)}/bayi/finance?pos=${status}${message ? `&message=${encodeURIComponent(message)}` : ''}`);
 

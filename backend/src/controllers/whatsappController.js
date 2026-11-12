@@ -102,7 +102,7 @@ export const listConversations = async (req, res) => {
     const q = str(req.query.q, 60);
     const digits = q.replace(/\D/g, '');
     const search = q ? { OR: [{ name: { contains: q, mode: 'insensitive' } }, ...(digits.length >= 3 ? [{ waId: { contains: digits } }] : []), { lastPreview: { contains: q, mode: 'insensitive' } }] } : {};
-    const where = { ...(FILTERS[req.query.filter] || { status: { not: 'CLOSED' } }), ...search };
+    const where = { ...((Object.hasOwn(FILTERS, req.query.filter) && FILTERS[req.query.filter]) || { status: { not: 'CLOSED' } }), ...search };
     const [items, counts] = await Promise.all([
       prisma.waConversation.findMany({ where, orderBy: { lastMessageAt: 'desc' }, take: 100 }),
       Promise.all(Object.entries(FILTERS).map(async ([k, w]) => [k, await prisma.waConversation.count({ where: w })]))

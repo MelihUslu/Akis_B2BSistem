@@ -32,7 +32,7 @@ export const bulkSmsMeta = async (req, res) => {
 
 export const bulkSmsRecipients = async (req, res) => {
   try {
-    const source = SOURCES[req.query.source] ? req.query.source : 'DEALER';
+    const source = Object.hasOwn(SOURCES, req.query.source) ? req.query.source : 'DEALER';
     const rows = await listRecipients(source, filtersFromQuery(req.query, { leadStatuses: LEAD_STATUSES, leadSources: LEAD_SOURCES }));
     res.json({ rows, withPhone: rows.filter((r) => r.phones.length).length });
   } catch (error) {

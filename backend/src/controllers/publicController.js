@@ -9,6 +9,7 @@ import { audit, clientIp } from '../services/auditService.js';
 import { sendVerificationMail, sendPlatformAlert, sendPortalListMail } from '../services/mailService.js';
 import * as iyzico from '../services/iyzicoService.js';
 import { syncSubscription } from '../services/iyzicoSyncService.js';
+import { comparePasswordTiming, loginFailures, LOCKED_MESSAGE } from '../services/loginGuard.js';
 
 const SLUG_RE = /^[a-z0-9](?:[a-z0-9-]{1,28}[a-z0-9])$/;
 const DAY = 24 * 60 * 60 * 1000;
@@ -56,7 +57,6 @@ export const portalLookup = async (req, res) => {
  * (pasif hesap, doğrulanmamış e-posta, abonelik, iki aşamalı doğrulama). Birden fazla eşleşmede kullanıcı seçer.
  */
 const ROLE_LABELS = { ADMIN: 'Yönetici', BAYI: 'Bayi', PLASIYER: 'Plasiyer', PERSONEL: 'Personel' };
-const DUMMY_HASH = '$2b$10$CwTycUXWue0Thq9StjUM0uJ8.Lr0nB8v4G0Jk5wJ0F0eQkqzYz1y6';
 const portalAccounts = (email) => prisma.user.findMany({
   where: { email, tenantId: { not: null }, role: { in: Object.keys(ROLE_LABELS) } },
   include: { tenant: true }, take: 10
@@ -66,8 +66,10 @@ export const centralLogin = async (req, res) => {
   const email = String(req.body?.email || '').toLowerCase().trim().slice(0, 160);
   const password = String(req.body?.password || '');
   if (!email || !password) return res.status(400).json({ message: 'E-posta ve şifrenizi yazın.' });
+  const lockKey = `central:${email}`;
+  if (await loginFailures.blocked(lockKey)) return res.status(429).json({ message: LOCKED_MESSAGE });
   const users = await portalAccounts(email);
-  if (!users.length) await bcrypt.compare(password, DUMMY_HASH); // hesap yoksa da yanıt süresi benzer olsun
+  if (!users.length) await comparePasswordTiming(password); // hesap yoksa da yanıt süresi benzer olsun
   const portals = [];
   for (const user of users) {
     if (await bcrypt.compare(password, user.password)) {
@@ -76,7 +78,11 @@ export const centralLogin = async (req, res) => {
       audit({ tenantId: user.tenantId, actorType: 'USER', actorId: user.id, actorName: email.slice(0, 100), action: 'Başarısız giriş denemesi (ortak giriş)', ip: clientIp(req) });
     }
   }
-  if (!portals.length) return res.status(401).json({ message: 'Geçersiz e-posta veya şifre.' });
+  if (!portals.length) {
+    await loginFailures.fail(lockKey);
+    return res.status(401).json({ message: 'Geçersiz e-posta veya şifre.' });
+  }
+  await loginFailures.reset(lockKey);
   res.json({ portals });
 };
 

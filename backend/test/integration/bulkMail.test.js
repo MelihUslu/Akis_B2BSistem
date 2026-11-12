@@ -150,6 +150,11 @@ test('kendine deneme, doğrulama ve günlük sınır', { skip }, async () => {
   assert.equal(sent.length, before + 1);
   assert.equal(sent.at(-1).to, `staff@${SLUG}.test`);
   assert.equal(sent.at(-1).subject, '[Deneme] Xenon Market deneme');
+  // Deneme her zaman oturumdaki kişiye ve firmanın adıyla gider: gövdeye alıcı / firma yazılsa da değişmez
+  const forged = await api('/bulk-mail/test', { method: 'POST', body: { kind: 'INFO', subject: 'x', body: 'y', user: { email: 'disari@kotu.test' }, tenant: { name: 'Sahte Firma' } } });
+  assert.equal(forged.status, 200, forged.data?.message);
+  assert.equal(sent.at(-1).to, `staff@${SLUG}.test`);
+  assert.ok(!JSON.stringify(sent.at(-1)).includes('Sahte Firma'));
 
   assert.equal((await api('/bulk-mail/send', { method: 'POST', body: { kind: 'INFO', subject: '', body: 'y', keys: [`C:${T.custX}`] } })).status, 400);
   assert.equal((await api('/bulk-mail/send', { method: 'POST', body: { kind: 'INFO', subject: 'x', body: 'y'.repeat(10_001), keys: [`C:${T.custX}`] } })).status, 400);

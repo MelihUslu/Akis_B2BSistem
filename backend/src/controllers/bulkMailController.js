@@ -37,7 +37,7 @@ export const bulkMailMeta = async (req, res) => {
 
 export const bulkMailRecipients = async (req, res) => {
   try {
-    const source = SOURCES[req.query.source] ? req.query.source : 'DEALER';
+    const source = Object.hasOwn(SOURCES, req.query.source) ? req.query.source : 'DEALER';
     const rows = await listRecipients(source, filtersFromQuery(req.query, { leadStatuses: LEAD_STATUSES, leadSources: LEAD_SOURCES }));
     const out = await optedOutSet(rows.flatMap((r) => r.emails));
     const withOut = rows.map(({ phones, ...r }) => ({ ...r, optedOut: r.emails.filter((e) => out.has(e)) })); // eslint-disable-line no-unused-vars
@@ -49,7 +49,9 @@ export const bulkMailRecipients = async (req, res) => {
 
 export const sendBulkMailTest = async (req, res) => {
   try {
-    const to = await sendTestMail({ tenant: req.tenant, user: req.user, ...req.body });
+    // Gövdeden yalnızca içerik alınır: firma ve alıcı (deneme kendi adresine) oturumdan gelir
+    const { kind, subject, body, keys } = req.body || {};
+    const to = await sendTestMail({ kind, subject, body, keys, tenant: req.tenant, user: req.user });
     res.json({ message: `Deneme e-postası ${to} adresine gönderildi.` });
   } catch (error) {
     fail(res, error, 'Deneme e-postası gönderilemedi.');

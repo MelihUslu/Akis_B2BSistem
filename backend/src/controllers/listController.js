@@ -64,6 +64,7 @@ export const updateTemplate = async (req, res) => {
 };
 
 export const deleteTemplate = async (req, res) => {
-  await prisma.orderTemplate.deleteMany({ where: { id: parseInt(req.params.id), companyId: req.user.companyId } });
+  const { count } = await prisma.orderTemplate.deleteMany({ where: { id: parseInt(req.params.id) || 0, companyId: req.user.companyId } });
+  if (!count) return res.status(404).json({ message: 'Şablon bulunamadı.' });
   res.json({ message: 'Şablon silindi.' });
 };

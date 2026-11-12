@@ -12,6 +12,8 @@ if (!process.env.JWT_SECRET) {
 }
 
 export const JWT_SECRET = process.env.JWT_SECRET;
+// Tüm imzalı belirteçler HS256; doğrulamada başka algoritma (none, RS256 ile anahtar karışıklığı…) kabul edilmez
+export const JWT_VERIFY = { algorithms: ['HS256'] };
 export const PORT = process.env.PORT || 5001;
 
 // Kök alan adı: kiracılar <slug>.ROOT_DOMAIN, platform paneli platform.ROOT_DOMAIN adresinde çalışır.

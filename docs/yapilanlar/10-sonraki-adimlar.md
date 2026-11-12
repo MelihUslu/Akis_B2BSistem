@@ -7,7 +7,7 @@
 Dış servise ya da fiziksel çıktıya bağlı oldukları için otomatik testlerde yoklar ([`uat/README.md`](../../uat/README.md)):
 
 - [ ] **E-posta:** sipariş, onay, şifre sıfırlama ve bayi açılış e-postaları geliyor mu, bağlantılar doğru adrese gidiyor mu?
-- [ ] **Online ödeme (iyzico):** bayinin kartla cari ödemesi ve firmanın abonelik ödemesi, sandbox kartıyla.
+- [ ] **Online ödeme (iyzico):** bayinin kartla cari ödemesi ve firmanın abonelik ödemesi, sandbox kartıyla. Abonelik ödeme formu canlı CSP'de (Caddy) açılıyor mu, mutlaka canlı benzeri ortamda bakın: form satır içi betik çalıştırıyor, CSP büyük olasılıkla engeller ([12. bölüm, açık kalanlar](12-guvenlik-denetimi.md#açık-kalanlar)).
 - [ ] **Paraşüt:** gerçek bir Paraşüt hesabıyla (tercihen test şirketi) bir e-arşiv ve bir e-fatura.
 - [ ] **Yurtiçi Kargo ve WhatsApp:** firmanın kendi test hesabıyla.
 - [ ] **Anlık bildirim (PWA):** ana ekrana eklenmiş uygulamada bildirim geliyor mu?
@@ -80,3 +80,20 @@ Kullanıcıların fark edeceği değişiklikler, duyurulmalı:
 - SaaS dönemine ait 66 commit `feature/saas-platform` dalındadır; `main` dalında yalnızca Mayıs sürümü var.
 - Dal 5 Kasım'da uzak depoya gönderildi. `main`'e birleştirme ayrıca kararlaştırılacak.
 - `.env`, `uploads/support`, `uploads/private` ve `backups` depoya girmez.
+
+## 12 Kasım'daki davranış değişiklikleri (güvenlik denetimi)
+
+Ayrıntı ve gerekçeler [12. bölümde](12-guvenlik-denetimi.md).
+
+- **Ekip üyesi yalnızca yetkisinin verisini okur.** Sipariş, tahsilat, iade, bayi / cari seçim listesi, ayarlar ve kullanıcı listesi artık API'de de ilgili yetkiyi ister (menüler zaten böyleydi). Hiç yetkisi olmayan üye bu verileri göremez.
+- **Hesap kilidi:** bir hesaba 15 dakikada 10 hatalı şifre (ya da 2FA kodu) girilirse o hesaba giriş 15 dakika kapanır; "Bu hesap için çok fazla hatalı deneme yapıldı" mesajı çıkar. Diğer hesaplar etkilenmez.
+- **Şifre sıfırlama oturumu kapatır:** yöneticinin ya da bayi ana kullanıcısının sıfırladığı şifre, kişinin açık oturumlarını da kapatır. Firma sahibinin şifresini yalnızca sahibi değiştirebilir.
+- **Ürün bağlantıları:** teknik katalog ve video adresi `http://` ya da `https://` ile başlamalı.
+- **Veritabanı başka firmanın kaydına bağı reddeder:** ilişki numarası başka firmaya aitse işlem 400 ("Seçilen ilişkili kayıt bulunamadı") döner.
+- **ERP API:** geçersiz `since` / `updatedSince` tarihi 400 döner (önce 500); yanıtlar önbelleğe alınmaz (`Cache-Control: no-store`).
+
+## Güvenlik açık konuları
+
+- [ ] **`xlsx` paketi:** düzeltilmiş sürüme geçiş (SheetJS 0.20.3 ya da `exceljs`) kararı; ardından CI paket taraması eşiği `high` yapılır.
+- [ ] **Abonelik ödeme formu:** CSP ile uyumlu açılış (ayrı sayfa ya da yönlendirme), iyzico sandbox ile.
+- [ ] **Canlı imaj:** backend konteynerini root olmayan kullanıcıyla (`USER node`, `node:20-slim`) çalıştırmak; yükleme klasörü izinleriyle sunucuda denenerek.

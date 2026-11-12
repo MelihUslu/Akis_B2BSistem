@@ -1,7 +1,7 @@
 import express from 'express';
 import { getCompanies, createCompany, updateCompany, resetPassword } from '../controllers/companyController.js';
 import { listDealerUsers, addDealerUser, updateDealerUser, resetDealerUserPassword } from '../controllers/teamController.js';
-import { verifyToken, checkRole, requirePermission } from '../middlewares/authMiddleware.js';
+import { verifyToken, checkRole, requirePermission, requireAnyPermission } from '../middlewares/authMiddleware.js';
 import { listAddresses, createAddress, updateAddress, deleteAddress } from '../controllers/addressController.js';
 
 const router = express.Router();
@@ -9,8 +9,8 @@ const router = express.Router();
 router.use(verifyToken);
 router.use(checkRole(['ADMIN']));
 
-// Bayi listesi tüm yöneticilere açık (özel fiyat, kupon gibi ekranlarda bayi seçimi için)
-router.get('/', getCompanies);
+// Bayi listesi bayi seçimi olan ekranlara açık: bayiler, cari / hedef, sipariş (bayi adına), özel fiyat / kupon, teklif
+router.get('/', requireAnyPermission('DEALERS', 'FINANCE', 'ORDERS', 'CATALOG', 'QUOTES'), getCompanies);
 router.post('/', requirePermission('DEALERS'), createCompany);
 router.patch('/:id', requirePermission('DEALERS'), updateCompany);
 router.post('/:companyId/reset-password', requirePermission('DEALERS'), resetPassword);

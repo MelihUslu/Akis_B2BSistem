@@ -1,5 +1,7 @@
 import crypto from 'crypto';
 import dns from 'dns/promises';
+import http from 'http';
+import https from 'https';
 import net from 'net';
 import prisma, { runAsPlatform } from '../utils/prisma.js';
 
@@ -15,13 +17,33 @@ export const WEBHOOK_EVENTS = {
   'invoice.issued': 'Sipariş faturası kesildi'
 };
 
-const isPrivateIp = (ip) => {
-  if (net.isIPv4(ip)) {
-    const [a, b] = ip.split('.').map(Number);
-    return a === 10 || a === 127 || a === 0 || (a === 169 && b === 254) || (a === 172 && b >= 16 && b <= 31) || (a === 192 && b === 168) || (a === 100 && b >= 64 && b <= 127);
-  }
-  const lower = ip.toLowerCase();
-  return lower === '::1' || lower.startsWith('fc') || lower.startsWith('fd') || lower.startsWith('fe80') || lower.startsWith('::ffff:127.') || lower === '::';
+// Bildirim gönderilmeyecek adres blokları: özel ağ, geri döngü, bağlantı yerel, paylaşımlı (CGNAT), çoklu yayın,
+// belgeleme / deneme aralıkları; IPv6'da ayrıca IPv4 eşlemeli / uyumlu (::ffff:10.0.0.1 gibi) ve NAT64 / 6to4 biçimleri
+// (IPv4 ve IPv6 ayrı listede: tek listede ::ffff:0:0/96 kuralı bütün IPv4 adreslerini de eşlerdi)
+const BLOCKED_V4 = new net.BlockList();
+const BLOCKED_V6 = new net.BlockList();
+for (const [a, p] of [['0.0.0.0', 8], ['10.0.0.0', 8], ['100.64.0.0', 10], ['127.0.0.0', 8], ['169.254.0.0', 16], ['172.16.0.0', 12],
+  ['192.0.0.0', 24], ['192.0.2.0', 24], ['192.168.0.0', 16], ['198.18.0.0', 15], ['198.51.100.0', 24], ['203.0.113.0', 24], ['224.0.0.0', 3]]) BLOCKED_V4.addSubnet(a, p, 'ipv4');
+for (const [a, p] of [['::', 96], ['::ffff:0:0', 96], ['64:ff9b::', 96], ['64:ff9b:1::', 48], ['100::', 64], ['2001:db8::', 32], ['2002::', 16],
+  ['fc00::', 7], ['fe80::', 10], ['fec0::', 10], ['ff00::', 8]]) BLOCKED_V6.addSubnet(a, p, 'ipv6');
+
+export const isPrivateIp = (ip) => {
+  if (net.isIPv4(ip)) return BLOCKED_V4.check(ip, 'ipv4');
+  if (net.isIPv6(ip)) return BLOCKED_V6.check(ip, 'ipv6');
+  return true;
+};
+
+// Canlı ortamda bağlanırken çözülen adres de denetlenir: doğrulama ile istek arasında DNS kaydı iç ağa çevrilse
+// (DNS rebinding) bağlantı kurulmaz. Adresi doğrudan IP olan istekler validateWebhookUrl'de denetlenir.
+const strictMode = () => process.env.NODE_ENV === 'production';
+export const guardedLookup = (hostname, options, callback) => {
+  dns.lookup(hostname, { all: true, family: options?.family || 0 }).then((addresses) => {
+    if (!addresses.length || addresses.some((a) => isPrivateIp(a.address))) {
+      return callback(Object.assign(new Error('İç ağ adreslerine bildirim gönderilemez.'), { code: 'EPRIVATEADDR' }));
+    }
+    if (options?.all) return callback(null, addresses);
+    callback(null, addresses[0].address, addresses[0].family);
+  }, callback);
 };
 
 /**
@@ -32,10 +54,12 @@ export const validateWebhookUrl = async (raw) => {
   let url;
   try { url = new URL(raw); } catch { return 'Geçerli bir adres girin (https://...).'; }
   if (!['http:', 'https:'].includes(url.protocol)) return 'Adres http(s) ile başlamalıdır.';
-  if (process.env.NODE_ENV !== 'production') return null;
+  if (url.username || url.password) return 'Adreste kullanıcı adı / parola olamaz.';
+  if (!strictMode()) return null;
   if (url.protocol !== 'https:') return 'Canlı ortamda sadece https adreslere bildirim gönderilir.';
   try {
-    const addresses = await dns.lookup(url.hostname, { all: true });
+    const host = url.hostname.replace(/^\[|\]$/g, '');
+    const addresses = net.isIP(host) ? [{ address: host }] : await dns.lookup(host, { all: true });
     if (addresses.some(a => isPrivateIp(a.address))) return 'İç ağ adreslerine bildirim gönderilemez.';
   } catch {
     return 'Adres çözümlenemedi.';
@@ -49,24 +73,35 @@ export const signPayload = (secret, body) => crypto.createHmac('sha256', secret)
 const BACKOFF_MS = [60_000, 300_000, 1_800_000, 7_200_000, 21_600_000];
 export const MAX_ATTEMPTS = BACKOFF_MS.length + 1;
 
-// Tek HTTP denemesi
+// Tek HTTP denemesi: yönlendirme izlenmez, 8 sn sınırı, yanıt gövdesi okunmaz
+const TIMEOUT_MS = 8000;
+const postOnce = (rawUrl, headers, body) => new Promise((resolve, reject) => {
+  const url = new URL(rawUrl);
+  const req = (url.protocol === 'https:' ? https : http).request(url, {
+    method: 'POST',
+    headers: { ...headers, 'Content-Length': Buffer.byteLength(body) },
+    lookup: strictMode() ? guardedLookup : undefined
+  }, (res) => {
+    clearTimeout(timer);
+    resolve(res.statusCode);
+    res.destroy();
+  });
+  const timer = setTimeout(() => req.destroy(new Error(`Zaman aşımı (${TIMEOUT_MS / 1000} sn)`)), TIMEOUT_MS);
+  req.on('error', (err) => { clearTimeout(timer); reject(err); });
+  req.end(body);
+});
+
 const post = async (hook, event, body) => {
   const invalid = await validateWebhookUrl(hook.url);
   if (invalid) return { status: null, error: invalid };
   try {
-    const res = await fetch(hook.url, {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        'X-Webhook-Event': event,
-        'X-Webhook-Signature': signPayload(hook.secret, body),
-        'User-Agent': 'AkisB2B-Webhook/1.0'
-      },
-      body,
-      redirect: 'manual',
-      signal: AbortSignal.timeout(8000)
-    });
-    return { status: res.status, error: res.ok ? null : `HTTP ${res.status}` };
+    const status = await postOnce(hook.url, {
+      'Content-Type': 'application/json',
+      'X-Webhook-Event': event,
+      'X-Webhook-Signature': signPayload(hook.secret, body),
+      'User-Agent': 'AkisB2B-Webhook/1.0'
+    }, body);
+    return { status, error: status >= 200 && status < 300 ? null : `HTTP ${status}` };
   } catch (err) {
     return { status: null, error: err.message };
   }

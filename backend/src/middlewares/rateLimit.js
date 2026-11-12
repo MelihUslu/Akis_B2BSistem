@@ -48,3 +48,40 @@ export const rateLimit = ({ windowMs, max, message, key: keyOf }) => {
     next();
   };
 };
+
+/**
+ * Hesap başına başarısız deneme sayacı (giriş, 2FA kodu). IP sınırından farkı: yalnızca başarısız denemeler sayılır ve
+ * anahtar hesaptır; IP değiştirilerek tek hesaba yapılan dağıtık şifre denemesi de durur. Süre dolunca kendiliğinden açılır.
+ */
+export const failureLimiter = ({ windowMs, max, prefix }) => {
+  const hits = new Map();
+  setInterval(() => {
+    const now = Date.now();
+    for (const [k, v] of hits) if (v.reset < now) hits.delete(k);
+  }, windowMs).unref();
+  const keyOf = (key) => `rlf:${prefix}:${key}`;
+  const local = {
+    count: (k) => { const e = hits.get(k); return e && e.reset > Date.now() ? e.count : 0; },
+    fail: (k) => { const now = Date.now(); const e = hits.get(k); if (!e || e.reset < now) hits.set(k, { count: 1, reset: now + windowMs }); else e.count++; }
+  };
+  return {
+    async blocked(key) {
+      const k = keyOf(key);
+      const redis = redisReady();
+      if (redis) { try { return (parseInt(await redis.get(k)) || 0) >= max; } catch { /* bellek içi sayaca düş */ } }
+      return local.count(k) >= max;
+    },
+    async fail(key) {
+      const k = keyOf(key);
+      const redis = redisReady();
+      if (redis) { try { await redis.multi().incr(k).pexpire(k, windowMs, 'NX').exec(); return; } catch { /* bellek içi sayaca düş */ } }
+      local.fail(k);
+    },
+    async reset(key) {
+      const k = keyOf(key);
+      hits.delete(k);
+      const redis = redisReady();
+      if (redis) await redis.del(k).catch(() => {});
+    }
+  };
+};

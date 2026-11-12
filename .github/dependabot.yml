@@ -1,0 +1,30 @@
+# Paket güncellemeleri: haftalık; küçük / yama sürümleri tek PR'da toplanır, büyük sürümler ayrı PR olarak gelir.
+# Güvenlik açığı düzeltmeleri (Dependabot security updates) beklemeden ayrı PR açar.
+version: 2
+updates:
+  - package-ecosystem: npm
+    directory: /backend
+    schedule: { interval: weekly, day: monday, time: "06:00", timezone: Europe/Istanbul }
+    open-pull-requests-limit: 5
+    groups:
+      kucuk-guncellemeler:
+        update-types: [minor, patch]
+  - package-ecosystem: npm
+    directory: /frontend
+    schedule: { interval: weekly, day: monday, time: "06:00", timezone: Europe/Istanbul }
+    open-pull-requests-limit: 5
+    groups:
+      kucuk-guncellemeler:
+        update-types: [minor, patch]
+  - package-ecosystem: npm
+    directory: /uat
+    schedule: { interval: monthly }
+    groups:
+      hepsi:
+        patterns: ["*"]
+  - package-ecosystem: github-actions
+    directory: /
+    schedule: { interval: monthly }
+  - package-ecosystem: docker
+    directory: /backend
+    schedule: { interval: monthly }

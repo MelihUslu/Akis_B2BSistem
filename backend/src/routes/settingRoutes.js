@@ -1,13 +1,14 @@
 import express from 'express';
 import { getSettings, updateSetting, getRates, getPortalSettings } from '../controllers/settingController.js';
-import { verifyToken, checkRole, requirePermission } from '../middlewares/authMiddleware.js';
+import { verifyToken, checkRole, requirePermission, requireAnyPermission } from '../middlewares/authMiddleware.js';
 
 const router = express.Router();
 
 router.use(verifyToken);
 
 // Okuma tüm yöneticilere açık (ör. ürün ekranındaki genel fiyat gizleme ayarı)
-router.get('/', checkRole(['ADMIN']), getSettings);
+// Ayarlar ekranı ve ürün ekranı (varsayılan KDV, birim…) okur
+router.get('/', checkRole(['ADMIN']), requireAnyPermission('SETTINGS', 'CATALOG'), getSettings);
 router.get('/exchange-rates', getRates);
 router.get('/portal', getPortalSettings);
 router.post('/', requirePermission('SETTINGS'), updateSetting);

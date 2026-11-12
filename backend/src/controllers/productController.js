@@ -202,6 +202,16 @@ export const resolveSkus = async (req, res) => {
   }
 };
 
+// Bayiye bağlantı olarak gösterilen alanlar yalnızca http(s): javascript: / data: adresleri tıklanınca çalışmasın
+const linkUrl = (value, label) => {
+  const raw = String(value ?? '').trim();
+  if (!raw) return null;
+  let url;
+  try { url = new URL(raw); } catch { url = null; }
+  if (!url || !['http:', 'https:'].includes(url.protocol)) throw new VariantError(`${label} adresi http:// ya da https:// ile başlamalıdır.`);
+  return raw.slice(0, 1000);
+};
+
 export const createProduct = async (req, res) => {
   try {
     const {
@@ -228,8 +238,8 @@ export const createProduct = async (req, res) => {
         shortDesc,
         longDesc,
         images: JSON.stringify(images || []),
-        pdfUrl,
-        videoUrl,
+        pdfUrl: linkUrl(pdfUrl, 'Teknik katalog'),
+        videoUrl: linkUrl(videoUrl, 'Video'),
         categoryId: categoryId ? parseInt(categoryId) : null,
         alternativeToId: alternativeToId ? parseInt(alternativeToId) : null,
         isMaster: true,
@@ -267,7 +277,7 @@ const UPDATABLE = {
   packUnit: (v) => String(v ?? '').trim().slice(0, 30) || null,
   packSize: (v) => (parseInt(v) > 1 ? parseInt(v) : null),
   images: (v) => (typeof v === 'string' ? v : JSON.stringify(v || [])),
-  pdfUrl: (v) => v || null, videoUrl: (v) => v || null,
+  pdfUrl: (v) => linkUrl(v, 'Teknik katalog'), videoUrl: (v) => linkUrl(v, 'Video'),
   categoryId: (v) => (v ? parseInt(v) : null),
   alternativeToId: (v) => (v ? parseInt(v) : null),
   hidePrice: isTrue, isActive: isTrue, visibleGroups: groupList

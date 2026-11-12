@@ -67,8 +67,10 @@ export const updateTeamMember = async (req, res) => {
 export const resetTeamMemberPassword = async (req, res) => {
   const target = await prisma.user.findFirst({ where: { id: parseInt(req.params.id), role: 'ADMIN' } });
   if (!target) return res.status(404).json({ message: 'Kullanıcı bulunamadı.' });
+  if (target.isOwner && !req.user.isOwner) return res.status(403).json({ message: 'Firma sahibinin şifresini yalnızca kendisi değiştirebilir.' });
   const password = generatePassword();
-  await prisma.user.update({ where: { id: target.id }, data: { password: await bcrypt.hash(password, 10) } });
+  // Açık oturumlar da kapanır (hesabından şüphelenilen kişinin şifresi sıfırlandığında eski oturumu çalışmaz)
+  await prisma.user.update({ where: { id: target.id }, data: { password: await bcrypt.hash(password, 10), passwordChangedAt: new Date() } });
   const mail = await sendCredentialsMail({ to: target.email, name: target.name, password, isReset: true, tenant: req.tenant }).catch(() => ({ delivered: false }));
   res.json({ message: `Şifre sıfırlandı. ${mailResult(mail, target.email)}` });
 };
@@ -154,7 +156,7 @@ export const resetDealerUserPassword = async (req, res) => {
   const target = await prisma.user.findFirst({ where: { id: parseInt(req.params.userId), companyId: companyIdFor(req), role: 'BAYI' } });
   if (!target) return res.status(404).json({ message: 'Kullanıcı bulunamadı.' });
   const password = generatePassword();
-  await prisma.user.update({ where: { id: target.id }, data: { password: await bcrypt.hash(password, 10) } });
+  await prisma.user.update({ where: { id: target.id }, data: { password: await bcrypt.hash(password, 10), passwordChangedAt: new Date() } });
   const mail = await sendCredentialsMail({ to: target.email, name: target.name, password, isReset: true, tenant: req.tenant }).catch(() => ({ delivered: false }));
   res.json({ message: `Şifre sıfırlandı. ${mailResult(mail, target.email)}` });
 };

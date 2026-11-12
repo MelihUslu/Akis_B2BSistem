@@ -63,10 +63,10 @@ export const requireHrModule = async (req, res, next) => {
   res.status(403).json({ message: 'Personel modülü bu firmada kapalı. Ayarlar → Modüller bölümünden açılabilir.', code: 'MODULE_DISABLED' });
 };
 
-export const requireAny = (...checks) => (req, res, next) => {
+export const requireAny = (...checks) => Object.assign((req, res, next) => {
   if (checks.some((c) => c(req.user))) return next();
   res.status(403).json({ message: 'Bu işlem için yetkiniz yok.' });
-};
+}, { allows: (u) => checks.some((c) => c(u)) });
 
 const myEmployee = (req) => prisma.employee.findFirst({ where: { userId: req.user.id } });
 const requireMe = async (req) => {
@@ -446,7 +446,7 @@ export const myClaims = handle('Talepler alınamadı.', async (req, res) => {
 export const createClaim = async (req, res) => {
   try {
     const employee = await requireActiveMe(req);
-    const type = CLAIM_TYPES[req.body.type] ? req.body.type : null;
+    const type = Object.hasOwn(CLAIM_TYPES, req.body.type) ? req.body.type : null;
     if (!type) throw new HrError('Masraf mı avans mı seçin.');
     const amount = amountOf(req.body.amount);
     if (!Number.isFinite(amount) || amount <= 0 || amount >= 1e9) throw new HrError('Geçerli bir tutar girin.');
@@ -488,7 +488,7 @@ const CLAIM_FILTERS = {
 const isOpenAdvance = (c) => c.type === 'ADVANCE' && c.paidAmount - c.settledAmount > 0.004;
 
 export const listClaims = handle('Talepler alınamadı.', async (req, res) => {
-  const where = { ...(CLAIM_FILTERS[req.query.status] || {}), ...(req.query.employeeId && { employeeId: id(req.query.employeeId) }) };
+  const where = { ...((Object.hasOwn(CLAIM_FILTERS, req.query.status) && CLAIM_FILTERS[req.query.status]) || {}), ...(req.query.employeeId && { employeeId: id(req.query.employeeId) }) };
   const [rows, pending, toPay, paid, rejected, advances, toPaySum] = await Promise.all([
     prisma.staffClaim.findMany({ where, include: CLAIM_INCLUDE, orderBy: [{ date: 'desc' }, { id: 'desc' }], take: 300 }),
     prisma.staffClaim.count({ where: CLAIM_FILTERS.PENDING }),

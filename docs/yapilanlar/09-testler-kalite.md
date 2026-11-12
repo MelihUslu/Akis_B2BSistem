@@ -8,7 +8,7 @@
 
 | Dosya | Test | Ne doğrular |
 |---|---|---|
-| `test/unit/*` | 43 | Fiyat ve KDV hesabı, teklif, ayar kontrolü, tarih (gece yarısı), güvenlik, çeviri, push, yardım |
+| `test/unit/*` | 46 | Fiyat ve KDV hesabı, teklif, ayar kontrolü, tarih (gece yarısı), güvenlik (SSRF blok listesi, hesap kilidi sayacı), çeviri, push, yardım |
 | `integration/isolation` | 30 | Firmalar arası veri yalıtımı, eşzamanlı onay ve iade, toplu bildirim, oturum önbelleği |
 | `integration/quotes` | 18 | Teklif akışı, sürümler, onay sınırları, siparişe dönüşüm |
 | `integration/dealers` | 11 | Aynı firmadaki bayiler arası erişim: sipariş, fatura, ekstre, ödeme, iade, teklif, adres, şablon, bildirim, bayi kullanıcıları, özel fiyat ve kupon; gruba kapalı ürünler hiçbir uçtan görünmez |
@@ -27,6 +27,12 @@
 | `integration/site` | 7 | Tanıtım sitesi, sohbet, talepler |
 | `integration/monitoring` | 7 | İzleme kayıtları ve uyarılar |
 | `integration/catalog` | 4 | Katalog sıralama ve filtreler |
+| `integration/authzMatrix` | 3 | Güvenlik: 450 uç × 10 kişi yetki matrisi (3.651 istek), yükleme sırası, herkese açık uç listesi ([12. bölüm](12-guvenlik-denetimi.md)) |
+| `integration/tenantRefs` | 3 | Güvenlik: firmalar arası ilişki tetikleyicileri (90 ilişki), API ve ham SQL denemesi |
+| `integration/dealerIdor` | 5 | Güvenlik: bayiler arası onay talebi, teklif işlemleri, çalışanın ana kullanıcı işleri, `companyId` zorlama |
+| `integration/authHardening` | 4 | Güvenlik: sahte / süresi dolmuş belirteç, bilet karışıklığı, hesap kilidi, sıfırlamada oturum kapanması, geçersiz parametre, yanıt başlıkları |
+
+Güvenlik denetiminin (12 Kasım) yöntemi, bulguları ve OWASP ZAP taraması [12. bölümde](12-guvenlik-denetimi.md).
 
 Paraşüt, Yurtiçi, WhatsApp ve Google'ın token ucu taklit sunucularla denenir. Entegrasyon testleri boş bir test veritabanında (`akis_test`) çalışır, verisini sonunda siler.
 
@@ -211,3 +217,4 @@ docker exec akis_b2bsistem-backend-1 sh -c 'REDIS_URL= TEST_DATABASE_URL=postgre
 | `a8e2226` | 4 Kasım | `b2b.test.js` (12 senaryo) |
 | `eddc54f` | 4 Kasım | UAT: 6 yeni senaryo, toplam 41 test |
 | — | 5 Kasım | İleri yük testleri (kampanya, gürültülü komşu, 10 kat veri, ağır uçlar, ERP API, ani yük, dayanıklılık) ve bulunanların düzeltilmesi |
+| — | 12 Kasım | Güvenlik denetimi: yetki matrisi, firma ilişki tetikleyicileri, kimlik sertleştirme, paket güncellemeleri, OWASP ZAP |

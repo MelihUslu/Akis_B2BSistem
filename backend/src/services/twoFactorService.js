@@ -2,7 +2,7 @@ import crypto from 'crypto';
 import bcrypt from 'bcrypt';
 import jwt from 'jsonwebtoken';
 import prisma from '../utils/prisma.js';
-import { JWT_SECRET } from '../config.js';
+import { JWT_SECRET, JWT_VERIFY } from '../config.js';
 import { encrypt, decrypt } from '../utils/secretBox.js';
 import { generateSecret, verifyTotp, otpauthUrl } from '../utils/totp.js';
 
@@ -16,7 +16,7 @@ export const issueChallenge = (user) =>
 
 export const readChallenge = (challenge) => {
   try {
-    const payload = jwt.verify(String(challenge || ''), JWT_SECRET);
+    const payload = jwt.verify(String(challenge || ''), JWT_SECRET, JWT_VERIFY);
     if (payload.purpose !== '2fa') throw new Error();
     return payload;
   } catch {

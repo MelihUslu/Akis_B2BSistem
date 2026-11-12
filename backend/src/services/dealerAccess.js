@@ -31,9 +31,9 @@ export const dealerCan = (user, cap) => {
   return !(cap === 'FINANCE' && deny.includes('PRICES')); // fiyatı göremeyen cari tutarlarını da göremez
 };
 
-export const requireDealer = (cap) => (req, res, next) => (dealerCan(req.user, cap)
+export const requireDealer = (cap) => Object.assign((req, res, next) => (dealerCan(req.user, cap)
   ? next()
-  : res.status(403).json({ message: DENIED[cap], code: 'DEALER_PERMISSION', permission: cap }));
+  : res.status(403).json({ message: DENIED[cap], code: 'DEALER_PERMISSION', permission: cap })), { allows: (u) => dealerCan(u, cap) });
 
 /** Sipariş verebilir mi? (fiyatı göremeyen ya da sipariş yetkisi kapalı olan veremez) */
 export const orderBlockedMessage = (user) => {

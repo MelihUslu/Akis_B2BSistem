@@ -1,5 +1,6 @@
 // Express uygulaması (rotalar ve ara katmanlar). Dinlemeye server.js başlar; testler doğrudan bunu kullanır.
 import express from 'express';
+import { Prisma } from '@prisma/client';
 import cors from 'cors';
 import helmet from 'helmet';
 import { langMiddleware } from './i18n/index.js';
@@ -86,6 +87,9 @@ app.use(dbGate); // veritabanı kısa süre önce ulaşılamaz göründüyse 503
 // WhatsApp webhook imzası ham gövde üzerinden doğrulanır
 app.use(express.json({ limit: '1mb', verify: (req, res, buf) => { if (req.originalUrl.startsWith('/api/whatsapp/webhook/')) req.rawBody = buf; } }));
 app.use(langMiddleware);
+// API yanıtları (cari, sipariş, kişisel veri) tarayıcıda / ara sunucuda saklanmaz; kendi önbellek kuralı olan uç
+// (bayi XML beslemesi) bunu ezer
+app.use('/api', (req, res, next) => { res.set('Cache-Control', 'no-store'); next(); });
 // Yüklenen dosyalar: görseller tarayıcıda gösterilir, diğer destek ekleri (PDF, Excel…) indirilir
 // Gizli dosyalar (cari belgeleri) doğrudan sunulmaz; yetkili uç üzerinden indirilir
 app.use('/uploads/private', (req, res) => res.status(404).end());
@@ -169,10 +173,21 @@ app.get('/health/ready', async (req, res) => {
   res.status(status.ok ? 200 : 503).json(status);
 });
 
+// Bilinmeyen adres: Express'in HTML sayfası yerine JSON
+app.use((req, res) => res.status(404).json({ message: 'Adres bulunamadı.' }));
+
 // Multer ve diğer beklenmeyen hatalar için Türkçe JSON yanıtı
 app.use((err, req, res, next) => {
   if (err.code === 'LIMIT_FILE_SIZE') return res.status(400).json({ message: 'Dosya boyutu çok büyük.' });
   if (err.name === 'MulterError') return res.status(400).json({ message: err.message });
+  // P2003: ilişki kısıtı; başka firmanın kaydına bağ denemesi de buraya düşer (tenant_ref tetikleyicileri)
+  if (err.code === 'P2003') return res.status(400).json({ message: 'Seçilen ilişkili kayıt bulunamadı.' });
+  // Geçersiz girdi (sayı olmayan / sınırı aşan numara, geçersiz tarih) veritabanına gitmeden Prisma'da kalır: 400
+  if (err instanceof Prisma.PrismaClientValidationError || (err instanceof Prisma.PrismaClientUnknownRequestError && /ToSql|out of range/i.test(err.message))) {
+    // Kod hatasından da kaynaklanabilir: günlükte görünsün
+    console.warn('[400] Geçersiz sorgu parametresi:', req.method, req.originalUrl.split('?')[0], String(err.message).trim().split('\n').pop().slice(0, 200));
+    return res.status(400).json({ message: 'Geçersiz istek: numara, tarih ya da sayı alanlarını kontrol edin.' });
+  }
   const status = err.status || err.statusCode || (err.code === 'P2025' ? 404 : 500);
   // Kullanıcı kaynaklı hatalar (doğrulama, dosya türü) kaydedilmez; sunucu hataları hata izlemeye gider
   if (status >= 500) recordRequestError(req, err, status);

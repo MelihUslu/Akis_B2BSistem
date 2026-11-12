@@ -3,7 +3,7 @@ import assert from 'node:assert/strict';
 import crypto from 'crypto';
 import { hotp, verifyTotp, base32Encode, base32Decode } from '../../src/utils/totp.js';
 import { encrypt, decrypt } from '../../src/utils/secretBox.js';
-import { signPayload } from '../../src/services/webhookService.js';
+import { signPayload, isPrivateIp, validateWebhookUrl, guardedLookup } from '../../src/services/webhookService.js';
 import { verifyNotification } from '../../src/services/paytrService.js';
 import { cleanAttachments } from '../../src/services/supportService.js';
 import { sessionRevoked, passwordProblem } from '../../src/services/passwordResetService.js';
@@ -62,4 +62,43 @@ test('oturum iptali: şifre değişiminden önce verilen token geçersiz', () =>
   assert.ok(!sessionRevoked({ iat: 1 }, null));
   assert.ok(passwordProblem('kisa'));
   assert.equal(passwordProblem('yeterliuzun'), null);
+});
+
+test('webhook SSRF koruması: iç ağ, eşlemeli IPv6 ve özel aralıklar reddedilir; dış adres geçer', () => {
+  for (const ip of ['127.0.0.1', '10.2.3.4', '172.20.0.5', '192.168.1.1', '169.254.169.254', '100.64.0.1', '0.0.0.0', '224.0.0.1', '255.255.255.255',
+    '::1', '::', '::ffff:10.0.0.1', '::ffff:7f00:1', '::ffff:169.254.169.254', '64:ff9b::a00:1', 'fd00::1', 'fe80::1', 'ff02::1', 'yanlis']) {
+    assert.equal(isPrivateIp(ip), true, ip);
+  }
+  for (const ip of ['8.8.8.8', '1.1.1.1', '172.32.0.1', '2a00:1450:4001::200e']) assert.equal(isPrivateIp(ip), false, ip);
+});
+
+test('webhook adresi (canlı ortam): yalnızca https, IP ile iç ağ yok, kullanıcı adı / parola yok; çözümleme anında da denetlenir', async () => {
+  const env = process.env.NODE_ENV;
+  process.env.NODE_ENV = 'production';
+  try {
+    assert.match(await validateWebhookUrl('http://ornek.com/hook'), /https/);
+    assert.match(await validateWebhookUrl('https://127.0.0.1/hook'), /İç ağ/);
+    assert.match(await validateWebhookUrl('https://[::ffff:10.0.0.1]/hook'), /İç ağ/);
+    assert.match(await validateWebhookUrl('https://2130706433/hook'), /İç ağ/); // 127.0.0.1'in sayı biçimi
+    assert.match(await validateWebhookUrl('https://a:b@ornek.com/hook'), /parola/);
+    assert.match(await validateWebhookUrl('file:///etc/passwd'), /http/);
+    // Bağlantı sırasında çözülen adres iç ağdaysa (DNS rebinding) bağlanılmaz
+    const err = await new Promise((resolve) => guardedLookup('localhost', {}, (e) => resolve(e)));
+    assert.equal(err?.code, 'EPRIVATEADDR');
+  } finally {
+    process.env.NODE_ENV = env;
+  }
+});
+
+test('hesap başına hatalı deneme sayacı: sınırda kilitlenir, başka hesap etkilenmez, başarılı giriş sıfırlar', async () => {
+  const { failureLimiter } = await import('../../src/middlewares/rateLimit.js');
+  const limiter = failureLimiter({ windowMs: 60_000, max: 3, prefix: 'birim' });
+  for (let i = 0; i < 3; i++) {
+    assert.equal(await limiter.blocked('a'), false);
+    await limiter.fail('a');
+  }
+  assert.equal(await limiter.blocked('a'), true);
+  assert.equal(await limiter.blocked('b'), false);
+  await limiter.reset('a');
+  assert.equal(await limiter.blocked('a'), false);
 });

@@ -43,7 +43,8 @@ export const getOrders = async (req, res) => {
     const where = orderWhere(req);
 
     // ?sort=oldest: en eski önce (bekleyenleri sırayla işlemek için) · ?sort=amount: tutara göre
-    const orderBy = { oldest: { createdAt: 'asc' }, amount: { totalAmount: 'desc' } }[req.query.sort] || { createdAt: 'desc' };
+    const SORTS = { oldest: { createdAt: 'asc' }, amount: { totalAmount: 'desc' } };
+    const orderBy = (Object.hasOwn(SORTS, req.query.sort) && SORTS[req.query.sort]) || { createdAt: 'desc' };
 
     // ?page verilirse sayfalı yanıt { data, pagination } döner
     if (req.query.page) {

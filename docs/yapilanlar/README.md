@@ -19,6 +19,7 @@ Bu klasör, projenin ilk commit'inden bugüne kadar yapılan işleri konu konu a
 | 9 | [Testler ve kalite](09-testler-kalite.md) | Birim ve entegrasyon testleri, CI, yük testleri (k6), kullanıcı kabul testleri (UAT) |
 | 10 | [Açık konular ve sonraki adımlar](10-sonraki-adimlar.md) | Sonraya bırakılanlar, elle kontrol listesi, bilinen sınırlar, canlıya alma notları |
 | 11 | [Personel yönetimi](11-personel-yonetimi.md) | Personel kartları, izin, masraf ve avans, satış hedefi ve prim, şirket duyuruları |
+| 12 | [Güvenlik denetimi](12-guvenlik-denetimi.md) | Yetki matrisi (450 uç), firma ayrımı, kimlik doğrulama, girdi ve SSRF, paket açıkları, OWASP ZAP; [uç bazında yetki tablosu](../guvenlik/yetki-matrisi.md) |
 
 ## Zaman çizelgesi
 

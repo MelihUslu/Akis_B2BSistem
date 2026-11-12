@@ -1,6 +1,6 @@
 import crypto from 'crypto';
 import jwt from 'jsonwebtoken';
-import { JWT_SECRET, API_PUBLIC_URL } from '../config.js';
+import { JWT_SECRET, JWT_VERIFY, API_PUBLIC_URL } from '../config.js';
 import { markOnce } from '../utils/redis.js';
 import { trackExternal } from './monitoring.js';
 
@@ -62,7 +62,7 @@ export const peekStatePortal = (state) => {
 export const readState = (state, cookieNonce) => {
   let p;
   try {
-    p = jwt.verify(String(state || ''), JWT_SECRET);
+    p = jwt.verify(String(state || ''), JWT_SECRET, JWT_VERIFY);
   } catch {
     throw new GoogleLoginError('expired');
   }
@@ -108,7 +108,7 @@ export const issueTicket = ({ email, name }, portal) =>
 export const consumeTicket = async (ticket, portal) => {
   let p;
   try {
-    p = jwt.verify(String(ticket || ''), JWT_SECRET);
+    p = jwt.verify(String(ticket || ''), JWT_SECRET, JWT_VERIFY);
   } catch {
     throw new GoogleLoginError('expired', 'Google ile girişin süresi doldu. Lütfen tekrar deneyin.');
   }

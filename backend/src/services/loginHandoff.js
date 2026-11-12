@@ -1,6 +1,6 @@
 import crypto from 'crypto';
 import jwt from 'jsonwebtoken';
-import { JWT_SECRET } from '../config.js';
+import { JWT_SECRET, JWT_VERIFY } from '../config.js';
 import { markOnce } from '../utils/redis.js';
 
 /**
@@ -21,7 +21,7 @@ export const issueHandoff = (user, via) =>
 export const consumeHandoff = async (code, tenantId) => {
   let payload;
   try {
-    payload = jwt.verify(String(code || ''), JWT_SECRET);
+    payload = jwt.verify(String(code || ''), JWT_SECRET, JWT_VERIFY);
   } catch {
     throw new HandoffError('Giriş bağlantısının süresi doldu. Lütfen tekrar giriş yapın.');
   }

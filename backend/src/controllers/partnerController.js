@@ -46,10 +46,10 @@ export const fail = (res, error, fallback) => {
 // Kart yönetimi: Finans veya Bayiler yetkisi. Teklif hazırlayan personel yalnızca müşteri kartı açabilir.
 export const canManage = (user) => hasPermission(user, 'FINANCE') || hasPermission(user, 'DEALERS');
 
-export const partnerAccess = (req, res, next) => {
+export const partnerAccess = Object.assign((req, res, next) => {
   if (canManage(req.user)) return next();
   return res.status(403).json({ message: 'Bu işlem için yetkiniz yok. Firma yöneticinizden "Finans" veya "Bayiler" yetkisi isteyin.', code: 'NO_PERMISSION' });
-};
+}, { allows: (u) => canManage(u) });
 
 export const loadPartner = async (id) => {
   const company = await prisma.company.findUnique({ where: { id: parseInt(id) || 0 } });
@@ -136,7 +136,8 @@ export const listPartners = async (req, res) => {
     const { where, search, extra } = listWhere(req.query, req.user.id);
     const take = Math.min(Math.max(parseInt(req.query.limit) || 50, 1), 200);
     const page = Math.max(parseInt(req.query.page) || 1, 1);
-    const orderBy = { balance: [{ currentBalance: 'asc' }], name: [{ name: 'asc' }], newest: [{ createdAt: 'desc' }] }[req.query.sort] || [{ name: 'asc' }];
+    const SORTS = { balance: [{ currentBalance: 'asc' }], name: [{ name: 'asc' }], newest: [{ createdAt: 'desc' }] };
+    const orderBy = (Object.hasOwn(SORTS, req.query.sort) && SORTS[req.query.sort]) || [{ name: 'asc' }];
     const [data, total, groups] = await Promise.all([
       prisma.company.findMany({ where, select: listSelect, orderBy, take, skip: (page - 1) * take }),
       prisma.company.count({ where }),

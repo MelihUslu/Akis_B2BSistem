@@ -11,6 +11,7 @@ import { sendCredentialsMail } from '../services/mailService.js';
 import { recordSuccessfulPayment, planPrice, addPeriod } from '../services/subscriptionService.js';
 import * as iyzico from '../services/iyzicoService.js';
 import * as twoFactor from '../services/twoFactorService.js';
+import { checkPassword, loginFailures, LOCKED_MESSAGE } from '../services/loginGuard.js';
 import { audit, clientIp } from '../services/auditService.js';
 import { exportTenantWorkbook, sendExportFile, ExportAborted, purgeTenant } from '../services/tenantDataService.js';
 import { notifyUser, notifyAdmins } from '../services/notificationService.js';
@@ -27,11 +28,15 @@ const TENANT_STATUSES = ['TRIAL', 'ACTIVE', 'PAST_DUE', 'SUSPENDED', 'CANCELLED'
 // ─── Kimlik ──────────────────────────────────────────────────────────────────
 export const platformLogin = async (req, res) => {
   const email = String(req.body.email || '').toLowerCase().trim();
+  const lockKey = `platform:${email.slice(0, 160)}`;
+  if (await loginFailures.blocked(lockKey)) return res.status(429).json({ message: LOCKED_MESSAGE });
   const user = await prisma.user.findFirst({ where: { email, role: 'SUPER_ADMIN', tenantId: null } });
-  if (!user || !(await bcrypt.compare(req.body.password || '', user.password))) {
+  if (!(await checkPassword(user, req.body.password))) {
+    await loginFailures.fail(lockKey);
     audit({ actorType: 'PLATFORM', actorId: user?.id, actorName: email.slice(0, 100), action: 'Platform: başarısız giriş denemesi', ip: clientIp(req) });
     return res.status(401).json({ message: 'Geçersiz e-posta veya şifre.' });
   }
+  await loginFailures.reset(lockKey);
   if (user.twoFactorEnabled) return res.json({ twoFactorRequired: true, challenge: twoFactor.issueChallenge(user) });
   audit({ actorType: 'PLATFORM', actorId: user.id, actorName: user.name, action: 'Platform: giriş yapıldı', ip: clientIp(req) });
   res.json(platformSession(user));
@@ -46,11 +51,15 @@ export const platformVerifyTwoFactor = async (req, res) => {
   try {
     const { uid, tenantId } = twoFactor.readChallenge(req.body.challenge);
     if (tenantId !== null) return res.status(401).json({ message: 'Geçersiz doğrulama.' });
+    const lockKey = `2fa:${uid}`;
+    if (await loginFailures.blocked(lockKey)) return res.status(429).json({ message: LOCKED_MESSAGE });
     const user = await prisma.user.findFirst({ where: { id: uid, role: 'SUPER_ADMIN', tenantId: null } });
     if (!user || !(await twoFactor.checkCode(user, req.body.code))) {
+      await loginFailures.fail(lockKey);
       audit({ actorType: 'PLATFORM', actorId: uid, action: 'Platform: hatalı 2FA kodu', ip: clientIp(req) });
       return res.status(401).json({ message: 'Doğrulama kodu hatalı.' });
     }
+    await loginFailures.reset(lockKey);
     audit({ actorType: 'PLATFORM', actorId: user.id, actorName: user.name, action: 'Platform: giriş yapıldı (2FA)', ip: clientIp(req) });
     res.json(platformSession(user));
   } catch (error) {
@@ -275,7 +284,7 @@ export const resetTenantAdminPassword = async (req, res) => {
     if (!tenant || !admin) return res.status(404).json({ message: 'Yönetici bulunamadı.' });
 
     const password = crypto.randomBytes(9).toString('base64url').slice(0, 12);
-    await prisma.user.update({ where: { id: admin.id }, data: { password: await bcrypt.hash(password, 10), emailVerifyToken: null, emailVerifiedAt: admin.emailVerifiedAt || new Date() } });
+    await prisma.user.update({ where: { id: admin.id }, data: { password: await bcrypt.hash(password, 10), passwordChangedAt: new Date(), emailVerifyToken: null, emailVerifiedAt: admin.emailVerifiedAt || new Date() } });
     const mail = await sendCredentialsMail({ to: admin.email, name: admin.name, password, isReset: true, tenant }).catch(() => ({ delivered: false }));
     res.json({ message: mail.delivered ? `Yeni şifre ${admin.email} adresine gönderildi.` : 'Şifre sıfırlandı ancak e-posta gönderilemedi (SMTP).' });
   } catch (error) {
@@ -402,6 +411,8 @@ const runWithTenantSafe = async (tenantId, fn) => {
 // ─── Hesap kapatma / silme ───────────────────────────────────────────────────
 
 export const exportTenantData = async (req, res) => {
+  const exists = await prisma.tenant.findUnique({ where: { id: parseInt(req.params.id) || 0 }, select: { id: true } });
+  if (!exists) return res.status(404).json({ message: 'Müşteri bulunamadı.' });
   const ac = new AbortController();
   res.on('close', () => ac.abort()); // istemci beklemeden ayrılırsa hazırlık durur
   let result;

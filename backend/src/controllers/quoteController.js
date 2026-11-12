@@ -57,10 +57,10 @@ const staffInclude = {
 };
 
 // Personel yalnızca "Teklifler" yetkisiyle; bayi kendi teklifleriyle
-export const quoteAccess = (req, res, next) => {
+export const quoteAccess = Object.assign((req, res, next) => {
   if (req.user.role === 'BAYI' || hasPermission(req.user, 'QUOTES')) return next();
   return res.status(403).json({ message: 'Bu işlem için yetkiniz yok. Firma yöneticinizden "Teklifler" yetkisi isteyin.', code: 'NO_PERMISSION', permission: 'QUOTES' });
-};
+}, { allows: (u) => u?.role === 'BAYI' || hasPermission(u, 'QUOTES') });
 
 const loadCompany = async (id) => {
   const company = await prisma.company.findUnique({ where: { id: parseInt(id) || 0 } });
