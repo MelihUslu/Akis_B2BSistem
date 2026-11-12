@@ -84,6 +84,14 @@ app.use(cors({
 app.use(requestMetrics); // Platform → İzleme: uç bazında istek sayısı, süre, hata oranı
 app.use(overload); // aşırı yükte kuyruk biriktirmeden 503 (middlewares/overload.js)
 app.use(dbGate); // veritabanı kısa süre önce ulaşılamaz göründüyse 503 (utils/dbHealth.js)
+// CVE-2026-111497 (node2shell): Node'un paketlediği brotli (≤1.1.0) kütüphanesindeki tamsayı taşması, saldırganın
+// brotli-sıkıştırılmış İSTEK gövdesini çözen sunucuda bellek bozulmasına / RCE'ye yol açabilir. body-parser
+// 'Content-Encoding: br' gövdesini kendisi çözer. Bu API sıkıştırılmış istek gövdesi beklemez (istemciler düz JSON
+// yollar), bu yüzden brotli-kodlu gövdeler ayrıştırmadan önce kökten reddedilir (gzip/deflate etkilenmez).
+app.use((req, res, next) => {
+  if (/\bbr\b/i.test(req.headers['content-encoding'] || '')) return res.status(415).json({ message: 'Desteklenmeyen içerik kodlaması.' });
+  next();
+});
 // WhatsApp webhook imzası ham gövde üzerinden doğrulanır
 app.use(express.json({ limit: '1mb', verify: (req, res, buf) => { if (req.originalUrl.startsWith('/api/whatsapp/webhook/')) req.rawBody = buf; } }));
 app.use(langMiddleware);

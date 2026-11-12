@@ -112,6 +112,14 @@ Ek sertleştirmeler (13 Kasım):
 - **Kötüye kullanım / DoS dayanıklılığı (`loadtest/abuse.js`, k6):** Yük-testi backend'inde (`akis_load`, dev DB'ye dokunmaz) giriş kaba kuvveti + kayıt taşması koşuldu. Sonuç: **150/150 kontrol geçti, 0 sunucu hatası (5xx), 60 istek 429** (IP sınırı + hesap kilidi devrede), saldırı boyunca `/health` 200 (canlılık). Veri yazmaz (yanlış şifre / geçersiz gövde). Çalıştırma: `DOCKER_NETWORK=akis_b2bsistem_default BASE_URL=http://akis_loadtest_backend:5001 TENANT=yuktest ./loadtest/run.sh abuse`.
 - **DAST (ZAP) genişletme:** ERP API aktif taramasına (0 FAIL) ek olarak tenant API'ye **pasif baseline** koşuldu: **0 FAIL, 65 PASS, 3 düşük WARN** (önbellek/`CSP no-fallback`/`Permissions-Policy` — API'ye doğrudan erişimde; canlıda bu başlıkları Caddy ekliyor). Hata/PII/kaynak kodu sızıntısı yok.
 - **Bağımsız pentest kapsamı:** Dış firmaya verilmek üzere kapsam, test hesapları, odak alanları ve kurallar hazırlandı: [docs/guvenlik/pentest-kapsam.md](../guvenlik/pentest-kapsam.md). Kimlikli aktif DAST ve iş-mantığı derinlemesi bu çalışmaya bırakıldı.
+- **Nuclei (şablon tabanlı tarama, 13 Kasım):** 7246 şablon izole loadtest backend'ine koşuldu. **1 kritik bulgu** çıktı ve kapatıldı:
+
+### Brotli istek gövdesi RCE (CVE-2026-111497 / node2shell) — kapatıldı (13 Kasım)
+
+- **Bulgu:** Express 5'in gövde ayrıştırıcısı (`body-parser` 2.2.2) `Content-Encoding: br` İSTEK gövdelerini kendisi çözüyor (`read.js` → `zlib.createBrotliDecompress()`). Node 20.20.2'nin paketlediği **brotli 1.1.0**, CVE-2026-111497'nin zafiyetli aralığında (1.0.3–1.2.0; tamsayı taşması, CWE-190, CVSS 9.8). Böylece **kimlik doğrulaması olmadan** (signup, login, talep formu…) gönderilen hazırlanmış bir brotli gövdesi, çözme sırasında bellek bozulmasına / DoS'a / olası RCE'ye yol açabilirdi.
+- **Doğrulama:** Önkoşullar canlı teyit edildi (gerçek brotli JSON `/api/public/signup`'ta çözülüp parse edildi); exploit çalıştırılmadı.
+- **Düzeltme:** Uygulama sıkıştırılmış istek gövdesi beklemediği için, `Content-Encoding: br` taşıyan istekler gövde ayrıştırmadan **önce 415 ile reddedilir** (`backend/src/app.js`); gzip/deflate etkilenmez. Düzeltme sonrası nuclei artık zafiyet bildirmiyor; regresyon testi: `integration/authHardening` (br → 415, gzip → çözülür).
+- **Derinlemesine savunma (öneri):** Canlı imajı `node:20`'nin brotli 1.1.1+ paketleyen son yamasıyla yeniden derlemek (middleware zaten tam kapatıyor, bu ek katman).
 
 ## Çalıştırma
 

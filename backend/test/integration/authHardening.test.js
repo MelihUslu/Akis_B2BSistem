@@ -143,3 +143,14 @@ test('girdi doğrulaması ve yanıt başlıkları: geçersiz parametre 400, bili
   assert.equal(me.headers.get('x-content-type-options'), 'nosniff');
   assert.equal(me.headers.get('x-powered-by'), null);
 });
+
+test('brotli istek gövdesi 415 ile reddedilir (CVE-2026-111497 / node2shell); gzip çözülmeye devam eder', { skip }, async () => {
+  const zlib = await import('node:zlib');
+  const send = (encoding, body) => fetch(`${base}/api/public/signup`, { method: 'POST', headers: { 'Content-Type': 'application/json', 'Content-Encoding': encoding }, body });
+  // brotli: gövde ÇÖZÜLMEDEN reddedilir (zafiyetli brotli çözücüye hiç ulaşmaz)
+  const br = await send('br', zlib.brotliCompressSync(Buffer.from('{}')));
+  assert.equal(br.status, 415);
+  // gzip (zafiyetsiz) çözülür: gövde boş JSON → doğrulama hatası (415 değil)
+  const gz = await send('gzip', zlib.gzipSync(Buffer.from('{}')));
+  assert.notEqual(gz.status, 415);
+});
