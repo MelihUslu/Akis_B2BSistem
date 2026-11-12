@@ -1,6 +1,6 @@
 # 12. Güvenlik denetimi (12 Kasım 2026)
 
-Canlıya çıkıştan önce bütün sistem güvenlik açısından baştan sona denetlendi. Yetkiler ve firma ayrımı otomatik testlerle, kimlik doğrulama ve girdi işleme hedefli testlerle, bağımlılıklar `npm audit` ile, ERP API'si OWASP ZAP etkin taramasıyla denendi. Bulunan açıkların hepsi kapatıldı ve her birinin testi eklendi. Karar ya da canlı ortam gerektiren dört konu [Açık kalanlar](#açık-kalanlar) bölümündedir.
+Canlıya çıkıştan önce bütün sistem güvenlik açısından baştan sona denetlendi. Yetkiler ve firma ayrımı otomatik testlerle, kimlik doğrulama ve girdi işleme hedefli testlerle, bağımlılıklar `npm audit` ile, ERP API'si OWASP ZAP etkin taramasıyla denendi. Bulunan açıkların hepsi kapatıldı ve her birinin testi eklendi. 12 Kasım 2026'da erişim haritası, firma / bayi izolasyonu, kimlik doğrulama, sipariş / teklif iş kuralları ve girdi / entegrasyon katmanları kod üzerinden yeniden incelendi: yeni bir izolasyon ya da yetki sızıntısı bulunmadı; `xlsx` kapatıldı. Karar ya da canlı ortam gerektiren konular [Açık kalanlar](#açık-kalanlar) bölümündedir.
 
 ## Kapsam ve yöntem
 
@@ -65,11 +65,9 @@ Menüler zaten bu yetkilere göre gösteriliyordu; değişen, API'nin de aynı k
 
 ## Açık kalanlar
 
-1. **`xlsx` (SheetJS) paketi.** npm'deki son sürüm (0.18.5) prototip kirlenmesi ve ReDoS açığı taşıyor. Düzeltilmiş sürüm (0.20.3) yalnızca SheetJS'in kendi sunucusunda. Ürün ve cari Excel içe aktarımı bu paketle okunuyor. Dosyayı yükleyen o firmanın yöneticisi, ama sunucu süreci bütün firmalarla ortak: kötü niyetli hazırlanmış bir dosya aynı süreçteki diğer firmaları etkileyebilir. İki seçenek var:
-   - (a) `npm install https://cdn.sheetjs.com/xlsx-0.20.3/xlsx-0.20.3.tgz`: kod değişmez.
-   - (b) Okumayı npm'deki `exceljs`'e taşımak: eski `.xls` biçimi okunamaz olur.
-
-   Karar verilene kadar CI paket taraması backend'de yalnızca kritik açıkta durur.
+1. **`xlsx` (SheetJS) paketi — kapatıldı (12 Kasım 2026).** npm'deki son sürüm (0.18.5) prototip kirlenmesi ve ReDoS açığı taşıyordu; düzeltilmiş sürüm (0.20.3) yalnızca SheetJS'in kendi sunucusunda. Paket yalnızca iki yerde, yalnızca yüklenen dosyayı okumak için kullanılıyor (`xlsx.read` + `xlsx.utils.sheet_to_json`; ürün ve cari içe aktarımı); dışa aktarım kendi yazıcısıyla (`utils/xlsxStream.js`) yapılıyor, bu paketi kullanmıyor. 0.20.3 aynı API olduğu için kod değişmedi.
+   - SheetJS 0.20.3 tarball'ı depoya gömüldü: `backend/vendor/xlsx-0.20.3.tgz` (sha256 `8dc73fc3b00203e72d176e85b50938627c7b086e607c682e8d3c22c02bb99fe8`), `package.json`'da `"xlsx": "file:vendor/xlsx-0.20.3.tgz"`. Canlı derleme (`npm ci`) dış sunucuya bağımlı kalmaz.
+   - CI backend paket taraması eşiği `--audit-level=high` yapıldı.
 2. **Abonelik ödeme formu ve CSP.** Firmanın abonelik ödemesinde iyzico formu sayfaya gömülüyor ve satır içi betik çalıştırıyor. Canlı CSP'de `script-src` olmadığı için yalnızca kendi alan adından betik çalışır; form büyük olasılıkla açılmaz. Bayinin kartla cari ödemesi iyzico'nun sayfasına yönlendirmeyle çalıştığı için etkilenmez. Canlı benzeri ortamda iyzico sandbox kartıyla denenmeli. Çözüm, formu backend'den kendi CSP'siyle sunulan ayrı bir sayfada açmak ya da iyzico'nun ödeme sayfasına yönlendirmek. CSP'ye `'unsafe-inline'` eklemek XSS korumasını zayıflattığı için önerilmez.
 3. **Konteyner kullanıcısı.** Backend imajı `node:20` ile root olarak çalışıyor. Öneri: canlı imajda `USER node` ve `node:20-slim` (Prisma için `openssl` kurulur). Sunucuda yükleme klasörünün sahibi 1000:1000 yapılmalı. Canlı sunucuda dosya izinleriyle birlikte denenmesi gerektiği için şimdi değiştirilmedi.
 4. **Bilinen ve kabul edilen sınırlar:**

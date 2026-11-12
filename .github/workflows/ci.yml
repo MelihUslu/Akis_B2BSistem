@@ -29,10 +29,10 @@ jobs:
           cache: npm
           cache-dependency-path: backend/package-lock.json
       - run: npm ci --no-audit --no-fund
-      # Canlıya giden paketlerde bilinen açık: kritik olan derlemeyi durdurur. xlsx (yüksek, npm'de düzeltmesi yok)
-      # SheetJS 0.20.3'e geçince eşik --audit-level=high yapılır (docs/yapilanlar/12-guvenlik-denetimi.md)
+      # Canlıya giden paketlerde yüksek ve üzeri açık derlemeyi durdurur. xlsx, SheetJS 0.20.3'e geçildi
+      # (vendor/xlsx-0.20.3.tgz, file: bağımlılık; docs/yapilanlar/12-guvenlik-denetimi.md)
       - name: Paket açığı taraması
-        run: npm audit --omit=dev --audit-level=critical
+        run: npm audit --omit=dev --audit-level=high
       - run: npx prisma generate
       - name: Birim testleri
         run: npm test

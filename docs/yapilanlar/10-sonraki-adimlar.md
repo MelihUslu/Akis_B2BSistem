@@ -94,6 +94,6 @@ Ayrıntı ve gerekçeler [12. bölümde](12-guvenlik-denetimi.md).
 
 ## Güvenlik açık konuları
 
-- [ ] **`xlsx` paketi:** düzeltilmiş sürüme geçiş (SheetJS 0.20.3 ya da `exceljs`) kararı; ardından CI paket taraması eşiği `high` yapılır.
+- [x] **`xlsx` paketi:** SheetJS 0.20.3'e geçildi (12 Kasım 2026; `backend/vendor/xlsx-0.20.3.tgz`, `file:` bağımlılık, kod değişmedi). CI backend eşiği `high` yapıldı.
 - [ ] **Abonelik ödeme formu:** CSP ile uyumlu açılış (ayrı sayfa ya da yönlendirme), iyzico sandbox ile.
 - [ ] **Canlı imaj:** backend konteynerini root olmayan kullanıcıyla (`USER node`, `node:20-slim`) çalıştırmak; yükleme klasörü izinleriyle sunucuda denenerek.
