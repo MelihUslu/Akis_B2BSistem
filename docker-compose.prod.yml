@@ -49,6 +49,9 @@ services:
       DATABASE_URL: postgresql://${POSTGRES_USER:-akis}:${POSTGRES_PASSWORD}@db:5432/${POSTGRES_DB:-akis_b2b}
       REDIS_URL: redis://redis:6379
       BACKUP_DIR: /backups
+      # Çalışan sürüm (Platform → Sistem Durumu'nda güncelleme kontrolü için). Dağıtımda git etiketinden verilir:
+      #   APP_VERSION=$(git describe --tags --always) docker compose -f docker-compose.prod.yml up -d --build
+      APP_VERSION: ${APP_VERSION:-}
     volumes:
       - ./backend/uploads:/app/uploads
       - ./backups:/backups:ro

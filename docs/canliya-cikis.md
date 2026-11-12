@@ -153,16 +153,33 @@ docker compose -f docker-compose.prod.yml exec -e YEDEK_SIFRESI='<kayıtlı şif
 
 ## 7. Güncelleme
 
-```bash
-git pull
-docker compose -f docker-compose.prod.yml up -d --build    # migration'lar açılışta otomatik uygulanır
-```
+**Platform → Sistem Durumu → Güncellemeler** kartı, GitHub'da yeni bir sürüm (`Version.X` etiketi) çıktığında ya da bilinen bir paket güvenlik açığı belirdiğinde bildirir ve aşağıdaki komutları hazır gösterir (kopyala düğmesiyle). Güncellemeyi **panel yapmaz**; sunucuya SSH ile bağlanıp siz çalıştırırsınız — böylece backend konteyneri yetkisiz ve güvenli kalır.
 
-Büyük güncellemeden önce elle yedek alın:
+**1) Önce yedek alın** (geri dönüş noktası):
 
 ```bash
 docker compose -f docker-compose.prod.yml exec backup /scripts/backup.sh
 ```
+
+**2) Güncelleyin** (çalışan sürümü panelde göstermek için `APP_VERSION` verilir; migration'lar açılışta otomatik uygulanır):
+
+```bash
+git fetch --tags
+git checkout Version.X     # panelin gösterdiği son sürüm (ya da: git pull)
+APP_VERSION=$(git describe --tags --always) docker compose -f docker-compose.prod.yml up -d --build
+docker compose -f docker-compose.prod.yml logs -f backend   # "Server is running" ve migration kaydı
+```
+
+> `APP_VERSION`'ı verdiğinizde panel çalışan sürümü doğru gösterir ve yeni sürüm çıkınca uyarır. Vermezseniz sistem çalışır, yalnızca panelde "çalışan sürüm bilinmiyor" yazar.
+
+**Sorun olursa geri alın:**
+
+```bash
+git checkout <önceki-sürüm>
+APP_VERSION=<önceki-sürüm> docker compose -f docker-compose.prod.yml up -d --build
+```
+
+> **Migration'lı güncellemelerde geri alma:** kodu geri almak yeterli değilse (güncelleme veritabanı şemasını değiştirdiyse), şemayı eski koda uydurmak için **adım 1'deki yedekten geri yükleyin** (§6). Bu, güncellemeden sonraki birkaç dakikanın verisini kaybettirebilir. Migration içermeyen güncellemeler kodu geri almakla sorunsuz döner.
 
 ## 8. Gerçek hesaplarla denenmesi gerekenler
 
