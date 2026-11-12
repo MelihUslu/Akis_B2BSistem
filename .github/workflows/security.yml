@@ -1,0 +1,86 @@
+# Güvenlik taramaları: sır taraması (gitleaks), SAST (Semgrep), konteyner/CVE taraması (Trivy).
+# Semgrep ve Trivy bulguları Security → Code scanning'e yazılır (ilk aşamada derlemeyi durdurmaz).
+# gitleaks bir sır bulursa işi DURDURUR — sızan anahtar birleşmesin.
+name: Güvenlik taraması
+
+on:
+  push:
+    branches: [main, feature/saas-platform]
+  pull_request:
+    branches: [main]
+  schedule:
+    - cron: '27 5 * * 1' # haftalık (Pazartesi 05:27 UTC)
+
+permissions:
+  contents: read
+
+jobs:
+  # 1) Sır taraması — tüm git GEÇMİŞİ taranır (fetch-depth: 0). Public repo'da bu önemli:
+  #    geçmişte sızmış bir .env / anahtar herkese açıktır.
+  gitleaks:
+    name: Sır taraması (gitleaks)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - uses: gitleaks/gitleaks-action@v2
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+  # 2) SAST — kaynak kodu güvenlik kuralıyla tarar. Bulgular Code scanning'e yazılır.
+  semgrep:
+    name: SAST (Semgrep)
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      security-events: write
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - run: pip install semgrep==1.90.0
+      - name: Semgrep tara (SARIF üret)
+        run: |
+          semgrep scan \
+            --config p/default \
+            --config p/javascript \
+            --config p/express \
+            --config p/nodejsscan \
+            --config p/security-audit \
+            --config p/secrets \
+            --sarif --output semgrep.sarif || true
+      - name: SARIF yükle
+        uses: github/codeql-action/upload-sarif@v3
+        if: always()
+        with:
+          sarif_file: semgrep.sarif
+          category: semgrep
+
+  # 3) Konteyner / bağımlılık CVE taraması — backend imajını derleyip işletim sistemi ve
+  #    paket açıklarını listeler (node:20 → slim + root'suz kararını besler).
+  trivy:
+    name: Konteyner taraması (Trivy)
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      security-events: write
+    steps:
+      - uses: actions/checkout@v4
+      - name: Backend imajını derle
+        run: docker build -t akis-backend:scan ./backend
+      - name: Trivy imaj taraması (SARIF)
+        uses: aquasecurity/trivy-action@0.24.0
+        with:
+          image-ref: akis-backend:scan
+          format: sarif
+          output: trivy.sarif
+          severity: HIGH,CRITICAL
+          ignore-unfixed: true
+      - name: SARIF yükle
+        uses: github/codeql-action/upload-sarif@v3
+        if: always()
+        with:
+          sarif_file: trivy.sarif
+          category: trivy

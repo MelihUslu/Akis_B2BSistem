@@ -85,10 +85,33 @@ Menüler zaten bu yetkilere göre gösteriliyordu; değişen, API'nin de aynı k
 | `integration/dealerIdor` | 5 | `dealers` testine ek: onay talepleri, bayi çalışanının ana kullanıcı işleri, teklif kabul / iletme / iptal, `?companyId=` ile zorlama |
 | `integration/authHardening` | 4 | Sahte / süresi dolmuş / değiştirilmiş belirteç ve başka tür biletler; hesap kilidi ve diğer hesabın etkilenmemesi; sıfırlamada oturumun kapanması, sahibin korunması; geçersiz parametrede 400, JSON 404, `no-store` |
 | `unit/security` (ek) | 3 | SSRF blok listesi (eşlemeli IPv6, CGNAT, meta veri adresi), canlı ortam webhook adres kuralları ve bağlantı anında denetim, hesap başına deneme sayacı |
+| `unit/excelImport` | 5 | Excel içe aktarım yardımcısı: geçerli dosya okunur; satır sınırı aşımı (sheet_to_json öncesi aralık denetimiyle) reddedilir; Excel olmayan metin çökertmeden işlenir; `sheetToJson` seçenekleri geçer |
 
-Tam sonuç (12 Kasım): birim 46 / 46, entegrasyon 168 (167 geçti, 1 atlandı: canlı Yurtiçi), UAT 51 / 51, frontend lint ve derleme temiz.
+Tam sonuç (12 Kasım): birim 46 / 46, entegrasyon 168 (167 geçti, 1 atlandı: canlı Yurtiçi), UAT 51 / 51, frontend lint ve derleme temiz. 13 Kasım: birim 51 / 51 (xlsx içe aktarım sınırı testleriyle).
 
 Uç → kim girebilir tablosunun tamamı: [docs/guvenlik/yetki-matrisi.md](../guvenlik/yetki-matrisi.md).
+
+## Sürekli güvenlik taramaları (CI, 13 Kasım 2026)
+
+Tek seferlik denetime ek olarak, her değişikliği otomatik tarayan kalıcı bir ağ kuruldu (asıl değer: gelecekteki regresyonları insan gerektirmeden yakalamak). Bulgular GitHub → **Security → Code scanning**'de birikir.
+
+| Tarama | Araç | Dosya | Davranış |
+|---|---|---|---|
+| SAST (kod) | **CodeQL** (`security-extended`) | `.github/workflows/codeql.yml` | Enjeksiyon, path traversal, güvensiz regex vb.; public repo'da ücretsiz |
+| SAST (kod) | **Semgrep** (p/default, javascript, express, nodejsscan, security-audit, secrets) | `.github/workflows/security.yml` | SARIF olarak Code scanning'e yazılır (ilk aşamada derlemeyi durdurmaz) |
+| Sır taraması | **gitleaks** (tam git geçmişi) | `.github/workflows/security.yml` | Sır bulursa işi **durdurur**; public repo'da geçmişteki sır herkese açık olduğu için kritik |
+| Konteyner / CVE | **Trivy** (backend imajı, HIGH+CRITICAL) | `.github/workflows/security.yml` | `node:20` tabanı ve paket açıklarını listeler; slim + root'suz kararını besler |
+
+Ek sertleştirmeler (13 Kasım):
+
+- **Excel içe aktarım sınırı:** Ürün içe aktarımına da satır sınırı (5000) kondu; partnerde zaten vardı. `sheet_to_json` ÖNCESİ dosyanın bildirdiği aralık denetlenir — kötü niyetli bir dosya milyonlarca satır bildirip belleği parse sırasında şişiremez (`backend/src/utils/excelImport.js`). Herkese açık firma kaydı yüzünden gerçek ama düşük bir DoS yüzeyiydi.
+- **Açık bildirimi:** `frontend/public/.well-known/security.txt` (RFC 9116) ve kök `SECURITY.md`. İletişim adresi (`security@akisb2b.com`) kurulup yönlendirilmeli; ilk dağıtımda `curl https://<alanadı>/.well-known/security.txt` ile teyit edilmeli.
+
+### DAST, kötüye kullanım testi ve pentest kapsamı (13 Kasım)
+
+- **Kötüye kullanım / DoS dayanıklılığı (`loadtest/abuse.js`, k6):** Yük-testi backend'inde (`akis_load`, dev DB'ye dokunmaz) giriş kaba kuvveti + kayıt taşması koşuldu. Sonuç: **150/150 kontrol geçti, 0 sunucu hatası (5xx), 60 istek 429** (IP sınırı + hesap kilidi devrede), saldırı boyunca `/health` 200 (canlılık). Veri yazmaz (yanlış şifre / geçersiz gövde). Çalıştırma: `DOCKER_NETWORK=akis_b2bsistem_default BASE_URL=http://akis_loadtest_backend:5001 TENANT=yuktest ./loadtest/run.sh abuse`.
+- **DAST (ZAP) genişletme:** ERP API aktif taramasına (0 FAIL) ek olarak tenant API'ye **pasif baseline** koşuldu: **0 FAIL, 65 PASS, 3 düşük WARN** (önbellek/`CSP no-fallback`/`Permissions-Policy` — API'ye doğrudan erişimde; canlıda bu başlıkları Caddy ekliyor). Hata/PII/kaynak kodu sızıntısı yok.
+- **Bağımsız pentest kapsamı:** Dış firmaya verilmek üzere kapsam, test hesapları, odak alanları ve kurallar hazırlandı: [docs/guvenlik/pentest-kapsam.md](../guvenlik/pentest-kapsam.md). Kimlikli aktif DAST ve iş-mantığı derinlemesi bu çalışmaya bırakıldı.
 
 ## Çalıştırma
 

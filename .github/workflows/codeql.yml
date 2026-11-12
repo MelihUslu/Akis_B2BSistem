@@ -1,0 +1,32 @@
+# CodeQL: GitHub'ın kod güvenlik taraması (SAST). Bulgular depo → Security → Code scanning'de görünür.
+# Public repo olduğu için ücretsiz çalışır. Her yeni değişikliği tarar; yeni eklenen bir enjeksiyon,
+# path traversal, güvensiz regex vb. birleşmeden yakalanır (regresyon ağı).
+name: CodeQL
+
+on:
+  push:
+    branches: [main, feature/saas-platform]
+  pull_request:
+    branches: [main]
+  schedule:
+    - cron: '27 4 * * 1' # haftalık (Pazartesi 04:27 UTC)
+
+jobs:
+  analyze:
+    name: CodeQL (JavaScript/TypeScript)
+    runs-on: ubuntu-latest
+    permissions:
+      actions: read
+      contents: read
+      security-events: write # bulguları Code scanning'e yazmak için
+    steps:
+      - uses: actions/checkout@v4
+      - name: CodeQL başlat
+        uses: github/codeql-action/init@v3
+        with:
+          languages: javascript-typescript
+          queries: security-extended # standart + ek güvenlik sorguları
+      - name: CodeQL analizi
+        uses: github/codeql-action/analyze@v3
+        with:
+          category: '/language:javascript-typescript'

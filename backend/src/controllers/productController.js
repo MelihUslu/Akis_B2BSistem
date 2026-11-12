@@ -1,7 +1,7 @@
 import { setWarehouseStocks, reconcileStock, setStock } from '../services/stockService.js';
 import prisma from '../utils/prisma.js';
 import { assertWithinLimit, LimitError } from '../services/limitService.js';
-import xlsx from 'xlsx';
+import { readSheetRows, ExcelImportError } from '../utils/excelImport.js';
 import {
   buildPricingContext, presentProductForDealer, loadSpecialPrices, VARIANT_VALUES_INCLUDE
 } from '../services/pricingService.js';
@@ -370,8 +370,7 @@ export const bulkUpdate = async (req, res) => {
   if (!req.file) return res.status(400).json({ message: 'Dosya yüklenmedi.' });
 
   try {
-    const workbook = xlsx.read(req.file.buffer, { type: 'buffer' });
-    const rows = xlsx.utils.sheet_to_json(workbook.Sheets[workbook.SheetNames[0]]);
+    const rows = readSheetRows(req.file.buffer);
     const summary = { updated: 0, created: 0, notFound: [], errors: [] };
     const restocked = [];
 
@@ -437,6 +436,7 @@ export const bulkUpdate = async (req, res) => {
     safeNotify(notifyRestocked(restocked));
     res.json({ message: 'Toplu işlem tamamlandı.', ...summary });
   } catch (error) {
+    if (error instanceof ExcelImportError) return res.status(400).json({ message: error.message });
     res.status(500).json({ message: 'Excel işleme hatası. Dosya formatını kontrol edin.' });
   }
 };

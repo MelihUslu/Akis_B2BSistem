@@ -11,6 +11,7 @@ API'nin eşzamanlı kullanıcı altında nasıl davrandığını ölçer. k6 kur
 | `stress` | 50 → 100 → 150 → 200 kullanıcı, her basamakta 2 dk. Nerede yavaşlıyor, nerede hata veriyor? | Kapasite planlarken |
 | `spike` | 10 kullanıcıdan 10 saniyede 150'ye çıkar, 1 dk tutar, geri iner (kampanya duyurusu) | Toparlanmayı görmek için |
 | `order-write` | Saniyede N sipariş oluşturur. **Veri yazar.** | Yalnızca ayrı bir test firmasında |
+| `abuse` | **Güvenlik:** giriş kaba kuvveti + kayıt taşması altında sınırların (rate limit, hesap kilidi) tuttuğunu doğrular. **Veri yazmaz** (yanlış şifre / geçersiz gövde). Beklenen: 0 sunucu hatası, 429 görülür, `/health` 200 kalır | Sürüm öncesi güvenlik kontrolü |
 
 `smoke`, `load`, `stress` ve `spike` **yalnızca okur**. Sepet hesabı (`POST /orders/quote`) tutarı hesaplar ama kayıt oluşturmaz.
 
