@@ -121,6 +121,16 @@ Ek sertleştirmeler (13 Kasım):
 - **Düzeltme:** Uygulama sıkıştırılmış istek gövdesi beklemediği için, `Content-Encoding: br` taşıyan istekler gövde ayrıştırmadan **önce 415 ile reddedilir** (`backend/src/app.js`); gzip/deflate etkilenmez. Düzeltme sonrası nuclei artık zafiyet bildirmiyor; regresyon testi: `integration/authHardening` (br → 415, gzip → çözülür).
 - **Derinlemesine savunma (öneri):** Canlı imajı `node:20`'nin brotli 1.1.1+ paketleyen son yamasıyla yeniden derlemek (middleware zaten tam kapatıyor, bu ek katman).
 
+### Giriş kötüye kullanım koruması, CAPTCHA ve saldırı paneli (13 Kasım)
+
+Mevcut istek sınırı (rateLimit) ve hesap kilidine (loginGuard) EK olarak:
+
+- **IP kötüye kullanım blokesi (`services/abuseGuard.js`):** Bir IP'den arka arkaya ~10 başarısız giriş sonrası o IP **süreli ve kademeli** bloke edilir (15 dk → 1 sa → 6 sa → 24 sa; tekrar ettikçe uzar, sonra kendiliğinden kalkar). Tüm giriş yollarına uygulanır (firma, ortak giriş, platform). Bloke IP 429 `IP_BLOCKED` alır. Loopback / iç istekler muaftır (üretimde gerçek istemciler Caddy arkasından gerçek IP ile gelir — `trust proxy`). Redis varsa süreçler arası paylaşılır.
+- **CAPTCHA — yalnızca platform/developer girişinde (Cloudflare Turnstile):** `TURNSTILE_SECRET` (+ `TURNSTILE_SITEKEY`) tanımlıysa platform girişi CAPTCHA ister; tanımsızsa CAPTCHA olmadan çalışır (panelde "kurulu değil" görünür). Kullanıcı girişlerine CAPTCHA konmadı (sürtünme) — orada IP blokesi var. Caddy CSP'ye `challenges.cloudflare.com` eklendi.
+- **Panel (Platform → Güvenlik → "Saldırılar ve blokeler"):** aktif IP blokeleri + son olaylar (bloke / bloke IP denemesi / kaldırma) listelenir. Her blokenin yanında **"Kaldır"** düğmesi — haklı yere engellenen bir kullanıcı iletişime geçince developer kaldırabilir.
+- **Bildirim:** yeni blokede (SMTP varsa) `PLATFORM_ALERT_EMAIL`'e uyarı gider (aynı IP için saatte en çok bir kez).
+- **Doğrulama:** gerçek IP (XFF) 10 hatadan sonra `IP_BLOCKED`; loopback muaf; regresyon testi `integration/authHardening` (6/6).
+
 ## Çalıştırma
 
 ```bash

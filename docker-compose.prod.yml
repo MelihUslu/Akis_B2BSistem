@@ -73,6 +73,8 @@ services:
         VITE_PLATFORM_NAME: ${PLATFORM_NAME:-Akis B2B}
         VITE_SUPPORT_PHONE: ${SUPPORT_PHONE:-}
         VITE_SUPPORT_EMAIL: ${SUPPORT_EMAIL:-}
+        # Platform (developer) girişi CAPTCHA'sı — Cloudflare Turnstile site anahtarı (backend'de TURNSTILE_SECRET ile birlikte)
+        VITE_TURNSTILE_SITEKEY: ${TURNSTILE_SITEKEY:-}
     environment:
       ROOT_DOMAIN: ${ROOT_DOMAIN}
       ACME_EMAIL: ${ACME_EMAIL:?ACME_EMAIL tanımlı değil (.env) — sertifika uyarıları için}

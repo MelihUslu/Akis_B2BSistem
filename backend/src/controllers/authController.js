@@ -14,6 +14,7 @@ import { audit, clientIp } from '../services/auditService.js';
 import { consumeHandoff, HandoffError } from '../services/loginHandoff.js';
 import { consumeTicket, GoogleLoginError } from '../services/googleAuth.js';
 import { checkPassword, loginFailures, LOCKED_MESSAGE, emailKey } from '../services/loginGuard.js';
+import { ipOf, recordFailure, clearFailures } from '../services/abuseGuard.js';
 
 // Oturum token'ı + istemciye dönen kullanıcı bilgisi
 const sessionFor = (user, tenantId) => ({
@@ -119,11 +120,13 @@ export const login = async (req, res) => {
     const user = await prisma.user.findFirst({ where: { email: String(email || '').toLowerCase().trim() }, include: { company: true } });
     if (!(await checkPassword(user, password))) {
       await loginFailures.fail(lockKey);
+      await recordFailure({ ip: ipOf(req), email, endpoint: req.originalUrl });
       audit({ tenantId: req.tenant.id, actorType: 'USER', actorId: user?.id, actorName: String(email || '').slice(0, 100), action: 'Başarısız giriş denemesi', ip: clientIp(req) });
       return res.status(401).json({ message: 'Geçersiz e-posta veya şifre.' });
     }
 
     await loginFailures.reset(lockKey);
+    clearFailures(ipOf(req));
     return await finishLogin(req, res, user);
   } catch (error) {
     console.error('Login error:', error);

@@ -8,7 +8,10 @@ import ThemeToggle from '../../components/ThemeToggle';
 import PageLoader from '../../components/PageLoader';
 import { ForgotPasswordForm, ResetPasswordForm, PLATFORM_HEADER } from '../../components/auth/PasswordReset';
 import AuthShell, { AuthNotice } from '../../components/auth/AuthShell';
+import Turnstile from '../../components/auth/Turnstile';
 import { PrimaryButton, IconField, iconInput } from '../root/landing/ui';
+
+const TURNSTILE_SITEKEY = import.meta.env.VITE_TURNSTILE_SITEKEY;
 
 const PlatformDashboard = lazy(() => import('./PlatformDashboard'));
 const PlatformTenants = lazy(() => import('./PlatformTenants'));
@@ -36,6 +39,8 @@ const PlatformLogin = ({ onLogin }) => {
   const [error, setError] = useState(null);
   const [loading, setLoading] = useState(false);
   const [challenge, setChallenge] = useState(null);
+  const [captcha, setCaptcha] = useState('');
+  const [captchaKey, setCaptchaKey] = useState(0); // hatada widget'ı tazelemek için (token tek kullanımlık)
 
   const startSession = (data) => {
     localStorage.setItem('akis_platform_token', data.token);
@@ -59,11 +64,12 @@ const PlatformLogin = ({ onLogin }) => {
     setLoading(true);
     setError(null);
     try {
-      const res = await platformApi.post('/auth/login', form);
+      const res = await platformApi.post('/auth/login', { ...form, captchaToken: captcha });
       if (res.data.twoFactorRequired) setChallenge(res.data.challenge);
       else startSession(res.data);
     } catch (err) {
       setError(errorMessage(err, 'Giriş başarısız.'));
+      setCaptcha(''); setCaptchaKey((k) => k + 1); // Turnstile token tek kullanımlık: tazele
     } finally {
       setLoading(false);
     }
@@ -85,8 +91,9 @@ const PlatformLogin = ({ onLogin }) => {
           <div className="flex justify-end -mt-1">
             <Link to="/forgot-password" className="text-xs font-semibold text-brand-600 hover:underline">Şifremi unuttum</Link>
           </div>
+          {TURNSTILE_SITEKEY && <Turnstile key={captchaKey} sitekey={TURNSTILE_SITEKEY} onToken={setCaptcha} />}
           {error && <AuthNotice>{error}</AuthNotice>}
-          <PrimaryButton type="submit" className="w-full" disabled={loading}>
+          <PrimaryButton type="submit" className="w-full" disabled={loading || (TURNSTILE_SITEKEY && !captcha)}>
             {loading ? <Loader2 className="h-4 w-4 animate-spin" aria-label="Giriş yapılıyor" /> : <>Giriş yap <ArrowRight className="h-4 w-4" /></>}
           </PrimaryButton>
         </form>

@@ -197,6 +197,7 @@ Bunlar kodda hazır, ancak gerçek hesap olmadan doğrulanamadı. Canlıya çık
 | E-fatura | Paraşüt hesabı (test şirketi) | Ayarlar → E-Fatura → bağlantı testi; bir e-arşiv ve bir e-fatura kesin |
 | Kargo | Yurtiçi hesabı | Bir siparişte gönderi oluşturup etiket yazdırın |
 | SMS (isteğe bağlı) | firmanın Netgsm hesabı | Ayarlar → SMS → bağlantı testi ve deneme SMS'i; bir sipariş onayında bayiye SMS gelmeli. Müşteriler → Toplu SMS ile kendinize bilgilendirme mesajı; ticari gönderimden önce İYS süzgeç değerlerini Netgsm'den teyit edin. Netgsm API kullanıcısında IP kısıtı varsa sunucunun IP'sini ekleyin |
+| CAPTCHA (platform girişi, isteğe bağlı) | Cloudflare Turnstile (`TURNSTILE_SECRET` + `TURNSTILE_SITEKEY`) | cloudflare.com → Turnstile → site ekleyin; gizli anahtarı `backend/.env.production`'a, site anahtarını `.env`'e yazın. `platform.akisb2b.com` girişinde CAPTCHA kutusu görünmeli; doğrulanmadan giriş yapılamamalı. Tanımsızsa giriş CAPTCHA'sız çalışır |
 
 ## 9. Bilinen sınırlar
 

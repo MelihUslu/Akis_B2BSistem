@@ -2,6 +2,8 @@ import express from 'express';
 import { systemStatus } from '../services/systemStatus.js';
 import { backupOverview } from '../services/backupStatus.js';
 import { updateStatus } from '../services/updateService.js';
+import { blockGuard, listBlocks, listEvents, removeBlock } from '../services/abuseGuard.js';
+import { captchaEnabled } from '../services/captcha.js';
 import { getSiteAdmin, putSiteAdmin, listChats, getChatAdmin, replyChat, updateChat, listLeads, updateLead } from '../controllers/siteController.js';
 import { monitoringOverview, listJobRuns, listExternalCalls, listApiRequests, listSlowRequests, monitoringFilters } from '../services/monitoringReport.js';
 import {
@@ -23,7 +25,7 @@ const router = express.Router();
 // Platform uçları kiracı filtresi olmadan çalışır; bu yüzden sadece SUPER_ADMIN erişebilir
 router.use(platformContext);
 
-router.post('/auth/login', rateLimit({ windowMs: 15 * 60 * 1000, max: 10 }), platformLogin);
+router.post('/auth/login', blockGuard, rateLimit({ windowMs: 15 * 60 * 1000, max: 10 }), platformLogin);
 router.post('/auth/forgot-password', rateLimit({ windowMs: 15 * 60 * 1000, max: 5, message: 'Çok fazla deneme. 15 dakika sonra tekrar deneyin.' }), platformForgotPassword);
 router.post('/auth/reset-password', rateLimit({ windowMs: 15 * 60 * 1000, max: 10 }), platformResetPassword);
 router.post('/auth/2fa/verify', rateLimit({ windowMs: 15 * 60 * 1000, max: 10 }), platformVerifyTwoFactor);
@@ -61,6 +63,9 @@ router.get('/errors', listErrors);
 router.get('/system', async (req, res) => res.json(await systemStatus()));
 // Güncelleme bildirimi: yeni sürüm + güvenlik açığı (yalnızca bildirir; güncellemeyi sunucuda elle yaparsınız)
 router.get('/updates', (req, res) => res.json(updateStatus({ refresh: req.query.refresh === '1' })));
+// Güvenlik: aktif IP blokeleri + son saldırı olayları; bloke elle kaldırılabilir (kullanıcı iletişime geçince)
+router.get('/security', async (req, res) => res.json({ blocks: await listBlocks(), events: await listEvents(100), captcha: captchaEnabled() }));
+router.delete('/security/blocks/:ip', async (req, res) => { await removeBlock(req.params.ip); res.json({ ok: true }); });
 // Yedekler: son yedek, Google Drive kopyası ve her çalışmanın kaydı (scripts/backup.sh)
 router.get('/backups', async (req, res) => res.json(await backupOverview()));
 // İzleme (istek metrikleri, arka plan işleri, dış servisler, entegrasyon API'si)

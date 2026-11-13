@@ -5,12 +5,13 @@ import {
 } from '../controllers/authController.js';
 import { verifyToken, checkRole, requirePermission, requireAnyPermission, blockImpersonation } from '../middlewares/authMiddleware.js';
 import { rateLimit } from '../middlewares/rateLimit.js';
+import { blockGuard } from '../services/abuseGuard.js';
 
 const router = express.Router();
 
 router.post('/handoff', rateLimit({ windowMs: 15 * 60 * 1000, max: 20 }), handoffLogin);
 router.post('/google', rateLimit({ windowMs: 15 * 60 * 1000, max: 20 }), googleLogin);
-router.post('/login', rateLimit({ windowMs: 15 * 60 * 1000, max: 20, message: 'Çok fazla giriş denemesi. 15 dakika sonra tekrar deneyin.' }), login);
+router.post('/login', blockGuard, rateLimit({ windowMs: 15 * 60 * 1000, max: 20, message: 'Çok fazla giriş denemesi. 15 dakika sonra tekrar deneyin.' }), login);
 router.post('/forgot-password', rateLimit({ windowMs: 15 * 60 * 1000, max: 5, message: 'Çok fazla deneme. 15 dakika sonra tekrar deneyin.' }), forgotPassword);
 router.post('/reset-password', rateLimit({ windowMs: 15 * 60 * 1000, max: 10 }), resetPassword);
 router.post('/2fa/verify', rateLimit({ windowMs: 15 * 60 * 1000, max: 10, message: 'Çok fazla hatalı kod. 15 dakika sonra tekrar deneyin.' }), verifyTwoFactorLogin);

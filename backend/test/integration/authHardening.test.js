@@ -154,3 +154,14 @@ test('brotli istek gövdesi 415 ile reddedilir (CVE-2026-111497 / node2shell); g
   const gz = await send('gzip', zlib.gzipSync(Buffer.from('{}')));
   assert.notEqual(gz.status, 415);
 });
+
+test('IP kötüye kullanım blokesi: gerçek IP arka arkaya başarısız girişte süreli bloke edilir (IP_BLOCKED)', { skip }, async () => {
+  const { removeBlock } = await import('../../src/services/abuseGuard.js');
+  const IP = '198.51.100.7'; // loopback değil (XFF ile; app trust proxy açık) → bloke edilebilir
+  const attempt = () => fetch(`${base}/api/public/login`, { method: 'POST', headers: { 'Content-Type': 'application/json', 'X-Forwarded-For': IP }, body: JSON.stringify({ email: 'blok-regresyon@example.com', password: 'yanlis' }) });
+  let last;
+  for (let i = 0; i < 12; i++) last = await attempt();
+  assert.equal(last.status, 429);
+  assert.equal((await last.json()).code, 'IP_BLOCKED');
+  await removeBlock(IP); // sonraki testleri / çalıştırmaları etkilememesi için temizle
+});

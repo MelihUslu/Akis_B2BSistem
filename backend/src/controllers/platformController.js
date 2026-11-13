@@ -12,6 +12,8 @@ import { recordSuccessfulPayment, planPrice, addPeriod } from '../services/subsc
 import * as iyzico from '../services/iyzicoService.js';
 import * as twoFactor from '../services/twoFactorService.js';
 import { checkPassword, loginFailures, LOCKED_MESSAGE } from '../services/loginGuard.js';
+import { ipOf, recordFailure, clearFailures } from '../services/abuseGuard.js';
+import { verifyTurnstile } from '../services/captcha.js';
 import { audit, clientIp } from '../services/auditService.js';
 import { exportTenantWorkbook, sendExportFile, ExportAborted, purgeTenant } from '../services/tenantDataService.js';
 import { notifyUser, notifyAdmins } from '../services/notificationService.js';
@@ -30,13 +32,19 @@ export const platformLogin = async (req, res) => {
   const email = String(req.body.email || '').toLowerCase().trim();
   const lockKey = `platform:${email.slice(0, 160)}`;
   if (await loginFailures.blocked(lockKey)) return res.status(429).json({ message: LOCKED_MESSAGE });
+  // CAPTCHA (Cloudflare Turnstile) — yalnızca platform girişinde; TURNSTILE_SECRET yoksa atlanır
+  if (!(await verifyTurnstile(req.body.captchaToken, ipOf(req)))) {
+    return res.status(400).json({ message: 'Güvenlik doğrulaması başarısız. Lütfen tekrar deneyin.', code: 'CAPTCHA' });
+  }
   const user = await prisma.user.findFirst({ where: { email, role: 'SUPER_ADMIN', tenantId: null } });
   if (!(await checkPassword(user, req.body.password))) {
     await loginFailures.fail(lockKey);
+    await recordFailure({ ip: ipOf(req), email, endpoint: req.originalUrl });
     audit({ actorType: 'PLATFORM', actorId: user?.id, actorName: email.slice(0, 100), action: 'Platform: başarısız giriş denemesi', ip: clientIp(req) });
     return res.status(401).json({ message: 'Geçersiz e-posta veya şifre.' });
   }
   await loginFailures.reset(lockKey);
+  clearFailures(ipOf(req));
   if (user.twoFactorEnabled) return res.json({ twoFactorRequired: true, challenge: twoFactor.issueChallenge(user) });
   audit({ actorType: 'PLATFORM', actorId: user.id, actorName: user.name, action: 'Platform: giriş yapıldı', ip: clientIp(req) });
   res.json(platformSession(user));

@@ -10,6 +10,7 @@ import { sendVerificationMail, sendPlatformAlert, sendPortalListMail } from '../
 import * as iyzico from '../services/iyzicoService.js';
 import { syncSubscription } from '../services/iyzicoSyncService.js';
 import { comparePasswordTiming, loginFailures, LOCKED_MESSAGE } from '../services/loginGuard.js';
+import { ipOf, recordFailure, clearFailures } from '../services/abuseGuard.js';
 
 const SLUG_RE = /^[a-z0-9](?:[a-z0-9-]{1,28}[a-z0-9])$/;
 const DAY = 24 * 60 * 60 * 1000;
@@ -80,9 +81,11 @@ export const centralLogin = async (req, res) => {
   }
   if (!portals.length) {
     await loginFailures.fail(lockKey);
+    await recordFailure({ ip: ipOf(req), email, endpoint: req.originalUrl });
     return res.status(401).json({ message: 'Geçersiz e-posta veya şifre.' });
   }
   await loginFailures.reset(lockKey);
+  clearFailures(ipOf(req));
   res.json({ portals });
 };
 
