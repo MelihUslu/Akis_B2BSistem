@@ -1,5 +1,4 @@
 import { useState, useEffect } from 'react';
-import GroupVisibility from '../../components/admin/GroupVisibility';
 import api, { errorMessage } from '../../services/api';
 import useAlert from '../../hooks/useAlert';
 import { Section, Field, IconInput, Segmented } from '../../components/form/FormKit';
@@ -414,10 +413,6 @@ const CategoryManagement = () => {
                     <IconInput type="number" icon={Hash} value={formData.sortOrder} onChange={e => setFormData({...formData, sortOrder: e.target.value})} />
                   </Field>
                 </div>
-              </Section>
-
-              <Section icon={Eye} title="Kimler görsün?" description="Kategoriyi (ve alt kategorilerini) yalnızca belirli bayi gruplarına açabilirsiniz." color="violet">
-                <GroupVisibility value={formData.visibleGroups || []} onChange={(visibleGroups) => setFormData({ ...formData, visibleGroups })} />
               </Section>
 
               <Section icon={ImageIcon} title="Kategori Görseli" description="Katalogdaki kategori kartında gösterilir. Kare görsel önerilir." color="rose">

@@ -3,18 +3,16 @@ import { Settings, Percent, Coins, Users, Bell, Save, UserPlus, RefreshCw, Build
 import api, { errorMessage } from '../../services/api';
 import useAlert from '../../hooks/useAlert';
 import { useTenant } from '../../context/TenantContext';
-import TeamSettings from '../../components/settings/TeamSettings';
 import IntegrationSettings from '../../components/settings/IntegrationSettings';
 import PosSettings from '../../components/settings/PosSettings';
 import DomainSettings from '../../components/settings/DomainSettings';
 import InvoiceSettings from '../../components/settings/InvoiceSettings';
 import CargoSettings from '../../components/settings/CargoSettings';
 import SmsSettings from '../../components/settings/SmsSettings';
-import WarehouseSettings from '../../components/settings/WarehouseSettings';
 import DataSettings from '../../components/settings/DataSettings';
 import AuditLogTable from '../../components/shared/AuditLogTable';
 
-const TABS = [['general', 'Genel'], ['team', 'Ekip ve Yetkiler'], ['integration', 'Entegrasyon (ERP)'], ['pos', 'Sanal POS'], ['invoice', 'E-Fatura'], ['cargo', 'Kargo'], ['sms', 'SMS'], ['warehouses', 'Depolar'], ['domain', 'Alan Adı'], ['audit', 'İşlem Kaydı'], ['data', 'Veri & Hesap']];
+const TABS = [['general', 'Genel'], ['integration', 'Entegrasyon (ERP)'], ['pos', 'Sanal POS'], ['invoice', 'E-Fatura'], ['cargo', 'Kargo'], ['sms', 'SMS'], ['domain', 'Alan Adı'], ['audit', 'İşlem Kaydı'], ['data', 'Veri & Hesap']];
 
 // Firma adı, logo ve iletişim bilgileri: giriş ekranında ve panellerde görünür
 const BrandingCard = ({ showAlert }) => {
@@ -93,9 +91,6 @@ const FIELDS = [
   { section: 'Fiyatlandırma', icon: Percent, items: [
     { key: 'qty_discount_threshold', label: 'Miktar indirimi eşiği (adet)', hint: 'Bir kalemde bu miktar ve üzeri alındığında' },
     { key: 'qty_discount_rate', label: 'Miktar indirimi (%)', hint: 'Sepette otomatik uygulanan ekstra indirim' },
-    { key: 'group_discount_STANDART', label: 'STANDART grup iskontosu (%)' },
-    { key: 'group_discount_GOLD', label: 'GOLD grup iskontosu (%)' },
-    { key: 'group_discount_VIP', label: 'VIP grup iskontosu (%)', hint: 'Bayiye özel net iskontonun üzerine uygulanır' },
   ] },
   { section: 'Döviz', icon: Coins, items: [
     { key: 'usd_try', label: 'Manuel USD/TRY', hint: 'Sadece TCMB\'ye ulaşılamazsa kullanılır' },
@@ -109,7 +104,8 @@ const FIELDS = [
   ] },
   { section: 'Prim & Bildirim', icon: Bell, items: [
     { key: 'plasiyer_rate', label: 'Plasiyer prim oranı (%)', hint: 'Onaylanan siparişin KDV hariç tutarı üzerinden' },
-    { key: 'due_reminder_days', label: 'Vade hatırlatma (gün önce)' },
+    { key: 'due_reminder_days', label: 'Vade hatırlatma (gün önce)', hint: 'Sipariş vadesine kaç gün kala bayiye hatırlatılır' },
+    { key: 'cheque_reminder_days', label: 'Çek/senet vade hatırlatma (gün önce)', hint: 'Portföydeki çek/senedin vadesine kaç gün kala finans yetkilisine hatırlatılır' },
   ] },
 ];
 
@@ -305,13 +301,11 @@ const SettingsPage = () => {
         ))}
       </div>
 
-      {tab === 'team' && <TeamSettings showAlert={showAlert} confirm={confirm} />}
       {tab === 'integration' && <IntegrationSettings showAlert={showAlert} confirm={confirm} />}
       {tab === 'pos' && <PosSettings showAlert={showAlert} confirm={confirm} />}
       {tab === 'invoice' && <InvoiceSettings showAlert={showAlert} confirm={confirm} />}
       {tab === 'cargo' && <CargoSettings showAlert={showAlert} />}
       {tab === 'sms' && <SmsSettings showAlert={showAlert} confirm={confirm} />}
-      {tab === 'warehouses' && <WarehouseSettings showAlert={showAlert} confirm={confirm} />}
       {tab === 'domain' && <DomainSettings showAlert={showAlert} confirm={confirm} />}
       {tab === 'data' && <DataSettings showAlert={showAlert} />}
       {tab === 'audit' && (

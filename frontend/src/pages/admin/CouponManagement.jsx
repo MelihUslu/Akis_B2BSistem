@@ -5,14 +5,14 @@ import useAlert from '../../hooks/useAlert';
 import { formatTRY, formatDate } from '../../utils/format';
 import ModalHeader from '../../components/shared/ModalHeader';
 
-const EMPTY = { code: '', description: '', type: 'PERCENT', value: '', minSubtotal: '', startsAt: '', endsAt: '', maxUses: '', scope: 'ALL', companyId: '', dealerGroup: 'GOLD', isActive: true };
+const EMPTY = { code: '', description: '', type: 'PERCENT', value: '', minSubtotal: '', startsAt: '', endsAt: '', maxUses: '', scope: 'ALL', companyId: '', isActive: true };
 
 const toForm = (c) => ({
   ...EMPTY, ...c,
   startsAt: c.startsAt?.slice(0, 10) || '', endsAt: c.endsAt?.slice(0, 10) || '',
   maxUses: c.maxUses ?? '', minSubtotal: c.minSubtotal || '',
-  scope: c.companyId ? 'COMPANY' : c.dealerGroup ? 'GROUP' : 'ALL',
-  companyId: c.companyId || '', dealerGroup: c.dealerGroup || 'GOLD'
+  scope: c.companyId ? 'COMPANY' : 'ALL',
+  companyId: c.companyId || ''
 });
 
 const CouponManagement = () => {
@@ -29,7 +29,7 @@ const CouponManagement = () => {
     const body = {
       ...editing,
       companyId: editing.scope === 'COMPANY' ? editing.companyId : null,
-      dealerGroup: editing.scope === 'GROUP' ? editing.dealerGroup : null
+      dealerGroup: null
     };
     try {
       const res = editing.id ? await api.patch(`/coupons/${editing.id}`, body) : await api.post('/coupons', body);
@@ -50,7 +50,7 @@ const CouponManagement = () => {
   };
 
   const set = (k) => (e) => setEditing({ ...editing, [k]: e.target.type === 'checkbox' ? e.target.checked : e.target.value });
-  const scopeText = (c) => (c.company ? c.company.name : c.dealerGroup ? `${c.dealerGroup} grubu` : 'Tüm bayiler');
+  const scopeText = (c) => (c.company ? c.company.name : 'Tüm bayiler');
 
   return (
     <div className="space-y-6">
@@ -72,13 +72,8 @@ const CouponManagement = () => {
                 <div><label className="premium-label">Bitiş</label><input type="date" className="premium-input" value={editing.endsAt} onChange={set('endsAt')} /></div>
                 <div><label className="premium-label">Toplam Kullanım Sınırı</label><input type="number" min="1" className="premium-input" value={editing.maxUses} onChange={set('maxUses')} placeholder="Sınırsız" /></div>
                 <div><label className="premium-label">Kimler Kullanabilir</label>
-                  <select className="premium-input" value={editing.scope} onChange={set('scope')}><option value="ALL">Tüm bayiler</option><option value="GROUP">Bayi grubu</option><option value="COMPANY">Belirli bayi</option></select>
+                  <select className="premium-input" value={editing.scope} onChange={set('scope')}><option value="ALL">Tüm bayiler</option><option value="COMPANY">Belirli bayi</option></select>
                 </div>
-                {editing.scope === 'GROUP' && (
-                  <div className="col-span-2"><label className="premium-label">Grup</label>
-                    <select className="premium-input" value={editing.dealerGroup} onChange={set('dealerGroup')}>{['STANDART', 'GOLD', 'VIP'].map(g => <option key={g}>{g}</option>)}</select>
-                  </div>
-                )}
                 {editing.scope === 'COMPANY' && (
                   <div className="col-span-2"><label className="premium-label">Bayi</label>
                     <select required className="premium-input" value={editing.companyId} onChange={set('companyId')}><option value="">Seçin</option>{companies.map(c => <option key={c.id} value={c.id}>{c.name}</option>)}</select>

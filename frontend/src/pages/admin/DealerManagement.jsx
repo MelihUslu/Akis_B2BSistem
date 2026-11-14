@@ -173,7 +173,7 @@ const DealerManagement = () => {
               <th className="px-8 py-4 text-[11px] font-black text-gray-500 uppercase tracking-[0.15em] whitespace-nowrap">Kurumsal Kimlik</th>
               <th className="px-8 py-4 text-[11px] font-black text-gray-500 uppercase tracking-[0.15em] whitespace-nowrap">Yetkili</th>
               <th className="px-8 py-4 text-[11px] font-black text-gray-500 uppercase tracking-[0.15em] whitespace-nowrap">Finansal Limitler</th>
-              <th className="px-8 py-4 text-[11px] font-black text-gray-500 uppercase tracking-[0.15em] whitespace-nowrap">Grup & Durum</th>
+              <th className="px-8 py-4 text-[11px] font-black text-gray-500 uppercase tracking-[0.15em] whitespace-nowrap">Durum</th>
               <th className="px-8 py-4 text-[11px] font-black text-gray-500 uppercase tracking-[0.15em] whitespace-nowrap text-right">Aksiyon</th>
             </tr>
           </thead>
@@ -241,9 +241,6 @@ const DealerManagement = () => {
                   })()}
                 </td>
                 <td className="px-8 py-6 space-y-2">
-                  <span className="block w-fit px-2 py-0.5 rounded-md bg-brand-50/70 text-brand-700 text-[11px] font-semibold">
-                    {dealer.dealerGroup}
-                  </span>
                   {getStatusBadge(dealer.status)}
                 </td>
                 <td className="px-8 py-6 text-right">
@@ -329,7 +326,6 @@ const DealerManagement = () => {
                   <h3 className="text-xl font-black tracking-tight truncate">{d.name}</h3>
                   <div className="flex flex-wrap items-center gap-2 mt-1.5">
                     {getStatusBadge(d.status)}
-                    <span className="px-2 py-0.5 rounded-md bg-white/10 text-[11px] font-semibold">{d.dealerGroup} grubu</span>
                     {d.taxNumber && <span className="font-mono text-[11px] text-white/60">VKN {d.taxNumber}</span>}
                     {d.externalCode && <span className="font-mono text-[11px] text-white/60">· Cari {d.externalCode}</span>}
                   </div>
@@ -512,10 +508,6 @@ const DealerManagement = () => {
               </Section>
 
               <Section icon={Wallet} title="Ticari Koşullar" description="Fiyat, limit ve ödeme kuralları bu bayiye özel uygulanır." color="amber">
-                <Field label="Bayi Grubu" hint="Gruba özel fiyat listeleri ve kampanyalar için.">
-                  <Segmented value={formData.dealerGroup} onChange={(v) => setFormData({ ...formData, dealerGroup: v })}
-                    options={[{ value: 'STANDART', label: 'Standart', icon: Users }, { value: 'GOLD', label: 'Gold', icon: Award }, { value: 'VIP', label: 'VIP', icon: Crown }]} />
-                </Field>
                 <Field label="Cari Para Birimi" hint="Bakiye, risk limiti ve ekstre bu para biriminde tutulur. Siparişler TL'dir, cariye sipariş anındaki kurla çevrilerek yazılır. Hareketi olan carinin para birimi değiştirilemez.">
                   <Segmented size="sm" value={formData.currency || 'TRY'} onChange={(v) => setFormData({ ...formData, currency: v })}
                     options={[{ value: 'TRY', label: '₺ TL' }, { value: 'USD', label: '$ USD' }, { value: 'EUR', label: '€ EUR' }]} />

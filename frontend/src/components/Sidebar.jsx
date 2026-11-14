@@ -6,7 +6,7 @@ import { useTenant } from '../context/TenantContext';
 import TenantBrand from './TenantBrand';
 import { can } from '../utils/permissions';
 import { 
-  LayoutDashboard, Package, ShoppingCart, CreditCard, BarChart3, Settings, LogOut, UserCheck, ChevronLeft, ChevronRight, RotateCcw, Crown, FileSignature, TicketPercent, X, BookUser, Inbox, MessageCircle, ChevronDown, Tags, Briefcase, Users, Wallet, FolderTree, Scale, IdCard, UserRound, Contact, MessageSquareText, Mail, Banknote, MapPinned
+  LayoutDashboard, Package, ShoppingCart, CreditCard, BarChart3, Settings, LogOut, UserCheck, ChevronLeft, ChevronRight, RotateCcw, Crown, FileSignature, TicketPercent, X, BookUser, Inbox, MessageCircle, ChevronDown, Tags, Briefcase, Users, Wallet, FolderTree, Scale, IdCard, UserRound, Contact, MessageSquareText, Mail, Banknote, MapPinned, Warehouse, ShieldCheck
 } from 'lucide-react';
 
 // Menü: tek bağlantılar ve açılır gruplar. perm: tek yetki ya da yetkilerden biri yeterli
@@ -17,6 +17,7 @@ const MENU = [
     { name: 'Kategoriler', path: '/admin/categories', icon: FolderTree, perm: 'CATALOG' },
     { name: 'Kampanyalar', path: '/admin/coupons', icon: TicketPercent, perm: 'CATALOG' },
   ] },
+  { name: 'Depo', path: '/admin/warehouse', icon: Warehouse, perm: 'WAREHOUSE' },
   { key: 'sales', name: 'Satış', icon: Briefcase, items: [
     { name: 'Siparişler', path: '/admin/orders', badge: 'orders', icon: ShoppingCart, perm: 'ORDERS' },
     { name: 'Teklifler', path: '/admin/quotes', badge: 'quotes', icon: FileSignature, perm: 'QUOTES' },
@@ -43,6 +44,7 @@ const MENU = [
     { name: 'Personel Alanım', path: '/admin/personel-alanim', icon: UserRound },
   ] },
   { name: 'Raporlar', path: '/admin/reports', icon: BarChart3, perm: ['ORDERS', 'FINANCE'] },
+  { name: 'Ekip ve Yetkiler', path: '/admin/team', icon: ShieldCheck, perm: 'SETTINGS' },
   { name: 'Abonelik', path: '/admin/subscription', icon: Crown, perm: 'SETTINGS' },
 ];
 

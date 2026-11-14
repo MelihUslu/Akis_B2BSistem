@@ -1,5 +1,4 @@
 import { useState, useEffect } from 'react';
-import GroupVisibility from '../../components/admin/GroupVisibility';
 import api, { errorMessage } from '../../services/api';
 import useAlert from '../../hooks/useAlert';
 import VariantEditor from '../../components/admin/VariantEditor';
@@ -172,7 +171,6 @@ const SortableProductRow = ({ product, settings, onEdit, onView, onDelete }) => 
           {stock.toLocaleString('tr-TR')} {product.unit}
         </span>
         {product.reserved > 0 && <span className="block mt-1 text-[11px] font-bold text-orange-600" title="Onay bekleyen siparişlerde ayrılan miktar; bayiye stoktan düşülmüş gösterilir">{product.reserved} ayrıldı (onay bekliyor)</span>}
-        {product.visibleGroups?.length > 0 && <span className="block mt-1 text-[11px] font-bold text-violet-600">Yalnızca {product.visibleGroups.join(', ')}</span>}
       </td>
       <td className="px-10 py-6 text-right">
         <div className="inline-flex items-center gap-1 p-1 rounded-xl bg-white ring-1 ring-gray-100 shadow-sm">
@@ -710,10 +708,6 @@ const ProductManagement = () => {
                     <Field label="Kısa Açıklama" hint="Katalog kartında ürün adının altında görünür.">
                       <IconInput icon={AlignLeft} value={formData.shortDesc || ''} onChange={set('shortDesc')} placeholder="Tek satırlık özet" />
                     </Field>
-                  </Section>
-
-                  <Section icon={Eye} title="Kimler görsün?" description="Ürünü yalnızca belirli bayi gruplarına açabilirsiniz (ör. yalnızca VIP bayiler). Kategoriye verilen kısıt da geçerlidir." color="violet">
-                    <GroupVisibility value={formData.visibleGroups || []} onChange={(visibleGroups) => setFormData({ ...formData, visibleGroups })} />
                   </Section>
 
                   <Section icon={BoxSelect} title="Satış Kuralları" description="Bayinin hangi birimle ve kaçar kaçar sipariş verebileceği." color="violet">

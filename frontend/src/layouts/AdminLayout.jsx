@@ -4,6 +4,7 @@ import { ShieldOff, Menu, LifeBuoy, UserRound, Crown, Settings, LogOut } from 'l
 import { UserMenu } from '../components/shared/HeaderMenu';
 import { headerButtonClass } from '../utils/ui';
 import Sidebar from '../components/Sidebar';
+import Akkus from '../components/assistant/Akkus';
 import NotificationBell from '../components/NotificationBell';
 import GlobalSearch from '../components/GlobalSearch';
 import ThemeToggle from '../components/ThemeToggle';
@@ -33,6 +34,8 @@ const AccountPage = lazy(() => import('../pages/admin/AccountPage'));
 const ReportsPage = lazy(() => import('../pages/admin/ReportsPage'));
 const CashPage = lazy(() => import('../pages/admin/CashPage'));
 const ChequePortfolio = lazy(() => import('../pages/admin/ChequePortfolio'));
+const WarehousePage = lazy(() => import('../pages/admin/WarehousePage'));
+const TeamPage = lazy(() => import('../pages/admin/TeamPage'));
 const VisitReport = lazy(() => import('../pages/admin/VisitReport'));
 const LeadManagement = lazy(() => import('../pages/admin/LeadManagement'));
 const BulkSms = lazy(() => import('../pages/admin/BulkSms'));
@@ -57,8 +60,8 @@ const Guard = ({ perm, children }) => {
 // Destek talebine "hangi ekrandan geldi" bilgisi eklenebilsin diye son ziyaret edilen sayfa saklanır
 const PAGE_NAMES = {
   '/admin': 'Ana Sayfa', '/admin/products': 'Ürün Yönetimi', '/admin/categories': 'Kategoriler', '/admin/dealers': 'Bayi Yönetimi', '/admin/partners': 'Cari Hesaplar',
-  '/admin/orders': 'Siparişler', '/admin/quotes': 'Teklifler', '/admin/returns': 'İade / RMA', '/admin/coupons': 'Kampanyalar',
-  '/admin/finance': 'Finans & Prim', '/admin/cash': 'Gelir-Gider', '/admin/reports': 'Raporlar', '/admin/subscription': 'Abonelik', '/admin/settings': 'Ayarlar', '/admin/account': 'Hesabım'
+  '/admin/orders': 'Siparişler', '/admin/quotes': 'Teklifler', '/admin/returns': 'İade / RMA', '/admin/coupons': 'Kampanyalar', '/admin/warehouse': 'Depo',
+  '/admin/finance': 'Finans & Prim', '/admin/cash': 'Gelir-Gider', '/admin/reports': 'Raporlar', '/admin/team': 'Ekip ve Yetkiler', '/admin/subscription': 'Abonelik', '/admin/settings': 'Ayarlar', '/admin/account': 'Hesabım'
 };
 const useRememberLastPage = () => {
   const location = useLocation();
@@ -140,6 +143,8 @@ const AdminLayout = () => {
               <Route path="reports" element={<Guard perm={['ORDERS', 'FINANCE']}><ReportsPage /></Guard>} />
               <Route path="cash" element={<Guard perm="FINANCE"><CashPage /></Guard>} />
               <Route path="cheques" element={<Guard perm="FINANCE"><ChequePortfolio /></Guard>} />
+              <Route path="warehouse" element={<Guard perm="WAREHOUSE"><WarehousePage /></Guard>} />
+              <Route path="team" element={<Guard perm="SETTINGS"><TeamPage /></Guard>} />
               <Route path="visits" element={<Guard perm="DEALERS"><VisitReport /></Guard>} />
               <Route path="personel" element={<Guard perm={['HR', 'FINANCE']}><HrManagement /></Guard>} />
               <Route path="personel-alanim" element={<StaffArea />} />
@@ -150,6 +155,7 @@ const AdminLayout = () => {
           </ErrorBoundary>
         </main>
       </div>
+      <Akkus />
     </div>
   );
 };
