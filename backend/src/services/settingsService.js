@@ -9,7 +9,8 @@ export const SETTING_DEFAULTS = {
   group_discount_GOLD: '0',
   group_discount_VIP: '0',
   plasiyer_rate: '5',           // Plasiyer primi (% - KDV hariç tutar üzerinden)
-  due_reminder_days: '3',       // Vadeye kaç gün kala hatırlatma gönderilir
+  due_reminder_days: '3',       // Vadeye kaç gün kala (sipariş) hatırlatma gönderilir
+  cheque_reminder_days: '5',    // Elde (portföy / bankada) çek / senedin vadesine kaç gün kala finansa hatırlatılır
   quote_discount_limit: '10',   // Teklifte onaysız verilebilecek en yüksek ek iskonto (%)
   quote_valid_days: '15',       // Yeni teklifin varsayılan geçerlilik süresi (gün)
   quote_payment_terms: '',      // Yeni teklife önerilen ödeme / teslimat koşulları

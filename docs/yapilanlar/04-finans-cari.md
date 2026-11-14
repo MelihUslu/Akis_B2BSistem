@@ -38,6 +38,7 @@ Finans → **Çek / Senet**. Çek ya da senetle alınan tahsilat (cari kartı �
 
 - Cari ekranından tahsilat elle ters kaydedilirse çek "İptal" olur; ciro ödemesi elle ters kaydedilirse çek portföye döner.
 - Özet: elde (portföy + tahsilde) toplam, vadesi geçmiş, 7 gün içinde vadeli, karşılıksız. Durum ve arama süzgeci; her çekin işlem geçmişi.
+- **Vade hatırlatması (13 Kasım):** elde (portföyde / tahsilde) olup vadesi yaklaşan ya da geçen çek / senetler için finans yetkililerine kendiliğinden bildirim — çek vadeden önce bankaya verilsin / tahsil edilsin, karşılıksız kalan gözden kaçmasın. Kaç gün önceden uyarılacağı **Ayarlar → Prim & Bildirim → Çek/senet vade hatırlatma** (varsayılan 5 gün). Her çek için vade başına bir kez (yaklaşınca bir, geçince bir); saatlik zamanlanmış işe eklendi, yalnızca okur — cariye ya da çek durumuna dokunmaz.
 - Aynı çek üzerinde eşzamanlı iki işlemden yalnızca biri yürür.
 - Kurulumda bugüne kadar çek / senetle alınmış, iptal edilmemiş tahsilatlar portföye "Portföyde" olarak eklendi (yalnızca ekleme; tahsilat ve cari değişmedi); gerçek durumları portföyden işaretlenir.
 

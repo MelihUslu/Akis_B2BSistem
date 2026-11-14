@@ -12,7 +12,7 @@ const DB = process.env.TEST_DATABASE_URL;
 const skip = !DB && 'TEST_DATABASE_URL tanımlı değil';
 const SLUG = 'cektest-a';
 
-let server, base, prisma, runAsPlatform, purgeTenant;
+let server, base, prisma, runAsPlatform, runWithTenant, purgeTenant;
 const T = { tokens: {} };
 
 const api = (path, { token = T.tokens.admin, method = 'GET', body } = {}) => fetch(`${base}/api${path}`, {
@@ -36,7 +36,7 @@ before(async () => {
   if (skip) return;
   process.env.DATABASE_URL = DB;
   execSync('npx prisma migrate deploy', { env: { ...process.env, DATABASE_URL: DB }, stdio: 'ignore' });
-  ({ default: prisma, runAsPlatform } = await import('../../src/utils/prisma.js'));
+  ({ default: prisma, runAsPlatform, runWithTenant } = await import('../../src/utils/prisma.js'));
   ({ purgeTenant } = await import('../../src/services/tenantDataService.js'));
   const bcrypt = (await import('bcrypt')).default;
   const { default: app } = await import('../../src/app.js');
@@ -166,4 +166,30 @@ test('liste ve özet; arama; aynı anda iki işlemden yalnızca biri yürür', {
   const search = await api('/cheques?q=mavi');
   assert.deepEqual(search.data.cheques.map((x) => x.number), ['CK-5005']);
   assert.deepEqual((await api('/cheques?status=KARSILIKSIZ')).data.cheques.map((x) => x.number), ['CK-2002']);
+});
+
+test('vadesi yaklaşan / geçen portföy çeki finans yetkilisine hatırlatılır; yetkisiz admin almaz; tekrarında kopya gitmez', { skip }, async () => {
+  const { runChequeReminders } = await import('../../src/services/notificationService.js');
+  const soonC = await chequeOf((await receive({ amount: 400, reference: 'CK-DUE' })).data.payment.id);
+  const lateC = await chequeOf((await receive({ amount: 600, reference: 'CK-LATE' })).data.payment.id);
+  // Vadeleri ayarla: biri yarın (pencere içi), biri 3 gün önce (geçmiş); ikisi de portföyde
+  await P(() => prisma.cheque.update({ where: { id: soonC.id }, data: { dueDate: new Date(Date.now() + 864e5) } }));
+  await P(() => prisma.cheque.update({ where: { id: lateC.id }, data: { dueDate: new Date(Date.now() - 3 * 864e5) } }));
+
+  const owner = await P(() => prisma.user.findFirst({ where: { tenantId: T.id, email: `admin@${SLUG}.test` } }));
+  const clerk = await P(() => prisma.user.findFirst({ where: { tenantId: T.id, email: `clerk@${SLUG}.test` } }));
+  const find = () => P(() => prisma.notification.findMany({ where: { userId: { in: [owner.id, clerk.id] }, dedupeKey: { startsWith: 'cheque-' } } }));
+  await P(() => prisma.notification.deleteMany({ where: { userId: { in: [owner.id, clerk.id] }, dedupeKey: { startsWith: 'cheque-' } } }));
+
+  await runWithTenant(T.id, () => runChequeReminders());
+  const notifs = await find();
+  const ownerNotifs = notifs.filter((n) => n.userId === owner.id);
+  assert.equal(ownerNotifs.length, 2, 'finans yetkilisi (isOwner) iki hatırlatma alır');
+  assert.equal(notifs.filter((n) => n.userId === clerk.id).length, 0, 'yalnız ORDERS yetkili admin finans hatırlatması almaz');
+  assert.deepEqual(ownerNotifs.map((n) => n.dedupeKey).sort(), [`cheque-due:${soonC.id}:u${owner.id}`, `cheque-overdue:${lateC.id}:u${owner.id}`].sort());
+  assert.ok(ownerNotifs.some((n) => /yaklaşıyor/.test(n.title)) && ownerNotifs.some((n) => /geçti/.test(n.title)), 'biri "yaklaşıyor" biri "geçti"');
+
+  // İkinci çalıştırma kopya üretmez (dedupe)
+  await runWithTenant(T.id, () => runChequeReminders());
+  assert.equal((await find()).filter((n) => n.userId === owner.id).length, 2, 'tekrar çalışınca kopya hatırlatma gitmez');
 });

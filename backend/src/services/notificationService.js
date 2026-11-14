@@ -10,6 +10,7 @@ import { trackJob, cleanupMonitoring, startMetricsFlush } from './monitoring.js'
 import { sendDailyDigestIfDue } from './monitoringReport.js';
 import { pushToUsers } from './pushService.js';
 import { accessFor, isVisibleTo } from './catalogAccess.js';
+import { formatMoney } from './money.js';
 
 // E-posta için firma bilgisi (ad, portal adresi); kısa süreli önbellek
 const tenantCache = new Map();
@@ -197,6 +198,42 @@ export const runPartnerReminders = async () => {
   }
 };
 
+/**
+ * Elde (portföyde / bankada) olup vadesi yaklaşan ya da geçen çek / senetler için finans yetkililerine hatırlatma:
+ * çek vadeden önce bankaya verilsin / tahsil edilsin, karşılıksız kalan gözden kaçmasın. Her çek için vade başına bir
+ * kez (yaklaşınca bir, geçince bir; dedupeKey). Yalnızca okur — cariye ya da çek durumuna dokunmaz.
+ */
+export const runChequeReminders = async () => {
+  const settings = await getSettingsMap();
+  const days = num(settings.cheque_reminder_days, num(settings.due_reminder_days, 5));
+  const now = new Date();
+  const horizon = new Date(now.getTime() + days * 24 * 60 * 60 * 1000);
+
+  const cheques = await prisma.cheque.findMany({
+    where: { status: { in: ['PORTFOY', 'BANKADA'] }, dueDate: { lte: horizon } },
+    select: { id: true, kind: true, number: true, amount: true, currency: true, dueDate: true, status: true, company: { select: { name: true } } }
+  });
+
+  for (const c of cheques) {
+    const overdue = c.dueDate < now;
+    const kind = c.kind === 'NOTE' ? 'Senet' : 'Çek';
+    const where = c.status === 'PORTFOY' ? 'portföyde' : 'tahsilde';
+    const no = c.number ? ` no ${c.number}` : '';
+    const dateText = c.dueDate.toLocaleDateString('tr-TR');
+    const money = formatMoney(c.amount, c.currency);
+    await notifyAdmins({
+      type: 'PAYMENT',
+      anyPermission: ['FINANCE'],
+      title: overdue ? `${kind} vadesi geçti` : `${kind} vadesi yaklaşıyor`,
+      message: overdue
+        ? `${c.company.name} — ${kind}${no}, vade ${dateText} (${where}), ${money}. ${c.status === 'PORTFOY' ? 'Hâlâ portföyde; tahsile verin ya da takip edin.' : 'Hâlâ tahsil edilmemiş; takip edin.'}`
+        : `${c.company.name} — ${kind}${no}, vade ${dateText} (${where}), ${money}.`,
+      link: '/admin/cheques',
+      dedupeKey: `${overdue ? 'cheque-overdue' : 'cheque-due'}:${c.id}`
+    });
+  }
+};
+
 // Deneme süresi bitmek üzere olan kiracıların yöneticilerine 3 gün ve 1 gün kala hatırlatma
 const runTrialReminders = async (tenant) => {
   if (tenant.status !== 'TRIAL' || !tenant.trialEndsAt) return;
@@ -242,6 +279,7 @@ export const runScheduledJobs = async () => {
     if (!tenantAccess(tenant).active) continue;
     await runWithTenant(tenant.id, async () => {
       await runDueDateReminders();
+      await runChequeReminders();
       await runPartnerReminders();
       await runTrialReminders(tenant);
       await runRenewalReminders(tenant);
