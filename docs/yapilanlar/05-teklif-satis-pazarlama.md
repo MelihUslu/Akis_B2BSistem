@@ -83,3 +83,14 @@ Müşteriler → **Toplu E-posta** ("Toplu e-posta" yetkisi). Alıcı seçimi To
 | `321bb9a` | 2 Kasım | WhatsApp entegrasyonu |
 | `a8e2226` | 4 Kasım | Plasiyer paneli, bayi adına sipariş |
 | `fc4be5c` | 6 Kasım | Toplu SMS |
+
+## Akkuş — panel asistanı (14 Kasım)
+
+Yönetim panelinin sağ altında açılan konuşan asistan **"Akkuş"** (yalnız yöneticiler). Mevcut Claude katmanını (`ai/`, yapılandırılmış JSON) kullanır; yeni bağımlılık/sağlayıcı yok.
+
+- **Ne yapar:** bilgi/özet verir (panel durumundan: bu ay ciro, bekleyen sipariş, düşük stok, bayi sayısı), ilgili **ekrana götürür**, ve komutla işlem hazırlar: **gelir-gider ekle, ürün ekle, bayi ekle, kategori ekle** (her biri ilgili yetkiye bağlı). İşlemler genel bir kayıt defterinden (`ACTIONS`) gelir — yeni işlem eklemek tek satır (yetki, uç, alanlar); sistem istemi, doğrulama ve testler otomatik kapsar, ön yüz değişmez.
+- **Sisteme hâkim + otomatik güncel:** sistem istemi her sohbette (1) **tüm yetki alanlarını** (`PERMISSIONS`, her modülün açıklaması + kullanıcının yetkisi) ve (2) soruya göre seçilmiş **yardım merkezi makalelerini** (gövdesiyle) içerir. Böylece Akkuş her modülü tanır ve "nasıl yapılır" sorularını gerçek yardım içeriğinden anlatır. **Yeni modül geldiğinde** elle eğitim gerekmez: yeni yetki eklenince alan listesine, yardım yazısı eklenince de anlatımına kendiliğinden girer (yardım merkezi tüm firmalarda ortak). Navigasyon için controller'daki `ROUTES` listesine yeni ekran eklenir.
+- **Güvenli:** yazma işlemlerini Akkuş çalıştırmaz; bir **onay kartı** gösterir, kullanıcı "Uygula" deyince mevcut uçlara (`POST /cash`, `POST /products`) gönderilir — tüm doğrulama/yetki orada korunur. Akkuş yalnız kullanıcının **yetkisi olan** işlemi önerir (FINANCE / CATALOG); kullanıcı metni veridir, içindeki talimatlar uygulanmaz (enjeksiyon koruması). Günlük AI kotası (`consumeAiQuota`) geçerli.
+- **Ses:** tarayıcı Web Speech API ile **mikrofon → metin** ve **sesli yanıt** (TTS, kapatılabilir). Chrome/Android tam; iOS Safari'de konuşma tanıma değişken.
+- Uçlar: `POST /assistant/chat`, `GET /assistant/status`. Bileşen: `components/assistant/Akkus.jsx` (AdminLayout'ta).
+- Sonraki faz: daha çok işlem türü (bayi/teklif), daha zengin veri sorgusu, akış (streaming).
