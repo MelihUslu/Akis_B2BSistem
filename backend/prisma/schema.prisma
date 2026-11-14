@@ -296,6 +296,8 @@ model Product {
   orderItems      OrderItem[]
   stockAlerts     StockAlert[]
   warehouseStocks WarehouseStock[]
+  binStocks       BinStock[]
+  stockMovements  StockMovement[]
   returnRequests  ReturnRequest[]
   // Özel varyant tanımı: ana üründe özellikler (Gramaj, Ambalaj...), varyantta seçilen değerler
   options         ProductOption[]
@@ -400,6 +402,8 @@ model Warehouse {
   isDefault Boolean          @default(false)
   createdAt DateTime         @default(now())
   stocks    WarehouseStock[]
+  bins      WarehouseBin[]
+  movements StockMovement[]
   orders    Order[]
 
   @@unique([tenantId, code])
@@ -753,6 +757,9 @@ model Tenant {
   deliveryAddresses      DeliveryAddress[]
   warehouses             Warehouse[]
   warehouseStocks        WarehouseStock[]
+  warehouseBins          WarehouseBin[]
+  binStocks              BinStock[]
+  stockMovements         StockMovement[]
   webhookDeliveries      WebhookDelivery[]
   // Firmaya özel alan adı (örn. b2b.firmasi.com) — DNS TXT kaydı ile doğrulanır
   customDomain           String?           @unique
@@ -1960,4 +1967,69 @@ model Visit {
 
   @@index([tenantId, userId, status, plannedFor])
   @@index([tenantId, companyId, doneAt])
+}
+
+// ─── Depo yönetimi (WMS) ─────────────────────────────────────────────────────
+// Stok hareket defteri: her stok değişikliği buraya yazılır. stockService tüm değişiklikleri buradan geçirir; böylece
+// sipariş, transfer, düzeltme, sayım, ERP senkronu ve iade hareketleri tek defterde izlenir. Yalnızca eklenir (silinmez).
+model StockMovement {
+  id            Int           @id @default(autoincrement())
+  tenantId      Int
+  tenant        Tenant        @relation(fields: [tenantId], references: [id])
+  productId     Int
+  product       Product       @relation(fields: [productId], references: [id])
+  warehouseId   Int? // Depo tanımlı değilse null (tek toplam stok)
+  warehouse     Warehouse?    @relation(fields: [warehouseId], references: [id])
+  binId         Int? // Raf / göz (varsa)
+  bin           WarehouseBin? @relation(fields: [binId], references: [id])
+  delta         Int // + giriş, − çıkış
+  balanceAfter  Int? // Hareket sonrası depo (depo yoksa ürün) miktarı
+  type          String // IN, OUT, ADJUST, COUNT, TRANSFER_IN, TRANSFER_OUT, ORDER_OUT, ORDER_CANCEL_IN, RETURN_IN, ERP_SET, INITIAL
+  reason        String?
+  refType       String? // ORDER, RETURN, TRANSFER, ERP, MANUAL, COUNT
+  refId         Int?
+  userId        Int?
+  createdByName String?
+  createdAt     DateTime      @default(now())
+
+  @@index([tenantId, productId, createdAt])
+  @@index([tenantId, warehouseId, createdAt])
+  @@index([tenantId, createdAt])
+}
+
+// Depo içi raf / göz (konum). WMS'te ürünün nerede durduğunu ve barkodla toplamayı sağlar. Opsiyonel katman:
+// depo toplam stoğunu değiştirmez, yalnızca deponun içinde nerede olduğunu izler.
+model WarehouseBin {
+  id          Int             @id @default(autoincrement())
+  tenantId    Int
+  tenant      Tenant          @relation(fields: [tenantId], references: [id])
+  warehouseId Int
+  warehouse   Warehouse       @relation(fields: [warehouseId], references: [id])
+  code        String // Raf kodu (barkodla okunur), ör. A-01-03
+  name        String? // Açıklama (ör. "Giriş kat, A koridoru")
+  isDefault   Boolean         @default(false) // Yeni mal girişinin varsayılan yerleştirileceği raf
+  createdAt   DateTime        @default(now())
+  stocks      BinStock[]
+  movements   StockMovement[]
+
+  @@unique([warehouseId, code])
+  @@index([tenantId])
+  @@index([warehouseId])
+}
+
+// Raf bazında ürün miktarı. Deponun içindeki yerleşim; toplamı o depodaki WarehouseStock.quantity'yi aşmamalı.
+// Yerleştirilmemiş kalan = WarehouseStock.quantity − o depodaki rafların toplamı.
+model BinStock {
+  id        Int          @id @default(autoincrement())
+  tenantId  Int
+  tenant    Tenant       @relation(fields: [tenantId], references: [id])
+  binId     Int
+  bin       WarehouseBin @relation(fields: [binId], references: [id])
+  productId Int
+  product   Product      @relation(fields: [productId], references: [id])
+  quantity  Int          @default(0)
+
+  @@unique([binId, productId])
+  @@index([tenantId])
+  @@index([productId])
 }

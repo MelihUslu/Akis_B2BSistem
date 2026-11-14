@@ -1,6 +1,7 @@
 // Backend'deki yetkilerle aynı. Firma sahibi (isOwner) hepsine sahiptir.
 export const PERMISSION_LABELS = {
   CATALOG: 'Katalog',
+  WAREHOUSE: 'Depo',
   ORDERS: 'Siparişler',
   QUOTES: 'Teklifler',
   QUOTE_PRICING: 'Teklif fiyatı / iskonto',

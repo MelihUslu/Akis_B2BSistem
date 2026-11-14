@@ -448,6 +448,7 @@ export class ApprovalError extends Error {}
 export const decideOrder = async (tenant, orderId, itemStatuses, { warehouseId: requestedWarehouse, auto = false, cancelledBy = 'ADMIN' } = {}) => {
   const settings = await getSettingsMap();
   const restockedIds = [];
+  const stockChanges = []; // ERP / dış depo senkronu: siparişten stoğu değişen ürünler (işlem sonrası stock.changed)
 
   const result = await prisma.$transaction(async (tx) => {
     // Sipariş satırı kilitlenir: aynı siparişin iki onayı (iki yönetici ya da çift tıklama) sırayla işlenir;
@@ -497,15 +498,17 @@ export const decideOrder = async (tenant, orderId, itemStatuses, { warehouseId: 
 
       if (status === 'APPROVED' && !item.isStockDeducted) {
         // Koşullu düşüş: üstteki kontrolden sonra başka bir onay stoğu harcadıysa burada yakalanır
-        const usedWarehouse = await adjustStock(tx, item.productId, -item.quantity, warehouseId).catch((e) => {
+        const usedWarehouse = await adjustStock(tx, item.productId, -item.quantity, warehouseId, { type: 'ORDER_OUT', refType: 'ORDER', refId: order.id, reason: `Sipariş #AK-${order.id} onayı` }).catch((e) => {
           if (e instanceof StockError) throw new ApprovalError(`Yetersiz stok: ${item.product.name} (stok: ${e.available}, istenen: ${item.quantity}). Bu kalemi iptal edin veya stok girin.`);
           throw e;
         });
         await tx.orderItem.update({ where: { id: item.id }, data: { status, isStockDeducted: true, stockWarehouseId: usedWarehouse } });
+        stockChanges.push({ productId: item.productId, warehouseId: usedWarehouse, delta: -item.quantity, type: 'ORDER_OUT' });
       } else if (status === 'CANCELLED' && item.isStockDeducted) {
-        await adjustStock(tx, item.productId, item.quantity, item.stockWarehouseId);
+        await adjustStock(tx, item.productId, item.quantity, item.stockWarehouseId, { type: 'ORDER_CANCEL_IN', refType: 'ORDER', refId: order.id, reason: `Sipariş #AK-${order.id} kalem iptali` });
         await tx.orderItem.update({ where: { id: item.id }, data: { status, isStockDeducted: false, stockWarehouseId: null } });
         restockedIds.push(item.productId);
+        stockChanges.push({ productId: item.productId, warehouseId: item.stockWarehouseId, delta: item.quantity, type: 'ORDER_CANCEL_IN' });
       } else {
         await tx.orderItem.update({ where: { id: item.id }, data: { status } });
       }
@@ -595,6 +598,15 @@ export const decideOrder = async (tenant, orderId, itemStatuses, { warehouseId: 
   }));
   safeNotify(notifyRestocked(restockedIds));
   emitEvent(tenant.id, 'order.updated', orderEvent(updatedOrder));
+  // ERP / dış depo senkronu: stoğu değişen her ürünün güncel toplamını bildir (ürün başına son durum)
+  if (stockChanges.length) {
+    const byProduct = new Map(stockChanges.map((c) => [c.productId, c]));
+    const prods = new Map((await prisma.product.findMany({ where: { id: { in: [...byProduct.keys()] } }, select: { id: true, sku: true, stock: true } })).map((p) => [p.id, p]));
+    for (const c of byProduct.values()) {
+      const p = prods.get(c.productId);
+      emitEvent(tenant.id, 'stock.changed', { productId: c.productId, sku: p?.sku || null, warehouseId: c.warehouseId ?? null, quantity: p?.stock ?? null, delta: c.delta, type: c.type, reason: `Sipariş #AK-${orderId}` });
+    }
+  }
   if (['APPROVED', 'PARTIAL_APPROVED'].includes(updatedOrder.status)) autoInvoice(tenant, updatedOrder.id, 'APPROVED');
   return { updatedOrder, changed };
 };

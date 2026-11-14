@@ -45,7 +45,8 @@ const TENANT_MODELS = new Set([
   'PartnerNote', 'PartnerDocument', 'StatementRequest', 'CustomerLead', 'WhatsappChannel', 'WaConversation', 'WaMessage', 'PeriodicReport', 'CashEntry', 'CashRecurring', 'TransferNotice',
   'OrderShipment', 'DealerTarget',
   'Employee', 'LeaveRequest', 'StaffClaim', 'StaffTarget', 'StaffAnnouncement', 'StaffPayment',
-  'SmsCampaign', 'SmsCampaignRecipient', 'MailCampaign', 'MailCampaignRecipient', 'EmailOptOut', 'OrderRequest', 'Cheque', 'Visit'
+  'SmsCampaign', 'SmsCampaignRecipient', 'MailCampaign', 'MailCampaignRecipient', 'EmailOptOut', 'OrderRequest', 'Cheque', 'Visit',
+  'StockMovement', 'WarehouseBin', 'BinStock'
 ]);
 
 const WHERE_OPERATIONS = new Set([

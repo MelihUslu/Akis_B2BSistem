@@ -136,12 +136,17 @@ export const updateReturn = async (req, res) => {
         });
       }
       if (firstApproval && (restock === true || restock === 'true')) {
-        await adjustStock(tx, existing.productId, existing.quantity, existing.orderItem?.stockWarehouseId);
+        await adjustStock(tx, existing.productId, existing.quantity, existing.orderItem?.stockWarehouseId, { type: 'RETURN_IN', refType: 'RETURN', refId: id, reason: `İade #RMA-${id} stoğa geri alındı` });
       }
       return tx.returnRequest.findUnique({ where: { id } });
     });
 
-    if (firstApproval && (restock === true || restock === 'true')) safeNotify(notifyRestocked([existing.productId]));
+    if (firstApproval && (restock === true || restock === 'true')) {
+      safeNotify(notifyRestocked([existing.productId]));
+      // ERP / dış depo senkronu: iade stoğa döndü, güncel toplamı bildir
+      const p = await prisma.product.findUnique({ where: { id: existing.productId }, select: { sku: true, stock: true } });
+      emitEvent(req.tenant.id, 'stock.changed', { productId: existing.productId, sku: p?.sku || null, warehouseId: existing.orderItem?.stockWarehouseId ?? null, quantity: p?.stock ?? null, delta: existing.quantity, type: 'RETURN_IN', reason: `İade #RMA-${id}` });
+    }
 
     const statusText = { APPROVED: 'onaylandı', REJECTED: 'reddedildi', COMPLETED: 'tamamlandı' }[status];
     safeNotify(notifyCompany(existing.companyId, {

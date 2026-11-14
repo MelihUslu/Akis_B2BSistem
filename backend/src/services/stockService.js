@@ -34,41 +34,76 @@ export class StockError extends Error {
 }
 
 /**
+ * Stok hareket defterine (StockMovement) tek satır yazar. adjustStock içinden çağrılır; depo yönetimi (WMS) için
+ * her giriş / çıkış / transfer / sipariş / iade burada izlenir. meta: { type, reason, refType, refId, userId,
+ * createdByName, binId }. delta 0 ise kayıt atılmaz. İşlem (tx) içinde çalışır; stok değişimiyle aynı anda yazılır.
+ */
+const recordMovement = async (tx, { productId, warehouseId, delta, balanceAfter, meta }) => {
+  if (!delta) return;
+  await tx.stockMovement.create({
+    data: {
+      productId,
+      warehouseId: warehouseId ?? null,
+      binId: meta?.binId ?? null,
+      delta,
+      balanceAfter: balanceAfter ?? null,
+      type: meta?.type || (delta >= 0 ? 'IN' : 'OUT'),
+      reason: meta?.reason || null,
+      refType: meta?.refType || null,
+      refId: meta?.refId ?? null,
+      userId: meta?.userId ?? null,
+      createdByName: meta?.createdByName || null
+    }
+  });
+};
+
+/**
  * Stoğu artırır / azaltır (delta). Kullanılan deponun id'sini döndürür (depo yoksa null).
  * Azaltma koşulludur: "stok >= miktar" değilse hiç düşülmez ve StockError atılır. Koşul UPDATE içinde
  * değerlendirildiği için (satır kilitlenir) aynı anda gelen iki onay aynı stoğu ikisi birden harcayamaz.
  * Depolu firmada önce ürün satırı güncellenir (kilit sırası hep ürün → depo), böylece eşzamanlı transferler
  * birbirini kilitlemez. Birden fazla ürün işlenecekse çağıran taraf ürün id sırasıyla çağırmalıdır.
+ * meta verilirse hareket defterine kayıt düşülür (tip, sebep, referans); verilmezse tipi delta yönünden belirlenir.
  */
-export const adjustStock = async (tx, productId, delta, warehouseId = null) => {
+export const adjustStock = async (tx, productId, delta, warehouseId = null, meta = null) => {
   const qty = Math.abs(delta);
   const w = await targetWarehouse(tx, warehouseId);
+  let balanceAfter = null;
   if (!w) {
     if (delta >= 0) {
-      await tx.product.update({ where: { id: productId }, data: { stock: { increment: qty } } });
-      return null;
-    }
-    const res = await tx.product.updateMany({ where: { id: productId, stock: { gte: qty } }, data: { stock: { decrement: qty } } });
-    if (res.count === 0) {
+      const p = await tx.product.update({ where: { id: productId }, data: { stock: { increment: qty } }, select: { stock: true } });
+      balanceAfter = p.stock;
+    } else {
+      const res = await tx.product.updateMany({ where: { id: productId, stock: { gte: qty } }, data: { stock: { decrement: qty } } });
+      if (res.count === 0) {
+        const p = await tx.product.findUnique({ where: { id: productId }, select: { stock: true } });
+        throw new StockError(productId, qty, p?.stock);
+      }
       const p = await tx.product.findUnique({ where: { id: productId }, select: { stock: true } });
-      throw new StockError(productId, qty, p?.stock);
+      balanceAfter = p?.stock ?? null;
     }
+    await recordMovement(tx, { productId, warehouseId: null, delta, balanceAfter, meta });
     return null;
   }
   await tx.product.update({ where: { id: productId }, data: { stock: { increment: delta } } });
   if (delta >= 0) {
-    await tx.warehouseStock.upsert({
+    const row = await tx.warehouseStock.upsert({
       where: { warehouseId_productId: { warehouseId: w.id, productId } },
       create: { warehouseId: w.id, productId, quantity: qty },
-      update: { quantity: { increment: qty } }
+      update: { quantity: { increment: qty } },
+      select: { quantity: true }
     });
-    return w.id;
+    balanceAfter = row.quantity;
+  } else {
+    const res = await tx.warehouseStock.updateMany({ where: { warehouseId: w.id, productId, quantity: { gte: qty } }, data: { quantity: { decrement: qty } } });
+    if (res.count === 0) {
+      const row = await tx.warehouseStock.findUnique({ where: { warehouseId_productId: { warehouseId: w.id, productId } } });
+      throw new StockError(productId, qty, row?.quantity);
+    }
+    const row = await tx.warehouseStock.findUnique({ where: { warehouseId_productId: { warehouseId: w.id, productId } }, select: { quantity: true } });
+    balanceAfter = row?.quantity ?? null;
   }
-  const res = await tx.warehouseStock.updateMany({ where: { warehouseId: w.id, productId, quantity: { gte: qty } }, data: { quantity: { decrement: qty } } });
-  if (res.count === 0) {
-    const row = await tx.warehouseStock.findUnique({ where: { warehouseId_productId: { warehouseId: w.id, productId } } });
-    throw new StockError(productId, qty, row?.quantity);
-  }
+  await recordMovement(tx, { productId, warehouseId: w.id, delta, balanceAfter, meta });
   return w.id;
 };
 

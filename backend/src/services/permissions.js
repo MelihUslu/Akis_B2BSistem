@@ -1,6 +1,7 @@
 // Firma (kiracı) içi yönetici yetkileri. Firma sahibi (isOwner) tüm yetkilere sahiptir.
 export const PERMISSIONS = {
   CATALOG: 'Ürünler, kategoriler, özel fiyatlar, kampanyalar',
+  WAREHOUSE: 'Depo yönetimi: stok giriş/çıkış, sayım, raf/göz, depolar arası transfer, sipariş toplama',
   ORDERS: 'Siparişler, iadeler, tekliften sipariş oluşturma',
   QUOTES: 'Teklif hazırlama, gönderme ve paylaşma',
   QUOTE_PRICING: 'Teklifte iskonto ve elle fiyat (onay sınırına kadar)',

@@ -67,6 +67,18 @@ Bayinin gördüğü fiyat tek bir fiyat motorundan (`pricingService`) çıkar. S
 - Depolar arası transfer; Excel'de "Depo" sütunu, ERP'de depo kodu.
 - Bütün stok değişiklikleri tek servisten (`stockService`) geçer.
 
+## Depo yönetimi — WMS (13 Kasım)
+
+Sol menüde ayrı **Depo** ekranı (`/admin/warehouse`); yeni **"Depo" yetkisi** ile depo sorumlusu personele yalnız bu ekran açılır (fiyat/cari görmez). Depo tanımı da bu ekranın Depolar sekmesinde (Ayarlar'daki tekrar Depolar sekmesi kaldırıldı). Sekmeler:
+
+- **Stok & Hareketler:** elle **stok girişi / çıkışı** (mal kabul, fire — sebepli), **sayım** (fiili miktar girilir, fark düzeltme olarak işlenir), **depolar arası transfer**. Altında **stok hareket defteri**: her giriş/çıkış/transfer/sayım/**sipariş**/iade tarih, miktar, kalan, depo, raf, sebep ve kim yaptığıyla listelenir; ürün/depo/tip/tarih süzgeci. Defter `stockService` içinden otomatik yazılır — sipariş onayı ve iade dahil her stok değişimi düşer.
+- **Raflar (göz/bin):** depo içinde raf tanımı (barkodla okunur kod), ürünü **rafa yerleştirme** (yerleştirilmemiş stoğu aşamaz), **raftan rafa taşıma**, raf içeriği. Raf yerleşimi deponun toplam stoğunu değiştirmez; yalnızca "nerede duruyor"u izler.
+- **Toplama:** onaylanmış, sevk bekleyen siparişler toplama listesi olarak; her kalem için ürün, barkod, miktar ve (varsa) hangi rafta durduğu. Sevkiyat mevcut akışıyla sürer (liste salt okunur).
+- **Ara / Barkod:** barkod / stok kodu / raf kodu okutma → ürünse depo+raf dağılımı, rafsa içeriği; **düşük stok** (eşik altı) listesi. Kod elle yazılır, **fiziksel barkod okuyucuyla** okutulur ya da **telefon/tablet kamerasıyla** taranır (`@zxing/browser`; stok girişi / sayım gibi ürün seçicilerde de kamera düğmesi var).
+- **İki yönlü ERP akışı:** stok değişince `stock.changed` webhook'u dışarı gider — **el ile giriş/çıkış, sayım, transfer ve sipariş onayı / iptali / iade** dahil (güncel toplam, depo, sebep). ERP mevcut `PUT /products/stock` ucuyla depo bazında stok yazar (iki yön mevcut ERP API + webhook üstünden).
+- Yeni modeller: `StockMovement` (hareket defteri), `WarehouseBin` (raf), `BinStock` (raf stoğu). Firmalar arası ilişki tetikleyicileri bu tablolara da eklendi.
+- **Düzeltme:** Caddy `Permissions-Policy` başlığı kamerayı ve konumu tüm origin'lere kapatıyordu (`camera=()`, `geolocation=()`); `self`'e açıldı. Böylece kamera barkod okutma (bayi hızlı sipariş + depo) ve saha ziyareti konumu canlıda çalışır.
+
 ## İadeler
 
 Bayi iade / değişim talebi açar, yönetici karar verir. Onaylanan iade stoğa (aynı depoya) ve cariye işlenir.

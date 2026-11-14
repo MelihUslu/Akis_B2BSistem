@@ -251,6 +251,9 @@ const purgeTenantRecords = (tenantId) => runAsPlatform(() => prisma.$transaction
   await tx.visit.deleteMany(w);
   await tx.orderItem.deleteMany(w);
   await tx.order.deleteMany(w);
+  await tx.stockMovement.deleteMany(w);
+  await tx.binStock.deleteMany(w);
+  await tx.warehouseBin.deleteMany(w);
   await tx.warehouse.deleteMany(w);
   await tx.specialPrice.deleteMany(w);
   await tx.productCompatibility.deleteMany(w);

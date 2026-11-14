@@ -14,7 +14,8 @@ export const WEBHOOK_EVENTS = {
   'quote.sent': 'Teklif müşteriye gönderildi',
   'quote.accepted': 'Müşteri teklifi kabul etti',
   'return.created': 'Yeni iade / değişim talebi',
-  'invoice.issued': 'Sipariş faturası kesildi'
+  'invoice.issued': 'Sipariş faturası kesildi',
+  'stock.changed': 'Ürün stoğu değişti (depo giriş/çıkış, sayım, transfer, sipariş)'
 };
 
 // Bildirim gönderilmeyecek adres blokları: özel ağ, geri döngü, bağlantı yerel, paylaşımlı (CGNAT), çoklu yayın,
