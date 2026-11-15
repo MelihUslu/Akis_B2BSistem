@@ -35,7 +35,11 @@ export const createWarehouse = async (req, res) => {
       const w = await tx.warehouse.create({ data: { ...data, isDefault: isFirst || Boolean(req.body.isDefault) } });
       if (isFirst) {
         const products = await tx.product.findMany({ where: { stock: { not: 0 } }, select: { id: true, stock: true } });
-        if (products.length) await tx.warehouseStock.createMany({ data: products.map((p) => ({ warehouseId: w.id, productId: p.id, quantity: p.stock })) });
+        if (products.length) {
+          await tx.warehouseStock.createMany({ data: products.map((p) => ({ warehouseId: w.id, productId: p.id, quantity: p.stock })) });
+          // Açılış stoğu hareket defterine de yazılır; böylece "hareketlerin toplamı = güncel stok" baştan tutar
+          await tx.stockMovement.createMany({ data: products.map((p) => ({ productId: p.id, warehouseId: w.id, delta: p.stock, balanceAfter: p.stock, type: 'INITIAL', refType: 'INITIAL', reason: 'Açılış stoğu (ilk depo)', createdByName: req.user?.name || null })) });
+        }
       }
       return w;
     }, { timeout: 60000 });

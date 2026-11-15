@@ -69,6 +69,9 @@ after(async () => {
 test('ilk depo açılınca stok taşınır; manuel giriş/çıkış stoğu ve hareket defterini günceller', { skip }, async () => {
   assert.equal(await wsQty(T.w1, T.product), 100, 'ilk depoya 100 taşındı');
   assert.equal(await prodStock(T.product), 100);
+  // Açılış stoğu hareket defterine INITIAL olarak yazıldı (defter baştan tutar)
+  const initial = await P(() => prisma.stockMovement.findFirst({ where: { tenantId: T.id, productId: T.product, type: 'INITIAL' } }));
+  assert.ok(initial && initial.delta === 100, 'açılış stoğu INITIAL hareketi yazıldı');
 
   const inRes = await api('/warehouses/adjust', { token: T.tokens.depo, method: 'POST', body: { productId: T.product, warehouseId: T.w1, quantity: 50, direction: 'IN', reason: 'Mal kabul' } });
   assert.equal(inRes.status, 200, inRes.data?.message);
